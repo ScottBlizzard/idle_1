@@ -1,0 +1,31 @@
+# 大文件 / 论文 PDF（不进版本库，也不必同步到服务器）
+*.pdf
+
+# 蓝图备份
+*.v1-backup.md
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.ipynb_checkpoints/
+.venv/
+venv/
+
+# 实验产物（在服务器上生成，不回传）
+data/
+outputs/
+results/
+runs/
+wandb/
+checkpoints/
+*.pt
+*.pth
+*.ckpt
+*.npy
+*.npz
+*.log
+
+# 系统
+.DS_Store
+Thumbs.db
