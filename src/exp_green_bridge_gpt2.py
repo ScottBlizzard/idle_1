@@ -133,6 +133,7 @@ PROTOCOL_FILES = (
     "analysis/GPTPRO_GREEN_GATE08_DECISION_20260805.md",
     "analysis/GREEN_SERVER_GATE08_V12_20260805.md",
     "analysis/GPTPRO_GREEN_GATE08_V12_DECISION_20260805.md",
+    "analysis/GREEN_V13_HASH_CORRIGENDUM_REQUEST_20260806.md",
     "requirements-green-bridge.lock",
 )
 EXPECTED_PACKAGES = {
@@ -1851,10 +1852,13 @@ def energy_item(model, tokenizer, suffix_ids, U_np, radii, record, device, ancho
 
 def append_journal(path: Path, row: dict) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
+    created = not path.exists()
     with path.open("a", encoding="utf-8", newline="\n") as handle:
         handle.write(json.dumps(row, sort_keys=True, allow_nan=False) + "\n")
         handle.flush()
         os.fsync(handle.fileno())
+    if created:
+        _fsync_parent(path)
 
 
 def read_journal(path: Path) -> list[dict]:
@@ -1871,7 +1875,12 @@ def write_parquet(path: Path, rows: list[dict]) -> None:
         for key, value in row.items():
             record[key] = canonical_json(value) if isinstance(value, (dict, list)) else value
         flattened.append(record)
-    pd.DataFrame(flattened).to_parquet(path, index=False, engine="pyarrow")
+    temporary = path.with_suffix(path.suffix + ".tmp")
+    pd.DataFrame(flattened).to_parquet(temporary, index=False, engine="pyarrow")
+    with temporary.open("rb") as handle:
+        os.fsync(handle.fileno())
+    os.replace(temporary, path)
+    _fsync_parent(path)
 
 
 def aggregate_cells(tensor_rows: list[dict], energy_rows: list[dict], *, dev_sd: float | None = None) -> tuple[dict, float]:
@@ -3364,7 +3373,14 @@ def confirmation_phase(output_root: Path, device: str) -> None:
 def finalize_hashes(output_root: Path) -> None:
     paths = sorted(path for path in output_root.iterdir() if path.is_file() and path.name != "sha256sums.txt")
     lines = [f"{sha256_file(path)}  {path.name}" for path in paths]
-    (output_root / "sha256sums.txt").write_text("\n".join(lines) + "\n", encoding="utf-8")
+    path = output_root / "sha256sums.txt"
+    temporary = path.with_suffix(path.suffix + ".tmp")
+    with temporary.open("wb") as handle:
+        handle.write(("\n".join(lines) + "\n").encode("utf-8"))
+        handle.flush()
+        os.fsync(handle.fileno())
+    os.replace(temporary, path)
+    _fsync_parent(path)
 
 
 def main() -> None:
