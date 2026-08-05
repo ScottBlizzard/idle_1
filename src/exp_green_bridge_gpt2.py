@@ -37,6 +37,10 @@ from green_bridge_dataset import (
 from green_bridge_spec import (
     DIMENSIONS,
     FROZEN_SPEC,
+    GATE04_AMENDMENT_ID,
+    GATE04_HOLDOUT_PAIR_SLICE,
+    GATE04_LEGACY_PAIR_SLICE,
+    HF_ATTN_IMPLEMENTATION,
     MODEL_ID,
     MODEL_REVISION,
     OUTPUT_ROOT,
@@ -49,6 +53,13 @@ from green_bridge_spec import (
     sha256_file,
     sha256_text,
     write_json_atomic,
+)
+from green_bridge_numerics import (
+    active_contraction_bound,
+    cell_error_bound,
+    certified_null_bound,
+    richardson_numerical_bounds,
+    sum_item_error_bounds,
 )
 from green_bridge_tail import GreenBridgeTail, TailAnchor, capture_tail_anchor, gather_year_logits
 from green_bridge_path_target import TargetAnchor, finite_path_effect, target_jvp
@@ -65,11 +76,18 @@ SOURCE_FILES = (
     "src/green_bridge_spec.py",
     "src/green_bridge_dataset.py",
     "src/matched_bypass_gate.py",
+    "src/green_bridge_numerics.py",
     "src/green_bridge_tail.py",
     "src/green_bridge_path_target.py",
     "src/exp_green_bridge_gpt2.py",
     "src/analyze_green_bridge.py",
     "src/test_green_bridge_contract.py",
+)
+PROTOCOL_FILES = (
+    "analysis/GPTPRO_GREEN_BRIDGE_20260805.md",
+    "analysis/GREEN_SERVER_GATE04_20260805.md",
+    "analysis/GPTPRO_GREEN_GATE04_DECISION_20260805.md",
+    "requirements-green-bridge.lock",
 )
 EXPECTED_PACKAGES = {
     "torch": "2.7.1",
@@ -152,6 +170,11 @@ def first_order_directions() -> np.ndarray:
 
 
 def configure_runtime(device: str) -> dict:
+    if os.environ.get("CUBLAS_WORKSPACE_CONFIG") != ":4096:8":
+        raise GreenStop(
+            "01_ENVIRONMENT",
+            "CUBLAS_WORKSPACE_CONFIG must equal :4096:8",
+        )
     torch = torch_module()
     versions = {}
     for package, expected in EXPECTED_PACKAGES.items():
@@ -177,9 +200,12 @@ def configure_runtime(device: str) -> dict:
     torch.manual_seed(20260805)
     torch.cuda.manual_seed_all(20260805)
     np.random.seed(20260805)
+    torch.set_float32_matmul_precision("highest")
     torch.backends.cuda.matmul.allow_tf32 = False
     torch.backends.cudnn.allow_tf32 = False
     torch.use_deterministic_algorithms(True)
+    if not torch.are_deterministic_algorithms_enabled():
+        raise GreenStop("01_ENVIRONMENT", "deterministic algorithms are disabled")
     return {
         "python": sys.version,
         "platform": platform.platform(),
@@ -187,6 +213,13 @@ def configure_runtime(device: str) -> dict:
         "cuda": torch.version.cuda,
         "device_name": torch.cuda.get_device_name(torch.device(device)),
         "transformer_lens_source_sha256": actual_source,
+        "float32_matmul_precision": torch.get_float32_matmul_precision(),
+        "cuda_matmul_allow_tf32": bool(torch.backends.cuda.matmul.allow_tf32),
+        "cudnn_allow_tf32": bool(torch.backends.cudnn.allow_tf32),
+        "deterministic_algorithms_enabled": bool(
+            torch.are_deterministic_algorithms_enabled()
+        ),
+        "cublas_workspace_config": os.environ["CUBLAS_WORKSPACE_CONFIG"],
     }
 
 
@@ -198,8 +231,17 @@ def load_models(device: str, tokenizer=None):
     if tokenizer is None:
         tokenizer = AutoTokenizer.from_pretrained(MODEL_ID, revision=MODEL_REVISION)
     hf_model = AutoModelForCausalLM.from_pretrained(
-        MODEL_ID, revision=MODEL_REVISION, torch_dtype=torch.float32
+        MODEL_ID,
+        revision=MODEL_REVISION,
+        torch_dtype=torch.float32,
+        attn_implementation="eager",
     ).eval().to(device)
+    hf_model.config.use_cache = False
+    if getattr(hf_model.config, "_attn_implementation", None) != "eager":
+        raise GreenStop(
+            "03_MODEL_CONFIG",
+            "Hugging Face attention implementation is not eager",
+        )
     model = HookedTransformer.from_pretrained_no_processing(
         "gpt2", hf_model=hf_model, tokenizer=tokenizer, device=device, dtype=torch.float32,
         default_prepend_bos=False,
@@ -210,6 +252,12 @@ def load_models(device: str, tokenizer=None):
         "n_heads": int(cfg.n_heads), "d_mlp": int(cfg.d_mlp),
         "normalization_type": str(cfg.normalization_type),
         "act_fn": str(cfg.act_fn), "eps": float(cfg.eps),
+        "hf_attention_implementation": getattr(
+            hf_model.config, "_attn_implementation", None
+        ),
+        "hf_use_cache": bool(hf_model.config.use_cache),
+        "float32_matmul_precision": torch.get_float32_matmul_precision(),
+        "cublas_workspace_config": os.environ["CUBLAS_WORKSPACE_CONFIG"],
     }
     required = asdict(DIMENSIONS)
     for name in ("n_layers", "d_model", "n_heads", "d_mlp"):
@@ -276,14 +324,20 @@ def token_pair_allowed(tokenizer, first: str, second: str) -> bool:
     return True
 
 
-def write_initial_manifest(output_root: Path, environment: dict, model_cfg: dict, split_payload: dict) -> dict:
+def write_initial_manifest(
+    output_root: Path,
+    environment: dict,
+    model_cfg: dict,
+    split_payload: dict,
+    gate04_panel: dict,
+) -> dict:
     execution_commit = git_text("rev-parse", "HEAD")
     directions = first_order_directions()
     direction_path = output_root / "first_order_directions.npy"
     output_root.mkdir(parents=True, exist_ok=True)
     np.save(direction_path, directions, allow_pickle=False)
     payload = {
-        "schema_version": "green-bridge-manifest-v1",
+        "schema_version": "green-bridge-manifest-v1.1",
         "theory_base_commit": "126556f",
         "execution_commit": execution_commit,
         "repository_dirty_at_launch": bool(git_text("status", "--porcelain")),
@@ -291,12 +345,98 @@ def write_initial_manifest(output_root: Path, environment: dict, model_cfg: dict
         "frozen_spec_sha256": frozen_spec_hash(),
         "source_sha256": source_hashes(),
         "requirements_sha256": sha256_file(PROJECT_ROOT / "requirements-green-bridge.lock"),
+        "protocol_sha256": {
+            name: sha256_file(PROJECT_ROOT / name) for name in PROTOCOL_FILES
+        },
         "splits_sha256": split_payload["records_sha256"],
         "first_order_directions_sha256": sha256_file(direction_path),
         "environment": environment,
         "model_config": model_cfg,
         "forward_counts": FORWARD_COUNTS,
         "transformer_lens_commit": TRANSFORMER_LENS_COMMIT,
+        "amendment": {
+            "id": GATE04_AMENDMENT_ID,
+            "decision_document": "analysis/GPTPRO_GREEN_GATE04_DECISION_20260805.md",
+            "decision_base_commit": "0c81e05",
+            "theory_base_commit": "126556f",
+            "previous_terminal_gate": "04_HF_TL",
+            "previous_observed_max_abs_year_logit_error": 0.0001526,
+            "previous_development_responses_observed": False,
+            "previous_confirmation_responses_observed": False,
+            "confirmation_was_locked": True,
+            "amendment_scope": [
+                "HF-versus-TransformerLens preflight fidelity audit",
+                "conformance repair for frozen Richardson numerical propagation",
+            ],
+            "scientific_design_changed": False,
+            "second_threshold_amendment_allowed": False,
+        },
+        "gate04": {
+            "audit_version": "hf-tl-fidelity-v2",
+            "hf_attention_implementation": HF_ATTN_IMPLEMENTATION,
+            "transformer_lens_processing": "none",
+            "dtype": "float32",
+            "batch_size": 1,
+            "use_cache": False,
+            "prompt_selection": {
+                "population": "donor",
+                "ordering": "ascending pair_digest",
+                "excluded_legacy_pair_ranks": {
+                    "start_inclusive": 0, "stop_exclusive": 16,
+                },
+                "audited_holdout_pair_ranks": {
+                    "start_inclusive": 16, "stop_exclusive": 32,
+                },
+                "prompts_per_pair": ["clean", "corrupt"],
+                "n_pairs": 16,
+                "n_prompts": 32,
+                **gate04_panel,
+            },
+            "parameter_mapping": {
+                "converter": "transformer_lens.pretrained.weight_conversions.gpt2.convert_gpt2_weights",
+                "mapped_tensors_must_be_bitwise_equal": True,
+                "allowed_extra_parameter": "unembed.b_U",
+                "allowed_extra_parameter_must_be_zero": True,
+            },
+            "thresholds": gate04_thresholds(),
+            "downstream_error": {
+                "enters_epsilon_y": False,
+                "reporting_only_after_gate_pass": True,
+            },
+        },
+        "same_transformerlens_audits": {
+            "no_op_max_abs": THRESHOLDS.no_op_max_abs,
+            "tail_max_abs": THRESHOLDS.tail_max_abs,
+            "tail_derivative_relative": THRESHOLDS.tail_derivative_relative,
+            "center_rms": THRESHOLDS.center_rms,
+            "center_max_abs": THRESHOLDS.center_max_abs,
+            "hook_untouched_max": THRESHOLDS.hook_untouched_max,
+        },
+        "numerical_error_contract": {
+            "version": "frozen-richardson-propagation-v1",
+            "epsilon_y_source": "same-TransformerLens duplicate audit only",
+            "eta_G": "3*epsilon_y/h2",
+            "eta_C": "64*epsilon_y/(3*h2^2)",
+            "eta_J": "3*epsilon_y/h1",
+            "eta_H": "17*epsilon_y/(3*h1*h2)",
+            "active_tensor_snr_uses_epsilon_P_F": True,
+            "certified_null_bound_enters_theta_error": True,
+        },
+        "preserved": {
+            "matched_bypass_theorem": True,
+            "selected_gates": True,
+            "resid_mid_site": True,
+            "matched_control": True,
+            "independent_target": True,
+            "residual_bypass_subtraction": True,
+            "basis_design": True,
+            "radii": True,
+            "finite_population": True,
+            "baselines": True,
+            "development_rules": True,
+            "confirmation_lock": True,
+            "confirmation_rules": True,
+        },
         "confirmation_open": False,
     }
     write_json_atomic(output_root / "manifest.json", payload)
@@ -379,37 +519,322 @@ def margin(logits, contrast):
     return (logits.double() * contrast).sum(dim=-1)
 
 
-def hf_tl_audit(tokenizer, hf_model, model, records, suffix_ids, device: str) -> dict:
+def gate04_thresholds() -> dict:
+    return {
+        "raw_year_logits": {
+            "max_abs": THRESHOLDS.hf_tl_raw_year_max_abs,
+            "pooled_rms": THRESHOLDS.hf_tl_raw_year_pooled_rms,
+        },
+        "centered_year_logits": {
+            "max_abs": THRESHOLDS.hf_tl_centered_year_max_abs,
+            "pooled_rms": THRESHOLDS.hf_tl_centered_year_pooled_rms,
+        },
+        "task_margin": {
+            "max_abs": THRESHOLDS.hf_tl_margin_max_abs,
+            "rms": THRESHOLDS.hf_tl_margin_rms,
+        },
+        "resid_mid": {
+            "max_abs": THRESHOLDS.hf_tl_resid_mid_max_abs,
+            "pooled_rms": THRESHOLDS.hf_tl_resid_mid_pooled_rms,
+        },
+        "selected_pre": {
+            "max_abs": THRESHOLDS.hf_tl_selected_pre_max_abs,
+            "pooled_rms": THRESHOLDS.hf_tl_selected_pre_pooled_rms,
+        },
+        "selected_post": {
+            "max_abs": THRESHOLDS.hf_tl_selected_post_max_abs,
+            "pooled_rms": THRESHOLDS.hf_tl_selected_post_pooled_rms,
+        },
+    }
+
+
+def gate04_record_panels(records):
+    ranked = sorted(records, key=lambda row: row.pair_digest)
+    legacy = ranked[slice(*GATE04_LEGACY_PAIR_SLICE)]
+    holdout = ranked[slice(*GATE04_HOLDOUT_PAIR_SLICE)]
+    legacy_ids = {row.pair_digest for row in legacy}
+    holdout_ids = {row.pair_digest for row in holdout}
+    if len(legacy) != 16 or len(holdout) != 16:
+        raise GreenStop("04_HF_TL_FIDELITY", "Gate-04 panel has wrong size")
+    if len(legacy_ids) != 16 or len(holdout_ids) != 16 or legacy_ids & holdout_ids:
+        raise GreenStop("04_HF_TL_FIDELITY", "Gate-04 panels overlap or contain duplicates")
+    return legacy, holdout
+
+
+def gate04_panel_metadata(legacy, holdout) -> dict:
+    ordered_keys = [
+        [row.pair_digest, system]
+        for row in holdout
+        for system in ("clean", "corrupt")
+    ]
+    return {
+        "legacy_pair_digests": [row.pair_digest for row in legacy],
+        "holdout_pair_digests": [row.pair_digest for row in holdout],
+        "ordered_prompt_keys": ordered_keys,
+        "ordered_prompt_keys_sha256": sha256_text(canonical_json(ordered_keys)),
+    }
+
+
+def pooled_error_metrics(errors) -> dict:
+    arrays = [np.asarray(error, dtype=np.float64).reshape(-1) for error in errors]
+    if not arrays or any(array.size == 0 for array in arrays):
+        raise ValueError("pooled error metrics require nonempty arrays")
+    total_count = sum(array.size for array in arrays)
+    sum_squares = sum(float(array @ array) for array in arrays)
+    return {
+        "max_abs": max(float(np.max(np.abs(array))) for array in arrays),
+        "pooled_rms": float(math.sqrt(sum_squares / total_count)),
+    }
+
+
+def centered_year_error(hf_year, tl_year) -> np.ndarray:
+    hf = np.asarray(hf_year, dtype=np.float64)
+    tl = np.asarray(tl_year, dtype=np.float64)
+    return (hf - hf.mean()) - (tl - tl.mean())
+
+
+def task_margin_error(hf_year, tl_year, clean_suffix: int) -> float:
+    contrast = np.empty(100, dtype=np.float64)
+    contrast[: clean_suffix + 1] = -1.0 / (clean_suffix + 1)
+    contrast[clean_suffix + 1 :] = 1.0 / (99 - clean_suffix)
+    return float(contrast @ (
+        np.asarray(hf_year, dtype=np.float64) - np.asarray(tl_year, dtype=np.float64)
+    ))
+
+
+def all_gate04_submetrics_pass(metrics: dict, thresholds: dict) -> bool:
+    for name, limits in thresholds.items():
+        observed = metrics[name]
+        for statistic, limit in limits.items():
+            if observed[statistic] > limit:
+                return False
+    return True
+
+
+def capture_hf_gate04(hf_model, tokens):
     torch = torch_module()
-    ranked = sorted(records, key=lambda row: row.pair_digest)[:16]
-    suffix_tensor = torch.tensor(suffix_ids, dtype=torch.long, device=device)
-    errors, references = [], {}
-    with torch.inference_mode():
-        for row in ranked:
-            for system, prompt in (("clean", row.clean_prompt), ("corrupt", row.corrupt_prompt)):
-                tokens = tokenize_one(tokenizer, prompt, device)
-                hf_logits = hf_model(input_ids=tokens).logits
-                positions = torch.tensor([tokens.shape[1] - 1], device=device)
-                hf_year = gather_year_logits(model, hf_logits, positions, suffix_tensor)
-                anchor = capture_tail_anchor(model, tokens, suffix_tensor, system="hf-tl")
-                tl_year = anchor.year_logits
-                errors.append(float((hf_year.double() - tl_year.double()).abs().max().item()))
-                references[row.pair_digest + "|" + system] = {
-                    "year_logits": tl_year[0].detach().double().cpu().numpy().tolist(),
-                    "mlp8_out": anchor.mlp8_out[0].detach().float().cpu().numpy().tolist(),
-                }
-    result = {"n": len(errors), "max_abs": max(errors), "errors": errors, "tl_references": references}
-    if result["max_abs"] > THRESHOLDS.hf_tl_max_abs:
-        raise GreenStop("04_HF_TL", f"max error {result['max_abs']:.3e}")
+    captured = {}
+
+    def resid_mid_pre_hook(_module, args):
+        captured["resid_mid"] = args[0].detach()
+
+    def pre_hook(_module, _args, output):
+        captured["pre"] = output.detach()
+
+    def post_pre_hook(_module, args):
+        captured["post"] = args[0].detach()
+
+    handles = [
+        hf_model.transformer.h[10].ln_2.register_forward_pre_hook(
+            resid_mid_pre_hook
+        ),
+        hf_model.transformer.h[10].mlp.c_fc.register_forward_hook(pre_hook),
+        hf_model.transformer.h[10].mlp.c_proj.register_forward_pre_hook(
+            post_pre_hook
+        ),
+    ]
+    try:
+        with torch.inference_mode():
+            logits = hf_model(
+                input_ids=tokens,
+                use_cache=False,
+                return_dict=True,
+            ).logits
+    finally:
+        for handle in handles:
+            handle.remove()
+    required = {"resid_mid", "pre", "post"}
+    if set(captured) != required:
+        raise GreenStop(
+            "04_HF_TL_FIDELITY",
+            f"incomplete Hugging Face capture: {sorted(captured)}",
+        )
+    return logits, captured
+
+
+def _exact_tensor_equal(actual, expected) -> bool:
+    try:
+        torch = torch_module()
+        if isinstance(actual, torch.Tensor) and isinstance(expected, torch.Tensor):
+            return bool(torch.equal(actual.detach().cpu(), expected.detach().cpu()))
+    except ImportError:
+        pass
+    return bool(np.array_equal(np.asarray(actual), np.asarray(expected)))
+
+
+def _nonzero_count(value) -> int:
+    try:
+        torch = torch_module()
+        if isinstance(value, torch.Tensor):
+            return int(torch.count_nonzero(value.detach()).item())
+    except ImportError:
+        pass
+    return int(np.count_nonzero(np.asarray(value)))
+
+
+def weight_mapping_report(expected_state, actual_state, named_parameters=None) -> dict:
+    named_parameters = actual_state if named_parameters is None else named_parameters
+    missing, shapes, dtypes, values = [], [], [], []
+    for key, expected in expected_state.items():
+        if key not in actual_state:
+            missing.append(key)
+            continue
+        actual = actual_state[key]
+        if tuple(actual.shape) != tuple(expected.shape):
+            shapes.append(key)
+            continue
+        if actual.dtype != expected.dtype:
+            dtypes.append(key)
+            continue
+        if not _exact_tensor_equal(actual, expected):
+            values.append(key)
+    bias = actual_state.get("unembed.b_U")
+    bias_nonzero = 0 if bias is None else _nonzero_count(bias)
+    unexpected_nonzero = sorted(
+        key for key, value in named_parameters.items()
+        if key not in expected_state
+        and key != "unembed.b_U"
+        and _nonzero_count(value) != 0
+    )
+    mismatch_count = (
+        len(missing) + len(shapes) + len(dtypes) + len(values)
+        + len(unexpected_nonzero) + int(bias_nonzero != 0)
+    )
+    return {
+        "mapped_tensor_count": len(expected_state),
+        "missing_keys": missing,
+        "shape_mismatches": shapes,
+        "dtype_mismatches": dtypes,
+        "value_mismatches": values,
+        "unexpected_nonzero_keys": unexpected_nonzero,
+        "unembed_b_U_present": bias is not None,
+        "unembed_b_U_nonzero_count": bias_nonzero,
+        "mismatch_count": mismatch_count,
+        "passed": mismatch_count == 0,
+    }
+
+
+def audit_converted_weights(hf_model, model) -> dict:
+    from transformer_lens.pretrained.weight_conversions.gpt2 import convert_gpt2_weights
+    expected_tl_state = convert_gpt2_weights(hf_model, model.cfg)
+    result = weight_mapping_report(
+        expected_tl_state,
+        model.state_dict(),
+        dict(model.named_parameters()),
+    )
+    if not result["passed"]:
+        raise GreenStop("04_HF_TL_WEIGHT_MAP", canonical_json(result))
     return result
 
 
-def no_op_audit(model, tokenizer, records, suffix_ids, device: str, references: dict) -> dict:
+def hf_tl_audit(tokenizer, hf_model, model, legacy, holdout, suffix_ids, device: str) -> dict:
+    torch = torch_module()
+    suffix_tensor = torch.tensor(suffix_ids, dtype=torch.long, device=device)
+    panel = gate04_panel_metadata(legacy, holdout)
+    weight_mapping = audit_converted_weights(hf_model, model)
+    families = {
+        name: [] for name in (
+            "raw_year_logits", "centered_year_logits", "resid_mid",
+            "selected_pre", "selected_post",
+        )
+    }
+    margin_errors, per_prompt, references = [], [], {}
+    for row in holdout:
+        for system, prompt in (("clean", row.clean_prompt), ("corrupt", row.corrupt_prompt)):
+            tokens = tokenize_one(tokenizer, prompt, device)
+            if tokens.shape[0] != 1:
+                raise GreenStop("04_HF_TL_FIDELITY", "Gate-04 batch size is not one")
+            hf_logits, hf_capture = capture_hf_gate04(hf_model, tokens)
+            position = tokens.shape[1] - 1
+            positions = torch.tensor([position], device=device)
+            hf_year = gather_year_logits(model, hf_logits, positions, suffix_tensor)[0]
+            with torch.inference_mode():
+                anchor = capture_tail_anchor(model, tokens, suffix_tensor, system="hf-tl")
+            tl_year = anchor.year_logits[0]
+            raw = hf_year.detach().double().cpu().numpy() - tl_year.detach().double().cpu().numpy()
+            centered = centered_year_error(
+                hf_year.detach().double().cpu().numpy(),
+                tl_year.detach().double().cpu().numpy(),
+            )
+            resid = (
+                hf_capture["resid_mid"][0, position].detach().double().cpu().numpy()
+                - anchor.resid_mid[0, position].detach().double().cpu().numpy()
+            )
+            selected = list(SELECTED_GATES)
+            pre = (
+                hf_capture["pre"][0, position, selected].detach().double().cpu().numpy()
+                - anchor.pre[0, position, selected].detach().double().cpu().numpy()
+            )
+            post = (
+                hf_capture["post"][0, position, selected].detach().double().cpu().numpy()
+                - anchor.post[0, position, selected].detach().double().cpu().numpy()
+            )
+            margin_error = task_margin_error(
+                hf_year.detach().double().cpu().numpy(),
+                tl_year.detach().double().cpu().numpy(),
+                row.y,
+            )
+            prompt_errors = {
+                "raw_year_logits": raw,
+                "centered_year_logits": centered,
+                "resid_mid": resid,
+                "selected_pre": pre,
+                "selected_post": post,
+            }
+            for name, error in prompt_errors.items():
+                families[name].append(error)
+            margin_errors.append(margin_error)
+            per_prompt.append({
+                "pair_digest": row.pair_digest,
+                "system": system,
+                "clean_suffix": row.y,
+                **{
+                    name + "_max_abs": float(np.max(np.abs(error)))
+                    for name, error in prompt_errors.items()
+                },
+                "task_margin_error": margin_error,
+                "task_margin_abs_error": abs(margin_error),
+            })
+            references[row.pair_digest + "|" + system] = {
+                "year_logits": tl_year.detach().double().cpu().numpy().tolist(),
+                "mlp8_out": anchor.mlp8_out[0].detach().float().cpu().numpy().tolist(),
+            }
+    metrics = {name: pooled_error_metrics(errors) for name, errors in families.items()}
+    margin_array = np.asarray(margin_errors, dtype=np.float64)
+    metrics["task_margin"] = {
+        "max_abs": float(np.max(np.abs(margin_array))),
+        "rms": float(np.sqrt(np.mean(margin_array**2))),
+    }
+    thresholds = gate04_thresholds()
+    passed = all_gate04_submetrics_pass(metrics, thresholds)
+    result = {
+        "audit_version": "hf-tl-fidelity-v2",
+        "hf_attention_implementation": getattr(
+            hf_model.config, "_attn_implementation", None
+        ),
+        "batch_size": 1,
+        **panel,
+        "n_pairs": len(holdout),
+        "n_prompts": len(per_prompt),
+        "weight_mapping": weight_mapping,
+        "metrics": metrics,
+        "thresholds": thresholds,
+        "per_prompt": per_prompt,
+        "hf_tl_error_enters_epsilon_y": False,
+        "passed": passed,
+        "tl_references": references,
+    }
+    if not passed:
+        raise GreenStop("04_HF_TL_FIDELITY", canonical_json(metrics))
+    return result
+
+
+def no_op_audit(model, tokenizer, holdout, suffix_ids, device: str, references: dict) -> dict:
     torch = torch_module()
     suffix_tensor = torch.tensor(suffix_ids, dtype=torch.long, device=device)
     errors = []
     with torch.inference_mode():
-        for row in sorted(records, key=lambda item: item.pair_digest)[:16]:
+        for row in holdout:
             for system, prompt in (("clean", row.clean_prompt), ("corrupt", row.corrupt_prompt)):
                 tokens = tokenize_one(tokenizer, prompt, device)
                 cached = references[row.pair_digest + "|" + system]
@@ -835,45 +1260,99 @@ def whitebox_A(model, anchor: TailAnchor, U, gate_slot: int) -> np.ndarray:
 
 
 def classify_gate(full, half, rich, wb_A, contrast_norm: float, delta_norm: float, epsilon_y: float, hx: float, hz: float) -> tuple[str, dict]:
-    full_id, half_id, rich_id = identify_gate(full), identify_gate(half), identify_gate(rich)
-    eps_g = epsilon_y / max(hz, 1e-12)
-    eps_c = 4 * epsilon_y / max(hz * hz, 1e-12)
-    eps_p = epsilon_y / max(hx * hz, 1e-12)
+    numerical = richardson_numerical_bounds(
+        rich, half, epsilon_y=epsilon_y, h1=hx, h2=hz
+    )
+    rich_gate_response_norm = float(np.linalg.norm(rich.G))
+    full_gate_response_norm = float(np.linalg.norm(full.G))
+    half_gate_response_norm = float(np.linalg.norm(half.G))
+    rich_curvature_norm = float(np.linalg.norm(rich.C))
     wb_norm = np.linalg.norm(wb_A)
-    wb_error = np.linalg.norm(rich_id.A - wb_A)
-    wb_ok = wb_error <= (THRESHOLDS.whitebox_a_relative_max * max(wb_norm, 1e-6))
-    if wb_norm < 1e-6:
+    full_id = half_id = rich_id = None
+    if numerical.inverse_admissible:
+        try:
+            full_id, half_id, rich_id = (
+                identify_gate(full), identify_gate(half), identify_gate(rich)
+            )
+        except ValueError:
+            pass
+    wb_error = math.inf if rich_id is None else float(np.linalg.norm(rich_id.A - wb_A))
+    wb_ok = (
+        rich_id is not None
+        and wb_error <= THRESHOLDS.whitebox_a_relative_max * max(wb_norm, 1e-6)
+    )
+    if rich_id is not None and wb_norm < 1e-6:
         wb_ok = wb_error <= THRESHOLDS.whitebox_a_small_absolute_max
     active = (
-        rich_id.curvature_norm / 10 >= THRESHOLDS.curvature_rms_min
-        and rich_id.curvature_norm >= THRESHOLDS.curvature_snr_min * eps_c
-        and rich_id.gate_response_norm / 10 >= THRESHOLDS.gate_response_rms_min
-        and rich_id.gate_response_norm >= THRESHOLDS.gate_response_snr_min * eps_g
+        rich_id is not None
+        and rich_curvature_norm / 10 >= THRESHOLDS.curvature_rms_min
+        and rich_curvature_norm >= THRESHOLDS.curvature_snr_min * numerical.epsilon_C
+        and rich_gate_response_norm / 10 >= THRESHOLDS.gate_response_rms_min
+        and rich_gate_response_norm >= THRESHOLDS.gate_response_snr_min * numerical.epsilon_G
         and rich_id.factorization_residual <= THRESHOLDS.factorization_residual_max
         and wb_ok
         and cosine(full_id.P, half_id.P) >= THRESHOLDS.tensor_cosine_min
         and symmetric_relative_change(full_id.P, half_id.P) <= THRESHOLDS.tensor_symmetric_change_max
         and np.linalg.norm(rich_id.P - half_id.P) / max(np.linalg.norm(rich_id.P), 1e-8)
             <= THRESHOLDS.richardson_change_max
-        and np.linalg.norm(rich_id.P) >= THRESHOLDS.tensor_snr_min * eps_p
+        and np.linalg.norm(rich_id.P) >= THRESHOLDS.tensor_snr_min * numerical.epsilon_P_F
     )
-    null_bound = contrast_norm * delta_norm * (rich_id.gate_response_norm + eps_g) * wb_norm
-    null = rich_id.curvature_norm / 10 < THRESHOLDS.curvature_rms_min and (
-        rich_id.gate_response_norm <= 5 * eps_g and null_bound <= 0.005
-        and abs(full_id.gate_response_norm - half_id.gate_response_norm) <= 0.005
+    null_bound = certified_null_bound(
+        contrast_norm, delta_norm, rich_gate_response_norm,
+        numerical.epsilon_G, wb_norm,
+    )
+    full_bound = contrast_norm * delta_norm * full_gate_response_norm * wb_norm
+    half_bound = contrast_norm * delta_norm * half_gate_response_norm * wb_norm
+    null = (
+        rich_gate_response_norm <= 5 * numerical.epsilon_G
+        and null_bound <= 0.005
+        and abs(full_bound - half_bound) <= 0.005
     )
     label = "active-identified" if active else ("certified-target-null" if null else "invalid")
     audit = {
-        "label": label, "curvature_norm": rich_id.curvature_norm,
-        "gate_response_norm": rich_id.gate_response_norm,
-        "factorization_residual": rich_id.factorization_residual,
-        "whitebox_error": float(wb_error), "whitebox_norm": float(wb_norm),
-        "full_half_cosine": cosine(full_id.P, half_id.P),
-        "full_half_change": symmetric_relative_change(full_id.P, half_id.P),
-        "richardson_change": float(np.linalg.norm(rich_id.P - half_id.P) / max(np.linalg.norm(rich_id.P), 1e-8)),
+        "label": label, "curvature_norm": rich_curvature_norm,
+        "gate_response_norm": rich_gate_response_norm,
+        "factorization_residual": (
+            None if rich_id is None else rich_id.factorization_residual
+        ),
+        "whitebox_error": None if not np.isfinite(wb_error) else float(wb_error),
+        "whitebox_norm": float(wb_norm),
+        "full_half_cosine": (
+            None if rich_id is None else cosine(full_id.P, half_id.P)
+        ),
+        "full_half_change": (
+            None if rich_id is None else symmetric_relative_change(full_id.P, half_id.P)
+        ),
+        "richardson_change": (
+            None if rich_id is None else float(
+                np.linalg.norm(rich_id.P - half_id.P)
+                / max(np.linalg.norm(rich_id.P), 1e-8)
+            )
+        ),
         "null_bound": float(null_bound),
+        "null_full_half_bound_change": float(abs(full_bound - half_bound)),
+        "inverse_admissible": numerical.inverse_admissible,
+        "eta_G": numerical.eta_G,
+        "eta_C": numerical.eta_C,
+        "eta_J": numerical.eta_J,
+        "eta_H": numerical.eta_H,
+        "epsilon_G": numerical.epsilon_G,
+        "epsilon_C": numerical.epsilon_C,
+        "epsilon_delta_H": numerical.epsilon_delta_H.tolist(),
+        "A_max": [float(value) if np.isfinite(value) else None for value in numerical.A_max],
+        "epsilon_A": [float(value) if np.isfinite(value) else None for value in numerical.epsilon_A],
+        "epsilon_P": [float(value) if np.isfinite(value) else None for value in numerical.epsilon_P],
+        "epsilon_P_F": (
+            numerical.epsilon_P_F if np.isfinite(numerical.epsilon_P_F) else None
+        ),
     }
-    return label, {"audit": audit, "full": full_id, "half": half_id, "rich": rich_id}
+    return label, {
+        "audit": audit,
+        "full": full_id,
+        "half": half_id,
+        "rich": rich_id,
+        "numerical": numerical,
+    }
 
 
 def mixed_system(tail, model, anchor, U, radii, delta, contrast, epsilon_y: float) -> dict:
@@ -886,11 +1365,12 @@ def mixed_system(tail, model, anchor, U, radii, delta, contrast, epsilon_y: floa
     center_max = float(center_error.abs().max().item())
     if center_rms > THRESHOLDS.center_rms or center_max > THRESHOLDS.center_max_abs:
         return {"theta": 0.0, "theta_full": 0.0, "theta_half": 0.0, "active_gates": 0,
-                "all_valid": False, "bypass_disagreement": float("inf"), "gates": [],
-                "admissible": False, "center_rms": center_rms, "center_max": center_max}
+                "all_valid": False, "bypass_disagreement": None, "gates": [],
+                "admissible": False, "center_rms": center_rms, "center_max": center_max,
+                "theta_error": None}
     gates, theta = [], 0.0
     theta_full, theta_half = 0.0, 0.0
-    direct = []
+    direct, gate_error_bounds = [], []
     for gate_slot in range(10):
         full = _jet_at_radius(tail, anchor, gate_slot, radii["h1"], radii["h2"][gate_slot], center)
         half = _jet_at_radius(tail, anchor, gate_slot, radii["h1"] / 2, radii["h2"][gate_slot] / 2, center)
@@ -907,20 +1387,32 @@ def mixed_system(tail, model, anchor, U, radii, delta, contrast, epsilon_y: floa
                 elif accumulator == "theta_full": theta_full += contraction
                 else: theta_half += contraction
             direct.append(values["rich"].D)
+            gate_error_bounds.append(active_contraction_bound(
+                float(np.linalg.norm(contrast)),
+                float(np.linalg.norm(delta)),
+                values["numerical"].epsilon_P_F,
+            ))
+        elif label == "certified-target-null":
+            gate_error_bounds.append(values["audit"]["null_bound"])
         gates.append(values["audit"])
     active = sum(row["label"] == "active-identified" for row in gates)
     complete = all(row["label"] != "invalid" for row in gates)
-    bypass = float("inf")
+    bypass = None
     if direct:
         stack = np.stack(direct)
         mean = stack.mean(axis=0)
         bypass = float(np.sqrt(np.mean((stack - mean) ** 2)) / max(np.sqrt(np.mean(mean**2)), 1e-12))
     return {
         "theta": float(theta), "theta_full": float(theta_full), "theta_half": float(theta_half),
-        "theta_error": float(abs(theta - theta_half)),
+        "theta_error": sum_item_error_bounds(gate_error_bounds) if complete else None,
         "active_gates": active, "all_valid": complete,
         "bypass_disagreement": bypass, "gates": gates,
-        "admissible": complete and active >= THRESHOLDS.active_gates_min and bypass <= THRESHOLDS.bypass_disagreement_max,
+        "admissible": (
+            complete
+            and active >= THRESHOLDS.active_gates_min
+            and bypass is not None
+            and bypass <= THRESHOLDS.bypass_disagreement_max
+        ),
         "center_rms": center_rms, "center_max": center_max,
     }
 
@@ -1155,7 +1647,11 @@ def aggregate_cells(tensor_rows: list[dict], energy_rows: list[dict], *, dev_sd:
         # Conservative cell error from duplicated-logit floor, used only as the
         # preregistered SNR gate; no observed target is fed into the predictor.
         row["error_bound"] = max(
-            1e-7, mean(r["theta_error_tar"] + r["theta_error_pat"] for r in tensor)
+            1e-7,
+            cell_error_bound(
+                (r["theta_error_tar"] for r in tensor),
+                (r["theta_error_pat"] for r in tensor),
+            ),
         )
         row["snr"] = row["mixed"] / row["error_bound"]
         provisional.append(row)
@@ -1290,6 +1786,8 @@ def prepare(output_root: Path, device: str) -> None:
     pair_allowed = lambda first, second: token_pair_allowed(tokenizer, first, second)
     evaluation = build_evaluation_records(pair_allowed)
     donors = build_donor_records(pair_allowed)
+    legacy_gate04, holdout_gate04 = gate04_record_panels(donors)
+    gate04_panel = gate04_panel_metadata(legacy_gate04, holdout_gate04)
     split_payload = write_plan(output_root / "splits.json", evaluation + donors)
     # Development gets its own physically separate view so its process never
     # parses confirmation prompt strings before the frozen analysis exists.
@@ -1299,7 +1797,9 @@ def prepare(output_root: Path, device: str) -> None:
     )
     tokenizer, hf_model, model, cfg = load_models(device, tokenizer=tokenizer)
     suffix_ids, tokenizer_meta = validate_tokenizer(tokenizer, evaluation + donors)
-    manifest = write_initial_manifest(output_root, environment, cfg, split_payload)
+    manifest = write_initial_manifest(
+        output_root, environment, cfg, split_payload, gate04_panel
+    )
     fingerprint = {
         "model_id": MODEL_ID, "model_revision": MODEL_REVISION,
         "transformer_lens_commit": TRANSFORMER_LENS_COMMIT,
@@ -1308,8 +1808,14 @@ def prepare(output_root: Path, device: str) -> None:
         "unembedding_sha256": hashlib.sha256(model.W_U.detach().cpu().numpy().tobytes()).hexdigest(),
     }
     write_json_atomic(output_root / "model_fingerprint.json", fingerprint)
-    hf_audit = hf_tl_audit(tokenizer, hf_model, model, donors, suffix_ids, device)
-    noop = no_op_audit(model, tokenizer, donors, suffix_ids, device, hf_audit["tl_references"])
+    hf_audit = hf_tl_audit(
+        tokenizer, hf_model, model, legacy_gate04, holdout_gate04,
+        suffix_ids, device,
+    )
+    noop = no_op_audit(
+        model, tokenizer, holdout_gate04, suffix_ids, device,
+        hf_audit["tl_references"],
+    )
     write_json_atomic(output_root / "hook_audit.json", {"hf_vs_tl": hf_audit, "no_op_patch": noop})
     del hf_model
     torch_module().cuda.empty_cache()

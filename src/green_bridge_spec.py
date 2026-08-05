@@ -17,8 +17,12 @@ from typing import Any
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 OUTPUT_ROOT = PROJECT_ROOT / "outputs" / "green_bridge"
-SCHEMA_VERSION = "green-bridge-v1"
+SCHEMA_VERSION = "green-bridge-v1.1"
 THEORY_BASE_COMMIT = "126556f"
+GATE04_AMENDMENT_ID = "GPTPRO-GREEN-GATE04-v2-20260805"
+HF_ATTN_IMPLEMENTATION = "eager"
+GATE04_LEGACY_PAIR_SLICE = (0, 16)
+GATE04_HOLDOUT_PAIR_SLICE = (16, 32)
 SALT = "idle1-gt-bridge-20260805"
 MODEL_ID = "openai-community/gpt2"
 MODEL_REVISION = "607a30d783dfa663caf39e06633721c8d4cfcd7e"
@@ -57,7 +61,18 @@ class Dimensions:
 @dataclass(frozen=True)
 class Thresholds:
     hook_untouched_max: float = 1e-7
-    hf_tl_max_abs: float = 2e-5
+    hf_tl_raw_year_max_abs: float = 3.0e-4
+    hf_tl_raw_year_pooled_rms: float = 7.5e-5
+    hf_tl_centered_year_max_abs: float = 2.5e-4
+    hf_tl_centered_year_pooled_rms: float = 6.0e-5
+    hf_tl_margin_max_abs: float = 2.0e-4
+    hf_tl_margin_rms: float = 5.0e-5
+    hf_tl_resid_mid_max_abs: float = 1.0e-4
+    hf_tl_resid_mid_pooled_rms: float = 2.0e-5
+    hf_tl_selected_pre_max_abs: float = 5.0e-4
+    hf_tl_selected_pre_pooled_rms: float = 1.0e-4
+    hf_tl_selected_post_max_abs: float = 5.0e-4
+    hf_tl_selected_post_pooled_rms: float = 1.0e-4
     no_op_max_abs: float = 2e-5
     tail_max_abs: float = 2e-5
     tail_derivative_relative: float = 1e-4
@@ -133,6 +148,18 @@ FROZEN_SPEC: dict[str, Any] = {
     },
     "radii": {"full": 1.0, "half": 0.5, "multiplier": 0.20},
     "bootstrap": {"replicates": 100_000, "seed": 20260805},
+    "gate04_amendment": {
+        "id": GATE04_AMENDMENT_ID,
+        "hf_attention_implementation": HF_ATTN_IMPLEMENTATION,
+        "legacy_pair_slice": GATE04_LEGACY_PAIR_SLICE,
+        "holdout_pair_slice": GATE04_HOLDOUT_PAIR_SLICE,
+        "prompts_per_pair": ("clean", "corrupt"),
+        "prompt_count": 32,
+        "batch_size": 1,
+        "parameter_mapping_exact": True,
+        "hf_tl_error_enters_epsilon_y": False,
+    },
+    "numerical_error_contract": "frozen-richardson-propagation-v1",
 }
 
 
