@@ -1,5 +1,31 @@
 # GPT Pro review entry point
 
+## Round 2: formal theory gate (current task)
+
+The first adversarial review has been returned as
+[`GPTPRO_0805.md`](GPTPRO_0805.md).  It concludes that the current snapshot is
+not oral-ready and that the project may proceed only if it obtains a
+non-tautological identification theorem with a converse before any further GPU
+experiments.
+
+For the current round, read in this order:
+
+1. [`GPTPRO_0805.md`](GPTPRO_0805.md) — the complete first-round verdict and
+   exact theorem gate;
+2. [`GPTPRO_THEORY_PROMPT_20260805.md`](GPTPRO_THEORY_PROMPT_20260805.md) — the
+   binding task and output contract for the theory package;
+3. [`analysis/IRS_THEORY_P0.md`](analysis/IRS_THEORY_P0.md) — the existing P0
+   results that stop at local Taylor transport and probe-weighted Jacobian
+   discrepancy;
+4. the implementation and tests named below, only to ensure that the proposed
+   estimand can later be implemented without changing its meaning.
+
+The requested output for Round 2 is one self-contained Markdown document named
+`analysis/GPTPRO_THEORY_PACKAGE_20260805.md`.  Do not repeat the broad project
+review.  Resolve the formal theory gate.
+
+## Round 1: archived review context
+
 This repository is a frozen P0 research snapshot for an intended ICLR oral-level
 paper on neural-intervention validity and mechanism restoration.  The July audit
 falsified the previous IVS-centered causal-validity claim.  The current candidate
