@@ -159,3 +159,18 @@ The rank-five oral line is terminated under the binding one-shot rule. GPTPro
 must decide the next scientific action from this donor-only failure. Local or
 server execution must not resume from this output root, and no new basis run
 may be started without a new explicit decision.
+
+## Post-stop conformance observation
+
+One implementation-level serialization deviation was identified during final
+report review. `build_basis_and_radii()` constructs the float64 fit, holdout,
+and radius matrices before calling `fit_rank5_basis()`, but computes and writes
+`donor_v2_matrix_hashes.json` only after that call returns. Because the fit
+spectrum gate raised inside `fit_rank5_basis()`, the stopped run did not
+serialize the three response-matrix hashes, shapes, or the full singular-value
+array. The two reported ratios were computed directly by the frozen SciPy
+`gesvd` path, and the ordered donor plan and all prompt keys are hashed, so this
+ordering defect has no numerical route to change `1.0227285601080833`.
+Nevertheless, it violates the decision's requirement to hash response
+matrices before SVD and weakens post-stop auditability. It does not authorize a
+retry; GPTPro must account for it in the next binding decision.
