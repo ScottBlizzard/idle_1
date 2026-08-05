@@ -1,0 +1,70 @@
+{
+  "experiment": "p0_fair_baseline_analysis",
+  "source": "D:\\ICLR_1\\outputs\\exp_p0_fair_baselines_gpt2_seed20260712.json",
+  "label_definition": "0=held-out corrupt/reference-condition activation; 1=clean/source-shift activation",
+  "causal_guardrail": "This benchmark tests distribution classification only; labels are not mechanism bypass or causal-validity ground truth.",
+  "split": {
+    "per_class_total": 240,
+    "train_per_class": 120,
+    "validation_per_class": 60,
+    "test_per_class": 60,
+    "identical_across_methods": 1
+  },
+  "overall": {
+    "crossfit_ivs": {
+      "mean_test_auroc": 0.5777083333333334,
+      "min_test_auroc": 0.41513888888888884,
+      "max_test_auroc": 0.9497222222222222
+    },
+    "components_logistic": {
+      "mean_test_auroc": 0.5699503968253968,
+      "min_test_auroc": 0.4281944444444445,
+      "max_test_auroc": 0.9922222222222221
+    },
+    "components_mlp": {
+      "mean_test_auroc": 0.5302281746031746,
+      "min_test_auroc": 0.36180555555555555,
+      "max_test_auroc": 0.971388888888889
+    },
+    "activations_logistic": {
+      "mean_test_auroc": 0.5391269841269841,
+      "min_test_auroc": 0.3884722222222223,
+      "max_test_auroc": 1.0
+    },
+    "activations_mlp": {
+      "mean_test_auroc": 0.5769742063492063,
+      "min_test_auroc": 0.4445833333333334,
+      "max_test_auroc": 1.0
+    }
+  },
+  "site_groups": {
+    "io_position": {
+      "n_sites": 11,
+      "mean_test_auroc": {
+        "crossfit_ivs": 0.4772853535353535,
+        "components_logistic": 0.4569570707070707,
+        "components_mlp": 0.4174116161616162,
+        "activations_logistic": 0.4134343434343434,
+        "activations_mlp": 0.4616035353535354
+      }
+    },
+    "last_position": {
+      "n_sites": 3,
+      "mean_test_auroc": {
+        "crossfit_ivs": 0.945925925925926,
+        "components_logistic": 0.9842592592592592,
+        "components_mlp": 0.9438888888888889,
+        "activations_logistic": 1.0,
+        "activations_mlp": 1.0
+      }
+    }
+  },
+  "decision": {
+    "crossfit_ivs_mean_auroc": 0.5777083333333334,
+    "best_supervised_method": "activations_mlp",
+    "best_supervised_mean_auroc": 0.5769742063492063,
+    "ivs_has_clear_advantage": false,
+    "old_mlp_failure_supports_high_dimensional_overfit_claim": false,
+    "reason": "With standardized features, identical splits, and equal tuning, supervised baselines are competitive overall and perfectly separate the last-position shift in activation space."
+  }
+}

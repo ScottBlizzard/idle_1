@@ -11,6 +11,11 @@ __pycache__/
 .ipynb_checkpoints/
 .venv/
 venv/
+.pytest_cache/
+
+# Local tool/vendor snapshots and scratch work
+_nature_skills/
+tmp/
 
 # 实验产物（在服务器上生成，不回传）
 data/
@@ -25,6 +30,9 @@ checkpoints/
 *.npy
 *.npz
 *.log
+*.aux
+*.blg
+*.out
 
 # 系统
 .DS_Store

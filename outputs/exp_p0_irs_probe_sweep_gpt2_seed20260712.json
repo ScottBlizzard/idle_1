@@ -1,0 +1,1488 @@
+{
+  "experiment": "p0_irs_probe_sweep_gpt2",
+  "model": "gpt2",
+  "seed": 20260712,
+  "layer_mechanism": [
+    {
+      "layer": 0,
+      "mean_restoration": 1.0113416910171509,
+      "mean_nmh_recovery": 1.008796215057373
+    },
+    {
+      "layer": 1,
+      "mean_restoration": 1.0278550386428833,
+      "mean_nmh_recovery": 0.9908466339111328
+    },
+    {
+      "layer": 2,
+      "mean_restoration": 1.0113341808319092,
+      "mean_nmh_recovery": 0.9524961709976196
+    },
+    {
+      "layer": 3,
+      "mean_restoration": 0.9742943644523621,
+      "mean_nmh_recovery": 0.7263294458389282
+    },
+    {
+      "layer": 4,
+      "mean_restoration": 0.8295599222183228,
+      "mean_nmh_recovery": 0.3144671320915222
+    },
+    {
+      "layer": 5,
+      "mean_restoration": 0.8089181780815125,
+      "mean_nmh_recovery": 0.25897645950317383
+    },
+    {
+      "layer": 6,
+      "mean_restoration": 0.8016136288642883,
+      "mean_nmh_recovery": 0.2669544816017151
+    },
+    {
+      "layer": 7,
+      "mean_restoration": 0.8000863194465637,
+      "mean_nmh_recovery": 0.2666674852371216
+    },
+    {
+      "layer": 8,
+      "mean_restoration": 0.7941941022872925,
+      "mean_nmh_recovery": 0.28771889209747314
+    }
+  ],
+  "rows": [
+    {
+      "layer": 0,
+      "interpolation": 0.1,
+      "n_probes": 2,
+      "irs_normalized_rmse": 0.0780751024449404,
+      "irs_rmse": 0.0024042297717059373,
+      "irs_cosine": 0.9969306092640909,
+      "endpoint_accept_rate": 1.0
+    },
+    {
+      "layer": 0,
+      "interpolation": 0.1,
+      "n_probes": 4,
+      "irs_normalized_rmse": 0.07113516813475076,
+      "irs_rmse": 0.00257691748932042,
+      "irs_cosine": 0.9978231310845196,
+      "endpoint_accept_rate": 0.99375
+    },
+    {
+      "layer": 0,
+      "interpolation": 0.1,
+      "n_probes": 8,
+      "irs_normalized_rmse": 0.06822422139192119,
+      "irs_rmse": 0.002593566885767485,
+      "irs_cosine": 0.9981019601140261,
+      "endpoint_accept_rate": 0.9859375
+    },
+    {
+      "layer": 0,
+      "interpolation": 0.1,
+      "n_probes": 16,
+      "irs_normalized_rmse": 0.06814974203727957,
+      "irs_rmse": 0.002651163216123956,
+      "irs_cosine": 0.9980254718731517,
+      "endpoint_accept_rate": 0.98515625
+    },
+    {
+      "layer": 0,
+      "interpolation": 0.25,
+      "n_probes": 2,
+      "irs_normalized_rmse": 0.11247959756883227,
+      "irs_rmse": 0.0025865341609320773,
+      "irs_cosine": 0.99299179866753,
+      "endpoint_accept_rate": 1.0
+    },
+    {
+      "layer": 0,
+      "interpolation": 0.25,
+      "n_probes": 4,
+      "irs_normalized_rmse": 0.09786103124675294,
+      "irs_rmse": 0.0028066255822761736,
+      "irs_cosine": 0.9947443215252332,
+      "endpoint_accept_rate": 1.0
+    },
+    {
+      "layer": 0,
+      "interpolation": 0.25,
+      "n_probes": 8,
+      "irs_normalized_rmse": 0.09293293934514235,
+      "irs_rmse": 0.0027803895388675694,
+      "irs_cosine": 0.9953578391386589,
+      "endpoint_accept_rate": 0.9984375
+    },
+    {
+      "layer": 0,
+      "interpolation": 0.25,
+      "n_probes": 16,
+      "irs_normalized_rmse": 0.09232704475925879,
+      "irs_rmse": 0.0028618015868645667,
+      "irs_cosine": 0.9954111080836169,
+      "endpoint_accept_rate": 0.99921875
+    },
+    {
+      "layer": 0,
+      "interpolation": 0.5,
+      "n_probes": 2,
+      "irs_normalized_rmse": 0.03810587951436878,
+      "irs_rmse": 0.0030309819251606064,
+      "irs_cosine": 0.9998080282450676,
+      "endpoint_accept_rate": 0.9875
+    },
+    {
+      "layer": 0,
+      "interpolation": 0.5,
+      "n_probes": 4,
+      "irs_normalized_rmse": 0.04179689591549322,
+      "irs_rmse": 0.003452472093046815,
+      "irs_cosine": 0.9994037154686815,
+      "endpoint_accept_rate": 0.9875
+    },
+    {
+      "layer": 0,
+      "interpolation": 0.5,
+      "n_probes": 8,
+      "irs_normalized_rmse": 0.03961614871515869,
+      "irs_rmse": 0.0033004053791812573,
+      "irs_cosine": 0.9995055578664888,
+      "endpoint_accept_rate": 0.975
+    },
+    {
+      "layer": 0,
+      "interpolation": 0.5,
+      "n_probes": 16,
+      "irs_normalized_rmse": 0.04083713726173395,
+      "irs_rmse": 0.0034024512222853905,
+      "irs_cosine": 0.9994816698769998,
+      "endpoint_accept_rate": 0.975
+    },
+    {
+      "layer": 0,
+      "interpolation": 1.0,
+      "n_probes": 2,
+      "irs_normalized_rmse": 0.013814799468779056,
+      "irs_rmse": 0.0028395004509317455,
+      "irs_cosine": 0.999975957762145,
+      "endpoint_accept_rate": 0.34375
+    },
+    {
+      "layer": 0,
+      "interpolation": 1.0,
+      "n_probes": 4,
+      "irs_normalized_rmse": 0.015684589988694847,
+      "irs_rmse": 0.003142635681589966,
+      "irs_cosine": 0.9999580627347097,
+      "endpoint_accept_rate": 0.303125
+    },
+    {
+      "layer": 0,
+      "interpolation": 1.0,
+      "n_probes": 8,
+      "irs_normalized_rmse": 0.01588908025322757,
+      "irs_rmse": 0.00307001419432371,
+      "irs_cosine": 0.9999502153718847,
+      "endpoint_accept_rate": 0.284375
+    },
+    {
+      "layer": 0,
+      "interpolation": 1.0,
+      "n_probes": 16,
+      "irs_normalized_rmse": 0.016786248808679523,
+      "irs_rmse": 0.00318394226992098,
+      "irs_cosine": 0.9999402106119135,
+      "endpoint_accept_rate": 0.29765625
+    },
+    {
+      "layer": 1,
+      "interpolation": 0.1,
+      "n_probes": 2,
+      "irs_normalized_rmse": 0.10164548556604684,
+      "irs_rmse": 0.0057586319007091,
+      "irs_cosine": 0.9964270852629721,
+      "endpoint_accept_rate": 0.975
+    },
+    {
+      "layer": 1,
+      "interpolation": 0.1,
+      "n_probes": 4,
+      "irs_normalized_rmse": 0.08884813858930521,
+      "irs_rmse": 0.005919393278088599,
+      "irs_cosine": 0.9966278200133143,
+      "endpoint_accept_rate": 0.978125
+    },
+    {
+      "layer": 1,
+      "interpolation": 0.1,
+      "n_probes": 8,
+      "irs_normalized_rmse": 0.09043496080202432,
+      "irs_rmse": 0.006065038230321405,
+      "irs_cosine": 0.9968226995044696,
+      "endpoint_accept_rate": 0.9796875
+    },
+    {
+      "layer": 1,
+      "interpolation": 0.1,
+      "n_probes": 16,
+      "irs_normalized_rmse": 0.08903684877755957,
+      "irs_rmse": 0.006015796365704566,
+      "irs_cosine": 0.9971326148179696,
+      "endpoint_accept_rate": 0.978125
+    },
+    {
+      "layer": 1,
+      "interpolation": 0.25,
+      "n_probes": 2,
+      "irs_normalized_rmse": 0.21174774053528242,
+      "irs_rmse": 0.005707078939485725,
+      "irs_cosine": 0.9332090098521446,
+      "endpoint_accept_rate": 0.99375
+    },
+    {
+      "layer": 1,
+      "interpolation": 0.25,
+      "n_probes": 4,
+      "irs_normalized_rmse": 0.14283629213030374,
+      "irs_rmse": 0.005764372745865289,
+      "irs_cosine": 0.990972433135785,
+      "endpoint_accept_rate": 0.996875
+    },
+    {
+      "layer": 1,
+      "interpolation": 0.25,
+      "n_probes": 8,
+      "irs_normalized_rmse": 0.13934109602321418,
+      "irs_rmse": 0.005813621972054294,
+      "irs_cosine": 0.9912842160703992,
+      "endpoint_accept_rate": 0.996875
+    },
+    {
+      "layer": 1,
+      "interpolation": 0.25,
+      "n_probes": 16,
+      "irs_normalized_rmse": 0.13467729311806412,
+      "irs_rmse": 0.005752354983278304,
+      "irs_cosine": 0.9911569740182097,
+      "endpoint_accept_rate": 0.99765625
+    },
+    {
+      "layer": 1,
+      "interpolation": 0.5,
+      "n_probes": 2,
+      "irs_normalized_rmse": 0.10633173523337128,
+      "irs_rmse": 0.00574485923308205,
+      "irs_cosine": 0.9954864885375876,
+      "endpoint_accept_rate": 0.975
+    },
+    {
+      "layer": 1,
+      "interpolation": 0.5,
+      "n_probes": 4,
+      "irs_normalized_rmse": 0.09723786187769572,
+      "irs_rmse": 0.005806035984926409,
+      "irs_cosine": 0.9962246929665399,
+      "endpoint_accept_rate": 0.978125
+    },
+    {
+      "layer": 1,
+      "interpolation": 0.5,
+      "n_probes": 8,
+      "irs_normalized_rmse": 0.09473589954574597,
+      "irs_rmse": 0.005710481230883892,
+      "irs_cosine": 0.995998627631514,
+      "endpoint_accept_rate": 0.9828125
+    },
+    {
+      "layer": 1,
+      "interpolation": 0.5,
+      "n_probes": 16,
+      "irs_normalized_rmse": 0.09436182806360241,
+      "irs_rmse": 0.005731444874061799,
+      "irs_cosine": 0.9961506405423061,
+      "endpoint_accept_rate": 0.98046875
+    },
+    {
+      "layer": 1,
+      "interpolation": 1.0,
+      "n_probes": 2,
+      "irs_normalized_rmse": 0.029334085746758075,
+      "irs_rmse": 0.005189112273567781,
+      "irs_cosine": 0.9999182883447503,
+      "endpoint_accept_rate": 0.1375
+    },
+    {
+      "layer": 1,
+      "interpolation": 1.0,
+      "n_probes": 4,
+      "irs_normalized_rmse": 0.030036115528360625,
+      "irs_rmse": 0.0051862949168179125,
+      "irs_cosine": 0.9998830648356438,
+      "endpoint_accept_rate": 0.171875
+    },
+    {
+      "layer": 1,
+      "interpolation": 1.0,
+      "n_probes": 8,
+      "irs_normalized_rmse": 0.029760484887868217,
+      "irs_rmse": 0.005221558632709573,
+      "irs_cosine": 0.999855024158496,
+      "endpoint_accept_rate": 0.1765625
+    },
+    {
+      "layer": 1,
+      "interpolation": 1.0,
+      "n_probes": 16,
+      "irs_normalized_rmse": 0.029572252096955638,
+      "irs_rmse": 0.005153833874361865,
+      "irs_cosine": 0.9998342976087645,
+      "endpoint_accept_rate": 0.18203125
+    },
+    {
+      "layer": 2,
+      "interpolation": 0.1,
+      "n_probes": 2,
+      "irs_normalized_rmse": 0.3647982164349113,
+      "irs_rmse": 0.011321281429390527,
+      "irs_cosine": 0.969561083051472,
+      "endpoint_accept_rate": 1.0
+    },
+    {
+      "layer": 2,
+      "interpolation": 0.1,
+      "n_probes": 4,
+      "irs_normalized_rmse": 0.16769757611487962,
+      "irs_rmse": 0.011508168006209634,
+      "irs_cosine": 0.9881174810393976,
+      "endpoint_accept_rate": 1.0
+    },
+    {
+      "layer": 2,
+      "interpolation": 0.1,
+      "n_probes": 8,
+      "irs_normalized_rmse": 0.15314052561177793,
+      "irs_rmse": 0.011030519921811947,
+      "irs_cosine": 0.9898361106235661,
+      "endpoint_accept_rate": 1.0
+    },
+    {
+      "layer": 2,
+      "interpolation": 0.1,
+      "n_probes": 16,
+      "irs_normalized_rmse": 0.14727138369616025,
+      "irs_rmse": 0.011011304762711845,
+      "irs_cosine": 0.991712454725343,
+      "endpoint_accept_rate": 1.0
+    },
+    {
+      "layer": 2,
+      "interpolation": 0.25,
+      "n_probes": 2,
+      "irs_normalized_rmse": 0.32310935452198697,
+      "irs_rmse": 0.011185584816781703,
+      "irs_cosine": 0.9145180179228504,
+      "endpoint_accept_rate": 1.0
+    },
+    {
+      "layer": 2,
+      "interpolation": 0.25,
+      "n_probes": 4,
+      "irs_normalized_rmse": 0.2751918639565001,
+      "irs_rmse": 0.011271414648681314,
+      "irs_cosine": 0.9501149309759402,
+      "endpoint_accept_rate": 1.0
+    },
+    {
+      "layer": 2,
+      "interpolation": 0.25,
+      "n_probes": 8,
+      "irs_normalized_rmse": 0.24354859393470676,
+      "irs_rmse": 0.010767032320881845,
+      "irs_cosine": 0.9694745255159061,
+      "endpoint_accept_rate": 1.0
+    },
+    {
+      "layer": 2,
+      "interpolation": 0.25,
+      "n_probes": 16,
+      "irs_normalized_rmse": 0.23219460172085568,
+      "irs_rmse": 0.010745514061047628,
+      "irs_cosine": 0.9729592461056786,
+      "endpoint_accept_rate": 1.0
+    },
+    {
+      "layer": 2,
+      "interpolation": 0.5,
+      "n_probes": 2,
+      "irs_normalized_rmse": 0.21064004590855517,
+      "irs_rmse": 0.009345330485585208,
+      "irs_cosine": 0.9651055303918195,
+      "endpoint_accept_rate": 1.0
+    },
+    {
+      "layer": 2,
+      "interpolation": 0.5,
+      "n_probes": 4,
+      "irs_normalized_rmse": 0.194068667175534,
+      "irs_rmse": 0.008962391678613454,
+      "irs_cosine": 0.9705060082154062,
+      "endpoint_accept_rate": 1.0
+    },
+    {
+      "layer": 2,
+      "interpolation": 0.5,
+      "n_probes": 8,
+      "irs_normalized_rmse": 0.17448197687945996,
+      "irs_rmse": 0.00874510414280054,
+      "irs_cosine": 0.9887038004959287,
+      "endpoint_accept_rate": 1.0
+    },
+    {
+      "layer": 2,
+      "interpolation": 0.5,
+      "n_probes": 16,
+      "irs_normalized_rmse": 0.17214884799238678,
+      "irs_rmse": 0.008823855528397885,
+      "irs_cosine": 0.9872467965164635,
+      "endpoint_accept_rate": 1.0
+    },
+    {
+      "layer": 2,
+      "interpolation": 1.0,
+      "n_probes": 2,
+      "irs_normalized_rmse": 0.04115709627112183,
+      "irs_rmse": 0.006813751200608997,
+      "irs_cosine": 0.9998782732540569,
+      "endpoint_accept_rate": 0.11875
+    },
+    {
+      "layer": 2,
+      "interpolation": 1.0,
+      "n_probes": 4,
+      "irs_normalized_rmse": 0.04239818377268397,
+      "irs_rmse": 0.0068156132907318916,
+      "irs_cosine": 0.9998045633134719,
+      "endpoint_accept_rate": 0.125
+    },
+    {
+      "layer": 2,
+      "interpolation": 1.0,
+      "n_probes": 8,
+      "irs_normalized_rmse": 0.04413651777580137,
+      "irs_rmse": 0.007115508049853372,
+      "irs_cosine": 0.9997571176404874,
+      "endpoint_accept_rate": 0.134375
+    },
+    {
+      "layer": 2,
+      "interpolation": 1.0,
+      "n_probes": 16,
+      "irs_normalized_rmse": 0.04397309538997291,
+      "irs_rmse": 0.007138455350576855,
+      "irs_cosine": 0.9997289558726432,
+      "endpoint_accept_rate": 0.14140625
+    },
+    {
+      "layer": 3,
+      "interpolation": 0.1,
+      "n_probes": 2,
+      "irs_normalized_rmse": 0.3658863774374175,
+      "irs_rmse": 0.0196362760059576,
+      "irs_cosine": 0.9491977451688387,
+      "endpoint_accept_rate": 1.0
+    },
+    {
+      "layer": 3,
+      "interpolation": 0.1,
+      "n_probes": 4,
+      "irs_normalized_rmse": 0.3486900795055528,
+      "irs_rmse": 0.02008527650448033,
+      "irs_cosine": 0.9597452783548267,
+      "endpoint_accept_rate": 1.0
+    },
+    {
+      "layer": 3,
+      "interpolation": 0.1,
+      "n_probes": 8,
+      "irs_normalized_rmse": 0.3417585506909443,
+      "irs_rmse": 0.020159025734139975,
+      "irs_cosine": 0.9566523544929808,
+      "endpoint_accept_rate": 1.0
+    },
+    {
+      "layer": 3,
+      "interpolation": 0.1,
+      "n_probes": 16,
+      "irs_normalized_rmse": 0.3403557231405898,
+      "irs_rmse": 0.020254060993646322,
+      "irs_cosine": 0.9553977959467679,
+      "endpoint_accept_rate": 1.0
+    },
+    {
+      "layer": 3,
+      "interpolation": 0.25,
+      "n_probes": 2,
+      "irs_normalized_rmse": 0.7735009138409058,
+      "irs_rmse": 0.017981180552161764,
+      "irs_cosine": 0.7711322074671718,
+      "endpoint_accept_rate": 1.0
+    },
+    {
+      "layer": 3,
+      "interpolation": 0.25,
+      "n_probes": 4,
+      "irs_normalized_rmse": 0.6063247909969307,
+      "irs_rmse": 0.01829257385264696,
+      "irs_cosine": 0.7862210180708714,
+      "endpoint_accept_rate": 1.0
+    },
+    {
+      "layer": 3,
+      "interpolation": 0.25,
+      "n_probes": 8,
+      "irs_normalized_rmse": 0.531074064858075,
+      "irs_rmse": 0.01867246537525116,
+      "irs_cosine": 0.8181237540920954,
+      "endpoint_accept_rate": 1.0
+    },
+    {
+      "layer": 3,
+      "interpolation": 0.25,
+      "n_probes": 16,
+      "irs_normalized_rmse": 0.5064999344590253,
+      "irs_rmse": 0.018686288168575104,
+      "irs_cosine": 0.8361817326088119,
+      "endpoint_accept_rate": 1.0
+    },
+    {
+      "layer": 3,
+      "interpolation": 0.5,
+      "n_probes": 2,
+      "irs_normalized_rmse": 0.36226738997790314,
+      "irs_rmse": 0.012814137206424926,
+      "irs_cosine": 0.9469689726824783,
+      "endpoint_accept_rate": 1.0
+    },
+    {
+      "layer": 3,
+      "interpolation": 0.5,
+      "n_probes": 4,
+      "irs_normalized_rmse": 0.3739317480641491,
+      "irs_rmse": 0.012894481811529078,
+      "irs_cosine": 0.9620766637507744,
+      "endpoint_accept_rate": 1.0
+    },
+    {
+      "layer": 3,
+      "interpolation": 0.5,
+      "n_probes": 8,
+      "irs_normalized_rmse": 0.3032513287975359,
+      "irs_rmse": 0.013212271428130449,
+      "irs_cosine": 0.962920302298399,
+      "endpoint_accept_rate": 1.0
+    },
+    {
+      "layer": 3,
+      "interpolation": 0.5,
+      "n_probes": 16,
+      "irs_normalized_rmse": 0.2812348785225991,
+      "irs_rmse": 0.012949450677074335,
+      "irs_cosine": 0.9736748271398094,
+      "endpoint_accept_rate": 1.0
+    },
+    {
+      "layer": 3,
+      "interpolation": 1.0,
+      "n_probes": 2,
+      "irs_normalized_rmse": 0.11763851570868793,
+      "irs_rmse": 0.018349101405337267,
+      "irs_cosine": 0.9996193330984932,
+      "endpoint_accept_rate": 0.10625
+    },
+    {
+      "layer": 3,
+      "interpolation": 1.0,
+      "n_probes": 4,
+      "irs_normalized_rmse": 0.11999160962468396,
+      "irs_rmse": 0.018538585154380605,
+      "irs_cosine": 0.9993829986800297,
+      "endpoint_accept_rate": 0.10625
+    },
+    {
+      "layer": 3,
+      "interpolation": 1.0,
+      "n_probes": 8,
+      "irs_normalized_rmse": 0.12055976724635506,
+      "irs_rmse": 0.01866825837430482,
+      "irs_cosine": 0.9993522588271209,
+      "endpoint_accept_rate": 0.1234375
+    },
+    {
+      "layer": 3,
+      "interpolation": 1.0,
+      "n_probes": 16,
+      "irs_normalized_rmse": 0.1201796526966866,
+      "irs_rmse": 0.018571339064624243,
+      "irs_cosine": 0.9992651940252971,
+      "endpoint_accept_rate": 0.13203125
+    },
+    {
+      "layer": 4,
+      "interpolation": 0.1,
+      "n_probes": 2,
+      "irs_normalized_rmse": 0.6192145056960567,
+      "irs_rmse": 0.03357452080781919,
+      "irs_cosine": 0.7624820706155486,
+      "endpoint_accept_rate": 1.0
+    },
+    {
+      "layer": 4,
+      "interpolation": 0.1,
+      "n_probes": 4,
+      "irs_normalized_rmse": 0.5663064482343104,
+      "irs_rmse": 0.03331236600997983,
+      "irs_cosine": 0.8327555501647176,
+      "endpoint_accept_rate": 1.0
+    },
+    {
+      "layer": 4,
+      "interpolation": 0.1,
+      "n_probes": 8,
+      "irs_normalized_rmse": 0.5750911593199444,
+      "irs_rmse": 0.03394663508398274,
+      "irs_cosine": 0.803536665577276,
+      "endpoint_accept_rate": 1.0
+    },
+    {
+      "layer": 4,
+      "interpolation": 0.1,
+      "n_probes": 16,
+      "irs_normalized_rmse": 0.5623283499584427,
+      "irs_rmse": 0.03380330287279805,
+      "irs_cosine": 0.8229181041896192,
+      "endpoint_accept_rate": 1.0
+    },
+    {
+      "layer": 4,
+      "interpolation": 0.25,
+      "n_probes": 2,
+      "irs_normalized_rmse": 1.09672639164202,
+      "irs_rmse": 0.030068120297800184,
+      "irs_cosine": 0.5106640160665823,
+      "endpoint_accept_rate": 1.0
+    },
+    {
+      "layer": 4,
+      "interpolation": 0.25,
+      "n_probes": 4,
+      "irs_normalized_rmse": 0.8739020916795079,
+      "irs_rmse": 0.029789818696587745,
+      "irs_cosine": 0.5578598800739017,
+      "endpoint_accept_rate": 1.0
+    },
+    {
+      "layer": 4,
+      "interpolation": 0.25,
+      "n_probes": 8,
+      "irs_normalized_rmse": 0.8474478112612213,
+      "irs_rmse": 0.030643707951254748,
+      "irs_cosine": 0.5425308074671366,
+      "endpoint_accept_rate": 1.0
+    },
+    {
+      "layer": 4,
+      "interpolation": 0.25,
+      "n_probes": 16,
+      "irs_normalized_rmse": 0.8090847834116616,
+      "irs_rmse": 0.030369519998754965,
+      "irs_cosine": 0.5665674190130128,
+      "endpoint_accept_rate": 1.0
+    },
+    {
+      "layer": 4,
+      "interpolation": 0.5,
+      "n_probes": 2,
+      "irs_normalized_rmse": 0.5048795564032839,
+      "irs_rmse": 0.016625913476335387,
+      "irs_cosine": 0.9048080832177374,
+      "endpoint_accept_rate": 1.0
+    },
+    {
+      "layer": 4,
+      "interpolation": 0.5,
+      "n_probes": 4,
+      "irs_normalized_rmse": 0.378808021156393,
+      "irs_rmse": 0.016427637679247965,
+      "irs_cosine": 0.9381928072256056,
+      "endpoint_accept_rate": 1.0
+    },
+    {
+      "layer": 4,
+      "interpolation": 0.5,
+      "n_probes": 8,
+      "irs_normalized_rmse": 0.380902576198724,
+      "irs_rmse": 0.017150390908502476,
+      "irs_cosine": 0.9458539629180596,
+      "endpoint_accept_rate": 1.0
+    },
+    {
+      "layer": 4,
+      "interpolation": 0.5,
+      "n_probes": 16,
+      "irs_normalized_rmse": 0.375757083233003,
+      "irs_rmse": 0.01709047092194682,
+      "irs_cosine": 0.9486105034879287,
+      "endpoint_accept_rate": 1.0
+    },
+    {
+      "layer": 4,
+      "interpolation": 1.0,
+      "n_probes": 2,
+      "irs_normalized_rmse": 0.2562438786726939,
+      "irs_rmse": 0.03567824138836565,
+      "irs_cosine": 0.9992313340594461,
+      "endpoint_accept_rate": 0.225
+    },
+    {
+      "layer": 4,
+      "interpolation": 1.0,
+      "n_probes": 4,
+      "irs_normalized_rmse": 0.25916108245605035,
+      "irs_rmse": 0.03582764460599916,
+      "irs_cosine": 0.9987294359188376,
+      "endpoint_accept_rate": 0.26875
+    },
+    {
+      "layer": 4,
+      "interpolation": 1.0,
+      "n_probes": 8,
+      "irs_normalized_rmse": 0.2573397743323578,
+      "irs_rmse": 0.03583518932302376,
+      "irs_cosine": 0.9984213650588172,
+      "endpoint_accept_rate": 0.2484375
+    },
+    {
+      "layer": 4,
+      "interpolation": 1.0,
+      "n_probes": 16,
+      "irs_normalized_rmse": 0.2572426353725418,
+      "irs_rmse": 0.03562669481165538,
+      "irs_cosine": 0.9983415079593779,
+      "endpoint_accept_rate": 0.23203125
+    },
+    {
+      "layer": 5,
+      "interpolation": 0.1,
+      "n_probes": 2,
+      "irs_normalized_rmse": 0.7683676289861603,
+      "irs_rmse": 0.04075211029419604,
+      "irs_cosine": 0.5701632659213047,
+      "endpoint_accept_rate": 0.99375
+    },
+    {
+      "layer": 5,
+      "interpolation": 0.1,
+      "n_probes": 4,
+      "irs_normalized_rmse": 0.6865154401308173,
+      "irs_rmse": 0.040120519610660675,
+      "irs_cosine": 0.6908127805182334,
+      "endpoint_accept_rate": 0.996875
+    },
+    {
+      "layer": 5,
+      "interpolation": 0.1,
+      "n_probes": 8,
+      "irs_normalized_rmse": 0.6893874860123794,
+      "irs_rmse": 0.0398145987866018,
+      "irs_cosine": 0.6899935673612224,
+      "endpoint_accept_rate": 0.996875
+    },
+    {
+      "layer": 5,
+      "interpolation": 0.1,
+      "n_probes": 16,
+      "irs_normalized_rmse": 0.6894321477434423,
+      "irs_rmse": 0.039882575778692544,
+      "irs_cosine": 0.6836150691634119,
+      "endpoint_accept_rate": 0.99609375
+    },
+    {
+      "layer": 5,
+      "interpolation": 0.25,
+      "n_probes": 2,
+      "irs_normalized_rmse": 1.558808261436285,
+      "irs_rmse": 0.035659228065286944,
+      "irs_cosine": 0.19680430333556695,
+      "endpoint_accept_rate": 1.0
+    },
+    {
+      "layer": 5,
+      "interpolation": 0.25,
+      "n_probes": 4,
+      "irs_normalized_rmse": 1.014669806210166,
+      "irs_rmse": 0.03571401471774075,
+      "irs_cosine": 0.32148877426238975,
+      "endpoint_accept_rate": 1.0
+    },
+    {
+      "layer": 5,
+      "interpolation": 0.25,
+      "n_probes": 8,
+      "irs_normalized_rmse": 1.005115397084635,
+      "irs_rmse": 0.035147146692139336,
+      "irs_cosine": 0.32320630332649064,
+      "endpoint_accept_rate": 1.0
+    },
+    {
+      "layer": 5,
+      "interpolation": 0.25,
+      "n_probes": 16,
+      "irs_normalized_rmse": 0.9842935680380502,
+      "irs_rmse": 0.035195863571279705,
+      "irs_cosine": 0.34982609754399485,
+      "endpoint_accept_rate": 1.0
+    },
+    {
+      "layer": 5,
+      "interpolation": 0.5,
+      "n_probes": 2,
+      "irs_normalized_rmse": 1.8546663937464172,
+      "irs_rmse": 0.016814728586101946,
+      "irs_cosine": 0.9048037291244475,
+      "endpoint_accept_rate": 1.0
+    },
+    {
+      "layer": 5,
+      "interpolation": 0.5,
+      "n_probes": 4,
+      "irs_normalized_rmse": 0.5099244637715672,
+      "irs_rmse": 0.017608331674652963,
+      "irs_cosine": 0.9323189969785824,
+      "endpoint_accept_rate": 1.0
+    },
+    {
+      "layer": 5,
+      "interpolation": 0.5,
+      "n_probes": 8,
+      "irs_normalized_rmse": 0.43577926620190954,
+      "irs_rmse": 0.017245475715483894,
+      "irs_cosine": 0.9440997990341753,
+      "endpoint_accept_rate": 1.0
+    },
+    {
+      "layer": 5,
+      "interpolation": 0.5,
+      "n_probes": 16,
+      "irs_normalized_rmse": 0.4312095477303221,
+      "irs_rmse": 0.017303416021071882,
+      "irs_cosine": 0.9477079348661477,
+      "endpoint_accept_rate": 1.0
+    },
+    {
+      "layer": 5,
+      "interpolation": 1.0,
+      "n_probes": 2,
+      "irs_normalized_rmse": 0.2957324991473934,
+      "irs_rmse": 0.038342201281287416,
+      "irs_cosine": 0.9983544023545674,
+      "endpoint_accept_rate": 0.23125
+    },
+    {
+      "layer": 5,
+      "interpolation": 1.0,
+      "n_probes": 4,
+      "irs_normalized_rmse": 0.30112319739312,
+      "irs_rmse": 0.038439032403930415,
+      "irs_cosine": 0.9980212691560281,
+      "endpoint_accept_rate": 0.225
+    },
+    {
+      "layer": 5,
+      "interpolation": 1.0,
+      "n_probes": 8,
+      "irs_normalized_rmse": 0.29969030325169654,
+      "irs_rmse": 0.03851594304609483,
+      "irs_cosine": 0.9980535068936994,
+      "endpoint_accept_rate": 0.2453125
+    },
+    {
+      "layer": 5,
+      "interpolation": 1.0,
+      "n_probes": 16,
+      "irs_normalized_rmse": 0.29937284876515535,
+      "irs_rmse": 0.038534079715889624,
+      "irs_cosine": 0.997852867554721,
+      "endpoint_accept_rate": 0.2390625
+    },
+    {
+      "layer": 6,
+      "interpolation": 0.1,
+      "n_probes": 2,
+      "irs_normalized_rmse": 0.7323368134971902,
+      "irs_rmse": 0.037490631284812476,
+      "irs_cosine": 0.6419638113081494,
+      "endpoint_accept_rate": 0.975
+    },
+    {
+      "layer": 6,
+      "interpolation": 0.1,
+      "n_probes": 4,
+      "irs_normalized_rmse": 0.6889165850610695,
+      "irs_rmse": 0.03752614892298702,
+      "irs_cosine": 0.6701518029343868,
+      "endpoint_accept_rate": 0.975
+    },
+    {
+      "layer": 6,
+      "interpolation": 0.1,
+      "n_probes": 8,
+      "irs_normalized_rmse": 0.6653581941839001,
+      "irs_rmse": 0.03738972183314343,
+      "irs_cosine": 0.6909780736480172,
+      "endpoint_accept_rate": 0.975
+    },
+    {
+      "layer": 6,
+      "interpolation": 0.1,
+      "n_probes": 16,
+      "irs_normalized_rmse": 0.6583986354983773,
+      "irs_rmse": 0.03751007246094158,
+      "irs_cosine": 0.7211520647757472,
+      "endpoint_accept_rate": 0.975
+    },
+    {
+      "layer": 6,
+      "interpolation": 0.25,
+      "n_probes": 2,
+      "irs_normalized_rmse": 1.3754146413430306,
+      "irs_rmse": 0.03302696981504184,
+      "irs_cosine": 0.29050100100440057,
+      "endpoint_accept_rate": 1.0
+    },
+    {
+      "layer": 6,
+      "interpolation": 0.25,
+      "n_probes": 4,
+      "irs_normalized_rmse": 1.0495177237756912,
+      "irs_rmse": 0.03309112178782882,
+      "irs_cosine": 0.33410324227775245,
+      "endpoint_accept_rate": 0.996875
+    },
+    {
+      "layer": 6,
+      "interpolation": 0.25,
+      "n_probes": 8,
+      "irs_normalized_rmse": 0.9811963151616736,
+      "irs_rmse": 0.03319281116278745,
+      "irs_cosine": 0.3639314830483784,
+      "endpoint_accept_rate": 0.9984375
+    },
+    {
+      "layer": 6,
+      "interpolation": 0.25,
+      "n_probes": 16,
+      "irs_normalized_rmse": 0.9500818410569263,
+      "irs_rmse": 0.03328805116841411,
+      "irs_cosine": 0.3709825881803241,
+      "endpoint_accept_rate": 0.99765625
+    },
+    {
+      "layer": 6,
+      "interpolation": 0.5,
+      "n_probes": 2,
+      "irs_normalized_rmse": 0.7042316964435927,
+      "irs_rmse": 0.01611994683821555,
+      "irs_cosine": 0.9033618301081283,
+      "endpoint_accept_rate": 0.99375
+    },
+    {
+      "layer": 6,
+      "interpolation": 0.5,
+      "n_probes": 4,
+      "irs_normalized_rmse": 0.6630413884612745,
+      "irs_rmse": 0.016188538793691278,
+      "irs_cosine": 0.9469736925140377,
+      "endpoint_accept_rate": 0.996875
+    },
+    {
+      "layer": 6,
+      "interpolation": 0.5,
+      "n_probes": 8,
+      "irs_normalized_rmse": 0.5146865401382612,
+      "irs_rmse": 0.016895955308017206,
+      "irs_cosine": 0.938469731276858,
+      "endpoint_accept_rate": 0.9984375
+    },
+    {
+      "layer": 6,
+      "interpolation": 0.5,
+      "n_probes": 16,
+      "irs_normalized_rmse": 0.47278820825832746,
+      "irs_rmse": 0.016766690779538438,
+      "irs_cosine": 0.9407838466293527,
+      "endpoint_accept_rate": 0.9984375
+    },
+    {
+      "layer": 6,
+      "interpolation": 1.0,
+      "n_probes": 2,
+      "irs_normalized_rmse": 0.2944920109723347,
+      "irs_rmse": 0.03484825227248432,
+      "irs_cosine": 0.9989514901442188,
+      "endpoint_accept_rate": 0.28125
+    },
+    {
+      "layer": 6,
+      "interpolation": 1.0,
+      "n_probes": 4,
+      "irs_normalized_rmse": 0.29577691837966097,
+      "irs_rmse": 0.03476068225727598,
+      "irs_cosine": 0.9985680768254325,
+      "endpoint_accept_rate": 0.271875
+    },
+    {
+      "layer": 6,
+      "interpolation": 1.0,
+      "n_probes": 8,
+      "irs_normalized_rmse": 0.29632222402062686,
+      "irs_rmse": 0.035025699796640754,
+      "irs_cosine": 0.9982611893700046,
+      "endpoint_accept_rate": 0.271875
+    },
+    {
+      "layer": 6,
+      "interpolation": 1.0,
+      "n_probes": 16,
+      "irs_normalized_rmse": 0.29632370188458756,
+      "irs_rmse": 0.034721329624870394,
+      "irs_cosine": 0.9980807639957165,
+      "endpoint_accept_rate": 0.271875
+    },
+    {
+      "layer": 7,
+      "interpolation": 0.1,
+      "n_probes": 2,
+      "irs_normalized_rmse": 0.6416412280014384,
+      "irs_rmse": 0.03312896239424486,
+      "irs_cosine": 0.7412624422184465,
+      "endpoint_accept_rate": 0.96875
+    },
+    {
+      "layer": 7,
+      "interpolation": 0.1,
+      "n_probes": 4,
+      "irs_normalized_rmse": 0.6161984608032606,
+      "irs_rmse": 0.031999176355491155,
+      "irs_cosine": 0.7714681737071001,
+      "endpoint_accept_rate": 0.96875
+    },
+    {
+      "layer": 7,
+      "interpolation": 0.1,
+      "n_probes": 8,
+      "irs_normalized_rmse": 0.6048456296850645,
+      "irs_rmse": 0.03258021932822446,
+      "irs_cosine": 0.7999063424602142,
+      "endpoint_accept_rate": 0.965625
+    },
+    {
+      "layer": 7,
+      "interpolation": 0.1,
+      "n_probes": 16,
+      "irs_normalized_rmse": 0.5910178339486285,
+      "irs_rmse": 0.032650342114961976,
+      "irs_cosine": 0.8202329166774316,
+      "endpoint_accept_rate": 0.96796875
+    },
+    {
+      "layer": 7,
+      "interpolation": 0.25,
+      "n_probes": 2,
+      "irs_normalized_rmse": 1.026214735129741,
+      "irs_rmse": 0.028651618516674863,
+      "irs_cosine": 0.4254579701957679,
+      "endpoint_accept_rate": 1.0
+    },
+    {
+      "layer": 7,
+      "interpolation": 0.25,
+      "n_probes": 4,
+      "irs_normalized_rmse": 0.9728388052325485,
+      "irs_rmse": 0.027506917199730425,
+      "irs_cosine": 0.4280681597015484,
+      "endpoint_accept_rate": 0.996875
+    },
+    {
+      "layer": 7,
+      "interpolation": 0.25,
+      "n_probes": 8,
+      "irs_normalized_rmse": 0.8684941987448592,
+      "irs_rmse": 0.028160065464545785,
+      "irs_cosine": 0.4847705027869358,
+      "endpoint_accept_rate": 0.9984375
+    },
+    {
+      "layer": 7,
+      "interpolation": 0.25,
+      "n_probes": 16,
+      "irs_normalized_rmse": 0.8257810223564155,
+      "irs_rmse": 0.028259751090458845,
+      "irs_cosine": 0.5339620042138788,
+      "endpoint_accept_rate": 0.99921875
+    },
+    {
+      "layer": 7,
+      "interpolation": 0.5,
+      "n_probes": 2,
+      "irs_normalized_rmse": 0.7277324838013737,
+      "irs_rmse": 0.014806870469168627,
+      "irs_cosine": 0.918423140847103,
+      "endpoint_accept_rate": 0.99375
+    },
+    {
+      "layer": 7,
+      "interpolation": 0.5,
+      "n_probes": 4,
+      "irs_normalized_rmse": 0.47656648840296256,
+      "irs_rmse": 0.013943225066508467,
+      "irs_cosine": 0.9224367629703337,
+      "endpoint_accept_rate": 0.996875
+    },
+    {
+      "layer": 7,
+      "interpolation": 0.5,
+      "n_probes": 8,
+      "irs_normalized_rmse": 0.46603284532055483,
+      "irs_rmse": 0.014281650336610932,
+      "irs_cosine": 0.9258128754308854,
+      "endpoint_accept_rate": 0.996875
+    },
+    {
+      "layer": 7,
+      "interpolation": 0.5,
+      "n_probes": 16,
+      "irs_normalized_rmse": 0.48011571941010456,
+      "irs_rmse": 0.014493302345832425,
+      "irs_cosine": 0.92762039510539,
+      "endpoint_accept_rate": 0.996875
+    },
+    {
+      "layer": 7,
+      "interpolation": 1.0,
+      "n_probes": 2,
+      "irs_normalized_rmse": 0.29221300703557246,
+      "irs_rmse": 0.031731590902828954,
+      "irs_cosine": 0.9991940762940317,
+      "endpoint_accept_rate": 0.28125
+    },
+    {
+      "layer": 7,
+      "interpolation": 1.0,
+      "n_probes": 4,
+      "irs_normalized_rmse": 0.29656064694263795,
+      "irs_rmse": 0.03168754338523177,
+      "irs_cosine": 0.998370396274473,
+      "endpoint_accept_rate": 0.278125
+    },
+    {
+      "layer": 7,
+      "interpolation": 1.0,
+      "n_probes": 8,
+      "irs_normalized_rmse": 0.29375729815439183,
+      "irs_rmse": 0.031415333542050124,
+      "irs_cosine": 0.9981588799376929,
+      "endpoint_accept_rate": 0.284375
+    },
+    {
+      "layer": 7,
+      "interpolation": 1.0,
+      "n_probes": 16,
+      "irs_normalized_rmse": 0.29507542360441763,
+      "irs_rmse": 0.031458799134486584,
+      "irs_cosine": 0.9980333455743097,
+      "endpoint_accept_rate": 0.29140625
+    },
+    {
+      "layer": 8,
+      "interpolation": 0.1,
+      "n_probes": 2,
+      "irs_normalized_rmse": 0.6030039869456174,
+      "irs_rmse": 0.032624213659557956,
+      "irs_cosine": 0.7963639674045748,
+      "endpoint_accept_rate": 0.975
+    },
+    {
+      "layer": 8,
+      "interpolation": 0.1,
+      "n_probes": 4,
+      "irs_normalized_rmse": 0.585855395112574,
+      "irs_rmse": 0.03258184191172208,
+      "irs_cosine": 0.8242307676588336,
+      "endpoint_accept_rate": 0.975
+    },
+    {
+      "layer": 8,
+      "interpolation": 0.1,
+      "n_probes": 8,
+      "irs_normalized_rmse": 0.5767286718980837,
+      "irs_rmse": 0.033058665016718156,
+      "irs_cosine": 0.83099890343404,
+      "endpoint_accept_rate": 0.971875
+    },
+    {
+      "layer": 8,
+      "interpolation": 0.1,
+      "n_probes": 16,
+      "irs_normalized_rmse": 0.5720654110739589,
+      "irs_rmse": 0.03292678555100835,
+      "irs_cosine": 0.8281123931591827,
+      "endpoint_accept_rate": 0.9703125
+    },
+    {
+      "layer": 8,
+      "interpolation": 0.25,
+      "n_probes": 2,
+      "irs_normalized_rmse": 8.26143560911344,
+      "irs_rmse": 0.028600012797693215,
+      "irs_cosine": 0.4380412193472247,
+      "endpoint_accept_rate": 1.0
+    },
+    {
+      "layer": 8,
+      "interpolation": 0.25,
+      "n_probes": 4,
+      "irs_normalized_rmse": 0.932808879815821,
+      "irs_rmse": 0.028658946629769946,
+      "irs_cosine": 0.5057952773410713,
+      "endpoint_accept_rate": 1.0
+    },
+    {
+      "layer": 8,
+      "interpolation": 0.25,
+      "n_probes": 8,
+      "irs_normalized_rmse": 0.7926273393506122,
+      "irs_rmse": 0.02907028461831905,
+      "irs_cosine": 0.557167754671344,
+      "endpoint_accept_rate": 1.0
+    },
+    {
+      "layer": 8,
+      "interpolation": 0.25,
+      "n_probes": 16,
+      "irs_normalized_rmse": 0.7731542010642325,
+      "irs_rmse": 0.029035017783592406,
+      "irs_cosine": 0.5805773799668748,
+      "endpoint_accept_rate": 0.9984375
+    },
+    {
+      "layer": 8,
+      "interpolation": 0.5,
+      "n_probes": 2,
+      "irs_normalized_rmse": 0.8506973913468915,
+      "irs_rmse": 0.013760873577968884,
+      "irs_cosine": 0.7894856287243467,
+      "endpoint_accept_rate": 1.0
+    },
+    {
+      "layer": 8,
+      "interpolation": 0.5,
+      "n_probes": 4,
+      "irs_normalized_rmse": 0.7382153245227006,
+      "irs_rmse": 0.014053102374647597,
+      "irs_cosine": 0.8416648568798017,
+      "endpoint_accept_rate": 0.990625
+    },
+    {
+      "layer": 8,
+      "interpolation": 0.5,
+      "n_probes": 8,
+      "irs_normalized_rmse": 0.6279194446621728,
+      "irs_rmse": 0.014285101964573482,
+      "irs_cosine": 0.8774799947608294,
+      "endpoint_accept_rate": 0.99375
+    },
+    {
+      "layer": 8,
+      "interpolation": 0.5,
+      "n_probes": 16,
+      "irs_normalized_rmse": 0.6151950306318518,
+      "irs_rmse": 0.014356375662550032,
+      "irs_cosine": 0.8867538342455241,
+      "endpoint_accept_rate": 0.990625
+    },
+    {
+      "layer": 8,
+      "interpolation": 1.0,
+      "n_probes": 2,
+      "irs_normalized_rmse": 0.27350481822818556,
+      "irs_rmse": 0.02711539733222167,
+      "irs_cosine": 0.999333215763917,
+      "endpoint_accept_rate": 0.3625
+    },
+    {
+      "layer": 8,
+      "interpolation": 1.0,
+      "n_probes": 4,
+      "irs_normalized_rmse": 0.2771073974446297,
+      "irs_rmse": 0.0271287893874163,
+      "irs_cosine": 0.9984695967931018,
+      "endpoint_accept_rate": 0.353125
+    },
+    {
+      "layer": 8,
+      "interpolation": 1.0,
+      "n_probes": 8,
+      "irs_normalized_rmse": 0.2776418837475653,
+      "irs_rmse": 0.027085078914419487,
+      "irs_cosine": 0.998423995211299,
+      "endpoint_accept_rate": 0.3484375
+    },
+    {
+      "layer": 8,
+      "interpolation": 1.0,
+      "n_probes": 16,
+      "irs_normalized_rmse": 0.2786171700613641,
+      "irs_rmse": 0.027145614850796116,
+      "irs_cosine": 0.9980207662153795,
+      "endpoint_accept_rate": 0.34453125
+    }
+  ],
+  "setting_results": [
+    {
+      "interpolation": 0.1,
+      "n_probes": 2,
+      "spearman_vs_primary_layer_ranking": 1.0,
+      "spearman_vs_nmh": -0.9666666666666667,
+      "min_endpoint_accept_rate": 0.96875
+    },
+    {
+      "interpolation": 0.1,
+      "n_probes": 4,
+      "spearman_vs_primary_layer_ranking": 0.9666666666666667,
+      "spearman_vs_nmh": -0.9500000000000001,
+      "min_endpoint_accept_rate": 0.96875
+    },
+    {
+      "interpolation": 0.1,
+      "n_probes": 8,
+      "spearman_vs_primary_layer_ranking": 0.9833333333333333,
+      "spearman_vs_nmh": -0.9833333333333333,
+      "min_endpoint_accept_rate": 0.965625
+    },
+    {
+      "interpolation": 0.1,
+      "n_probes": 16,
+      "spearman_vs_primary_layer_ranking": 0.9833333333333333,
+      "spearman_vs_nmh": -0.9833333333333333,
+      "min_endpoint_accept_rate": 0.96796875
+    },
+    {
+      "interpolation": 0.25,
+      "n_probes": 2,
+      "spearman_vs_primary_layer_ranking": 0.8166666666666667,
+      "spearman_vs_nmh": -0.8333333333333333,
+      "min_endpoint_accept_rate": 0.99375
+    },
+    {
+      "interpolation": 0.25,
+      "n_probes": 4,
+      "spearman_vs_primary_layer_ranking": 0.9666666666666667,
+      "spearman_vs_nmh": -0.9500000000000001,
+      "min_endpoint_accept_rate": 0.996875
+    },
+    {
+      "interpolation": 0.25,
+      "n_probes": 8,
+      "spearman_vs_primary_layer_ranking": 1.0,
+      "spearman_vs_nmh": -0.9666666666666667,
+      "min_endpoint_accept_rate": 0.996875
+    },
+    {
+      "interpolation": 0.25,
+      "n_probes": 16,
+      "spearman_vs_primary_layer_ranking": 1.0,
+      "spearman_vs_nmh": -0.9666666666666667,
+      "min_endpoint_accept_rate": 0.99765625
+    },
+    {
+      "interpolation": 0.5,
+      "n_probes": 2,
+      "spearman_vs_primary_layer_ranking": 0.8833333333333333,
+      "spearman_vs_nmh": -0.9500000000000001,
+      "min_endpoint_accept_rate": 0.975
+    },
+    {
+      "interpolation": 0.5,
+      "n_probes": 4,
+      "spearman_vs_primary_layer_ranking": 0.8166666666666667,
+      "spearman_vs_nmh": -0.8499999999999999,
+      "min_endpoint_accept_rate": 0.978125
+    },
+    {
+      "interpolation": 0.5,
+      "n_probes": 8,
+      "spearman_vs_primary_layer_ranking": 0.7833333333333333,
+      "spearman_vs_nmh": -0.8333333333333333,
+      "min_endpoint_accept_rate": 0.975
+    },
+    {
+      "interpolation": 0.5,
+      "n_probes": 16,
+      "spearman_vs_primary_layer_ranking": 0.7666666666666667,
+      "spearman_vs_nmh": -0.8499999999999999,
+      "min_endpoint_accept_rate": 0.975
+    },
+    {
+      "interpolation": 1.0,
+      "n_probes": 2,
+      "spearman_vs_primary_layer_ranking": 0.9833333333333333,
+      "spearman_vs_nmh": -0.9833333333333333,
+      "min_endpoint_accept_rate": 0.10625
+    },
+    {
+      "interpolation": 1.0,
+      "n_probes": 4,
+      "spearman_vs_primary_layer_ranking": 0.9666666666666667,
+      "spearman_vs_nmh": -1.0,
+      "min_endpoint_accept_rate": 0.10625
+    },
+    {
+      "interpolation": 1.0,
+      "n_probes": 8,
+      "spearman_vs_primary_layer_ranking": 0.9833333333333333,
+      "spearman_vs_nmh": -0.9833333333333333,
+      "min_endpoint_accept_rate": 0.1234375
+    },
+    {
+      "interpolation": 1.0,
+      "n_probes": 16,
+      "spearman_vs_primary_layer_ranking": 0.9833333333333333,
+      "spearman_vs_nmh": -0.9833333333333333,
+      "min_endpoint_accept_rate": 0.13203125
+    }
+  ],
+  "elapsed_seconds": 763.6606292724609,
+  "configuration": {
+    "model": "gpt2",
+    "device": "cuda",
+    "seed": 20260712,
+    "out_dir": "/mnt/sdb/ccj/iclr_1_runs/p0_irs/probe_sweep_seed20260712",
+    "n_contexts": 8,
+    "n_eval_io": 10,
+    "n_cf_fit": 48,
+    "n_cf_cal": 32,
+    "n_probes": 16,
+    "probe_counts": "2,4,8,16",
+    "interpolations": "0.1,0.25,0.5,1.0",
+    "primary_interpolation": 0.25,
+    "primary_probe_count": 8,
+    "interpolation": 1.0,
+    "nearest_pool": 12,
+    "knn_k": 12,
+    "proj_rank": 32,
+    "support_alpha": 0.1,
+    "cache_chunk_size": 64,
+    "forward_chunk_size": 64,
+    "max_layer": 8
+  }
+}

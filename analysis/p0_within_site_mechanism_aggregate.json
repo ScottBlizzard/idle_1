@@ -1,0 +1,177 @@
+{
+  "experiment": "p0_within_site_mechanism_aggregate",
+  "n_runs": 3,
+  "seeds": [
+    20260712,
+    20260713,
+    20260714
+  ],
+  "n_prompt_site_observations": 2160,
+  "design": {
+    "position": 3,
+    "layers": [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8
+    ],
+    "hook": "resid_post",
+    "nmh_heads": [
+      [
+        9,
+        9
+      ],
+      [
+        10,
+        0
+      ]
+    ],
+    "eligibility": "every measured NMH head is strictly downstream of every patch"
+  },
+  "layer_summary": [
+    {
+      "layer": 0,
+      "n_runs": 3,
+      "mean_restoration": 1.027206023534139,
+      "min_restoration_across_seeds": 1.0260928869247437,
+      "mean_nmh_recovery": 1.021450678507487,
+      "max_nmh_recovery_across_seeds": 1.0229988098144531,
+      "min_restoration_minus_nmh_across_seeds": 0.0030940771102905273,
+      "mean_corrupt_overlap": 0.48578404412351145,
+      "mean_matched_overlap": 0.49042737629976196,
+      "mean_within_layer_rho_corrupt": 0.13468510704797626,
+      "mean_within_layer_rho_matched": 0.1775668073136428
+    },
+    {
+      "layer": 1,
+      "n_runs": 3,
+      "mean_restoration": 1.067059596379598,
+      "min_restoration_across_seeds": 1.0636430978775024,
+      "mean_nmh_recovery": 1.022318442662557,
+      "max_nmh_recovery_across_seeds": 1.0285871028900146,
+      "min_restoration_minus_nmh_across_seeds": 0.03505599498748779,
+      "mean_corrupt_overlap": 0.490198440326522,
+      "mean_matched_overlap": 0.4867806764345414,
+      "mean_within_layer_rho_corrupt": 0.13277855914986716,
+      "mean_within_layer_rho_matched": 0.19367869979684327
+    },
+    {
+      "layer": 2,
+      "n_runs": 3,
+      "mean_restoration": 1.04172948996226,
+      "min_restoration_across_seeds": 1.036170244216919,
+      "mean_nmh_recovery": 0.9592518011728922,
+      "max_nmh_recovery_across_seeds": 0.9768720865249634,
+      "min_restoration_minus_nmh_across_seeds": 0.07425224781036377,
+      "mean_corrupt_overlap": 0.48795141543248977,
+      "mean_matched_overlap": 0.4917309323103857,
+      "mean_within_layer_rho_corrupt": 0.10647757462103453,
+      "mean_within_layer_rho_matched": 0.22881700265666513
+    },
+    {
+      "layer": 3,
+      "n_runs": 3,
+      "mean_restoration": 1.0061681866645813,
+      "min_restoration_across_seeds": 0.997541606426239,
+      "mean_nmh_recovery": 0.7235797047615051,
+      "max_nmh_recovery_across_seeds": 0.7587854266166687,
+      "min_restoration_minus_nmh_across_seeds": 0.250338613986969,
+      "mean_corrupt_overlap": 0.49283096172885243,
+      "mean_matched_overlap": 0.4866071028623851,
+      "mean_within_layer_rho_corrupt": 0.09610095327394906,
+      "mean_within_layer_rho_matched": 0.19295202375371154
+    },
+    {
+      "layer": 4,
+      "n_runs": 3,
+      "mean_restoration": 0.8839455445607504,
+      "min_restoration_across_seeds": 0.8716526031494141,
+      "mean_nmh_recovery": 0.33630571762720746,
+      "max_nmh_recovery_across_seeds": 0.3860320746898651,
+      "min_restoration_minus_nmh_across_seeds": 0.48562052845954895,
+      "mean_corrupt_overlap": 0.49316267248367657,
+      "mean_matched_overlap": 0.4945974570724611,
+      "mean_within_layer_rho_corrupt": 0.18588842006563525,
+      "mean_within_layer_rho_matched": 0.17120643850601658
+    },
+    {
+      "layer": 5,
+      "n_runs": 3,
+      "mean_restoration": 0.869282861550649,
+      "min_restoration_across_seeds": 0.8556753396987915,
+      "mean_nmh_recovery": 0.26506466666857403,
+      "max_nmh_recovery_across_seeds": 0.31600648164749146,
+      "min_restoration_minus_nmh_across_seeds": 0.5396688580513,
+      "mean_corrupt_overlap": 0.4999067323174022,
+      "mean_matched_overlap": 0.49827343163080656,
+      "mean_within_layer_rho_corrupt": 0.20071886232223787,
+      "mean_within_layer_rho_matched": 0.1686826066572902
+    },
+    {
+      "layer": 6,
+      "n_runs": 3,
+      "mean_restoration": 0.8613799413045248,
+      "min_restoration_across_seeds": 0.8468366861343384,
+      "mean_nmh_recovery": 0.2706271956364314,
+      "max_nmh_recovery_across_seeds": 0.3188932538032532,
+      "min_restoration_minus_nmh_across_seeds": 0.5279434323310852,
+      "mean_corrupt_overlap": 0.5098808265112535,
+      "mean_matched_overlap": 0.5067126577173764,
+      "mean_within_layer_rho_corrupt": 0.23557587122987966,
+      "mean_within_layer_rho_matched": 0.21807313642756684
+    },
+    {
+      "layer": 7,
+      "n_runs": 3,
+      "mean_restoration": 0.8575681646664938,
+      "min_restoration_across_seeds": 0.842965304851532,
+      "mean_nmh_recovery": 0.2698512425025304,
+      "max_nmh_recovery_across_seeds": 0.31863874197006226,
+      "min_restoration_minus_nmh_across_seeds": 0.5243265628814697,
+      "mean_corrupt_overlap": 0.5291791058441495,
+      "mean_matched_overlap": 0.511604837164289,
+      "mean_within_layer_rho_corrupt": 0.23228629473355214,
+      "mean_within_layer_rho_matched": 0.2487029223316143
+    },
+    {
+      "layer": 8,
+      "n_runs": 3,
+      "mean_restoration": 0.8540592988332113,
+      "min_restoration_across_seeds": 0.8388067483901978,
+      "mean_nmh_recovery": 0.2919039229551951,
+      "max_nmh_recovery_across_seeds": 0.34033042192459106,
+      "min_restoration_minus_nmh_across_seeds": 0.4984763264656067,
+      "mean_corrupt_overlap": 0.5288115715190147,
+      "mean_matched_overlap": 0.5150113655282555,
+      "mean_within_layer_rho_corrupt": 0.23935771214252224,
+      "mean_within_layer_rho_matched": 0.23713080168776376
+    }
+  ],
+  "pooled_fixed_effects": {
+    "corrupt_overlap": {
+      "spearman_rho": 0.04265302149722778,
+      "p_value": 0.04746941241642001
+    },
+    "matched_overlap": {
+      "spearman_rho": 0.10158542581801631,
+      "p_value": 2.236661401076505e-06
+    }
+  },
+  "decision": {
+    "high_restoration_large_mechanism_gap_layers_stable_across_seeds": [
+      4,
+      5,
+      6,
+      7,
+      8
+    ],
+    "supports_behavior_mechanism_separation": true,
+    "supports_low_overlap_as_necessary_for_bypass": false,
+    "reason": "Divergence layers have mean overlap near the held-out reference baseline; overlap is at most a weak within-site correlate, not a necessary condition."
+  }
+}

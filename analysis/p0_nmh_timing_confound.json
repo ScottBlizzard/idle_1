@@ -1,0 +1,165 @@
+{
+  "models": [
+    {
+      "model": "gpt2",
+      "source": "D:\\ICLR_1\\outputs\\exp_nmh_ground_truth_gpt2.json",
+      "n_sites": 56,
+      "nmh_heads": [
+        [
+          9,
+          9
+        ],
+        [
+          10,
+          0
+        ]
+      ],
+      "timing_rule": "resid_post patch at layer L can affect attention heads only at layers > L",
+      "pooled_auroc_ivs_for_bypass": 0.89375,
+      "all_heads_downstream_auroc": null,
+      "category_summary": {
+        "all_heads_downstream": {
+          "n": 36,
+          "n_bypass": 0,
+          "bypass_rate": 0.0,
+          "mean_ivs": 0.3475236346135465,
+          "mean_nmh_recovery": 0.594939806809028,
+          "mean_restoration": 0.9220183977975174,
+          "auroc_ivs_for_bypass": null
+        },
+        "partial_heads_downstream": {
+          "n": 8,
+          "n_bypass": 4,
+          "bypass_rate": 0.5,
+          "mean_ivs": 0.17208133111485677,
+          "mean_nmh_recovery": 0.22652459144592285,
+          "mean_restoration": 0.7186721482929942,
+          "auroc_ivs_for_bypass": 1.0
+        },
+        "no_heads_downstream": {
+          "n": 12,
+          "n_bypass": 12,
+          "bypass_rate": 1.0,
+          "mean_ivs": 0.11423614875072731,
+          "mean_nmh_recovery": 0.0,
+          "mean_restoration": 0.7412471306550602,
+          "auroc_ivs_for_bypass": null
+        }
+      },
+      "exact_layer_position": {
+        "n_total_strata": 14,
+        "n_informative_strata": 0,
+        "n_sites_in_informative_strata": 0,
+        "weighted_within_stratum_auroc": null,
+        "informative_strata": []
+      },
+      "stratified_randomization": {
+        "n_permutations": 1000,
+        "strata": "exact_layer_position",
+        "n_permutable_strata": 14,
+        "n_sites_in_permutable_strata": 56,
+        "p_value": 1.0,
+        "null_auc_mean": 0.8937500000000003,
+        "null_auc_q025": 0.89375,
+        "null_auc_q975": 0.89375
+      },
+      "continuous_residual_association": {
+        "spearman_rho": -0.017361585782638415,
+        "p_value": 0.8989392821280477,
+        "adjusted_for": [
+          "layer",
+          "position",
+          "template",
+          "number_of_downstream_nmh_heads",
+          "restoration"
+        ]
+      }
+    },
+    {
+      "model": "gpt2-medium",
+      "source": "D:\\ICLR_1\\outputs\\exp_nmh_ground_truth_gpt2-medium.json",
+      "n_sites": 125,
+      "nmh_heads": [
+        [
+          19,
+          9
+        ],
+        [
+          20,
+          0
+        ],
+        [
+          21,
+          6
+        ]
+      ],
+      "timing_rule": "resid_post patch at layer L can affect attention heads only at layers > L",
+      "pooled_auroc_ivs_for_bypass": 0.7781306715063521,
+      "all_heads_downstream_auroc": 0.714190093708166,
+      "category_summary": {
+        "all_heads_downstream": {
+          "n": 92,
+          "n_bypass": 9,
+          "bypass_rate": 0.09782608695652174,
+          "mean_ivs": 0.30255387093935554,
+          "mean_nmh_recovery": 0.6622967337683329,
+          "mean_restoration": 0.7461834623058338,
+          "auroc_ivs_for_bypass": 0.714190093708166
+        },
+        "partial_heads_downstream": {
+          "n": 16,
+          "n_bypass": 12,
+          "bypass_rate": 0.75,
+          "mean_ivs": 0.17143583500535592,
+          "mean_nmh_recovery": 0.18077455634738726,
+          "mean_restoration": 0.5354197943160914,
+          "auroc_ivs_for_bypass": 0.7916666666666666
+        },
+        "no_heads_downstream": {
+          "n": 17,
+          "n_bypass": 17,
+          "bypass_rate": 1.0,
+          "mean_ivs": 0.10647192504355026,
+          "mean_nmh_recovery": 0.0,
+          "mean_restoration": 0.7421832608242882,
+          "auroc_ivs_for_bypass": null
+        }
+      },
+      "exact_layer_position": {
+        "n_total_strata": 36,
+        "n_informative_strata": 1,
+        "n_sites_in_informative_strata": 4,
+        "weighted_within_stratum_auroc": 0.5,
+        "informative_strata": [
+          {
+            "layer": 17,
+            "pos": 14,
+            "n": 4,
+            "auroc": 0.5
+          }
+        ]
+      },
+      "stratified_randomization": {
+        "n_permutations": 1000,
+        "strata": "exact_layer_position",
+        "n_permutable_strata": 30,
+        "n_sites_in_permutable_strata": 119,
+        "p_value": 1.0,
+        "null_auc_mean": 0.778130671506352,
+        "null_auc_q025": 0.7781306715063521,
+        "null_auc_q975": 0.7781306715063521
+      },
+      "continuous_residual_association": {
+        "spearman_rho": 0.06030721966205837,
+        "p_value": 0.5040762082265056,
+        "adjusted_for": [
+          "layer",
+          "position",
+          "template",
+          "number_of_downstream_nmh_heads",
+          "restoration"
+        ]
+      }
+    }
+  ]
+}

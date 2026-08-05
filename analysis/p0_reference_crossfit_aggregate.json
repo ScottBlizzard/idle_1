@@ -1,0 +1,252 @@
+{
+  "experiment": "p0_reference_crossfit_aggregate",
+  "n_runs": 3,
+  "seeds": [
+    20260712,
+    20260713,
+    20260714
+  ],
+  "n_site_observations": 42,
+  "per_seed": [
+    {
+      "seed": 20260712,
+      "n_retained_sites": 14,
+      "prompt_audit": {
+        "valid_single_token_names": 180,
+        "corrupt_fit_nominal": 256,
+        "corrupt_fit_unique_tokens": 256,
+        "corrupt_cal_nominal": 128,
+        "corrupt_cal_unique_tokens": 128,
+        "clean_fit_unique_tokens": 256,
+        "clean_cal_unique_tokens": 128,
+        "eval_unique_clean_tokens": 80,
+        "matched_contexts": 8,
+        "matched_fit_per_context": 24,
+        "matched_cal_per_context": 12
+      },
+      "reference_summary": {
+        "corrupt_observational": {
+          "mean_overlap_z": 0.42555178696823964,
+          "median_overlap_z": 0.4946780688327066,
+          "mean_overlap_ecdf": 0.34696295762483936,
+          "n_below_historical_0_3": 3
+        },
+        "clean_source": {
+          "mean_overlap_z": 0.5109824948325186,
+          "median_overlap_z": 0.5102878600921039,
+          "mean_overlap_ecdf": 0.4561924738548982,
+          "n_below_historical_0_3": 0
+        },
+        "mixture": {
+          "mean_overlap_z": 0.4874419176951092,
+          "median_overlap_z": 0.512329153364238,
+          "mean_overlap_ecdf": 0.4153381134996019,
+          "n_below_historical_0_3": 0
+        },
+        "matched_semantic_counterfactual": {
+          "mean_overlap_z": 0.47793922402272504,
+          "median_overlap_z": 0.4809438067341465,
+          "mean_overlap_ecdf": 0.4871968854100301,
+          "n_below_historical_0_3": 0
+        }
+      }
+    },
+    {
+      "seed": 20260713,
+      "n_retained_sites": 14,
+      "prompt_audit": {
+        "valid_single_token_names": 180,
+        "corrupt_fit_nominal": 256,
+        "corrupt_fit_unique_tokens": 256,
+        "corrupt_cal_nominal": 128,
+        "corrupt_cal_unique_tokens": 128,
+        "clean_fit_unique_tokens": 256,
+        "clean_cal_unique_tokens": 128,
+        "eval_unique_clean_tokens": 80,
+        "matched_contexts": 8,
+        "matched_fit_per_context": 24,
+        "matched_cal_per_context": 12
+      },
+      "reference_summary": {
+        "corrupt_observational": {
+          "mean_overlap_z": 0.40837513164021183,
+          "median_overlap_z": 0.4720339878336552,
+          "mean_overlap_ecdf": 0.3317466983219579,
+          "n_below_historical_0_3": 3
+        },
+        "clean_source": {
+          "mean_overlap_z": 0.4983883537374294,
+          "median_overlap_z": 0.5107937467975976,
+          "mean_overlap_ecdf": 0.43508019276676435,
+          "n_below_historical_0_3": 0
+        },
+        "mixture": {
+          "mean_overlap_z": 0.4880209979522556,
+          "median_overlap_z": 0.525281978666684,
+          "mean_overlap_ecdf": 0.3944159628181578,
+          "n_below_historical_0_3": 0
+        },
+        "matched_semantic_counterfactual": {
+          "mean_overlap_z": 0.5170125067654703,
+          "median_overlap_z": 0.5212526242165489,
+          "mean_overlap_ecdf": 0.5386943220971514,
+          "n_below_historical_0_3": 0
+        }
+      }
+    },
+    {
+      "seed": 20260714,
+      "n_retained_sites": 14,
+      "prompt_audit": {
+        "valid_single_token_names": 180,
+        "corrupt_fit_nominal": 256,
+        "corrupt_fit_unique_tokens": 256,
+        "corrupt_cal_nominal": 128,
+        "corrupt_cal_unique_tokens": 128,
+        "clean_fit_unique_tokens": 256,
+        "clean_cal_unique_tokens": 128,
+        "eval_unique_clean_tokens": 80,
+        "matched_contexts": 8,
+        "matched_fit_per_context": 24,
+        "matched_cal_per_context": 12
+      },
+      "reference_summary": {
+        "corrupt_observational": {
+          "mean_overlap_z": 0.4213669351544129,
+          "median_overlap_z": 0.48961368581064046,
+          "mean_overlap_ecdf": 0.33946884276192063,
+          "n_below_historical_0_3": 3
+        },
+        "clean_source": {
+          "mean_overlap_z": 0.499822091606047,
+          "median_overlap_z": 0.5008522504855804,
+          "mean_overlap_ecdf": 0.42669769010781783,
+          "n_below_historical_0_3": 0
+        },
+        "mixture": {
+          "mean_overlap_z": 0.4687842001043471,
+          "median_overlap_z": 0.4905879677176926,
+          "mean_overlap_ecdf": 0.3940631645279627,
+          "n_below_historical_0_3": 0
+        },
+        "matched_semantic_counterfactual": {
+          "mean_overlap_z": 0.48010307717303863,
+          "median_overlap_z": 0.4731524852337976,
+          "mean_overlap_ecdf": 0.493642850613807,
+          "n_below_historical_0_3": 0
+        }
+      }
+    }
+  ],
+  "reference_summary": {
+    "corrupt_observational": {
+      "n_sites": 42,
+      "mean_overlap_z": 0.4184312845876215,
+      "median_overlap_z": 0.48569087508700304,
+      "overlap_z_q025": 0.13969161899880397,
+      "overlap_z_q975": 0.5188226933660011,
+      "mean_overlap_ecdf": 0.33939283290290595,
+      "n_below_historical_0_3": 9,
+      "max_abs_recon_z": 4.941779226482957,
+      "max_scale_floor_overlap_span": 0.0
+    },
+    "clean_source": {
+      "n_sites": 42,
+      "mean_overlap_z": 0.5030643133919983,
+      "median_overlap_z": 0.5079469205213356,
+      "overlap_z_q025": 0.43480284863281377,
+      "overlap_z_q975": 0.5248737467951551,
+      "mean_overlap_ecdf": 0.43932345224316005,
+      "n_below_historical_0_3": 0,
+      "max_abs_recon_z": 0.30645993137818406,
+      "max_scale_floor_overlap_span": 0.0
+    },
+    "mixture": {
+      "n_sites": 42,
+      "mean_overlap_z": 0.48141570525057065,
+      "median_overlap_z": 0.5030322115363127,
+      "overlap_z_q025": 0.35678930097033007,
+      "overlap_z_q975": 0.5417468733721199,
+      "mean_overlap_ecdf": 0.40127241361524085,
+      "n_below_historical_0_3": 0,
+      "max_abs_recon_z": 0.8335821247946736,
+      "max_scale_floor_overlap_span": 0.0
+    },
+    "matched_semantic_counterfactual": {
+      "n_sites": 42,
+      "mean_overlap_z": 0.491684935987078,
+      "median_overlap_z": 0.4848752367419933,
+      "overlap_z_q025": 0.4566718902217901,
+      "overlap_z_q975": 0.5294693274404734,
+      "mean_overlap_ecdf": 0.5065113527069961,
+      "n_below_historical_0_3": 0,
+      "max_abs_recon_z": 0.4060969031960198,
+      "max_scale_floor_overlap_span": 0.0
+    }
+  },
+  "pairwise_reference_sensitivity": {
+    "corrupt_vs_clean_source": {
+      "mean_paired_overlap_difference_alternative_minus_corrupt": 0.08463302880437683,
+      "n_historical_labels_changed": 9,
+      "spearman_rho": 0.29584312454420225,
+      "spearman_p": 0.05713880463346378
+    },
+    "corrupt_vs_mixture": {
+      "mean_paired_overlap_difference_alternative_minus_corrupt": 0.06298442066294914,
+      "n_historical_labels_changed": 9,
+      "spearman_rho": 0.35888501742160284,
+      "spearman_p": 0.019595629522892993
+    },
+    "corrupt_vs_matched_semantic_counterfactual": {
+      "mean_paired_overlap_difference_alternative_minus_corrupt": 0.07325365139945643,
+      "n_historical_labels_changed": 9,
+      "spearman_rho": -0.2909812819058423,
+      "spearman_p": 0.061546971952976676
+    }
+  },
+  "site_categories": {
+    "io_position": {
+      "n": 33,
+      "corrupt_observational": {
+        "mean_overlap_z": 0.4890295076814396,
+        "n_below_historical_0_3": 0
+      },
+      "clean_source": {
+        "mean_overlap_z": 0.5103395573902474,
+        "n_below_historical_0_3": 0
+      },
+      "mixture": {
+        "mean_overlap_z": 0.5111540141352715,
+        "n_below_historical_0_3": 0
+      },
+      "matched_semantic_counterfactual": {
+        "mean_overlap_z": 0.49216281998872674,
+        "n_below_historical_0_3": 0
+      }
+    },
+    "last_position": {
+      "n": 9,
+      "corrupt_observational": {
+        "mean_overlap_z": 0.15957113324362154,
+        "n_below_historical_0_3": 9
+      },
+      "clean_source": {
+        "mean_overlap_z": 0.4763884187317523,
+        "n_below_historical_0_3": 0
+      },
+      "mixture": {
+        "mean_overlap_z": 0.37237523934000055,
+        "n_below_historical_0_3": 0
+      },
+      "matched_semantic_counterfactual": {
+        "mean_overlap_z": 0.48993269464769956,
+        "n_below_historical_0_3": 0
+      }
+    }
+  },
+  "decision": {
+    "million_scale_reconstruction_gap_survives": false,
+    "historical_low_overlap_labels_invariant_to_reference": false,
+    "safe_current_estimand": "conditional target-reference overlap"
+  }
+}

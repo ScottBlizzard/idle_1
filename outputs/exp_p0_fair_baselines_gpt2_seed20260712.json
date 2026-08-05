@@ -1,0 +1,715 @@
+{
+  "experiment": "p0_fair_baseline_comparison",
+  "model": "gpt2",
+  "seed": 20260712,
+  "label_definition": "0=held-out corrupt/reference-condition activation; 1=clean/source-shift activation",
+  "causal_guardrail": "This benchmark tests distribution classification only; labels are not mechanism bypass or causal-validity ground truth.",
+  "split": {
+    "per_class_total": 240,
+    "train_per_class": 120,
+    "validation_per_class": 60,
+    "test_per_class": 60,
+    "identical_across_methods": 1
+  },
+  "tuning_budget": {
+    "logistic_C": [
+      0.01,
+      0.1,
+      1.0,
+      10.0
+    ],
+    "mlp_alpha": [
+      0.0001,
+      0.001,
+      0.01,
+      0.1
+    ]
+  },
+  "summary": {
+    "crossfit_ivs": {
+      "mean_test_auroc": 0.5777083333333334,
+      "min_test_auroc": 0.41513888888888884,
+      "max_test_auroc": 0.9497222222222222
+    },
+    "components_logistic": {
+      "mean_test_auroc": 0.5699503968253968,
+      "min_test_auroc": 0.4281944444444445,
+      "max_test_auroc": 0.9922222222222221
+    },
+    "components_mlp": {
+      "mean_test_auroc": 0.5302281746031746,
+      "min_test_auroc": 0.36180555555555555,
+      "max_test_auroc": 0.971388888888889
+    },
+    "activations_logistic": {
+      "mean_test_auroc": 0.5391269841269841,
+      "min_test_auroc": 0.3884722222222223,
+      "max_test_auroc": 1.0
+    },
+    "activations_mlp": {
+      "mean_test_auroc": 0.5769742063492063,
+      "min_test_auroc": 0.4445833333333334,
+      "max_test_auroc": 1.0
+    }
+  },
+  "sites": [
+    {
+      "layer": 0,
+      "pos": 3,
+      "methods": {
+        "crossfit_ivs": {
+          "test_auroc": 0.5315277777777778,
+          "training_required": 0
+        },
+        "components_logistic": {
+          "test_auroc": 0.4701388888888889,
+          "selected_hyperparameter": {
+            "C": 0.01
+          },
+          "validation_auroc": 0.5783333333333334,
+          "training_required": 1,
+          "feature_space": "components"
+        },
+        "components_mlp": {
+          "test_auroc": 0.45708333333333334,
+          "selected_hyperparameter": {
+            "alpha": 0.1
+          },
+          "validation_auroc": 0.5026388888888889,
+          "training_required": 1,
+          "feature_space": "components"
+        },
+        "activations_logistic": {
+          "test_auroc": 0.4255555555555556,
+          "selected_hyperparameter": {
+            "C": 10.0
+          },
+          "validation_auroc": 0.5673611111111111,
+          "training_required": 1,
+          "feature_space": "activations"
+        },
+        "activations_mlp": {
+          "test_auroc": 0.4445833333333334,
+          "selected_hyperparameter": {
+            "alpha": 0.1
+          },
+          "validation_auroc": 0.5209722222222223,
+          "training_required": 1,
+          "feature_space": "activations"
+        }
+      }
+    },
+    {
+      "layer": 1,
+      "pos": 3,
+      "methods": {
+        "crossfit_ivs": {
+          "test_auroc": 0.5379166666666666,
+          "training_required": 0
+        },
+        "components_logistic": {
+          "test_auroc": 0.4815277777777778,
+          "selected_hyperparameter": {
+            "C": 0.01
+          },
+          "validation_auroc": 0.5712499999999999,
+          "training_required": 1,
+          "feature_space": "components"
+        },
+        "components_mlp": {
+          "test_auroc": 0.4904166666666667,
+          "selected_hyperparameter": {
+            "alpha": 0.1
+          },
+          "validation_auroc": 0.47958333333333336,
+          "training_required": 1,
+          "feature_space": "components"
+        },
+        "activations_logistic": {
+          "test_auroc": 0.40402777777777776,
+          "selected_hyperparameter": {
+            "C": 0.1
+          },
+          "validation_auroc": 0.5426388888888889,
+          "training_required": 1,
+          "feature_space": "activations"
+        },
+        "activations_mlp": {
+          "test_auroc": 0.46513888888888894,
+          "selected_hyperparameter": {
+            "alpha": 0.01
+          },
+          "validation_auroc": 0.5120833333333332,
+          "training_required": 1,
+          "feature_space": "activations"
+        }
+      }
+    },
+    {
+      "layer": 2,
+      "pos": 3,
+      "methods": {
+        "crossfit_ivs": {
+          "test_auroc": 0.5290277777777778,
+          "training_required": 0
+        },
+        "components_logistic": {
+          "test_auroc": 0.4781944444444445,
+          "selected_hyperparameter": {
+            "C": 10.0
+          },
+          "validation_auroc": 0.57125,
+          "training_required": 1,
+          "feature_space": "components"
+        },
+        "components_mlp": {
+          "test_auroc": 0.4754166666666667,
+          "selected_hyperparameter": {
+            "alpha": 0.1
+          },
+          "validation_auroc": 0.52125,
+          "training_required": 1,
+          "feature_space": "components"
+        },
+        "activations_logistic": {
+          "test_auroc": 0.4048611111111111,
+          "selected_hyperparameter": {
+            "C": 0.1
+          },
+          "validation_auroc": 0.5384722222222222,
+          "training_required": 1,
+          "feature_space": "activations"
+        },
+        "activations_mlp": {
+          "test_auroc": 0.48125,
+          "selected_hyperparameter": {
+            "alpha": 0.0001
+          },
+          "validation_auroc": 0.5037500000000001,
+          "training_required": 1,
+          "feature_space": "activations"
+        }
+      }
+    },
+    {
+      "layer": 3,
+      "pos": 3,
+      "methods": {
+        "crossfit_ivs": {
+          "test_auroc": 0.5156944444444445,
+          "training_required": 0
+        },
+        "components_logistic": {
+          "test_auroc": 0.4593055555555555,
+          "selected_hyperparameter": {
+            "C": 0.1
+          },
+          "validation_auroc": 0.5776388888888889,
+          "training_required": 1,
+          "feature_space": "components"
+        },
+        "components_mlp": {
+          "test_auroc": 0.4123611111111111,
+          "selected_hyperparameter": {
+            "alpha": 0.01
+          },
+          "validation_auroc": 0.5191666666666667,
+          "training_required": 1,
+          "feature_space": "components"
+        },
+        "activations_logistic": {
+          "test_auroc": 0.4106944444444445,
+          "selected_hyperparameter": {
+            "C": 0.1
+          },
+          "validation_auroc": 0.5393055555555556,
+          "training_required": 1,
+          "feature_space": "activations"
+        },
+        "activations_mlp": {
+          "test_auroc": 0.4506944444444444,
+          "selected_hyperparameter": {
+            "alpha": 0.0001
+          },
+          "validation_auroc": 0.5101388888888889,
+          "training_required": 1,
+          "feature_space": "activations"
+        }
+      }
+    },
+    {
+      "layer": 4,
+      "pos": 3,
+      "methods": {
+        "crossfit_ivs": {
+          "test_auroc": 0.5004166666666667,
+          "training_required": 0
+        },
+        "components_logistic": {
+          "test_auroc": 0.4756944444444444,
+          "selected_hyperparameter": {
+            "C": 0.1
+          },
+          "validation_auroc": 0.5759722222222222,
+          "training_required": 1,
+          "feature_space": "components"
+        },
+        "components_mlp": {
+          "test_auroc": 0.4776388888888889,
+          "selected_hyperparameter": {
+            "alpha": 0.1
+          },
+          "validation_auroc": 0.4995833333333333,
+          "training_required": 1,
+          "feature_space": "components"
+        },
+        "activations_logistic": {
+          "test_auroc": 0.4170833333333333,
+          "selected_hyperparameter": {
+            "C": 0.1
+          },
+          "validation_auroc": 0.5354166666666667,
+          "training_required": 1,
+          "feature_space": "activations"
+        },
+        "activations_mlp": {
+          "test_auroc": 0.46902777777777777,
+          "selected_hyperparameter": {
+            "alpha": 0.1
+          },
+          "validation_auroc": 0.50625,
+          "training_required": 1,
+          "feature_space": "activations"
+        }
+      }
+    },
+    {
+      "layer": 5,
+      "pos": 3,
+      "methods": {
+        "crossfit_ivs": {
+          "test_auroc": 0.47347222222222224,
+          "training_required": 0
+        },
+        "components_logistic": {
+          "test_auroc": 0.4670833333333333,
+          "selected_hyperparameter": {
+            "C": 10.0
+          },
+          "validation_auroc": 0.5845833333333332,
+          "training_required": 1,
+          "feature_space": "components"
+        },
+        "components_mlp": {
+          "test_auroc": 0.4020833333333334,
+          "selected_hyperparameter": {
+            "alpha": 0.1
+          },
+          "validation_auroc": 0.5123611111111112,
+          "training_required": 1,
+          "feature_space": "components"
+        },
+        "activations_logistic": {
+          "test_auroc": 0.42319444444444443,
+          "selected_hyperparameter": {
+            "C": 0.1
+          },
+          "validation_auroc": 0.5373611111111112,
+          "training_required": 1,
+          "feature_space": "activations"
+        },
+        "activations_mlp": {
+          "test_auroc": 0.4529166666666667,
+          "selected_hyperparameter": {
+            "alpha": 0.0001
+          },
+          "validation_auroc": 0.47875,
+          "training_required": 1,
+          "feature_space": "activations"
+        }
+      }
+    },
+    {
+      "layer": 6,
+      "pos": 3,
+      "methods": {
+        "crossfit_ivs": {
+          "test_auroc": 0.4626388888888889,
+          "training_required": 0
+        },
+        "components_logistic": {
+          "test_auroc": 0.45125,
+          "selected_hyperparameter": {
+            "C": 0.1
+          },
+          "validation_auroc": 0.5723611111111111,
+          "training_required": 1,
+          "feature_space": "components"
+        },
+        "components_mlp": {
+          "test_auroc": 0.3681944444444444,
+          "selected_hyperparameter": {
+            "alpha": 0.1
+          },
+          "validation_auroc": 0.49930555555555556,
+          "training_required": 1,
+          "feature_space": "components"
+        },
+        "activations_logistic": {
+          "test_auroc": 0.4098611111111111,
+          "selected_hyperparameter": {
+            "C": 1.0
+          },
+          "validation_auroc": 0.5412499999999999,
+          "training_required": 1,
+          "feature_space": "activations"
+        },
+        "activations_mlp": {
+          "test_auroc": 0.46513888888888894,
+          "selected_hyperparameter": {
+            "alpha": 0.0001
+          },
+          "validation_auroc": 0.4845833333333333,
+          "training_required": 1,
+          "feature_space": "activations"
+        }
+      }
+    },
+    {
+      "layer": 7,
+      "pos": 3,
+      "methods": {
+        "crossfit_ivs": {
+          "test_auroc": 0.42180555555555554,
+          "training_required": 0
+        },
+        "components_logistic": {
+          "test_auroc": 0.4354166666666667,
+          "selected_hyperparameter": {
+            "C": 0.01
+          },
+          "validation_auroc": 0.5593055555555555,
+          "training_required": 1,
+          "feature_space": "components"
+        },
+        "components_mlp": {
+          "test_auroc": 0.36180555555555555,
+          "selected_hyperparameter": {
+            "alpha": 0.1
+          },
+          "validation_auroc": 0.49625,
+          "training_required": 1,
+          "feature_space": "components"
+        },
+        "activations_logistic": {
+          "test_auroc": 0.3884722222222223,
+          "selected_hyperparameter": {
+            "C": 10.0
+          },
+          "validation_auroc": 0.544861111111111,
+          "training_required": 1,
+          "feature_space": "activations"
+        },
+        "activations_mlp": {
+          "test_auroc": 0.46041666666666664,
+          "selected_hyperparameter": {
+            "alpha": 0.001
+          },
+          "validation_auroc": 0.47625,
+          "training_required": 1,
+          "feature_space": "activations"
+        }
+      }
+    },
+    {
+      "layer": 8,
+      "pos": 3,
+      "methods": {
+        "crossfit_ivs": {
+          "test_auroc": 0.43013888888888885,
+          "training_required": 0
+        },
+        "components_logistic": {
+          "test_auroc": 0.4281944444444445,
+          "selected_hyperparameter": {
+            "C": 0.1
+          },
+          "validation_auroc": 0.5629166666666666,
+          "training_required": 1,
+          "feature_space": "components"
+        },
+        "components_mlp": {
+          "test_auroc": 0.3781944444444445,
+          "selected_hyperparameter": {
+            "alpha": 0.1
+          },
+          "validation_auroc": 0.5068055555555555,
+          "training_required": 1,
+          "feature_space": "components"
+        },
+        "activations_logistic": {
+          "test_auroc": 0.4118055555555556,
+          "selected_hyperparameter": {
+            "C": 1.0
+          },
+          "validation_auroc": 0.5456944444444444,
+          "training_required": 1,
+          "feature_space": "activations"
+        },
+        "activations_mlp": {
+          "test_auroc": 0.4548611111111111,
+          "selected_hyperparameter": {
+            "alpha": 0.0001
+          },
+          "validation_auroc": 0.45625,
+          "training_required": 1,
+          "feature_space": "activations"
+        }
+      }
+    },
+    {
+      "layer": 9,
+      "pos": 3,
+      "methods": {
+        "crossfit_ivs": {
+          "test_auroc": 0.4323611111111111,
+          "training_required": 0
+        },
+        "components_logistic": {
+          "test_auroc": 0.4340277777777778,
+          "selected_hyperparameter": {
+            "C": 0.01
+          },
+          "validation_auroc": 0.5418055555555557,
+          "training_required": 1,
+          "feature_space": "components"
+        },
+        "components_mlp": {
+          "test_auroc": 0.37930555555555556,
+          "selected_hyperparameter": {
+            "alpha": 0.0001
+          },
+          "validation_auroc": 0.512361111111111,
+          "training_required": 1,
+          "feature_space": "components"
+        },
+        "activations_logistic": {
+          "test_auroc": 0.4245833333333333,
+          "selected_hyperparameter": {
+            "C": 10.0
+          },
+          "validation_auroc": 0.5634722222222223,
+          "training_required": 1,
+          "feature_space": "activations"
+        },
+        "activations_mlp": {
+          "test_auroc": 0.45736111111111116,
+          "selected_hyperparameter": {
+            "alpha": 0.01
+          },
+          "validation_auroc": 0.43736111111111114,
+          "training_required": 1,
+          "feature_space": "activations"
+        }
+      }
+    },
+    {
+      "layer": 10,
+      "pos": 3,
+      "methods": {
+        "crossfit_ivs": {
+          "test_auroc": 0.41513888888888884,
+          "training_required": 0
+        },
+        "components_logistic": {
+          "test_auroc": 0.44569444444444445,
+          "selected_hyperparameter": {
+            "C": 0.01
+          },
+          "validation_auroc": 0.5559722222222222,
+          "training_required": 1,
+          "feature_space": "components"
+        },
+        "components_mlp": {
+          "test_auroc": 0.3890277777777778,
+          "selected_hyperparameter": {
+            "alpha": 0.1
+          },
+          "validation_auroc": 0.5040277777777777,
+          "training_required": 1,
+          "feature_space": "components"
+        },
+        "activations_logistic": {
+          "test_auroc": 0.42763888888888885,
+          "selected_hyperparameter": {
+            "C": 10.0
+          },
+          "validation_auroc": 0.5715277777777777,
+          "training_required": 1,
+          "feature_space": "activations"
+        },
+        "activations_mlp": {
+          "test_auroc": 0.47624999999999995,
+          "selected_hyperparameter": {
+            "alpha": 0.0001
+          },
+          "validation_auroc": 0.48791666666666667,
+          "training_required": 1,
+          "feature_space": "activations"
+        }
+      }
+    },
+    {
+      "layer": 9,
+      "pos": 16,
+      "methods": {
+        "crossfit_ivs": {
+          "test_auroc": 0.9386111111111111,
+          "training_required": 0
+        },
+        "components_logistic": {
+          "test_auroc": 0.9733333333333334,
+          "selected_hyperparameter": {
+            "C": 10.0
+          },
+          "validation_auroc": 0.9519444444444445,
+          "training_required": 1,
+          "feature_space": "components"
+        },
+        "components_mlp": {
+          "test_auroc": 0.9063888888888889,
+          "selected_hyperparameter": {
+            "alpha": 0.1
+          },
+          "validation_auroc": 0.893611111111111,
+          "training_required": 1,
+          "feature_space": "components"
+        },
+        "activations_logistic": {
+          "test_auroc": 1.0,
+          "selected_hyperparameter": {
+            "C": 0.01
+          },
+          "validation_auroc": 1.0,
+          "training_required": 1,
+          "feature_space": "activations"
+        },
+        "activations_mlp": {
+          "test_auroc": 1.0,
+          "selected_hyperparameter": {
+            "alpha": 0.0001
+          },
+          "validation_auroc": 1.0,
+          "training_required": 1,
+          "feature_space": "activations"
+        }
+      }
+    },
+    {
+      "layer": 10,
+      "pos": 16,
+      "methods": {
+        "crossfit_ivs": {
+          "test_auroc": 0.9494444444444444,
+          "training_required": 0
+        },
+        "components_logistic": {
+          "test_auroc": 0.9872222222222222,
+          "selected_hyperparameter": {
+            "C": 10.0
+          },
+          "validation_auroc": 0.9852777777777778,
+          "training_required": 1,
+          "feature_space": "components"
+        },
+        "components_mlp": {
+          "test_auroc": 0.9538888888888889,
+          "selected_hyperparameter": {
+            "alpha": 0.0001
+          },
+          "validation_auroc": 0.9302777777777778,
+          "training_required": 1,
+          "feature_space": "components"
+        },
+        "activations_logistic": {
+          "test_auroc": 1.0,
+          "selected_hyperparameter": {
+            "C": 0.01
+          },
+          "validation_auroc": 1.0,
+          "training_required": 1,
+          "feature_space": "activations"
+        },
+        "activations_mlp": {
+          "test_auroc": 1.0,
+          "selected_hyperparameter": {
+            "alpha": 0.0001
+          },
+          "validation_auroc": 0.9994444444444444,
+          "training_required": 1,
+          "feature_space": "activations"
+        }
+      }
+    },
+    {
+      "layer": 11,
+      "pos": 16,
+      "methods": {
+        "crossfit_ivs": {
+          "test_auroc": 0.9497222222222222,
+          "training_required": 0
+        },
+        "components_logistic": {
+          "test_auroc": 0.9922222222222221,
+          "selected_hyperparameter": {
+            "C": 10.0
+          },
+          "validation_auroc": 0.9922222222222222,
+          "training_required": 1,
+          "feature_space": "components"
+        },
+        "components_mlp": {
+          "test_auroc": 0.971388888888889,
+          "selected_hyperparameter": {
+            "alpha": 0.0001
+          },
+          "validation_auroc": 0.9377777777777777,
+          "training_required": 1,
+          "feature_space": "components"
+        },
+        "activations_logistic": {
+          "test_auroc": 1.0,
+          "selected_hyperparameter": {
+            "C": 0.01
+          },
+          "validation_auroc": 1.0,
+          "training_required": 1,
+          "feature_space": "activations"
+        },
+        "activations_mlp": {
+          "test_auroc": 1.0,
+          "selected_hyperparameter": {
+            "alpha": 0.0001
+          },
+          "validation_auroc": 0.9988888888888888,
+          "training_required": 1,
+          "feature_space": "activations"
+        }
+      }
+    }
+  ],
+  "configuration": {
+    "model": "gpt2",
+    "device": "cuda",
+    "out_dir": "/mnt/sdb/ccj/iclr_1_runs/p0_fair_baselines/full_seed20260712",
+    "seed": 20260712,
+    "n_fit": 256,
+    "n_cal": 128,
+    "n_supervised": 240,
+    "knn_k": 12,
+    "proj_rank": 32,
+    "chunk_size": 32,
+    "max_sites": 0
+  },
+  "elapsed_seconds": 15.9603590965271
+}

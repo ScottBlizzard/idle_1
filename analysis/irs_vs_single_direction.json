@@ -1,0 +1,28 @@
+{
+  "experiment": "irs_vs_single_direction_interaction",
+  "seed": 20260712,
+  "layer_level": {
+    "irs_spearman_vs_nmh": {
+      "rho": -0.9,
+      "p": 0.0009430623223403293
+    },
+    "single_spearman_vs_nmh": {
+      "rho": -0.9666666666666667,
+      "p": 2.155031274835775e-05
+    },
+    "irs_divergent_to_aligned_ratio": 5.6737309761875805,
+    "single_divergent_to_aligned_ratio": 4.9914888718325265,
+    "irs_min_endpoint_accept": 0.996875,
+    "single_min_endpoint_accept": 0.75
+  },
+  "leave_one_context_out_prompt_rmse": {
+    "controls": 0.16572820028328392,
+    "controls_plus_single": 0.16203285013296184,
+    "controls_plus_irs": 0.16730108123134918,
+    "controls_plus_single_plus_irs": 0.16336429617567416
+  },
+  "decision": {
+    "irs_clearly_outperforms_single_direction": false,
+    "scope": "A one-seed baseline can falsify an obvious superiority claim but cannot establish general equivalence. Probe admissibility and cross-task cases remain separate potential advantages."
+  }
+}

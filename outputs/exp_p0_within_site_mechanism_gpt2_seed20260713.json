@@ -1,0 +1,5933 @@
+{
+  "experiment": "p0_within_site_temporally_eligible_mechanism",
+  "model": "gpt2",
+  "seed": 20260713,
+  "site_definition": {
+    "position": 3,
+    "layers": [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8
+    ],
+    "hook": "resid_post",
+    "nmh_heads": [
+      [
+        9,
+        9
+      ],
+      [
+        10,
+        0
+      ]
+    ],
+    "eligibility": "every measured NMH head is strictly downstream of every patch"
+  },
+  "n_prompts_per_site": 80,
+  "global_logit_denominator": 10.671860694885254,
+  "global_nmh_denominator": 0.3749510645866394,
+  "layer_results": [
+    {
+      "layer": 0,
+      "n": 80,
+      "mean_restoration": 1.0278244018554688,
+      "mean_nmh_recovery": 1.0194413661956787,
+      "mean_corrupt_overlap": 0.4842552512295115,
+      "mean_matched_overlap": 0.49616963894158683,
+      "partial_spearman_corrupt_overlap_vs_nmh": 0.08209095171120488,
+      "partial_spearman_corrupt_p": 0.4691203699306943,
+      "partial_spearman_matched_overlap_vs_nmh": 0.21497890295358651,
+      "partial_spearman_matched_p": 0.05548958882366169
+    },
+    {
+      "layer": 1,
+      "n": 80,
+      "mean_restoration": 1.0691057443618774,
+      "mean_nmh_recovery": 1.022634744644165,
+      "mean_corrupt_overlap": 0.47535894319745253,
+      "mean_matched_overlap": 0.46874138801770326,
+      "partial_spearman_corrupt_overlap_vs_nmh": 0.10091420534458509,
+      "partial_spearman_corrupt_p": 0.37310354360511455,
+      "partial_spearman_matched_overlap_vs_nmh": 0.27655883731833103,
+      "partial_spearman_matched_p": 0.01301615516328874
+    },
+    {
+      "layer": 2,
+      "n": 80,
+      "mean_restoration": 1.0511243343353271,
+      "mean_nmh_recovery": 0.9768720865249634,
+      "mean_corrupt_overlap": 0.46078513061688814,
+      "mean_matched_overlap": 0.46684857952168446,
+      "partial_spearman_corrupt_overlap_vs_nmh": 0.09941397093295828,
+      "partial_spearman_corrupt_p": 0.38028716843800414,
+      "partial_spearman_matched_overlap_vs_nmh": 0.3193389592123769,
+      "partial_spearman_matched_p": 0.003885517859500386
+    },
+    {
+      "layer": 3,
+      "n": 80,
+      "mean_restoration": 1.0091240406036377,
+      "mean_nmh_recovery": 0.7587854266166687,
+      "mean_corrupt_overlap": 0.4532134232927324,
+      "mean_matched_overlap": 0.4451073577918455,
+      "partial_spearman_corrupt_overlap_vs_nmh": 0.07095639943741211,
+      "partial_spearman_corrupt_p": 0.5316731750285651,
+      "partial_spearman_matched_overlap_vs_nmh": 0.29688232536333803,
+      "partial_spearman_matched_p": 0.00749112995168126
+    },
+    {
+      "layer": 4,
+      "n": 80,
+      "mean_restoration": 0.8716526031494141,
+      "mean_nmh_recovery": 0.3860320746898651,
+      "mean_corrupt_overlap": 0.4631754475949075,
+      "mean_matched_overlap": 0.4534988131015522,
+      "partial_spearman_corrupt_overlap_vs_nmh": 0.1975855602437881,
+      "partial_spearman_corrupt_p": 0.07895036791628134,
+      "partial_spearman_matched_overlap_vs_nmh": 0.3518752930145335,
+      "partial_spearman_matched_p": 0.0013706704310615012
+    },
+    {
+      "layer": 5,
+      "n": 80,
+      "mean_restoration": 0.8556753396987915,
+      "mean_nmh_recovery": 0.31600648164749146,
+      "mean_corrupt_overlap": 0.47334473179820497,
+      "mean_matched_overlap": 0.4627624306958281,
+      "partial_spearman_corrupt_overlap_vs_nmh": 0.23703703703703705,
+      "partial_spearman_corrupt_p": 0.03425749905055372,
+      "partial_spearman_matched_overlap_vs_nmh": 0.3400375058602907,
+      "partial_spearman_matched_p": 0.0020284472838753296
+    },
+    {
+      "layer": 6,
+      "n": 80,
+      "mean_restoration": 0.8468366861343384,
+      "mean_nmh_recovery": 0.3188932538032532,
+      "mean_corrupt_overlap": 0.47955043516643137,
+      "mean_matched_overlap": 0.4724925405803531,
+      "partial_spearman_corrupt_overlap_vs_nmh": 0.26713548992030006,
+      "partial_spearman_corrupt_p": 0.01660067419661222,
+      "partial_spearman_matched_overlap_vs_nmh": 0.3525785278949836,
+      "partial_spearman_matched_p": 0.0013384851497450817
+    },
+    {
+      "layer": 7,
+      "n": 80,
+      "mean_restoration": 0.842965304851532,
+      "mean_nmh_recovery": 0.31863874197006226,
+      "mean_corrupt_overlap": 0.5008418670408435,
+      "mean_matched_overlap": 0.48329101344160125,
+      "partial_spearman_corrupt_overlap_vs_nmh": 0.2746132208157525,
+      "partial_spearman_corrupt_p": 0.013695595016285611,
+      "partial_spearman_matched_overlap_vs_nmh": 0.3552508204406939,
+      "partial_spearman_matched_p": 0.00122232110708461
+    },
+    {
+      "layer": 8,
+      "n": 80,
+      "mean_restoration": 0.8388067483901978,
+      "mean_nmh_recovery": 0.34033042192459106,
+      "mean_corrupt_overlap": 0.49305671704222886,
+      "mean_matched_overlap": 0.4789714409887667,
+      "partial_spearman_corrupt_overlap_vs_nmh": 0.2925691514299109,
+      "partial_spearman_corrupt_p": 0.008450359648635058,
+      "partial_spearman_matched_overlap_vs_nmh": 0.3062119081106423,
+      "partial_spearman_matched_p": 0.0057373048223053925
+    }
+  ],
+  "pooled_fixed_effects": {
+    "corrupt_overlap": {
+      "spearman_rho": 0.16264730448939907,
+      "p_value": 1.1548637715481013e-05
+    },
+    "matched_overlap": {
+      "spearman_rho": 0.2977664887470847,
+      "p_value": 3.2983562035823194e-16
+    }
+  },
+  "rows": [
+    {
+      "layer": 0,
+      "context_id": 0,
+      "restoration": 0.9942729473114014,
+      "nmh_recovery": 0.912283718585968,
+      "corrupt_overlap": 0.4661549039856266,
+      "matched_overlap": 0.34946107730018316
+    },
+    {
+      "layer": 0,
+      "context_id": 0,
+      "restoration": 1.0087459087371826,
+      "nmh_recovery": 0.5000409483909607,
+      "corrupt_overlap": 0.39633710256519106,
+      "matched_overlap": 0.27952542882965964
+    },
+    {
+      "layer": 0,
+      "context_id": 0,
+      "restoration": 1.1773713827133179,
+      "nmh_recovery": 0.8034128546714783,
+      "corrupt_overlap": 0.5922893531178202,
+      "matched_overlap": 0.4033411882059602
+    },
+    {
+      "layer": 0,
+      "context_id": 0,
+      "restoration": 1.1888071298599243,
+      "nmh_recovery": 0.6929798126220703,
+      "corrupt_overlap": 0.5811271813353934,
+      "matched_overlap": 0.5078862021563073
+    },
+    {
+      "layer": 0,
+      "context_id": 0,
+      "restoration": 1.026224970817566,
+      "nmh_recovery": 0.735540509223938,
+      "corrupt_overlap": 0.7253031120535143,
+      "matched_overlap": 0.6994186018448503
+    },
+    {
+      "layer": 0,
+      "context_id": 0,
+      "restoration": 1.081202745437622,
+      "nmh_recovery": 0.7797042727470398,
+      "corrupt_overlap": 0.38030206510283776,
+      "matched_overlap": 0.422435003185442
+    },
+    {
+      "layer": 0,
+      "context_id": 0,
+      "restoration": 0.944916844367981,
+      "nmh_recovery": 0.28500160574913025,
+      "corrupt_overlap": 0.4495905899564769,
+      "matched_overlap": 0.4782303681136847
+    },
+    {
+      "layer": 0,
+      "context_id": 0,
+      "restoration": 1.0667601823806763,
+      "nmh_recovery": 0.336990624666214,
+      "corrupt_overlap": 0.1999020421860605,
+      "matched_overlap": 0.16376198977849907
+    },
+    {
+      "layer": 0,
+      "context_id": 0,
+      "restoration": 0.7877952456474304,
+      "nmh_recovery": 0.26743221282958984,
+      "corrupt_overlap": 0.4965427238002393,
+      "matched_overlap": 0.45886319058279984
+    },
+    {
+      "layer": 0,
+      "context_id": 0,
+      "restoration": 1.3249573707580566,
+      "nmh_recovery": 0.7138002514839172,
+      "corrupt_overlap": 0.3801927823381536,
+      "matched_overlap": 0.4955282421436616
+    },
+    {
+      "layer": 0,
+      "context_id": 1,
+      "restoration": 0.780510663986206,
+      "nmh_recovery": 1.4875162839889526,
+      "corrupt_overlap": 0.47441425677819327,
+      "matched_overlap": 0.3361498847083345
+    },
+    {
+      "layer": 0,
+      "context_id": 1,
+      "restoration": 0.8604704737663269,
+      "nmh_recovery": 1.4497283697128296,
+      "corrupt_overlap": 0.40905501849832837,
+      "matched_overlap": 0.2719831392266948
+    },
+    {
+      "layer": 0,
+      "context_id": 1,
+      "restoration": 0.8737500905990601,
+      "nmh_recovery": 1.519083857536316,
+      "corrupt_overlap": 0.4246216220931427,
+      "matched_overlap": 0.684528811642637
+    },
+    {
+      "layer": 0,
+      "context_id": 1,
+      "restoration": 0.8993203043937683,
+      "nmh_recovery": 1.400511384010315,
+      "corrupt_overlap": 0.3996168121641738,
+      "matched_overlap": 0.29908941675187684
+    },
+    {
+      "layer": 0,
+      "context_id": 1,
+      "restoration": 0.7018401026725769,
+      "nmh_recovery": 1.119792103767395,
+      "corrupt_overlap": 0.31723319336115924,
+      "matched_overlap": 0.28185392160907075
+    },
+    {
+      "layer": 0,
+      "context_id": 1,
+      "restoration": 0.8365936279296875,
+      "nmh_recovery": 1.7699427604675293,
+      "corrupt_overlap": 0.47368986849003814,
+      "matched_overlap": 0.4182199028232095
+    },
+    {
+      "layer": 0,
+      "context_id": 1,
+      "restoration": 0.575431764125824,
+      "nmh_recovery": 0.9655858874320984,
+      "corrupt_overlap": 0.7516964340388209,
+      "matched_overlap": 0.8501588347932661
+    },
+    {
+      "layer": 0,
+      "context_id": 1,
+      "restoration": 0.9558744430541992,
+      "nmh_recovery": 1.4221031665802002,
+      "corrupt_overlap": 0.3175942126753166,
+      "matched_overlap": 0.20725323866916573
+    },
+    {
+      "layer": 0,
+      "context_id": 1,
+      "restoration": 0.7438545227050781,
+      "nmh_recovery": 1.1223469972610474,
+      "corrupt_overlap": 0.6037989727046046,
+      "matched_overlap": 0.7226571073968956
+    },
+    {
+      "layer": 0,
+      "context_id": 1,
+      "restoration": 0.9762752652168274,
+      "nmh_recovery": 1.3463196754455566,
+      "corrupt_overlap": 0.3841527279090244,
+      "matched_overlap": 0.35404070649112307
+    },
+    {
+      "layer": 0,
+      "context_id": 2,
+      "restoration": 1.0095034837722778,
+      "nmh_recovery": 0.9409980773925781,
+      "corrupt_overlap": 0.40151640190953436,
+      "matched_overlap": 0.49642272594079817
+    },
+    {
+      "layer": 0,
+      "context_id": 2,
+      "restoration": 1.1012738943099976,
+      "nmh_recovery": 0.8928720951080322,
+      "corrupt_overlap": 0.4939770172811773,
+      "matched_overlap": 0.36244997116417677
+    },
+    {
+      "layer": 0,
+      "context_id": 2,
+      "restoration": 0.9888593554496765,
+      "nmh_recovery": 0.6805661916732788,
+      "corrupt_overlap": 0.5411182875172356,
+      "matched_overlap": 0.6541756681129784
+    },
+    {
+      "layer": 0,
+      "context_id": 2,
+      "restoration": 0.7817559242248535,
+      "nmh_recovery": 0.7346044778823853,
+      "corrupt_overlap": 0.6248392899376859,
+      "matched_overlap": 0.6216282559675974
+    },
+    {
+      "layer": 0,
+      "context_id": 2,
+      "restoration": 1.1195927858352661,
+      "nmh_recovery": 1.2876756191253662,
+      "corrupt_overlap": 0.46204623940566647,
+      "matched_overlap": 0.5793672153580547
+    },
+    {
+      "layer": 0,
+      "context_id": 2,
+      "restoration": 0.9160943031311035,
+      "nmh_recovery": 0.7796919345855713,
+      "corrupt_overlap": 0.6037989727046046,
+      "matched_overlap": 0.6766220344778332
+    },
+    {
+      "layer": 0,
+      "context_id": 2,
+      "restoration": 1.1070934534072876,
+      "nmh_recovery": 0.9331673979759216,
+      "corrupt_overlap": 0.4769894995339344,
+      "matched_overlap": 0.3831965839674982
+    },
+    {
+      "layer": 0,
+      "context_id": 2,
+      "restoration": 0.8684128522872925,
+      "nmh_recovery": 0.7765252590179443,
+      "corrupt_overlap": 0.43107971960452546,
+      "matched_overlap": 0.43745029667631313
+    },
+    {
+      "layer": 0,
+      "context_id": 2,
+      "restoration": 0.9973633289337158,
+      "nmh_recovery": 1.0594013929367065,
+      "corrupt_overlap": 0.4750275068263672,
+      "matched_overlap": 0.4796874072475066
+    },
+    {
+      "layer": 0,
+      "context_id": 2,
+      "restoration": 1.1769641637802124,
+      "nmh_recovery": 1.193009376525879,
+      "corrupt_overlap": 0.6221218316339938,
+      "matched_overlap": 0.7231516845830672
+    },
+    {
+      "layer": 0,
+      "context_id": 3,
+      "restoration": 0.8502230048179626,
+      "nmh_recovery": 1.1278547048568726,
+      "corrupt_overlap": 0.8269276258157379,
+      "matched_overlap": 0.8566784776673992
+    },
+    {
+      "layer": 0,
+      "context_id": 3,
+      "restoration": 0.8074278235435486,
+      "nmh_recovery": 1.0585417747497559,
+      "corrupt_overlap": 0.7537894044317823,
+      "matched_overlap": 0.8824695205051166
+    },
+    {
+      "layer": 0,
+      "context_id": 3,
+      "restoration": 1.1761068105697632,
+      "nmh_recovery": 1.2338223457336426,
+      "corrupt_overlap": 0.6129138972970386,
+      "matched_overlap": 0.5824803131554473
+    },
+    {
+      "layer": 0,
+      "context_id": 3,
+      "restoration": 1.0311462879180908,
+      "nmh_recovery": 0.5200120806694031,
+      "corrupt_overlap": 0.45224814277912806,
+      "matched_overlap": 0.4806355715651877
+    },
+    {
+      "layer": 0,
+      "context_id": 3,
+      "restoration": 0.9444562196731567,
+      "nmh_recovery": 0.41975918412208557,
+      "corrupt_overlap": 0.7452692423158125,
+      "matched_overlap": 0.7719524596400685
+    },
+    {
+      "layer": 0,
+      "context_id": 3,
+      "restoration": 1.1441038846969604,
+      "nmh_recovery": 1.279813289642334,
+      "corrupt_overlap": 0.31158063961361093,
+      "matched_overlap": 0.16669501145636928
+    },
+    {
+      "layer": 0,
+      "context_id": 3,
+      "restoration": 1.0272719860076904,
+      "nmh_recovery": 1.0720479488372803,
+      "corrupt_overlap": 0.3841949267458529,
+      "matched_overlap": 0.31491466012699526
+    },
+    {
+      "layer": 0,
+      "context_id": 3,
+      "restoration": 1.0640136003494263,
+      "nmh_recovery": 1.0665931701660156,
+      "corrupt_overlap": 0.5470726563915159,
+      "matched_overlap": 0.4327141427761906
+    },
+    {
+      "layer": 0,
+      "context_id": 3,
+      "restoration": 1.1237437725067139,
+      "nmh_recovery": 0.86927330493927,
+      "corrupt_overlap": 0.5993477849775273,
+      "matched_overlap": 0.3856769087765878
+    },
+    {
+      "layer": 0,
+      "context_id": 3,
+      "restoration": 1.1776070594787598,
+      "nmh_recovery": 1.2374576330184937,
+      "corrupt_overlap": 0.5202752043547454,
+      "matched_overlap": 0.6037098110487997
+    },
+    {
+      "layer": 0,
+      "context_id": 4,
+      "restoration": 1.1233251094818115,
+      "nmh_recovery": 0.8456005454063416,
+      "corrupt_overlap": 0.32971219749310443,
+      "matched_overlap": 0.25880904319878506
+    },
+    {
+      "layer": 0,
+      "context_id": 4,
+      "restoration": 0.8106362819671631,
+      "nmh_recovery": 0.8757791519165039,
+      "corrupt_overlap": 0.38521428002039587,
+      "matched_overlap": 0.5267406198555414
+    },
+    {
+      "layer": 0,
+      "context_id": 4,
+      "restoration": 0.8687456250190735,
+      "nmh_recovery": 1.088094711303711,
+      "corrupt_overlap": 0.5196178842673235,
+      "matched_overlap": 0.4930314615808574
+    },
+    {
+      "layer": 0,
+      "context_id": 4,
+      "restoration": 0.915208101272583,
+      "nmh_recovery": 0.9143133163452148,
+      "corrupt_overlap": 0.49249634735087333,
+      "matched_overlap": 0.4634501141184264
+    },
+    {
+      "layer": 0,
+      "context_id": 4,
+      "restoration": 0.8716292977333069,
+      "nmh_recovery": 1.1510478258132935,
+      "corrupt_overlap": 0.5581064356595292,
+      "matched_overlap": 0.5862755886397247
+    },
+    {
+      "layer": 0,
+      "context_id": 4,
+      "restoration": 0.8559700846672058,
+      "nmh_recovery": 0.9768528342247009,
+      "corrupt_overlap": 0.4042738903251242,
+      "matched_overlap": 0.34688992410962055
+    },
+    {
+      "layer": 0,
+      "context_id": 4,
+      "restoration": 1.037978172302246,
+      "nmh_recovery": 1.338619351387024,
+      "corrupt_overlap": 0.2872377770238835,
+      "matched_overlap": 0.3908075587419975
+    },
+    {
+      "layer": 0,
+      "context_id": 4,
+      "restoration": 0.9189885258674622,
+      "nmh_recovery": 1.1759108304977417,
+      "corrupt_overlap": 0.5369768081302586,
+      "matched_overlap": 0.6247491002543845
+    },
+    {
+      "layer": 0,
+      "context_id": 4,
+      "restoration": 0.8264092803001404,
+      "nmh_recovery": 1.2130333185195923,
+      "corrupt_overlap": 0.6260026712360218,
+      "matched_overlap": 0.6788238955993249
+    },
+    {
+      "layer": 0,
+      "context_id": 4,
+      "restoration": 0.9852252006530762,
+      "nmh_recovery": 1.0634304285049438,
+      "corrupt_overlap": 0.304369066691047,
+      "matched_overlap": 0.20557577391108708
+    },
+    {
+      "layer": 0,
+      "context_id": 5,
+      "restoration": 1.0170530080795288,
+      "nmh_recovery": 0.96940016746521,
+      "corrupt_overlap": 0.40524015833967025,
+      "matched_overlap": 0.43678964505926793
+    },
+    {
+      "layer": 0,
+      "context_id": 5,
+      "restoration": 1.1488876342773438,
+      "nmh_recovery": 1.134743332862854,
+      "corrupt_overlap": 0.3513780277180927,
+      "matched_overlap": 0.5116968024194563
+    },
+    {
+      "layer": 0,
+      "context_id": 5,
+      "restoration": 0.7805430293083191,
+      "nmh_recovery": 1.1291306018829346,
+      "corrupt_overlap": 0.5123874139760765,
+      "matched_overlap": 0.6254176330034339
+    },
+    {
+      "layer": 0,
+      "context_id": 5,
+      "restoration": 1.1026747226715088,
+      "nmh_recovery": 1.2473777532577515,
+      "corrupt_overlap": 0.3145882991960028,
+      "matched_overlap": 0.28048995986637604
+    },
+    {
+      "layer": 0,
+      "context_id": 5,
+      "restoration": 0.9284845590591431,
+      "nmh_recovery": 1.1794242858886719,
+      "corrupt_overlap": 0.7606239849109547,
+      "matched_overlap": 0.7713094305579282
+    },
+    {
+      "layer": 0,
+      "context_id": 5,
+      "restoration": 1.0813548564910889,
+      "nmh_recovery": 1.3708645105361938,
+      "corrupt_overlap": 0.2862730521033609,
+      "matched_overlap": 0.3404135447149844
+    },
+    {
+      "layer": 0,
+      "context_id": 5,
+      "restoration": 1.1909905672073364,
+      "nmh_recovery": 1.1236110925674438,
+      "corrupt_overlap": 0.4050962176284364,
+      "matched_overlap": 0.315651413398242
+    },
+    {
+      "layer": 0,
+      "context_id": 5,
+      "restoration": 0.950758695602417,
+      "nmh_recovery": 1.2671658992767334,
+      "corrupt_overlap": 0.4575584801572826,
+      "matched_overlap": 0.4683551047195725
+    },
+    {
+      "layer": 0,
+      "context_id": 5,
+      "restoration": 0.9205600619316101,
+      "nmh_recovery": 1.0753358602523804,
+      "corrupt_overlap": 0.3295993308999123,
+      "matched_overlap": 0.33938413943049384
+    },
+    {
+      "layer": 0,
+      "context_id": 5,
+      "restoration": 1.149256706237793,
+      "nmh_recovery": 1.0959250926971436,
+      "corrupt_overlap": 0.4080168713732992,
+      "matched_overlap": 0.3726969275598001
+    },
+    {
+      "layer": 0,
+      "context_id": 6,
+      "restoration": 1.47190523147583,
+      "nmh_recovery": 1.4637045860290527,
+      "corrupt_overlap": 0.40151640190953436,
+      "matched_overlap": 0.4549223473130744
+    },
+    {
+      "layer": 0,
+      "context_id": 6,
+      "restoration": 1.4608041048049927,
+      "nmh_recovery": 1.0984930992126465,
+      "corrupt_overlap": 0.3332686587413406,
+      "matched_overlap": 0.2633354994711807
+    },
+    {
+      "layer": 0,
+      "context_id": 6,
+      "restoration": 0.8571440577507019,
+      "nmh_recovery": 1.1422457695007324,
+      "corrupt_overlap": 0.8081664554327442,
+      "matched_overlap": 0.9266225176264878
+    },
+    {
+      "layer": 0,
+      "context_id": 6,
+      "restoration": 1.4895743131637573,
+      "nmh_recovery": 1.2181121110916138,
+      "corrupt_overlap": 0.7461797436484895,
+      "matched_overlap": 0.5158152390028038
+    },
+    {
+      "layer": 0,
+      "context_id": 6,
+      "restoration": 1.1460999250411987,
+      "nmh_recovery": 1.151196837425232,
+      "corrupt_overlap": 0.3970123702604744,
+      "matched_overlap": 0.6312777811536352
+    },
+    {
+      "layer": 0,
+      "context_id": 6,
+      "restoration": 0.9882175326347351,
+      "nmh_recovery": 0.6555173397064209,
+      "corrupt_overlap": 0.6688865374073578,
+      "matched_overlap": 0.8184960166824552
+    },
+    {
+      "layer": 0,
+      "context_id": 6,
+      "restoration": 1.1724226474761963,
+      "nmh_recovery": 1.1440186500549316,
+      "corrupt_overlap": 0.5745297046822327,
+      "matched_overlap": 0.768370930043151
+    },
+    {
+      "layer": 0,
+      "context_id": 6,
+      "restoration": 1.3932068347930908,
+      "nmh_recovery": 1.2443126440048218,
+      "corrupt_overlap": 0.5605722194164439,
+      "matched_overlap": 0.577926591884529
+    },
+    {
+      "layer": 0,
+      "context_id": 6,
+      "restoration": 1.2458359003067017,
+      "nmh_recovery": 1.207869052886963,
+      "corrupt_overlap": 0.21601493795375612,
+      "matched_overlap": 0.23200311858148498
+    },
+    {
+      "layer": 0,
+      "context_id": 6,
+      "restoration": 1.1619348526000977,
+      "nmh_recovery": 1.52293062210083,
+      "corrupt_overlap": 0.39128858091637486,
+      "matched_overlap": 0.6662002002176844
+    },
+    {
+      "layer": 0,
+      "context_id": 7,
+      "restoration": 0.983896017074585,
+      "nmh_recovery": 1.0472102165222168,
+      "corrupt_overlap": 0.6260027044762022,
+      "matched_overlap": 0.7329311001526717
+    },
+    {
+      "layer": 0,
+      "context_id": 7,
+      "restoration": 1.0036695003509521,
+      "nmh_recovery": 1.09989333152771,
+      "corrupt_overlap": 0.529235612344354,
+      "matched_overlap": 0.5967397497135114
+    },
+    {
+      "layer": 0,
+      "context_id": 7,
+      "restoration": 1.0497089624404907,
+      "nmh_recovery": 0.7735130786895752,
+      "corrupt_overlap": 0.6005599698809859,
+      "matched_overlap": 0.7035546099929361
+    },
+    {
+      "layer": 0,
+      "context_id": 7,
+      "restoration": 1.0741500854492188,
+      "nmh_recovery": 0.6802675127983093,
+      "corrupt_overlap": 0.24868260385436491,
+      "matched_overlap": 0.2807300279828691
+    },
+    {
+      "layer": 0,
+      "context_id": 7,
+      "restoration": 1.2317473888397217,
+      "nmh_recovery": 0.8939433693885803,
+      "corrupt_overlap": 0.49638318864581343,
+      "matched_overlap": 0.5128658814896125
+    },
+    {
+      "layer": 0,
+      "context_id": 7,
+      "restoration": 1.371185302734375,
+      "nmh_recovery": 0.8245847225189209,
+      "corrupt_overlap": 0.2231414975136994,
+      "matched_overlap": 0.23201217624997228
+    },
+    {
+      "layer": 0,
+      "context_id": 7,
+      "restoration": 1.087515115737915,
+      "nmh_recovery": 0.7853274941444397,
+      "corrupt_overlap": 0.6173019260862699,
+      "matched_overlap": 0.4807325415667575
+    },
+    {
+      "layer": 0,
+      "context_id": 7,
+      "restoration": 1.0201423168182373,
+      "nmh_recovery": 0.9300344586372375,
+      "corrupt_overlap": 0.48040184629458527,
+      "matched_overlap": 0.6412470562995167
+    },
+    {
+      "layer": 0,
+      "context_id": 7,
+      "restoration": 1.311764121055603,
+      "nmh_recovery": 0.7677960395812988,
+      "corrupt_overlap": 0.45797142058652884,
+      "matched_overlap": 0.364317349653726
+    },
+    {
+      "layer": 0,
+      "context_id": 7,
+      "restoration": 1.0023587942123413,
+      "nmh_recovery": 0.8748694658279419,
+      "corrupt_overlap": 0.5787852575771256,
+      "matched_overlap": 0.6796477230422726
+    },
+    {
+      "layer": 1,
+      "context_id": 0,
+      "restoration": 1.036268711090088,
+      "nmh_recovery": 0.9261549711227417,
+      "corrupt_overlap": 0.4508424281551358,
+      "matched_overlap": 0.34711292217222517
+    },
+    {
+      "layer": 1,
+      "context_id": 0,
+      "restoration": 1.0371330976486206,
+      "nmh_recovery": 0.4985606372356415,
+      "corrupt_overlap": 0.33941457504889805,
+      "matched_overlap": 0.27723368172698853
+    },
+    {
+      "layer": 1,
+      "context_id": 0,
+      "restoration": 1.210867166519165,
+      "nmh_recovery": 0.8050854802131653,
+      "corrupt_overlap": 0.5772233418023761,
+      "matched_overlap": 0.32297222388807934
+    },
+    {
+      "layer": 1,
+      "context_id": 0,
+      "restoration": 1.2478458881378174,
+      "nmh_recovery": 0.7019587159156799,
+      "corrupt_overlap": 0.5323433346797917,
+      "matched_overlap": 0.4180910037039409
+    },
+    {
+      "layer": 1,
+      "context_id": 0,
+      "restoration": 1.057381272315979,
+      "nmh_recovery": 0.7464176416397095,
+      "corrupt_overlap": 0.7216410245860044,
+      "matched_overlap": 0.6091668820873474
+    },
+    {
+      "layer": 1,
+      "context_id": 0,
+      "restoration": 1.148465871810913,
+      "nmh_recovery": 0.805755078792572,
+      "corrupt_overlap": 0.362087877822902,
+      "matched_overlap": 0.4588114862207348
+    },
+    {
+      "layer": 1,
+      "context_id": 0,
+      "restoration": 1.00107741355896,
+      "nmh_recovery": 0.29749491810798645,
+      "corrupt_overlap": 0.49407910115175285,
+      "matched_overlap": 0.5411747485895508
+    },
+    {
+      "layer": 1,
+      "context_id": 0,
+      "restoration": 1.1517529487609863,
+      "nmh_recovery": 0.34338727593421936,
+      "corrupt_overlap": 0.266788528671505,
+      "matched_overlap": 0.2825598847403525
+    },
+    {
+      "layer": 1,
+      "context_id": 0,
+      "restoration": 0.8540676236152649,
+      "nmh_recovery": 0.27541717886924744,
+      "corrupt_overlap": 0.4519418835162287,
+      "matched_overlap": 0.43743139586784685
+    },
+    {
+      "layer": 1,
+      "context_id": 0,
+      "restoration": 1.3747680187225342,
+      "nmh_recovery": 0.7137001156806946,
+      "corrupt_overlap": 0.39840637863470535,
+      "matched_overlap": 0.5068462475232066
+    },
+    {
+      "layer": 1,
+      "context_id": 1,
+      "restoration": 0.8063962459564209,
+      "nmh_recovery": 1.489500880241394,
+      "corrupt_overlap": 0.5748889116324055,
+      "matched_overlap": 0.3801540487844865
+    },
+    {
+      "layer": 1,
+      "context_id": 1,
+      "restoration": 0.870028555393219,
+      "nmh_recovery": 1.4429287910461426,
+      "corrupt_overlap": 0.44580837390003913,
+      "matched_overlap": 0.3253878834240251
+    },
+    {
+      "layer": 1,
+      "context_id": 1,
+      "restoration": 0.8956754207611084,
+      "nmh_recovery": 1.533011555671692,
+      "corrupt_overlap": 0.3889224353034115,
+      "matched_overlap": 0.6109893459535273
+    },
+    {
+      "layer": 1,
+      "context_id": 1,
+      "restoration": 0.917483389377594,
+      "nmh_recovery": 1.412156343460083,
+      "corrupt_overlap": 0.3478307624789141,
+      "matched_overlap": 0.2735364484305042
+    },
+    {
+      "layer": 1,
+      "context_id": 1,
+      "restoration": 0.7330794930458069,
+      "nmh_recovery": 1.1405208110809326,
+      "corrupt_overlap": 0.33304562143072963,
+      "matched_overlap": 0.26911350040556326
+    },
+    {
+      "layer": 1,
+      "context_id": 1,
+      "restoration": 0.8725879788398743,
+      "nmh_recovery": 1.773638129234314,
+      "corrupt_overlap": 0.4674102270574532,
+      "matched_overlap": 0.4731903825811716
+    },
+    {
+      "layer": 1,
+      "context_id": 1,
+      "restoration": 0.5708876848220825,
+      "nmh_recovery": 0.9252822399139404,
+      "corrupt_overlap": 0.7292567266704267,
+      "matched_overlap": 0.771118961063425
+    },
+    {
+      "layer": 1,
+      "context_id": 1,
+      "restoration": 0.9666650891304016,
+      "nmh_recovery": 1.4062360525131226,
+      "corrupt_overlap": 0.34317937425504397,
+      "matched_overlap": 0.2815529563740647
+    },
+    {
+      "layer": 1,
+      "context_id": 1,
+      "restoration": 0.7606188058853149,
+      "nmh_recovery": 1.112781286239624,
+      "corrupt_overlap": 0.4653400653834418,
+      "matched_overlap": 0.49382081639914666
+    },
+    {
+      "layer": 1,
+      "context_id": 1,
+      "restoration": 0.9956280589103699,
+      "nmh_recovery": 1.3375991582870483,
+      "corrupt_overlap": 0.4258630654547752,
+      "matched_overlap": 0.39389661101203305
+    },
+    {
+      "layer": 1,
+      "context_id": 2,
+      "restoration": 1.0958260297775269,
+      "nmh_recovery": 1.004364013671875,
+      "corrupt_overlap": 0.39998874626354575,
+      "matched_overlap": 0.4958692197805697
+    },
+    {
+      "layer": 1,
+      "context_id": 2,
+      "restoration": 1.1711623668670654,
+      "nmh_recovery": 0.8929752707481384,
+      "corrupt_overlap": 0.5039516632720966,
+      "matched_overlap": 0.3407908436687987
+    },
+    {
+      "layer": 1,
+      "context_id": 2,
+      "restoration": 1.0688066482543945,
+      "nmh_recovery": 0.7546810507774353,
+      "corrupt_overlap": 0.6089052795419851,
+      "matched_overlap": 0.7019838186752954
+    },
+    {
+      "layer": 1,
+      "context_id": 2,
+      "restoration": 0.8485088348388672,
+      "nmh_recovery": 0.752926766872406,
+      "corrupt_overlap": 0.5033137453306288,
+      "matched_overlap": 0.46943458873314997
+    },
+    {
+      "layer": 1,
+      "context_id": 2,
+      "restoration": 1.1925866603851318,
+      "nmh_recovery": 1.284787654876709,
+      "corrupt_overlap": 0.44227866066756855,
+      "matched_overlap": 0.5782110393610129
+    },
+    {
+      "layer": 1,
+      "context_id": 2,
+      "restoration": 0.9959613084793091,
+      "nmh_recovery": 0.822339653968811,
+      "corrupt_overlap": 0.4653400653834418,
+      "matched_overlap": 0.5041716359990039
+    },
+    {
+      "layer": 1,
+      "context_id": 2,
+      "restoration": 1.1711007356643677,
+      "nmh_recovery": 0.9512739777565002,
+      "corrupt_overlap": 0.4885237590988841,
+      "matched_overlap": 0.46380178061113403
+    },
+    {
+      "layer": 1,
+      "context_id": 2,
+      "restoration": 0.9074904322624207,
+      "nmh_recovery": 0.8074368238449097,
+      "corrupt_overlap": 0.42923995275560944,
+      "matched_overlap": 0.4339102037357482
+    },
+    {
+      "layer": 1,
+      "context_id": 2,
+      "restoration": 1.0708527565002441,
+      "nmh_recovery": 1.109143614768982,
+      "corrupt_overlap": 0.4657116179789638,
+      "matched_overlap": 0.47958269314867286
+    },
+    {
+      "layer": 1,
+      "context_id": 2,
+      "restoration": 1.2634590864181519,
+      "nmh_recovery": 1.2375980615615845,
+      "corrupt_overlap": 0.6166151727554143,
+      "matched_overlap": 0.6887913750630541
+    },
+    {
+      "layer": 1,
+      "context_id": 3,
+      "restoration": 0.8676145672798157,
+      "nmh_recovery": 1.0960807800292969,
+      "corrupt_overlap": 0.8437852266733901,
+      "matched_overlap": 0.801853634437223
+    },
+    {
+      "layer": 1,
+      "context_id": 3,
+      "restoration": 0.8634435534477234,
+      "nmh_recovery": 1.0314995050430298,
+      "corrupt_overlap": 0.7006382638127079,
+      "matched_overlap": 0.7877728360590653
+    },
+    {
+      "layer": 1,
+      "context_id": 3,
+      "restoration": 1.2158122062683105,
+      "nmh_recovery": 1.2335114479064941,
+      "corrupt_overlap": 0.62992210712895,
+      "matched_overlap": 0.5826439230795531
+    },
+    {
+      "layer": 1,
+      "context_id": 3,
+      "restoration": 1.0532863140106201,
+      "nmh_recovery": 0.49209702014923096,
+      "corrupt_overlap": 0.4259849309148459,
+      "matched_overlap": 0.4594589762472076
+    },
+    {
+      "layer": 1,
+      "context_id": 3,
+      "restoration": 1.031317114830017,
+      "nmh_recovery": 0.43263697624206543,
+      "corrupt_overlap": 0.722503844071427,
+      "matched_overlap": 0.4925453337462884
+    },
+    {
+      "layer": 1,
+      "context_id": 3,
+      "restoration": 1.1770920753479004,
+      "nmh_recovery": 1.2501622438430786,
+      "corrupt_overlap": 0.343119216860051,
+      "matched_overlap": 0.2988950038506378
+    },
+    {
+      "layer": 1,
+      "context_id": 3,
+      "restoration": 1.0413551330566406,
+      "nmh_recovery": 1.06742525100708,
+      "corrupt_overlap": 0.3741465784562397,
+      "matched_overlap": 0.38193707603415644
+    },
+    {
+      "layer": 1,
+      "context_id": 3,
+      "restoration": 1.0860837697982788,
+      "nmh_recovery": 1.060120940208435,
+      "corrupt_overlap": 0.500938974440039,
+      "matched_overlap": 0.4319634225445929
+    },
+    {
+      "layer": 1,
+      "context_id": 3,
+      "restoration": 1.164169430732727,
+      "nmh_recovery": 0.8750434517860413,
+      "corrupt_overlap": 0.602987131175243,
+      "matched_overlap": 0.3977772956531178
+    },
+    {
+      "layer": 1,
+      "context_id": 3,
+      "restoration": 1.209057092666626,
+      "nmh_recovery": 1.2246836423873901,
+      "corrupt_overlap": 0.5085372899932226,
+      "matched_overlap": 0.5937547585464859
+    },
+    {
+      "layer": 1,
+      "context_id": 4,
+      "restoration": 1.1449192762374878,
+      "nmh_recovery": 0.8750545978546143,
+      "corrupt_overlap": 0.34622964877537354,
+      "matched_overlap": 0.3563420466864261
+    },
+    {
+      "layer": 1,
+      "context_id": 4,
+      "restoration": 0.8271376490592957,
+      "nmh_recovery": 0.8928177356719971,
+      "corrupt_overlap": 0.38315861671946727,
+      "matched_overlap": 0.5892241871987303
+    },
+    {
+      "layer": 1,
+      "context_id": 4,
+      "restoration": 0.89588463306427,
+      "nmh_recovery": 1.079911231994629,
+      "corrupt_overlap": 0.46534073108364676,
+      "matched_overlap": 0.45627819646074813
+    },
+    {
+      "layer": 1,
+      "context_id": 4,
+      "restoration": 0.9336114525794983,
+      "nmh_recovery": 0.90430748462677,
+      "corrupt_overlap": 0.4655770254586536,
+      "matched_overlap": 0.40553582006831135
+    },
+    {
+      "layer": 1,
+      "context_id": 4,
+      "restoration": 0.9044272303581238,
+      "nmh_recovery": 1.1668261289596558,
+      "corrupt_overlap": 0.582808203906946,
+      "matched_overlap": 0.643663760487573
+    },
+    {
+      "layer": 1,
+      "context_id": 4,
+      "restoration": 0.8826150298118591,
+      "nmh_recovery": 1.0038639307022095,
+      "corrupt_overlap": 0.43444223596109893,
+      "matched_overlap": 0.3814240462108217
+    },
+    {
+      "layer": 1,
+      "context_id": 4,
+      "restoration": 1.0694364309310913,
+      "nmh_recovery": 1.33280611038208,
+      "corrupt_overlap": 0.2775750813272647,
+      "matched_overlap": 0.4218520489968486
+    },
+    {
+      "layer": 1,
+      "context_id": 4,
+      "restoration": 0.9444534778594971,
+      "nmh_recovery": 1.2148003578186035,
+      "corrupt_overlap": 0.49753770970772915,
+      "matched_overlap": 0.61780899978721
+    },
+    {
+      "layer": 1,
+      "context_id": 4,
+      "restoration": 0.8664812445640564,
+      "nmh_recovery": 1.1947509050369263,
+      "corrupt_overlap": 0.6085032727126427,
+      "matched_overlap": 0.6549509086842333
+    },
+    {
+      "layer": 1,
+      "context_id": 4,
+      "restoration": 1.0040274858474731,
+      "nmh_recovery": 1.0565919876098633,
+      "corrupt_overlap": 0.29951427239336026,
+      "matched_overlap": 0.20002296749927886
+    },
+    {
+      "layer": 1,
+      "context_id": 5,
+      "restoration": 1.064393162727356,
+      "nmh_recovery": 0.9891666769981384,
+      "corrupt_overlap": 0.34403392074945754,
+      "matched_overlap": 0.3659929516463145
+    },
+    {
+      "layer": 1,
+      "context_id": 5,
+      "restoration": 1.1671257019042969,
+      "nmh_recovery": 1.1322745084762573,
+      "corrupt_overlap": 0.3369062255435634,
+      "matched_overlap": 0.5010486992205477
+    },
+    {
+      "layer": 1,
+      "context_id": 5,
+      "restoration": 0.7959641218185425,
+      "nmh_recovery": 1.1026372909545898,
+      "corrupt_overlap": 0.4875509676061646,
+      "matched_overlap": 0.6082303335866566
+    },
+    {
+      "layer": 1,
+      "context_id": 5,
+      "restoration": 1.126086711883545,
+      "nmh_recovery": 1.237908959388733,
+      "corrupt_overlap": 0.3657017305031033,
+      "matched_overlap": 0.31527413789085473
+    },
+    {
+      "layer": 1,
+      "context_id": 5,
+      "restoration": 0.925377607345581,
+      "nmh_recovery": 1.1171404123306274,
+      "corrupt_overlap": 0.7382179088376533,
+      "matched_overlap": 0.6668826247777372
+    },
+    {
+      "layer": 1,
+      "context_id": 5,
+      "restoration": 1.0966663360595703,
+      "nmh_recovery": 1.383029818534851,
+      "corrupt_overlap": 0.22505653641809492,
+      "matched_overlap": 0.23698334759714906
+    },
+    {
+      "layer": 1,
+      "context_id": 5,
+      "restoration": 1.2303478717803955,
+      "nmh_recovery": 1.1374534368515015,
+      "corrupt_overlap": 0.4640162874581471,
+      "matched_overlap": 0.3014218909748815
+    },
+    {
+      "layer": 1,
+      "context_id": 5,
+      "restoration": 0.9630893468856812,
+      "nmh_recovery": 1.2487059831619263,
+      "corrupt_overlap": 0.4033089488837297,
+      "matched_overlap": 0.2792966824158613
+    },
+    {
+      "layer": 1,
+      "context_id": 5,
+      "restoration": 0.9462147951126099,
+      "nmh_recovery": 1.0970677137374878,
+      "corrupt_overlap": 0.33111901479490297,
+      "matched_overlap": 0.23123890528847973
+    },
+    {
+      "layer": 1,
+      "context_id": 5,
+      "restoration": 1.1758997440338135,
+      "nmh_recovery": 1.0973999500274658,
+      "corrupt_overlap": 0.45225845311232593,
+      "matched_overlap": 0.37775763940490426
+    },
+    {
+      "layer": 1,
+      "context_id": 6,
+      "restoration": 1.567728042602539,
+      "nmh_recovery": 1.4793627262115479,
+      "corrupt_overlap": 0.39998874626354575,
+      "matched_overlap": 0.4386436698815697
+    },
+    {
+      "layer": 1,
+      "context_id": 6,
+      "restoration": 1.5170314311981201,
+      "nmh_recovery": 1.108157753944397,
+      "corrupt_overlap": 0.3336166892177482,
+      "matched_overlap": 0.2149162981308126
+    },
+    {
+      "layer": 1,
+      "context_id": 6,
+      "restoration": 0.8869264721870422,
+      "nmh_recovery": 1.127680778503418,
+      "corrupt_overlap": 0.8199900526439856,
+      "matched_overlap": 0.8715649994718817
+    },
+    {
+      "layer": 1,
+      "context_id": 6,
+      "restoration": 1.5422487258911133,
+      "nmh_recovery": 1.2266305685043335,
+      "corrupt_overlap": 0.8002361617698309,
+      "matched_overlap": 0.4929203703681786
+    },
+    {
+      "layer": 1,
+      "context_id": 6,
+      "restoration": 1.1997982263565063,
+      "nmh_recovery": 1.1712830066680908,
+      "corrupt_overlap": 0.3888405065743127,
+      "matched_overlap": 0.6132533676939504
+    },
+    {
+      "layer": 1,
+      "context_id": 6,
+      "restoration": 1.0671827793121338,
+      "nmh_recovery": 0.6702793836593628,
+      "corrupt_overlap": 0.5963722959380849,
+      "matched_overlap": 0.6175137158885794
+    },
+    {
+      "layer": 1,
+      "context_id": 6,
+      "restoration": 1.2186050415039062,
+      "nmh_recovery": 1.1481878757476807,
+      "corrupt_overlap": 0.5301868854932984,
+      "matched_overlap": 0.6776784246157487
+    },
+    {
+      "layer": 1,
+      "context_id": 6,
+      "restoration": 1.4527084827423096,
+      "nmh_recovery": 1.2345640659332275,
+      "corrupt_overlap": 0.5389214029775632,
+      "matched_overlap": 0.3971591509629918
+    },
+    {
+      "layer": 1,
+      "context_id": 6,
+      "restoration": 1.2895561456680298,
+      "nmh_recovery": 1.1968446969985962,
+      "corrupt_overlap": 0.28829956202449014,
+      "matched_overlap": 0.3039261151167568
+    },
+    {
+      "layer": 1,
+      "context_id": 6,
+      "restoration": 1.1902681589126587,
+      "nmh_recovery": 1.5170981884002686,
+      "corrupt_overlap": 0.3716931426877861,
+      "matched_overlap": 0.6372590773578639
+    },
+    {
+      "layer": 1,
+      "context_id": 7,
+      "restoration": 1.020295262336731,
+      "nmh_recovery": 1.0332283973693848,
+      "corrupt_overlap": 0.6085033478264684,
+      "matched_overlap": 0.6603168236391201
+    },
+    {
+      "layer": 1,
+      "context_id": 7,
+      "restoration": 1.0364677906036377,
+      "nmh_recovery": 1.1219216585159302,
+      "corrupt_overlap": 0.506637485498905,
+      "matched_overlap": 0.5370449693868322
+    },
+    {
+      "layer": 1,
+      "context_id": 7,
+      "restoration": 1.114980936050415,
+      "nmh_recovery": 0.7982808351516724,
+      "corrupt_overlap": 0.47164876954573565,
+      "matched_overlap": 0.47118805050850093
+    },
+    {
+      "layer": 1,
+      "context_id": 7,
+      "restoration": 1.1272848844528198,
+      "nmh_recovery": 0.6610953211784363,
+      "corrupt_overlap": 0.26831053202545724,
+      "matched_overlap": 0.29856989076603757
+    },
+    {
+      "layer": 1,
+      "context_id": 7,
+      "restoration": 1.2874358892440796,
+      "nmh_recovery": 0.8722918033599854,
+      "corrupt_overlap": 0.505354168698935,
+      "matched_overlap": 0.499718925033627
+    },
+    {
+      "layer": 1,
+      "context_id": 7,
+      "restoration": 1.391735553741455,
+      "nmh_recovery": 0.7609806656837463,
+      "corrupt_overlap": 0.17995047200712502,
+      "matched_overlap": 0.18559543493874436
+    },
+    {
+      "layer": 1,
+      "context_id": 7,
+      "restoration": 1.1355057954788208,
+      "nmh_recovery": 0.752695620059967,
+      "corrupt_overlap": 0.7061497550692464,
+      "matched_overlap": 0.5827663072093523
+    },
+    {
+      "layer": 1,
+      "context_id": 7,
+      "restoration": 1.0615493059158325,
+      "nmh_recovery": 0.9259048700332642,
+      "corrupt_overlap": 0.48802631343816305,
+      "matched_overlap": 0.6149914043436084
+    },
+    {
+      "layer": 1,
+      "context_id": 7,
+      "restoration": 1.3908277750015259,
+      "nmh_recovery": 0.7918910384178162,
+      "corrupt_overlap": 0.3869914111850125,
+      "matched_overlap": 0.2257450617048416
+    },
+    {
+      "layer": 1,
+      "context_id": 7,
+      "restoration": 1.0624929666519165,
+      "nmh_recovery": 0.8795084357261658,
+      "corrupt_overlap": 0.6373946987469911,
+      "matched_overlap": 0.6879978995907101
+    },
+    {
+      "layer": 2,
+      "context_id": 0,
+      "restoration": 1.0184906721115112,
+      "nmh_recovery": 0.8859449028968811,
+      "corrupt_overlap": 0.40552748606286065,
+      "matched_overlap": 0.33327294557514775
+    },
+    {
+      "layer": 2,
+      "context_id": 0,
+      "restoration": 1.0284152030944824,
+      "nmh_recovery": 0.4768591821193695,
+      "corrupt_overlap": 0.30088398902032437,
+      "matched_overlap": 0.31419384543353396
+    },
+    {
+      "layer": 2,
+      "context_id": 0,
+      "restoration": 1.190565824508667,
+      "nmh_recovery": 0.7587757110595703,
+      "corrupt_overlap": 0.571801271952422,
+      "matched_overlap": 0.33601888740559877
+    },
+    {
+      "layer": 2,
+      "context_id": 0,
+      "restoration": 1.2175991535186768,
+      "nmh_recovery": 0.6458290815353394,
+      "corrupt_overlap": 0.4439459980521214,
+      "matched_overlap": 0.4303841720245446
+    },
+    {
+      "layer": 2,
+      "context_id": 0,
+      "restoration": 1.051971197128296,
+      "nmh_recovery": 0.7058376669883728,
+      "corrupt_overlap": 0.7096392098222604,
+      "matched_overlap": 0.5758242356444607
+    },
+    {
+      "layer": 2,
+      "context_id": 0,
+      "restoration": 1.1276986598968506,
+      "nmh_recovery": 0.7798152565956116,
+      "corrupt_overlap": 0.3155033181538525,
+      "matched_overlap": 0.43172325306868337
+    },
+    {
+      "layer": 2,
+      "context_id": 0,
+      "restoration": 0.9933187365531921,
+      "nmh_recovery": 0.23984399437904358,
+      "corrupt_overlap": 0.474313429970876,
+      "matched_overlap": 0.5500938980194157
+    },
+    {
+      "layer": 2,
+      "context_id": 0,
+      "restoration": 1.1160790920257568,
+      "nmh_recovery": 0.2614111304283142,
+      "corrupt_overlap": 0.3157297380778289,
+      "matched_overlap": 0.29350581662781194
+    },
+    {
+      "layer": 2,
+      "context_id": 0,
+      "restoration": 0.8318955302238464,
+      "nmh_recovery": 0.2151002287864685,
+      "corrupt_overlap": 0.4776577622717354,
+      "matched_overlap": 0.4703523284246911
+    },
+    {
+      "layer": 2,
+      "context_id": 0,
+      "restoration": 1.3279508352279663,
+      "nmh_recovery": 0.6691668033599854,
+      "corrupt_overlap": 0.3478824157285874,
+      "matched_overlap": 0.44773173412688977
+    },
+    {
+      "layer": 2,
+      "context_id": 1,
+      "restoration": 0.8005721569061279,
+      "nmh_recovery": 1.3902586698532104,
+      "corrupt_overlap": 0.6281748019370611,
+      "matched_overlap": 0.3974252431106536
+    },
+    {
+      "layer": 2,
+      "context_id": 1,
+      "restoration": 0.8558064103126526,
+      "nmh_recovery": 1.3512451648712158,
+      "corrupt_overlap": 0.42536163854080705,
+      "matched_overlap": 0.3620632477754007
+    },
+    {
+      "layer": 2,
+      "context_id": 1,
+      "restoration": 0.9052437543869019,
+      "nmh_recovery": 1.4477685689926147,
+      "corrupt_overlap": 0.3097313991206029,
+      "matched_overlap": 0.4471705211775455
+    },
+    {
+      "layer": 2,
+      "context_id": 1,
+      "restoration": 0.9192622900009155,
+      "nmh_recovery": 1.3445762395858765,
+      "corrupt_overlap": 0.287140791265643,
+      "matched_overlap": 0.3265006427111536
+    },
+    {
+      "layer": 2,
+      "context_id": 1,
+      "restoration": 0.7213233709335327,
+      "nmh_recovery": 1.044610857963562,
+      "corrupt_overlap": 0.3227103764054685,
+      "matched_overlap": 0.25306209683755604
+    },
+    {
+      "layer": 2,
+      "context_id": 1,
+      "restoration": 0.8789384365081787,
+      "nmh_recovery": 1.6980857849121094,
+      "corrupt_overlap": 0.4657380807705101,
+      "matched_overlap": 0.5504988449281212
+    },
+    {
+      "layer": 2,
+      "context_id": 1,
+      "restoration": 0.48444268107414246,
+      "nmh_recovery": 0.6030084490776062,
+      "corrupt_overlap": 0.697332360495611,
+      "matched_overlap": 0.7460787518579362
+    },
+    {
+      "layer": 2,
+      "context_id": 1,
+      "restoration": 0.949170708656311,
+      "nmh_recovery": 1.275040864944458,
+      "corrupt_overlap": 0.4107101360603025,
+      "matched_overlap": 0.4017482297011934
+    },
+    {
+      "layer": 2,
+      "context_id": 1,
+      "restoration": 0.7319504022598267,
+      "nmh_recovery": 0.9819542169570923,
+      "corrupt_overlap": 0.3592829237397087,
+      "matched_overlap": 0.4184993401301561
+    },
+    {
+      "layer": 2,
+      "context_id": 1,
+      "restoration": 0.991625189781189,
+      "nmh_recovery": 1.2642476558685303,
+      "corrupt_overlap": 0.3946725512028072,
+      "matched_overlap": 0.42619554338832893
+    },
+    {
+      "layer": 2,
+      "context_id": 2,
+      "restoration": 1.0852681398391724,
+      "nmh_recovery": 0.9933629035949707,
+      "corrupt_overlap": 0.4139678635020808,
+      "matched_overlap": 0.5289064422965171
+    },
+    {
+      "layer": 2,
+      "context_id": 2,
+      "restoration": 1.146820306777954,
+      "nmh_recovery": 0.8781044483184814,
+      "corrupt_overlap": 0.5179485862447559,
+      "matched_overlap": 0.3644590078223531
+    },
+    {
+      "layer": 2,
+      "context_id": 2,
+      "restoration": 1.035591721534729,
+      "nmh_recovery": 0.7468183040618896,
+      "corrupt_overlap": 0.6397181194078919,
+      "matched_overlap": 0.6873073290617826
+    },
+    {
+      "layer": 2,
+      "context_id": 2,
+      "restoration": 0.8428626656532288,
+      "nmh_recovery": 0.753314197063446,
+      "corrupt_overlap": 0.47351906455565934,
+      "matched_overlap": 0.5249462594685425
+    },
+    {
+      "layer": 2,
+      "context_id": 2,
+      "restoration": 1.1582844257354736,
+      "nmh_recovery": 1.2662018537521362,
+      "corrupt_overlap": 0.3940501132114454,
+      "matched_overlap": 0.5913523908952678
+    },
+    {
+      "layer": 2,
+      "context_id": 2,
+      "restoration": 1.0005466938018799,
+      "nmh_recovery": 0.8130898475646973,
+      "corrupt_overlap": 0.3592829237397087,
+      "matched_overlap": 0.44900941966865604
+    },
+    {
+      "layer": 2,
+      "context_id": 2,
+      "restoration": 1.139209270477295,
+      "nmh_recovery": 0.9247850775718689,
+      "corrupt_overlap": 0.5052646991865629,
+      "matched_overlap": 0.49617849668262826
+    },
+    {
+      "layer": 2,
+      "context_id": 2,
+      "restoration": 0.8891308903694153,
+      "nmh_recovery": 0.7993892431259155,
+      "corrupt_overlap": 0.42352099085446576,
+      "matched_overlap": 0.44445286116461497
+    },
+    {
+      "layer": 2,
+      "context_id": 2,
+      "restoration": 1.0656355619430542,
+      "nmh_recovery": 1.1080636978149414,
+      "corrupt_overlap": 0.5283610418156828,
+      "matched_overlap": 0.4927856934350621
+    },
+    {
+      "layer": 2,
+      "context_id": 2,
+      "restoration": 1.2454514503479004,
+      "nmh_recovery": 1.2259005308151245,
+      "corrupt_overlap": 0.590521408011856,
+      "matched_overlap": 0.6492363904205103
+    },
+    {
+      "layer": 2,
+      "context_id": 3,
+      "restoration": 0.8507792949676514,
+      "nmh_recovery": 1.0575652122497559,
+      "corrupt_overlap": 0.836662445932297,
+      "matched_overlap": 0.7312690097226714
+    },
+    {
+      "layer": 2,
+      "context_id": 3,
+      "restoration": 0.861172080039978,
+      "nmh_recovery": 0.999978244304657,
+      "corrupt_overlap": 0.6514704223662117,
+      "matched_overlap": 0.733373119770282
+    },
+    {
+      "layer": 2,
+      "context_id": 3,
+      "restoration": 1.1782827377319336,
+      "nmh_recovery": 1.1969796419143677,
+      "corrupt_overlap": 0.6258492640409338,
+      "matched_overlap": 0.5942560065793543
+    },
+    {
+      "layer": 2,
+      "context_id": 3,
+      "restoration": 1.0594457387924194,
+      "nmh_recovery": 0.5604992508888245,
+      "corrupt_overlap": 0.4142686387249351,
+      "matched_overlap": 0.4578281317493738
+    },
+    {
+      "layer": 2,
+      "context_id": 3,
+      "restoration": 1.0313447713851929,
+      "nmh_recovery": 0.45209184288978577,
+      "corrupt_overlap": 0.6662587721692784,
+      "matched_overlap": 0.4068885845543538
+    },
+    {
+      "layer": 2,
+      "context_id": 3,
+      "restoration": 1.1319432258605957,
+      "nmh_recovery": 1.2091518640518188,
+      "corrupt_overlap": 0.3827320673805024,
+      "matched_overlap": 0.384351588900377
+    },
+    {
+      "layer": 2,
+      "context_id": 3,
+      "restoration": 1.0041238069534302,
+      "nmh_recovery": 1.0175739526748657,
+      "corrupt_overlap": 0.40571534555213995,
+      "matched_overlap": 0.45737133303272703
+    },
+    {
+      "layer": 2,
+      "context_id": 3,
+      "restoration": 1.07347571849823,
+      "nmh_recovery": 1.0219188928604126,
+      "corrupt_overlap": 0.5128146051424506,
+      "matched_overlap": 0.4626261733700357
+    },
+    {
+      "layer": 2,
+      "context_id": 3,
+      "restoration": 1.1450408697128296,
+      "nmh_recovery": 0.8702903389930725,
+      "corrupt_overlap": 0.5781772131774745,
+      "matched_overlap": 0.3931335071853699
+    },
+    {
+      "layer": 2,
+      "context_id": 3,
+      "restoration": 1.1919461488723755,
+      "nmh_recovery": 1.1941707134246826,
+      "corrupt_overlap": 0.4672180549703011,
+      "matched_overlap": 0.5488787293955417
+    },
+    {
+      "layer": 2,
+      "context_id": 4,
+      "restoration": 1.1644643545150757,
+      "nmh_recovery": 0.9242376089096069,
+      "corrupt_overlap": 0.4133518557044834,
+      "matched_overlap": 0.4914493767026601
+    },
+    {
+      "layer": 2,
+      "context_id": 4,
+      "restoration": 0.8109322190284729,
+      "nmh_recovery": 0.8474706411361694,
+      "corrupt_overlap": 0.367291092382907,
+      "matched_overlap": 0.6244740481570683
+    },
+    {
+      "layer": 2,
+      "context_id": 4,
+      "restoration": 0.8711212873458862,
+      "nmh_recovery": 1.0330450534820557,
+      "corrupt_overlap": 0.42966852537367606,
+      "matched_overlap": 0.40658854777435444
+    },
+    {
+      "layer": 2,
+      "context_id": 4,
+      "restoration": 0.9511122107505798,
+      "nmh_recovery": 0.8888367414474487,
+      "corrupt_overlap": 0.39339287926797833,
+      "matched_overlap": 0.24972470328647134
+    },
+    {
+      "layer": 2,
+      "context_id": 4,
+      "restoration": 0.8820658922195435,
+      "nmh_recovery": 1.0662614107131958,
+      "corrupt_overlap": 0.5646344160427481,
+      "matched_overlap": 0.7066984414080821
+    },
+    {
+      "layer": 2,
+      "context_id": 4,
+      "restoration": 0.8884468674659729,
+      "nmh_recovery": 0.9949878454208374,
+      "corrupt_overlap": 0.45028268103477437,
+      "matched_overlap": 0.34451300236736754
+    },
+    {
+      "layer": 2,
+      "context_id": 4,
+      "restoration": 1.0548728704452515,
+      "nmh_recovery": 1.2568854093551636,
+      "corrupt_overlap": 0.2264898692918341,
+      "matched_overlap": 0.4421347346782845
+    },
+    {
+      "layer": 2,
+      "context_id": 4,
+      "restoration": 0.9584556221961975,
+      "nmh_recovery": 1.2195823192596436,
+      "corrupt_overlap": 0.5053882645257272,
+      "matched_overlap": 0.6305295907943221
+    },
+    {
+      "layer": 2,
+      "context_id": 4,
+      "restoration": 0.8703478574752808,
+      "nmh_recovery": 1.1283323764801025,
+      "corrupt_overlap": 0.6014184895297988,
+      "matched_overlap": 0.71510540645886
+    },
+    {
+      "layer": 2,
+      "context_id": 4,
+      "restoration": 1.0147290229797363,
+      "nmh_recovery": 1.0819149017333984,
+      "corrupt_overlap": 0.26537930008343485,
+      "matched_overlap": 0.21300682536546275
+    },
+    {
+      "layer": 2,
+      "context_id": 5,
+      "restoration": 1.0356776714324951,
+      "nmh_recovery": 0.951949417591095,
+      "corrupt_overlap": 0.2891226238882773,
+      "matched_overlap": 0.3609899830585064
+    },
+    {
+      "layer": 2,
+      "context_id": 5,
+      "restoration": 1.1558741331100464,
+      "nmh_recovery": 1.0829817056655884,
+      "corrupt_overlap": 0.3620356081080393,
+      "matched_overlap": 0.5194850907867675
+    },
+    {
+      "layer": 2,
+      "context_id": 5,
+      "restoration": 0.8018739819526672,
+      "nmh_recovery": 1.043362021446228,
+      "corrupt_overlap": 0.4680629995795294,
+      "matched_overlap": 0.6091207293127947
+    },
+    {
+      "layer": 2,
+      "context_id": 5,
+      "restoration": 1.109810471534729,
+      "nmh_recovery": 1.208394169807434,
+      "corrupt_overlap": 0.408213572202419,
+      "matched_overlap": 0.36886460581345887
+    },
+    {
+      "layer": 2,
+      "context_id": 5,
+      "restoration": 0.8756968379020691,
+      "nmh_recovery": 0.9814959168434143,
+      "corrupt_overlap": 0.7003892116597785,
+      "matched_overlap": 0.6296646108552012
+    },
+    {
+      "layer": 2,
+      "context_id": 5,
+      "restoration": 1.054458498954773,
+      "nmh_recovery": 1.3027836084365845,
+      "corrupt_overlap": 0.2039264681638447,
+      "matched_overlap": 0.22954834658584156
+    },
+    {
+      "layer": 2,
+      "context_id": 5,
+      "restoration": 1.2263069152832031,
+      "nmh_recovery": 1.1024895906448364,
+      "corrupt_overlap": 0.5025975487912981,
+      "matched_overlap": 0.2980648602584724
+    },
+    {
+      "layer": 2,
+      "context_id": 5,
+      "restoration": 0.9344321489334106,
+      "nmh_recovery": 1.1428604125976562,
+      "corrupt_overlap": 0.3508331626758303,
+      "matched_overlap": 0.25559807042281385
+    },
+    {
+      "layer": 2,
+      "context_id": 5,
+      "restoration": 0.9254406690597534,
+      "nmh_recovery": 1.0442019701004028,
+      "corrupt_overlap": 0.34681046334204557,
+      "matched_overlap": 0.20370590412132644
+    },
+    {
+      "layer": 2,
+      "context_id": 5,
+      "restoration": 1.1562941074371338,
+      "nmh_recovery": 1.0591741800308228,
+      "corrupt_overlap": 0.4391726315832557,
+      "matched_overlap": 0.33477754874743937
+    },
+    {
+      "layer": 2,
+      "context_id": 6,
+      "restoration": 1.5497742891311646,
+      "nmh_recovery": 1.4471135139465332,
+      "corrupt_overlap": 0.4139678635020808,
+      "matched_overlap": 0.41122077538661883
+    },
+    {
+      "layer": 2,
+      "context_id": 6,
+      "restoration": 1.4993834495544434,
+      "nmh_recovery": 1.0643646717071533,
+      "corrupt_overlap": 0.3580900333429255,
+      "matched_overlap": 0.2437072078929004
+    },
+    {
+      "layer": 2,
+      "context_id": 6,
+      "restoration": 0.831157922744751,
+      "nmh_recovery": 1.0189629793167114,
+      "corrupt_overlap": 0.8101771810179982,
+      "matched_overlap": 0.7580470057031939
+    },
+    {
+      "layer": 2,
+      "context_id": 6,
+      "restoration": 1.5368149280548096,
+      "nmh_recovery": 1.2020477056503296,
+      "corrupt_overlap": 0.8300111874137227,
+      "matched_overlap": 0.457464590237707
+    },
+    {
+      "layer": 2,
+      "context_id": 6,
+      "restoration": 1.1055313348770142,
+      "nmh_recovery": 1.090362787246704,
+      "corrupt_overlap": 0.3505810209574572,
+      "matched_overlap": 0.5885383058465069
+    },
+    {
+      "layer": 2,
+      "context_id": 6,
+      "restoration": 1.1150410175323486,
+      "nmh_recovery": 0.7044304609298706,
+      "corrupt_overlap": 0.43595295419032276,
+      "matched_overlap": 0.42134274928739307
+    },
+    {
+      "layer": 2,
+      "context_id": 6,
+      "restoration": 1.1316291093826294,
+      "nmh_recovery": 1.0341997146606445,
+      "corrupt_overlap": 0.5064087743189082,
+      "matched_overlap": 0.5971524691280554
+    },
+    {
+      "layer": 2,
+      "context_id": 6,
+      "restoration": 1.3850932121276855,
+      "nmh_recovery": 1.1325230598449707,
+      "corrupt_overlap": 0.5266057574013543,
+      "matched_overlap": 0.3799390105388455
+    },
+    {
+      "layer": 2,
+      "context_id": 6,
+      "restoration": 1.2838366031646729,
+      "nmh_recovery": 1.1655359268188477,
+      "corrupt_overlap": 0.3443187309101992,
+      "matched_overlap": 0.4213822166359455
+    },
+    {
+      "layer": 2,
+      "context_id": 6,
+      "restoration": 1.1490291357040405,
+      "nmh_recovery": 1.4675264358520508,
+      "corrupt_overlap": 0.35724945632843913,
+      "matched_overlap": 0.6340769088980316
+    },
+    {
+      "layer": 2,
+      "context_id": 7,
+      "restoration": 1.0068904161453247,
+      "nmh_recovery": 0.9908221364021301,
+      "corrupt_overlap": 0.601418504318221,
+      "matched_overlap": 0.6714813262740581
+    },
+    {
+      "layer": 2,
+      "context_id": 7,
+      "restoration": 1.0256175994873047,
+      "nmh_recovery": 1.102674961090088,
+      "corrupt_overlap": 0.5004839208947323,
+      "matched_overlap": 0.5076469959594271
+    },
+    {
+      "layer": 2,
+      "context_id": 7,
+      "restoration": 1.0915679931640625,
+      "nmh_recovery": 0.772174596786499,
+      "corrupt_overlap": 0.36215486228315674,
+      "matched_overlap": 0.4270439190278397
+    },
+    {
+      "layer": 2,
+      "context_id": 7,
+      "restoration": 1.1299915313720703,
+      "nmh_recovery": 0.6286064386367798,
+      "corrupt_overlap": 0.25973584104542663,
+      "matched_overlap": 0.34087896861256334
+    },
+    {
+      "layer": 2,
+      "context_id": 7,
+      "restoration": 1.269513487815857,
+      "nmh_recovery": 0.8340305089950562,
+      "corrupt_overlap": 0.518845424714828,
+      "matched_overlap": 0.5134774777872347
+    },
+    {
+      "layer": 2,
+      "context_id": 7,
+      "restoration": 1.366706132888794,
+      "nmh_recovery": 0.7392883896827698,
+      "corrupt_overlap": 0.15096088237044,
+      "matched_overlap": 0.2523959106534133
+    },
+    {
+      "layer": 2,
+      "context_id": 7,
+      "restoration": 1.1277482509613037,
+      "nmh_recovery": 0.7037025094032288,
+      "corrupt_overlap": 0.7786079570615553,
+      "matched_overlap": 0.5571995577538051
+    },
+    {
+      "layer": 2,
+      "context_id": 7,
+      "restoration": 1.0407952070236206,
+      "nmh_recovery": 0.9062499403953552,
+      "corrupt_overlap": 0.49607269380733227,
+      "matched_overlap": 0.6985860943066123
+    },
+    {
+      "layer": 2,
+      "context_id": 7,
+      "restoration": 1.3573187589645386,
+      "nmh_recovery": 0.7603405117988586,
+      "corrupt_overlap": 0.30258715337330155,
+      "matched_overlap": 0.20232292015650966
+    },
+    {
+      "layer": 2,
+      "context_id": 7,
+      "restoration": 1.0654174089431763,
+      "nmh_recovery": 0.8949311971664429,
+      "corrupt_overlap": 0.6190572682289475,
+      "matched_overlap": 0.7189834715476978
+    },
+    {
+      "layer": 3,
+      "context_id": 0,
+      "restoration": 0.9511748552322388,
+      "nmh_recovery": 0.6805409789085388,
+      "corrupt_overlap": 0.31857602042525557,
+      "matched_overlap": 0.2702149911499782
+    },
+    {
+      "layer": 3,
+      "context_id": 0,
+      "restoration": 0.9943491816520691,
+      "nmh_recovery": 0.2899767756462097,
+      "corrupt_overlap": 0.3198676719916655,
+      "matched_overlap": 0.2479039186627701
+    },
+    {
+      "layer": 3,
+      "context_id": 0,
+      "restoration": 1.1294927597045898,
+      "nmh_recovery": 0.5029309391975403,
+      "corrupt_overlap": 0.5218056514862488,
+      "matched_overlap": 0.27350448066209376
+    },
+    {
+      "layer": 3,
+      "context_id": 0,
+      "restoration": 1.190507173538208,
+      "nmh_recovery": 0.5111304521560669,
+      "corrupt_overlap": 0.46096738269927834,
+      "matched_overlap": 0.4085162037639923
+    },
+    {
+      "layer": 3,
+      "context_id": 0,
+      "restoration": 0.9877704381942749,
+      "nmh_recovery": 0.49276837706565857,
+      "corrupt_overlap": 0.6895383740702193,
+      "matched_overlap": 0.563669789856188
+    },
+    {
+      "layer": 3,
+      "context_id": 0,
+      "restoration": 1.0328583717346191,
+      "nmh_recovery": 0.6432065963745117,
+      "corrupt_overlap": 0.30298267066916695,
+      "matched_overlap": 0.3636811177734476
+    },
+    {
+      "layer": 3,
+      "context_id": 0,
+      "restoration": 0.9736529588699341,
+      "nmh_recovery": 0.061988018453121185,
+      "corrupt_overlap": 0.46695726240961305,
+      "matched_overlap": 0.511065293515075
+    },
+    {
+      "layer": 3,
+      "context_id": 0,
+      "restoration": 1.152462363243103,
+      "nmh_recovery": 0.10183057934045792,
+      "corrupt_overlap": 0.3540849985587527,
+      "matched_overlap": 0.2986184164632772
+    },
+    {
+      "layer": 3,
+      "context_id": 0,
+      "restoration": 0.8538957834243774,
+      "nmh_recovery": 0.1381051391363144,
+      "corrupt_overlap": 0.44638136587209165,
+      "matched_overlap": 0.41798211566382004
+    },
+    {
+      "layer": 3,
+      "context_id": 0,
+      "restoration": 1.2538119554519653,
+      "nmh_recovery": 0.5424482822418213,
+      "corrupt_overlap": 0.37888470834428006,
+      "matched_overlap": 0.4105309022264685
+    },
+    {
+      "layer": 3,
+      "context_id": 1,
+      "restoration": 0.7521458268165588,
+      "nmh_recovery": 0.9856013059616089,
+      "corrupt_overlap": 0.6146500064325688,
+      "matched_overlap": 0.3488109710237775
+    },
+    {
+      "layer": 3,
+      "context_id": 1,
+      "restoration": 0.7906902432441711,
+      "nmh_recovery": 1.136031985282898,
+      "corrupt_overlap": 0.4494658530647831,
+      "matched_overlap": 0.29680897640663617
+    },
+    {
+      "layer": 3,
+      "context_id": 1,
+      "restoration": 0.8500885963439941,
+      "nmh_recovery": 1.0115548372268677,
+      "corrupt_overlap": 0.24664270353966822,
+      "matched_overlap": 0.40352614743710236
+    },
+    {
+      "layer": 3,
+      "context_id": 1,
+      "restoration": 0.858458936214447,
+      "nmh_recovery": 0.9228513240814209,
+      "corrupt_overlap": 0.28374313217030883,
+      "matched_overlap": 0.2327687351910381
+    },
+    {
+      "layer": 3,
+      "context_id": 1,
+      "restoration": 0.6819161772727966,
+      "nmh_recovery": 0.7147627472877502,
+      "corrupt_overlap": 0.2530979133396067,
+      "matched_overlap": 0.11907408884451232
+    },
+    {
+      "layer": 3,
+      "context_id": 1,
+      "restoration": 0.8356696963310242,
+      "nmh_recovery": 1.4653576612472534,
+      "corrupt_overlap": 0.4823688138125213,
+      "matched_overlap": 0.6063250998964385
+    },
+    {
+      "layer": 3,
+      "context_id": 1,
+      "restoration": 0.4104747474193573,
+      "nmh_recovery": 0.38646385073661804,
+      "corrupt_overlap": 0.6739611106203767,
+      "matched_overlap": 0.7751323984735407
+    },
+    {
+      "layer": 3,
+      "context_id": 1,
+      "restoration": 0.8463359475135803,
+      "nmh_recovery": 0.8863551020622253,
+      "corrupt_overlap": 0.434904828228695,
+      "matched_overlap": 0.3604861327965932
+    },
+    {
+      "layer": 3,
+      "context_id": 1,
+      "restoration": 0.6540870070457458,
+      "nmh_recovery": 0.5748194456100464,
+      "corrupt_overlap": 0.34041614795692804,
+      "matched_overlap": 0.31283791933196453
+    },
+    {
+      "layer": 3,
+      "context_id": 1,
+      "restoration": 0.8678643107414246,
+      "nmh_recovery": 0.768634557723999,
+      "corrupt_overlap": 0.3962673751837968,
+      "matched_overlap": 0.3427614238855815
+    },
+    {
+      "layer": 3,
+      "context_id": 2,
+      "restoration": 1.1010695695877075,
+      "nmh_recovery": 0.8921507000923157,
+      "corrupt_overlap": 0.44030823531737906,
+      "matched_overlap": 0.5127804147565264
+    },
+    {
+      "layer": 3,
+      "context_id": 2,
+      "restoration": 1.1654976606369019,
+      "nmh_recovery": 0.703972578048706,
+      "corrupt_overlap": 0.5137301743947815,
+      "matched_overlap": 0.39552493971858904
+    },
+    {
+      "layer": 3,
+      "context_id": 2,
+      "restoration": 1.0184985399246216,
+      "nmh_recovery": 0.6291472315788269,
+      "corrupt_overlap": 0.5649157525610293,
+      "matched_overlap": 0.6456418176072741
+    },
+    {
+      "layer": 3,
+      "context_id": 2,
+      "restoration": 0.8336887359619141,
+      "nmh_recovery": 0.5269728899002075,
+      "corrupt_overlap": 0.4471768632815623,
+      "matched_overlap": 0.48951128123232784
+    },
+    {
+      "layer": 3,
+      "context_id": 2,
+      "restoration": 1.2130441665649414,
+      "nmh_recovery": 1.1273812055587769,
+      "corrupt_overlap": 0.4317401358408648,
+      "matched_overlap": 0.6148241209596779
+    },
+    {
+      "layer": 3,
+      "context_id": 2,
+      "restoration": 1.0193248987197876,
+      "nmh_recovery": 0.6649029850959778,
+      "corrupt_overlap": 0.34041614795692804,
+      "matched_overlap": 0.41046340099634987
+    },
+    {
+      "layer": 3,
+      "context_id": 2,
+      "restoration": 1.1419134140014648,
+      "nmh_recovery": 0.741624116897583,
+      "corrupt_overlap": 0.488928350608171,
+      "matched_overlap": 0.4987873421127224
+    },
+    {
+      "layer": 3,
+      "context_id": 2,
+      "restoration": 0.8749600052833557,
+      "nmh_recovery": 0.6767878532409668,
+      "corrupt_overlap": 0.4198651340007792,
+      "matched_overlap": 0.4534673986373082
+    },
+    {
+      "layer": 3,
+      "context_id": 2,
+      "restoration": 1.1064560413360596,
+      "nmh_recovery": 1.0645592212677002,
+      "corrupt_overlap": 0.5008652738471064,
+      "matched_overlap": 0.47563732627495137
+    },
+    {
+      "layer": 3,
+      "context_id": 2,
+      "restoration": 1.2298626899719238,
+      "nmh_recovery": 1.0279818773269653,
+      "corrupt_overlap": 0.5658097017094077,
+      "matched_overlap": 0.6104613369662355
+    },
+    {
+      "layer": 3,
+      "context_id": 3,
+      "restoration": 0.8197760581970215,
+      "nmh_recovery": 0.8677780628204346,
+      "corrupt_overlap": 0.8165516471794684,
+      "matched_overlap": 0.677066146235572
+    },
+    {
+      "layer": 3,
+      "context_id": 3,
+      "restoration": 0.8868169188499451,
+      "nmh_recovery": 0.851545512676239,
+      "corrupt_overlap": 0.6640152196368153,
+      "matched_overlap": 0.6793798463767977
+    },
+    {
+      "layer": 3,
+      "context_id": 3,
+      "restoration": 1.155798077583313,
+      "nmh_recovery": 1.0705844163894653,
+      "corrupt_overlap": 0.6547616634072397,
+      "matched_overlap": 0.5920189754455509
+    },
+    {
+      "layer": 3,
+      "context_id": 3,
+      "restoration": 1.0581562519073486,
+      "nmh_recovery": 0.36289894580841064,
+      "corrupt_overlap": 0.40180730133594095,
+      "matched_overlap": 0.45466314507064454
+    },
+    {
+      "layer": 3,
+      "context_id": 3,
+      "restoration": 0.9561992883682251,
+      "nmh_recovery": 0.1296423226594925,
+      "corrupt_overlap": 0.6271401968866487,
+      "matched_overlap": 0.2897726822009863
+    },
+    {
+      "layer": 3,
+      "context_id": 3,
+      "restoration": 1.159944772720337,
+      "nmh_recovery": 1.102532148361206,
+      "corrupt_overlap": 0.4372689987744878,
+      "matched_overlap": 0.4030823821180511
+    },
+    {
+      "layer": 3,
+      "context_id": 3,
+      "restoration": 0.9700406193733215,
+      "nmh_recovery": 0.8718560338020325,
+      "corrupt_overlap": 0.46281728048627785,
+      "matched_overlap": 0.45231791743705607
+    },
+    {
+      "layer": 3,
+      "context_id": 3,
+      "restoration": 1.028917908668518,
+      "nmh_recovery": 0.9133513569831848,
+      "corrupt_overlap": 0.4864226525811373,
+      "matched_overlap": 0.42411132677181185
+    },
+    {
+      "layer": 3,
+      "context_id": 3,
+      "restoration": 1.0965043306350708,
+      "nmh_recovery": 0.7266503572463989,
+      "corrupt_overlap": 0.6011042156928925,
+      "matched_overlap": 0.37688523964492116
+    },
+    {
+      "layer": 3,
+      "context_id": 3,
+      "restoration": 1.1676514148712158,
+      "nmh_recovery": 1.1018126010894775,
+      "corrupt_overlap": 0.35289665597857,
+      "matched_overlap": 0.4671835401496945
+    },
+    {
+      "layer": 3,
+      "context_id": 4,
+      "restoration": 1.11704683303833,
+      "nmh_recovery": 0.6700584292411804,
+      "corrupt_overlap": 0.41778730424031546,
+      "matched_overlap": 0.44918541148076246
+    },
+    {
+      "layer": 3,
+      "context_id": 4,
+      "restoration": 0.7982924580574036,
+      "nmh_recovery": 0.6696857213973999,
+      "corrupt_overlap": 0.3897190320290726,
+      "matched_overlap": 0.7156083235877714
+    },
+    {
+      "layer": 3,
+      "context_id": 4,
+      "restoration": 0.7935009002685547,
+      "nmh_recovery": 0.7397915124893188,
+      "corrupt_overlap": 0.4431915210651238,
+      "matched_overlap": 0.3792439336467133
+    },
+    {
+      "layer": 3,
+      "context_id": 4,
+      "restoration": 0.8688742518424988,
+      "nmh_recovery": 0.5414309501647949,
+      "corrupt_overlap": 0.33703554687536963,
+      "matched_overlap": 0.20654063920282933
+    },
+    {
+      "layer": 3,
+      "context_id": 4,
+      "restoration": 0.8546878099441528,
+      "nmh_recovery": 0.8138294219970703,
+      "corrupt_overlap": 0.5459724185357494,
+      "matched_overlap": 0.7316913425049935
+    },
+    {
+      "layer": 3,
+      "context_id": 4,
+      "restoration": 0.8515934944152832,
+      "nmh_recovery": 0.8256972432136536,
+      "corrupt_overlap": 0.4116792120404538,
+      "matched_overlap": 0.30934001881877754
+    },
+    {
+      "layer": 3,
+      "context_id": 4,
+      "restoration": 1.055205225944519,
+      "nmh_recovery": 1.0442912578582764,
+      "corrupt_overlap": 0.22527463781906604,
+      "matched_overlap": 0.47837824641359117
+    },
+    {
+      "layer": 3,
+      "context_id": 4,
+      "restoration": 0.9315639734268188,
+      "nmh_recovery": 1.085059642791748,
+      "corrupt_overlap": 0.4690537933014924,
+      "matched_overlap": 0.6315489682983757
+    },
+    {
+      "layer": 3,
+      "context_id": 4,
+      "restoration": 0.8244816660881042,
+      "nmh_recovery": 0.8620628118515015,
+      "corrupt_overlap": 0.5451789423312136,
+      "matched_overlap": 0.6656389629693416
+    },
+    {
+      "layer": 3,
+      "context_id": 4,
+      "restoration": 1.0016343593597412,
+      "nmh_recovery": 0.8899952173233032,
+      "corrupt_overlap": 0.262245900427302,
+      "matched_overlap": 0.2098075528591396
+    },
+    {
+      "layer": 3,
+      "context_id": 5,
+      "restoration": 1.0336178541183472,
+      "nmh_recovery": 0.8354818820953369,
+      "corrupt_overlap": 0.3824942612454276,
+      "matched_overlap": 0.3775534559099113
+    },
+    {
+      "layer": 3,
+      "context_id": 5,
+      "restoration": 1.2299312353134155,
+      "nmh_recovery": 1.0215239524841309,
+      "corrupt_overlap": 0.3661277097770253,
+      "matched_overlap": 0.5369943431074667
+    },
+    {
+      "layer": 3,
+      "context_id": 5,
+      "restoration": 0.7677929401397705,
+      "nmh_recovery": 0.7884189486503601,
+      "corrupt_overlap": 0.4359223575481428,
+      "matched_overlap": 0.5555618112248963
+    },
+    {
+      "layer": 3,
+      "context_id": 5,
+      "restoration": 1.1094892024993896,
+      "nmh_recovery": 1.0004396438598633,
+      "corrupt_overlap": 0.45172586538456116,
+      "matched_overlap": 0.3836693981832387
+    },
+    {
+      "layer": 3,
+      "context_id": 5,
+      "restoration": 0.7540721297264099,
+      "nmh_recovery": 0.575410008430481,
+      "corrupt_overlap": 0.6680884103601401,
+      "matched_overlap": 0.6229020712833716
+    },
+    {
+      "layer": 3,
+      "context_id": 5,
+      "restoration": 1.0160977840423584,
+      "nmh_recovery": 1.1254717111587524,
+      "corrupt_overlap": 0.18915624150008548,
+      "matched_overlap": 0.21475166523423897
+    },
+    {
+      "layer": 3,
+      "context_id": 5,
+      "restoration": 1.1989059448242188,
+      "nmh_recovery": 0.9512045383453369,
+      "corrupt_overlap": 0.5183286841058541,
+      "matched_overlap": 0.2695223809692049
+    },
+    {
+      "layer": 3,
+      "context_id": 5,
+      "restoration": 0.8628959059715271,
+      "nmh_recovery": 0.7506921887397766,
+      "corrupt_overlap": 0.4066032285045649,
+      "matched_overlap": 0.23994543765222975
+    },
+    {
+      "layer": 3,
+      "context_id": 5,
+      "restoration": 0.9025672078132629,
+      "nmh_recovery": 0.890387773513794,
+      "corrupt_overlap": 0.3459086734942713,
+      "matched_overlap": 0.20917710381582524
+    },
+    {
+      "layer": 3,
+      "context_id": 5,
+      "restoration": 1.1529426574707031,
+      "nmh_recovery": 0.9457589983940125,
+      "corrupt_overlap": 0.46357650858916327,
+      "matched_overlap": 0.3006056691642904
+    },
+    {
+      "layer": 3,
+      "context_id": 6,
+      "restoration": 1.398988127708435,
+      "nmh_recovery": 1.2248246669769287,
+      "corrupt_overlap": 0.44030823531737906,
+      "matched_overlap": 0.3690581337331299
+    },
+    {
+      "layer": 3,
+      "context_id": 6,
+      "restoration": 1.4576255083084106,
+      "nmh_recovery": 0.9632836580276489,
+      "corrupt_overlap": 0.3556603471213739,
+      "matched_overlap": 0.22402996571660996
+    },
+    {
+      "layer": 3,
+      "context_id": 6,
+      "restoration": 0.7246626019477844,
+      "nmh_recovery": 0.6896950602531433,
+      "corrupt_overlap": 0.7925155692770179,
+      "matched_overlap": 0.7341976843404627
+    },
+    {
+      "layer": 3,
+      "context_id": 6,
+      "restoration": 1.4935091733932495,
+      "nmh_recovery": 1.1108611822128296,
+      "corrupt_overlap": 0.8371771304460531,
+      "matched_overlap": 0.4285704997022372
+    },
+    {
+      "layer": 3,
+      "context_id": 6,
+      "restoration": 0.9568846225738525,
+      "nmh_recovery": 0.8418638110160828,
+      "corrupt_overlap": 0.3263700088273268,
+      "matched_overlap": 0.5667522944517503
+    },
+    {
+      "layer": 3,
+      "context_id": 6,
+      "restoration": 0.8828063607215881,
+      "nmh_recovery": 0.06943003088235855,
+      "corrupt_overlap": 0.3486864333048472,
+      "matched_overlap": 0.31950004167182633
+    },
+    {
+      "layer": 3,
+      "context_id": 6,
+      "restoration": 0.9933409094810486,
+      "nmh_recovery": 0.6112110018730164,
+      "corrupt_overlap": 0.4581804930520679,
+      "matched_overlap": 0.5326715441839053
+    },
+    {
+      "layer": 3,
+      "context_id": 6,
+      "restoration": 1.230891227722168,
+      "nmh_recovery": 0.7763499021530151,
+      "corrupt_overlap": 0.5189870707286558,
+      "matched_overlap": 0.3682641222806882
+    },
+    {
+      "layer": 3,
+      "context_id": 6,
+      "restoration": 1.1949667930603027,
+      "nmh_recovery": 0.920549213886261,
+      "corrupt_overlap": 0.38083896905610837,
+      "matched_overlap": 0.4620210659536273
+    },
+    {
+      "layer": 3,
+      "context_id": 6,
+      "restoration": 1.049976110458374,
+      "nmh_recovery": 1.2322627305984497,
+      "corrupt_overlap": 0.3487474368984286,
+      "matched_overlap": 0.5807053895199984
+    },
+    {
+      "layer": 3,
+      "context_id": 7,
+      "restoration": 0.9674481153488159,
+      "nmh_recovery": 0.669814944267273,
+      "corrupt_overlap": 0.5451789736780798,
+      "matched_overlap": 0.6481708563324976
+    },
+    {
+      "layer": 3,
+      "context_id": 7,
+      "restoration": 0.9551870822906494,
+      "nmh_recovery": 0.8899539709091187,
+      "corrupt_overlap": 0.47800142688494135,
+      "matched_overlap": 0.5163716260147747
+    },
+    {
+      "layer": 3,
+      "context_id": 7,
+      "restoration": 1.054337501525879,
+      "nmh_recovery": 0.6095051765441895,
+      "corrupt_overlap": 0.3147754864800975,
+      "matched_overlap": 0.4086625082773877
+    },
+    {
+      "layer": 3,
+      "context_id": 7,
+      "restoration": 1.1430219411849976,
+      "nmh_recovery": 0.3858663737773895,
+      "corrupt_overlap": 0.2596253950688524,
+      "matched_overlap": 0.34689982087021676
+    },
+    {
+      "layer": 3,
+      "context_id": 7,
+      "restoration": 1.2261327505111694,
+      "nmh_recovery": 0.6486711502075195,
+      "corrupt_overlap": 0.5257582776853638,
+      "matched_overlap": 0.5100882985503069
+    },
+    {
+      "layer": 3,
+      "context_id": 7,
+      "restoration": 1.3270100355148315,
+      "nmh_recovery": 0.5753944516181946,
+      "corrupt_overlap": 0.20464605017861098,
+      "matched_overlap": 0.372560882694143
+    },
+    {
+      "layer": 3,
+      "context_id": 7,
+      "restoration": 1.0816231966018677,
+      "nmh_recovery": 0.47151049971580505,
+      "corrupt_overlap": 0.7843835435213619,
+      "matched_overlap": 0.5675693073527925
+    },
+    {
+      "layer": 3,
+      "context_id": 7,
+      "restoration": 1.0125972032546997,
+      "nmh_recovery": 0.763852059841156,
+      "corrupt_overlap": 0.4794668903548657,
+      "matched_overlap": 0.7305238971112671
+    },
+    {
+      "layer": 3,
+      "context_id": 7,
+      "restoration": 1.3471622467041016,
+      "nmh_recovery": 0.6223247051239014,
+      "corrupt_overlap": 0.3206483411529077,
+      "matched_overlap": 0.24172268503947705
+    },
+    {
+      "layer": 3,
+      "context_id": 7,
+      "restoration": 1.0347377061843872,
+      "nmh_recovery": 0.727429211139679,
+      "corrupt_overlap": 0.6079419428565485,
+      "matched_overlap": 0.7047815594862299
+    },
+    {
+      "layer": 4,
+      "context_id": 0,
+      "restoration": 0.8557687997817993,
+      "nmh_recovery": 0.43401581048965454,
+      "corrupt_overlap": 0.3952187133780458,
+      "matched_overlap": 0.32083245532327404
+    },
+    {
+      "layer": 4,
+      "context_id": 0,
+      "restoration": 0.8888672590255737,
+      "nmh_recovery": 0.04090692102909088,
+      "corrupt_overlap": 0.30313682588913954,
+      "matched_overlap": 0.2759993333033624
+    },
+    {
+      "layer": 4,
+      "context_id": 0,
+      "restoration": 1.0572140216827393,
+      "nmh_recovery": 0.3298853039741516,
+      "corrupt_overlap": 0.5359052371026755,
+      "matched_overlap": 0.30213463913924643
+    },
+    {
+      "layer": 4,
+      "context_id": 0,
+      "restoration": 1.061415433883667,
+      "nmh_recovery": 0.2638971209526062,
+      "corrupt_overlap": 0.3982279170933693,
+      "matched_overlap": 0.4177495852167275
+    },
+    {
+      "layer": 4,
+      "context_id": 0,
+      "restoration": 0.9121284484863281,
+      "nmh_recovery": 0.30333489179611206,
+      "corrupt_overlap": 0.7089951405066566,
+      "matched_overlap": 0.6275509097214913
+    },
+    {
+      "layer": 4,
+      "context_id": 0,
+      "restoration": 0.9365614056587219,
+      "nmh_recovery": 0.5001220107078552,
+      "corrupt_overlap": 0.27861870846393,
+      "matched_overlap": 0.3725596658853819
+    },
+    {
+      "layer": 4,
+      "context_id": 0,
+      "restoration": 0.9208734631538391,
+      "nmh_recovery": -0.11134456098079681,
+      "corrupt_overlap": 0.4950300972686342,
+      "matched_overlap": 0.5867875826049262
+    },
+    {
+      "layer": 4,
+      "context_id": 0,
+      "restoration": 1.095611333847046,
+      "nmh_recovery": -0.06958383321762085,
+      "corrupt_overlap": 0.37138911643132977,
+      "matched_overlap": 0.3418802287672881
+    },
+    {
+      "layer": 4,
+      "context_id": 0,
+      "restoration": 0.8308500051498413,
+      "nmh_recovery": 0.05006792023777962,
+      "corrupt_overlap": 0.4721756479082631,
+      "matched_overlap": 0.4514472672417549
+    },
+    {
+      "layer": 4,
+      "context_id": 0,
+      "restoration": 1.056858777999878,
+      "nmh_recovery": 0.3143785893917084,
+      "corrupt_overlap": 0.3740419077678175,
+      "matched_overlap": 0.40482727511409405
+    },
+    {
+      "layer": 4,
+      "context_id": 1,
+      "restoration": 0.6918570399284363,
+      "nmh_recovery": 0.728398859500885,
+      "corrupt_overlap": 0.6160197001629062,
+      "matched_overlap": 0.36264035945143697
+    },
+    {
+      "layer": 4,
+      "context_id": 1,
+      "restoration": 0.6701467037200928,
+      "nmh_recovery": 0.8055740594863892,
+      "corrupt_overlap": 0.48772875063745086,
+      "matched_overlap": 0.3047742712830118
+    },
+    {
+      "layer": 4,
+      "context_id": 1,
+      "restoration": 0.7490830421447754,
+      "nmh_recovery": 0.5912869572639465,
+      "corrupt_overlap": 0.29886652598669794,
+      "matched_overlap": 0.43910247250070983
+    },
+    {
+      "layer": 4,
+      "context_id": 1,
+      "restoration": 0.798269510269165,
+      "nmh_recovery": 0.7195479273796082,
+      "corrupt_overlap": 0.27847897198941324,
+      "matched_overlap": 0.23891818267648135
+    },
+    {
+      "layer": 4,
+      "context_id": 1,
+      "restoration": 0.5939972400665283,
+      "nmh_recovery": 0.42494454979896545,
+      "corrupt_overlap": 0.2527393769446255,
+      "matched_overlap": 0.12218092814877066
+    },
+    {
+      "layer": 4,
+      "context_id": 1,
+      "restoration": 0.7251971364021301,
+      "nmh_recovery": 1.0586868524551392,
+      "corrupt_overlap": 0.5231230830339954,
+      "matched_overlap": 0.6240312541991573
+    },
+    {
+      "layer": 4,
+      "context_id": 1,
+      "restoration": 0.39982521533966064,
+      "nmh_recovery": 0.38415461778640747,
+      "corrupt_overlap": 0.6848429639879358,
+      "matched_overlap": 0.7853826573773233
+    },
+    {
+      "layer": 4,
+      "context_id": 1,
+      "restoration": 0.7517899870872498,
+      "nmh_recovery": 0.5950947999954224,
+      "corrupt_overlap": 0.48810455982689366,
+      "matched_overlap": 0.40639001306940425
+    },
+    {
+      "layer": 4,
+      "context_id": 1,
+      "restoration": 0.5963771939277649,
+      "nmh_recovery": 0.3759441673755646,
+      "corrupt_overlap": 0.3432348034717544,
+      "matched_overlap": 0.3182452691503209
+    },
+    {
+      "layer": 4,
+      "context_id": 1,
+      "restoration": 0.8314211964607239,
+      "nmh_recovery": 0.5915955305099487,
+      "corrupt_overlap": 0.3732712766251558,
+      "matched_overlap": 0.30968056552540446
+    },
+    {
+      "layer": 4,
+      "context_id": 2,
+      "restoration": 0.9609551429748535,
+      "nmh_recovery": 0.6369728446006775,
+      "corrupt_overlap": 0.4678101702759437,
+      "matched_overlap": 0.5187175759230355
+    },
+    {
+      "layer": 4,
+      "context_id": 2,
+      "restoration": 1.0671991109848022,
+      "nmh_recovery": 0.5239264965057373,
+      "corrupt_overlap": 0.5561303912936664,
+      "matched_overlap": 0.3910116376152957
+    },
+    {
+      "layer": 4,
+      "context_id": 2,
+      "restoration": 0.9389544129371643,
+      "nmh_recovery": 0.481584370136261,
+      "corrupt_overlap": 0.61006018740817,
+      "matched_overlap": 0.6304084854554134
+    },
+    {
+      "layer": 4,
+      "context_id": 2,
+      "restoration": 0.7951155304908752,
+      "nmh_recovery": 0.4066102206707001,
+      "corrupt_overlap": 0.4473669687179459,
+      "matched_overlap": 0.46303357661614997
+    },
+    {
+      "layer": 4,
+      "context_id": 2,
+      "restoration": 1.1245163679122925,
+      "nmh_recovery": 0.9454430937767029,
+      "corrupt_overlap": 0.4331634722266447,
+      "matched_overlap": 0.5983187294848956
+    },
+    {
+      "layer": 4,
+      "context_id": 2,
+      "restoration": 0.9250864386558533,
+      "nmh_recovery": 0.4153977334499359,
+      "corrupt_overlap": 0.3432348034717544,
+      "matched_overlap": 0.38724559498616623
+    },
+    {
+      "layer": 4,
+      "context_id": 2,
+      "restoration": 1.0637807846069336,
+      "nmh_recovery": 0.6226751208305359,
+      "corrupt_overlap": 0.5189215275301535,
+      "matched_overlap": 0.4794900072879442
+    },
+    {
+      "layer": 4,
+      "context_id": 2,
+      "restoration": 0.8089515566825867,
+      "nmh_recovery": 0.5511719584465027,
+      "corrupt_overlap": 0.42058438039540086,
+      "matched_overlap": 0.4618933586606537
+    },
+    {
+      "layer": 4,
+      "context_id": 2,
+      "restoration": 0.98099684715271,
+      "nmh_recovery": 0.8565015196800232,
+      "corrupt_overlap": 0.5025344058755628,
+      "matched_overlap": 0.4448875861636829
+    },
+    {
+      "layer": 4,
+      "context_id": 2,
+      "restoration": 1.09200918674469,
+      "nmh_recovery": 0.7767057418823242,
+      "corrupt_overlap": 0.5917330596509958,
+      "matched_overlap": 0.5891840901076124
+    },
+    {
+      "layer": 4,
+      "context_id": 3,
+      "restoration": 0.6444566249847412,
+      "nmh_recovery": 0.22415626049041748,
+      "corrupt_overlap": 0.8299562520103396,
+      "matched_overlap": 0.6499351512077362
+    },
+    {
+      "layer": 4,
+      "context_id": 3,
+      "restoration": 0.7323324084281921,
+      "nmh_recovery": 0.3517957627773285,
+      "corrupt_overlap": 0.6314755947779889,
+      "matched_overlap": 0.6541870040977658
+    },
+    {
+      "layer": 4,
+      "context_id": 3,
+      "restoration": 0.9819021821022034,
+      "nmh_recovery": 0.5797600150108337,
+      "corrupt_overlap": 0.6998301284663846,
+      "matched_overlap": 0.6171747104043063
+    },
+    {
+      "layer": 4,
+      "context_id": 3,
+      "restoration": 0.8797576427459717,
+      "nmh_recovery": -0.10408126562833786,
+      "corrupt_overlap": 0.4448743169576496,
+      "matched_overlap": 0.4600868308535576
+    },
+    {
+      "layer": 4,
+      "context_id": 3,
+      "restoration": 0.7411227226257324,
+      "nmh_recovery": -0.2317262887954712,
+      "corrupt_overlap": 0.6341972076144292,
+      "matched_overlap": 0.30379140894559736
+    },
+    {
+      "layer": 4,
+      "context_id": 3,
+      "restoration": 0.9966245889663696,
+      "nmh_recovery": 0.7244570851325989,
+      "corrupt_overlap": 0.45423995721458366,
+      "matched_overlap": 0.4740247230369814
+    },
+    {
+      "layer": 4,
+      "context_id": 3,
+      "restoration": 0.7622541785240173,
+      "nmh_recovery": 0.38269367814064026,
+      "corrupt_overlap": 0.5023682611690576,
+      "matched_overlap": 0.4953889063303218
+    },
+    {
+      "layer": 4,
+      "context_id": 3,
+      "restoration": 0.8660138249397278,
+      "nmh_recovery": 0.5561411380767822,
+      "corrupt_overlap": 0.5076130666281539,
+      "matched_overlap": 0.4677822652933431
+    },
+    {
+      "layer": 4,
+      "context_id": 3,
+      "restoration": 0.8699408769607544,
+      "nmh_recovery": 0.2254744917154312,
+      "corrupt_overlap": 0.6506227466240716,
+      "matched_overlap": 0.3961290552791968
+    },
+    {
+      "layer": 4,
+      "context_id": 3,
+      "restoration": 1.0044817924499512,
+      "nmh_recovery": 0.5588259696960449,
+      "corrupt_overlap": 0.42254058376249093,
+      "matched_overlap": 0.5147468482192189
+    },
+    {
+      "layer": 4,
+      "context_id": 4,
+      "restoration": 0.9362742304801941,
+      "nmh_recovery": 0.22593450546264648,
+      "corrupt_overlap": 0.4692963339133628,
+      "matched_overlap": 0.5216508253013669
+    },
+    {
+      "layer": 4,
+      "context_id": 4,
+      "restoration": 0.6915169358253479,
+      "nmh_recovery": 0.3123336434364319,
+      "corrupt_overlap": 0.3703035002668644,
+      "matched_overlap": 0.7037001590412126
+    },
+    {
+      "layer": 4,
+      "context_id": 4,
+      "restoration": 0.6929591298103333,
+      "nmh_recovery": 0.4633995592594147,
+      "corrupt_overlap": 0.48707304969061666,
+      "matched_overlap": 0.41879756631768117
+    },
+    {
+      "layer": 4,
+      "context_id": 4,
+      "restoration": 0.7552811503410339,
+      "nmh_recovery": 0.2479396015405655,
+      "corrupt_overlap": 0.34874178921507176,
+      "matched_overlap": 0.2363805101761917
+    },
+    {
+      "layer": 4,
+      "context_id": 4,
+      "restoration": 0.7743330597877502,
+      "nmh_recovery": 0.4481739103794098,
+      "corrupt_overlap": 0.5141121710663237,
+      "matched_overlap": 0.6407442615536477
+    },
+    {
+      "layer": 4,
+      "context_id": 4,
+      "restoration": 0.747285008430481,
+      "nmh_recovery": 0.44347453117370605,
+      "corrupt_overlap": 0.4459270321776432,
+      "matched_overlap": 0.35219422448660137
+    },
+    {
+      "layer": 4,
+      "context_id": 4,
+      "restoration": 0.9302322268486023,
+      "nmh_recovery": 0.5982486009597778,
+      "corrupt_overlap": 0.21176765402483577,
+      "matched_overlap": 0.4678826933658869
+    },
+    {
+      "layer": 4,
+      "context_id": 4,
+      "restoration": 0.7876243591308594,
+      "nmh_recovery": 0.7480253577232361,
+      "corrupt_overlap": 0.48437807162490276,
+      "matched_overlap": 0.6075902646704746
+    },
+    {
+      "layer": 4,
+      "context_id": 4,
+      "restoration": 0.735231339931488,
+      "nmh_recovery": 0.4807390570640564,
+      "corrupt_overlap": 0.5531937986946911,
+      "matched_overlap": 0.6395252226689402
+    },
+    {
+      "layer": 4,
+      "context_id": 4,
+      "restoration": 0.836358368396759,
+      "nmh_recovery": 0.3799269199371338,
+      "corrupt_overlap": 0.2614518856486693,
+      "matched_overlap": 0.270411072632663
+    },
+    {
+      "layer": 4,
+      "context_id": 5,
+      "restoration": 0.8311983346939087,
+      "nmh_recovery": 0.20684699714183807,
+      "corrupt_overlap": 0.3608289574795945,
+      "matched_overlap": 0.36060102352073775
+    },
+    {
+      "layer": 4,
+      "context_id": 5,
+      "restoration": 1.0517871379852295,
+      "nmh_recovery": 0.3761714696884155,
+      "corrupt_overlap": 0.3709025027093622,
+      "matched_overlap": 0.5248305967444442
+    },
+    {
+      "layer": 4,
+      "context_id": 5,
+      "restoration": 0.5936843752861023,
+      "nmh_recovery": 0.14576604962348938,
+      "corrupt_overlap": 0.37017253175848297,
+      "matched_overlap": 0.5175818670278667
+    },
+    {
+      "layer": 4,
+      "context_id": 5,
+      "restoration": 0.959538996219635,
+      "nmh_recovery": 0.5661322474479675,
+      "corrupt_overlap": 0.44950140129996174,
+      "matched_overlap": 0.4339779654879218
+    },
+    {
+      "layer": 4,
+      "context_id": 5,
+      "restoration": 0.5929198861122131,
+      "nmh_recovery": 0.10787603259086609,
+      "corrupt_overlap": 0.6766916403316885,
+      "matched_overlap": 0.6440771221854826
+    },
+    {
+      "layer": 4,
+      "context_id": 5,
+      "restoration": 0.8023097515106201,
+      "nmh_recovery": 0.27839940786361694,
+      "corrupt_overlap": 0.15375292668070398,
+      "matched_overlap": 0.20284470327723947
+    },
+    {
+      "layer": 4,
+      "context_id": 5,
+      "restoration": 1.0350245237350464,
+      "nmh_recovery": 0.41916993260383606,
+      "corrupt_overlap": 0.48165482346484095,
+      "matched_overlap": 0.2846788213770919
+    },
+    {
+      "layer": 4,
+      "context_id": 5,
+      "restoration": 0.6851345896720886,
+      "nmh_recovery": 0.1205705776810646,
+      "corrupt_overlap": 0.39805235571621667,
+      "matched_overlap": 0.252168497477205
+    },
+    {
+      "layer": 4,
+      "context_id": 5,
+      "restoration": 0.7297759056091309,
+      "nmh_recovery": 0.26843875646591187,
+      "corrupt_overlap": 0.315362237273082,
+      "matched_overlap": 0.20728865712413772
+    },
+    {
+      "layer": 4,
+      "context_id": 5,
+      "restoration": 1.0023542642593384,
+      "nmh_recovery": 0.40940040349960327,
+      "corrupt_overlap": 0.500615373335498,
+      "matched_overlap": 0.3057088061565574
+    },
+    {
+      "layer": 4,
+      "context_id": 6,
+      "restoration": 1.0991058349609375,
+      "nmh_recovery": 0.6290013790130615,
+      "corrupt_overlap": 0.4678101702759437,
+      "matched_overlap": 0.3689798124258654
+    },
+    {
+      "layer": 4,
+      "context_id": 6,
+      "restoration": 1.0449765920639038,
+      "nmh_recovery": 0.24271027743816376,
+      "corrupt_overlap": 0.3174371027701803,
+      "matched_overlap": 0.215343163040664
+    },
+    {
+      "layer": 4,
+      "context_id": 6,
+      "restoration": 0.5278039574623108,
+      "nmh_recovery": 0.13039974868297577,
+      "corrupt_overlap": 0.806588386245467,
+      "matched_overlap": 0.6885492250270556
+    },
+    {
+      "layer": 4,
+      "context_id": 6,
+      "restoration": 1.1736592054367065,
+      "nmh_recovery": 0.5888291597366333,
+      "corrupt_overlap": 0.8510833390010372,
+      "matched_overlap": 0.40807571001226034
+    },
+    {
+      "layer": 4,
+      "context_id": 6,
+      "restoration": 0.8095023036003113,
+      "nmh_recovery": 0.4124561846256256,
+      "corrupt_overlap": 0.30892421999744574,
+      "matched_overlap": 0.5320964809511531
+    },
+    {
+      "layer": 4,
+      "context_id": 6,
+      "restoration": 0.8233584761619568,
+      "nmh_recovery": -0.15935978293418884,
+      "corrupt_overlap": 0.4107866403501233,
+      "matched_overlap": 0.2922368823779921
+    },
+    {
+      "layer": 4,
+      "context_id": 6,
+      "restoration": 0.8719761967658997,
+      "nmh_recovery": 0.22827309370040894,
+      "corrupt_overlap": 0.481591325519897,
+      "matched_overlap": 0.5017155295148726
+    },
+    {
+      "layer": 4,
+      "context_id": 6,
+      "restoration": 1.0217849016189575,
+      "nmh_recovery": 0.23357446491718292,
+      "corrupt_overlap": 0.5556504681723496,
+      "matched_overlap": 0.3324483798932407
+    },
+    {
+      "layer": 4,
+      "context_id": 6,
+      "restoration": 0.9651526212692261,
+      "nmh_recovery": 0.30447718501091003,
+      "corrupt_overlap": 0.4078394090596054,
+      "matched_overlap": 0.5146121792797008
+    },
+    {
+      "layer": 4,
+      "context_id": 6,
+      "restoration": 0.8813730478286743,
+      "nmh_recovery": 0.5846299529075623,
+      "corrupt_overlap": 0.3286607861372965,
+      "matched_overlap": 0.5595435558727802
+    },
+    {
+      "layer": 4,
+      "context_id": 7,
+      "restoration": 0.8951380848884583,
+      "nmh_recovery": 0.3546905815601349,
+      "corrupt_overlap": 0.5531937794261389,
+      "matched_overlap": 0.6396901937053268
+    },
+    {
+      "layer": 4,
+      "context_id": 7,
+      "restoration": 0.8342160582542419,
+      "nmh_recovery": 0.48205864429473877,
+      "corrupt_overlap": 0.468601590638485,
+      "matched_overlap": 0.509180286566646
+    },
+    {
+      "layer": 4,
+      "context_id": 7,
+      "restoration": 0.8825697302818298,
+      "nmh_recovery": 0.1424906998872757,
+      "corrupt_overlap": 0.3280546401454921,
+      "matched_overlap": 0.45852171585171264
+    },
+    {
+      "layer": 4,
+      "context_id": 7,
+      "restoration": 1.0714153051376343,
+      "nmh_recovery": 0.15318350493907928,
+      "corrupt_overlap": 0.2924050006601693,
+      "matched_overlap": 0.4563319990603314
+    },
+    {
+      "layer": 4,
+      "context_id": 7,
+      "restoration": 1.0508698225021362,
+      "nmh_recovery": 0.26655513048171997,
+      "corrupt_overlap": 0.5454938622928773,
+      "matched_overlap": 0.5157551009171422
+    },
+    {
+      "layer": 4,
+      "context_id": 7,
+      "restoration": 1.1594457626342773,
+      "nmh_recovery": 0.21341922879219055,
+      "corrupt_overlap": 0.18525623771535626,
+      "matched_overlap": 0.3943441172896123
+    },
+    {
+      "layer": 4,
+      "context_id": 7,
+      "restoration": 1.0009772777557373,
+      "nmh_recovery": 0.27030330896377563,
+      "corrupt_overlap": 0.8058815489903439,
+      "matched_overlap": 0.59731763423728
+    },
+    {
+      "layer": 4,
+      "context_id": 7,
+      "restoration": 0.8918194770812988,
+      "nmh_recovery": 0.40828174352645874,
+      "corrupt_overlap": 0.49761328878726974,
+      "matched_overlap": 0.7668950731680199
+    },
+    {
+      "layer": 4,
+      "context_id": 7,
+      "restoration": 1.0280272960662842,
+      "nmh_recovery": 0.03254671394824982,
+      "corrupt_overlap": 0.29040216929106166,
+      "matched_overlap": 0.21946919122204386
+    },
+    {
+      "layer": 4,
+      "context_id": 7,
+      "restoration": 0.8676530718803406,
+      "nmh_recovery": 0.3016825020313263,
+      "corrupt_overlap": 0.5785749991955673,
+      "matched_overlap": 0.7056114954486842
+    },
+    {
+      "layer": 5,
+      "context_id": 0,
+      "restoration": 0.8462428450584412,
+      "nmh_recovery": 0.3273022472858429,
+      "corrupt_overlap": 0.3965689372100039,
+      "matched_overlap": 0.3343289086605738
+    },
+    {
+      "layer": 5,
+      "context_id": 0,
+      "restoration": 0.8814682960510254,
+      "nmh_recovery": -0.02201860398054123,
+      "corrupt_overlap": 0.29384498727127023,
+      "matched_overlap": 0.2730120734227261
+    },
+    {
+      "layer": 5,
+      "context_id": 0,
+      "restoration": 1.0476282835006714,
+      "nmh_recovery": 0.22689513862133026,
+      "corrupt_overlap": 0.45096348286323984,
+      "matched_overlap": 0.2964050859761959
+    },
+    {
+      "layer": 5,
+      "context_id": 0,
+      "restoration": 1.0536381006240845,
+      "nmh_recovery": 0.21630264818668365,
+      "corrupt_overlap": 0.39170039691070807,
+      "matched_overlap": 0.39483509804641787
+    },
+    {
+      "layer": 5,
+      "context_id": 0,
+      "restoration": 0.9053250551223755,
+      "nmh_recovery": 0.213205024600029,
+      "corrupt_overlap": 0.661691570814174,
+      "matched_overlap": 0.5974379951082973
+    },
+    {
+      "layer": 5,
+      "context_id": 0,
+      "restoration": 0.9413852691650391,
+      "nmh_recovery": 0.46496307849884033,
+      "corrupt_overlap": 0.2450207759567572,
+      "matched_overlap": 0.3200895000654225
+    },
+    {
+      "layer": 5,
+      "context_id": 0,
+      "restoration": 0.9117816686630249,
+      "nmh_recovery": -0.20481017231941223,
+      "corrupt_overlap": 0.49674998702056283,
+      "matched_overlap": 0.5889196647214262
+    },
+    {
+      "layer": 5,
+      "context_id": 0,
+      "restoration": 1.1064397096633911,
+      "nmh_recovery": -0.07930566370487213,
+      "corrupt_overlap": 0.4106578812095688,
+      "matched_overlap": 0.4131570535205766
+    },
+    {
+      "layer": 5,
+      "context_id": 0,
+      "restoration": 0.841379702091217,
+      "nmh_recovery": 0.028715860098600388,
+      "corrupt_overlap": 0.5223054820149564,
+      "matched_overlap": 0.5054126555769614
+    },
+    {
+      "layer": 5,
+      "context_id": 0,
+      "restoration": 1.0274348258972168,
+      "nmh_recovery": 0.2372722327709198,
+      "corrupt_overlap": 0.4024183926040806,
+      "matched_overlap": 0.40950798926071985
+    },
+    {
+      "layer": 5,
+      "context_id": 1,
+      "restoration": 0.6428257822990417,
+      "nmh_recovery": 0.5919666290283203,
+      "corrupt_overlap": 0.673389312977155,
+      "matched_overlap": 0.35156507273168375
+    },
+    {
+      "layer": 5,
+      "context_id": 1,
+      "restoration": 0.6292693614959717,
+      "nmh_recovery": 0.70942622423172,
+      "corrupt_overlap": 0.523213666729246,
+      "matched_overlap": 0.3112843257068465
+    },
+    {
+      "layer": 5,
+      "context_id": 1,
+      "restoration": 0.7202816009521484,
+      "nmh_recovery": 0.5324230194091797,
+      "corrupt_overlap": 0.30345035618558835,
+      "matched_overlap": 0.40968417611205316
+    },
+    {
+      "layer": 5,
+      "context_id": 1,
+      "restoration": 0.7455601096153259,
+      "nmh_recovery": 0.5827875137329102,
+      "corrupt_overlap": 0.22315490777528033,
+      "matched_overlap": 0.18261351297001271
+    },
+    {
+      "layer": 5,
+      "context_id": 1,
+      "restoration": 0.577985942363739,
+      "nmh_recovery": 0.3836515247821808,
+      "corrupt_overlap": 0.18847600795224873,
+      "matched_overlap": 0.12165222247096195
+    },
+    {
+      "layer": 5,
+      "context_id": 1,
+      "restoration": 0.7042478322982788,
+      "nmh_recovery": 0.9767928123474121,
+      "corrupt_overlap": 0.5953557286193265,
+      "matched_overlap": 0.6888985078416546
+    },
+    {
+      "layer": 5,
+      "context_id": 1,
+      "restoration": 0.39019641280174255,
+      "nmh_recovery": 0.36001455783843994,
+      "corrupt_overlap": 0.6473914113024896,
+      "matched_overlap": 0.7277118968679958
+    },
+    {
+      "layer": 5,
+      "context_id": 1,
+      "restoration": 0.720643937587738,
+      "nmh_recovery": 0.5351911187171936,
+      "corrupt_overlap": 0.5356258772070951,
+      "matched_overlap": 0.4065482455487527
+    },
+    {
+      "layer": 5,
+      "context_id": 1,
+      "restoration": 0.5561643242835999,
+      "nmh_recovery": 0.2704932689666748,
+      "corrupt_overlap": 0.3314439892431866,
+      "matched_overlap": 0.33312915661323694
+    },
+    {
+      "layer": 5,
+      "context_id": 1,
+      "restoration": 0.8003690838813782,
+      "nmh_recovery": 0.46468982100486755,
+      "corrupt_overlap": 0.30472151995755303,
+      "matched_overlap": 0.22512961281877183
+    },
+    {
+      "layer": 5,
+      "context_id": 2,
+      "restoration": 0.9470692873001099,
+      "nmh_recovery": 0.5618521571159363,
+      "corrupt_overlap": 0.49261380579315756,
+      "matched_overlap": 0.4729815497185436
+    },
+    {
+      "layer": 5,
+      "context_id": 2,
+      "restoration": 1.0545547008514404,
+      "nmh_recovery": 0.45603638887405396,
+      "corrupt_overlap": 0.5797470645390529,
+      "matched_overlap": 0.3943211173948831
+    },
+    {
+      "layer": 5,
+      "context_id": 2,
+      "restoration": 0.9214940071105957,
+      "nmh_recovery": 0.4311094284057617,
+      "corrupt_overlap": 0.622742168020007,
+      "matched_overlap": 0.6719951206872601
+    },
+    {
+      "layer": 5,
+      "context_id": 2,
+      "restoration": 0.7793869972229004,
+      "nmh_recovery": 0.33108851313591003,
+      "corrupt_overlap": 0.3745687537713788,
+      "matched_overlap": 0.39330269265400913
+    },
+    {
+      "layer": 5,
+      "context_id": 2,
+      "restoration": 1.1053128242492676,
+      "nmh_recovery": 0.851236879825592,
+      "corrupt_overlap": 0.4500847168880352,
+      "matched_overlap": 0.5996568484232413
+    },
+    {
+      "layer": 5,
+      "context_id": 2,
+      "restoration": 0.9106382727622986,
+      "nmh_recovery": 0.3563653826713562,
+      "corrupt_overlap": 0.3314439892431866,
+      "matched_overlap": 0.38088292756672115
+    },
+    {
+      "layer": 5,
+      "context_id": 2,
+      "restoration": 1.0518814325332642,
+      "nmh_recovery": 0.5716227293014526,
+      "corrupt_overlap": 0.5527599647636288,
+      "matched_overlap": 0.47602932772086193
+    },
+    {
+      "layer": 5,
+      "context_id": 2,
+      "restoration": 0.7990654110908508,
+      "nmh_recovery": 0.5089204907417297,
+      "corrupt_overlap": 0.43084027382775597,
+      "matched_overlap": 0.4487292818060924
+    },
+    {
+      "layer": 5,
+      "context_id": 2,
+      "restoration": 0.9671740531921387,
+      "nmh_recovery": 0.8155131340026855,
+      "corrupt_overlap": 0.5271273128061185,
+      "matched_overlap": 0.44358200874623266
+    },
+    {
+      "layer": 5,
+      "context_id": 2,
+      "restoration": 1.058940052986145,
+      "nmh_recovery": 0.6750180125236511,
+      "corrupt_overlap": 0.5171452257316825,
+      "matched_overlap": 0.5441036799444011
+    },
+    {
+      "layer": 5,
+      "context_id": 3,
+      "restoration": 0.6359333992004395,
+      "nmh_recovery": 0.15824292600154877,
+      "corrupt_overlap": 0.7952869315048541,
+      "matched_overlap": 0.5980149243251544
+    },
+    {
+      "layer": 5,
+      "context_id": 3,
+      "restoration": 0.7045115232467651,
+      "nmh_recovery": 0.2606828510761261,
+      "corrupt_overlap": 0.6678576579565486,
+      "matched_overlap": 0.667673603133897
+    },
+    {
+      "layer": 5,
+      "context_id": 3,
+      "restoration": 0.9449403882026672,
+      "nmh_recovery": 0.45242661237716675,
+      "corrupt_overlap": 0.7354929437371786,
+      "matched_overlap": 0.6678729361556706
+    },
+    {
+      "layer": 5,
+      "context_id": 3,
+      "restoration": 0.8535927534103394,
+      "nmh_recovery": -0.15709686279296875,
+      "corrupt_overlap": 0.4856615766201304,
+      "matched_overlap": 0.5763712338562935
+    },
+    {
+      "layer": 5,
+      "context_id": 3,
+      "restoration": 0.6782833337783813,
+      "nmh_recovery": -0.285808801651001,
+      "corrupt_overlap": 0.555477054724815,
+      "matched_overlap": 0.2981353506616087
+    },
+    {
+      "layer": 5,
+      "context_id": 3,
+      "restoration": 0.9541105031967163,
+      "nmh_recovery": 0.5662402510643005,
+      "corrupt_overlap": 0.5696706751404702,
+      "matched_overlap": 0.5907672605990995
+    },
+    {
+      "layer": 5,
+      "context_id": 3,
+      "restoration": 0.7216881513595581,
+      "nmh_recovery": 0.2680351436138153,
+      "corrupt_overlap": 0.5634908382275444,
+      "matched_overlap": 0.604799556193459
+    },
+    {
+      "layer": 5,
+      "context_id": 3,
+      "restoration": 0.8447452187538147,
+      "nmh_recovery": 0.4795885980129242,
+      "corrupt_overlap": 0.5508981330500962,
+      "matched_overlap": 0.4773035077346714
+    },
+    {
+      "layer": 5,
+      "context_id": 3,
+      "restoration": 0.8309382200241089,
+      "nmh_recovery": 0.12540686130523682,
+      "corrupt_overlap": 0.6621169373390395,
+      "matched_overlap": 0.42639539478794786
+    },
+    {
+      "layer": 5,
+      "context_id": 3,
+      "restoration": 0.978233277797699,
+      "nmh_recovery": 0.3787499666213989,
+      "corrupt_overlap": 0.43225969789556057,
+      "matched_overlap": 0.5051544412093589
+    },
+    {
+      "layer": 5,
+      "context_id": 4,
+      "restoration": 0.9141343235969543,
+      "nmh_recovery": 0.1719774305820465,
+      "corrupt_overlap": 0.5214474659112951,
+      "matched_overlap": 0.5583911241907469
+    },
+    {
+      "layer": 5,
+      "context_id": 4,
+      "restoration": 0.6871709823608398,
+      "nmh_recovery": 0.2626778483390808,
+      "corrupt_overlap": 0.367505216981795,
+      "matched_overlap": 0.7155366740314053
+    },
+    {
+      "layer": 5,
+      "context_id": 4,
+      "restoration": 0.6899608373641968,
+      "nmh_recovery": 0.4364142119884491,
+      "corrupt_overlap": 0.5061076981088268,
+      "matched_overlap": 0.419338822319121
+    },
+    {
+      "layer": 5,
+      "context_id": 4,
+      "restoration": 0.7437517642974854,
+      "nmh_recovery": 0.19828085601329803,
+      "corrupt_overlap": 0.3691747578279807,
+      "matched_overlap": 0.24619489178037873
+    },
+    {
+      "layer": 5,
+      "context_id": 4,
+      "restoration": 0.7605847716331482,
+      "nmh_recovery": 0.3883436918258667,
+      "corrupt_overlap": 0.5078483320154118,
+      "matched_overlap": 0.5899965414194656
+    },
+    {
+      "layer": 5,
+      "context_id": 4,
+      "restoration": 0.7400532364845276,
+      "nmh_recovery": 0.41023775935173035,
+      "corrupt_overlap": 0.4980657580941939,
+      "matched_overlap": 0.3558633579135145
+    },
+    {
+      "layer": 5,
+      "context_id": 4,
+      "restoration": 0.9188330769538879,
+      "nmh_recovery": 0.5545180439949036,
+      "corrupt_overlap": 0.2510234984087963,
+      "matched_overlap": 0.45958364692648485
+    },
+    {
+      "layer": 5,
+      "context_id": 4,
+      "restoration": 0.7846340537071228,
+      "nmh_recovery": 0.6650696396827698,
+      "corrupt_overlap": 0.5220567749662407,
+      "matched_overlap": 0.5740214165706573
+    },
+    {
+      "layer": 5,
+      "context_id": 4,
+      "restoration": 0.7295218110084534,
+      "nmh_recovery": 0.4023156762123108,
+      "corrupt_overlap": 0.48436136202068564,
+      "matched_overlap": 0.6110642369988383
+    },
+    {
+      "layer": 5,
+      "context_id": 4,
+      "restoration": 0.816002607345581,
+      "nmh_recovery": 0.321401983499527,
+      "corrupt_overlap": 0.32157704520065217,
+      "matched_overlap": 0.36339021030657137
+    },
+    {
+      "layer": 5,
+      "context_id": 5,
+      "restoration": 0.8047563433647156,
+      "nmh_recovery": 0.1212315633893013,
+      "corrupt_overlap": 0.3696652418508972,
+      "matched_overlap": 0.33339643109055156
+    },
+    {
+      "layer": 5,
+      "context_id": 5,
+      "restoration": 1.0193836688995361,
+      "nmh_recovery": 0.2868131101131439,
+      "corrupt_overlap": 0.38870616644715345,
+      "matched_overlap": 0.582211745707253
+    },
+    {
+      "layer": 5,
+      "context_id": 5,
+      "restoration": 0.5693453550338745,
+      "nmh_recovery": 0.0702843964099884,
+      "corrupt_overlap": 0.38158383751420843,
+      "matched_overlap": 0.5440790227502226
+    },
+    {
+      "layer": 5,
+      "context_id": 5,
+      "restoration": 0.9186784625053406,
+      "nmh_recovery": 0.45932987332344055,
+      "corrupt_overlap": 0.5464181767870481,
+      "matched_overlap": 0.52752547366289
+    },
+    {
+      "layer": 5,
+      "context_id": 5,
+      "restoration": 0.561791718006134,
+      "nmh_recovery": 0.03053157590329647,
+      "corrupt_overlap": 0.6432235395019557,
+      "matched_overlap": 0.6014422654419175
+    },
+    {
+      "layer": 5,
+      "context_id": 5,
+      "restoration": 0.7674404382705688,
+      "nmh_recovery": 0.12938177585601807,
+      "corrupt_overlap": 0.19347731609486016,
+      "matched_overlap": 0.2534062894805257
+    },
+    {
+      "layer": 5,
+      "context_id": 5,
+      "restoration": 0.992117166519165,
+      "nmh_recovery": 0.29880982637405396,
+      "corrupt_overlap": 0.5679695849402345,
+      "matched_overlap": 0.4263872812808654
+    },
+    {
+      "layer": 5,
+      "context_id": 5,
+      "restoration": 0.6602761745452881,
+      "nmh_recovery": 0.04754837974905968,
+      "corrupt_overlap": 0.43689218025840415,
+      "matched_overlap": 0.24358444915372465
+    },
+    {
+      "layer": 5,
+      "context_id": 5,
+      "restoration": 0.7080293297767639,
+      "nmh_recovery": 0.1905323565006256,
+      "corrupt_overlap": 0.3459139992785027,
+      "matched_overlap": 0.28323406861343825
+    },
+    {
+      "layer": 5,
+      "context_id": 5,
+      "restoration": 0.9671359658241272,
+      "nmh_recovery": 0.31151092052459717,
+      "corrupt_overlap": 0.5282472541147979,
+      "matched_overlap": 0.33646680053850636
+    },
+    {
+      "layer": 5,
+      "context_id": 6,
+      "restoration": 1.0913819074630737,
+      "nmh_recovery": 0.5486682057380676,
+      "corrupt_overlap": 0.49261380579315756,
+      "matched_overlap": 0.3331168182737141
+    },
+    {
+      "layer": 5,
+      "context_id": 6,
+      "restoration": 1.0505127906799316,
+      "nmh_recovery": 0.20766127109527588,
+      "corrupt_overlap": 0.3527974812875947,
+      "matched_overlap": 0.18052458778030003
+    },
+    {
+      "layer": 5,
+      "context_id": 6,
+      "restoration": 0.5424652099609375,
+      "nmh_recovery": 0.13566972315311432,
+      "corrupt_overlap": 0.748373451717334,
+      "matched_overlap": 0.7505245239596494
+    },
+    {
+      "layer": 5,
+      "context_id": 6,
+      "restoration": 1.159645438194275,
+      "nmh_recovery": 0.5038079023361206,
+      "corrupt_overlap": 0.8613022681220205,
+      "matched_overlap": 0.39663602764768363
+    },
+    {
+      "layer": 5,
+      "context_id": 6,
+      "restoration": 0.8243117928504944,
+      "nmh_recovery": 0.40500447154045105,
+      "corrupt_overlap": 0.2652118261431237,
+      "matched_overlap": 0.4730444084458636
+    },
+    {
+      "layer": 5,
+      "context_id": 6,
+      "restoration": 0.8233094215393066,
+      "nmh_recovery": -0.17839372158050537,
+      "corrupt_overlap": 0.39205401706191373,
+      "matched_overlap": 0.19225213712417866
+    },
+    {
+      "layer": 5,
+      "context_id": 6,
+      "restoration": 0.8792455196380615,
+      "nmh_recovery": 0.14625506103038788,
+      "corrupt_overlap": 0.4383283424688412,
+      "matched_overlap": 0.427419152863672
+    },
+    {
+      "layer": 5,
+      "context_id": 6,
+      "restoration": 1.002712368965149,
+      "nmh_recovery": 0.17186059057712555,
+      "corrupt_overlap": 0.5433890300350137,
+      "matched_overlap": 0.28125981608047484
+    },
+    {
+      "layer": 5,
+      "context_id": 6,
+      "restoration": 0.9631509780883789,
+      "nmh_recovery": 0.28160911798477173,
+      "corrupt_overlap": 0.4116215721502528,
+      "matched_overlap": 0.5128973021444918
+    },
+    {
+      "layer": 5,
+      "context_id": 6,
+      "restoration": 0.8830059170722961,
+      "nmh_recovery": 0.5705880522727966,
+      "corrupt_overlap": 0.32097089743626034,
+      "matched_overlap": 0.6086538481847239
+    },
+    {
+      "layer": 5,
+      "context_id": 7,
+      "restoration": 0.8871992230415344,
+      "nmh_recovery": 0.2935101091861725,
+      "corrupt_overlap": 0.48436134127073516,
+      "matched_overlap": 0.6237251393445286
+    },
+    {
+      "layer": 5,
+      "context_id": 7,
+      "restoration": 0.832233726978302,
+      "nmh_recovery": 0.42634958028793335,
+      "corrupt_overlap": 0.49748030223010836,
+      "matched_overlap": 0.533121977206106
+    },
+    {
+      "layer": 5,
+      "context_id": 7,
+      "restoration": 0.884162425994873,
+      "nmh_recovery": 0.11623333394527435,
+      "corrupt_overlap": 0.33907960640138957,
+      "matched_overlap": 0.5033890039892271
+    },
+    {
+      "layer": 5,
+      "context_id": 7,
+      "restoration": 1.0659513473510742,
+      "nmh_recovery": 0.12202448397874832,
+      "corrupt_overlap": 0.2916060787282984,
+      "matched_overlap": 0.5171443114071759
+    },
+    {
+      "layer": 5,
+      "context_id": 7,
+      "restoration": 1.053422451019287,
+      "nmh_recovery": 0.21891987323760986,
+      "corrupt_overlap": 0.607199010106279,
+      "matched_overlap": 0.5578016155396086
+    },
+    {
+      "layer": 5,
+      "context_id": 7,
+      "restoration": 1.1597462892532349,
+      "nmh_recovery": 0.1793736219406128,
+      "corrupt_overlap": 0.3020929219714586,
+      "matched_overlap": 0.5475649019375023
+    },
+    {
+      "layer": 5,
+      "context_id": 7,
+      "restoration": 0.9918470978736877,
+      "nmh_recovery": 0.2307155728340149,
+      "corrupt_overlap": 0.8257548518757583,
+      "matched_overlap": 0.6614344796209758
+    },
+    {
+      "layer": 5,
+      "context_id": 7,
+      "restoration": 0.9029761552810669,
+      "nmh_recovery": 0.3407842814922333,
+      "corrupt_overlap": 0.530225176322458,
+      "matched_overlap": 0.8114679759293949
+    },
+    {
+      "layer": 5,
+      "context_id": 7,
+      "restoration": 1.040611743927002,
+      "nmh_recovery": -0.06269239634275436,
+      "corrupt_overlap": 0.3475093685531626,
+      "matched_overlap": 0.20594209400704705
+    },
+    {
+      "layer": 5,
+      "context_id": 7,
+      "restoration": 0.8697678446769714,
+      "nmh_recovery": 0.24416771531105042,
+      "corrupt_overlap": 0.5689115944525662,
+      "matched_overlap": 0.7485640666421597
+    },
+    {
+      "layer": 6,
+      "context_id": 0,
+      "restoration": 0.8315790295600891,
+      "nmh_recovery": 0.31605711579322815,
+      "corrupt_overlap": 0.38806110294162743,
+      "matched_overlap": 0.3765834279032353
+    },
+    {
+      "layer": 6,
+      "context_id": 0,
+      "restoration": 0.8659353256225586,
+      "nmh_recovery": -0.03313798829913139,
+      "corrupt_overlap": 0.31513255977262,
+      "matched_overlap": 0.32060935233533044
+    },
+    {
+      "layer": 6,
+      "context_id": 0,
+      "restoration": 1.025581955909729,
+      "nmh_recovery": 0.20325206220149994,
+      "corrupt_overlap": 0.4480383664876473,
+      "matched_overlap": 0.3781253617097343
+    },
+    {
+      "layer": 6,
+      "context_id": 0,
+      "restoration": 1.0224958658218384,
+      "nmh_recovery": 0.18630042672157288,
+      "corrupt_overlap": 0.4225938899840263,
+      "matched_overlap": 0.4050123854565743
+    },
+    {
+      "layer": 6,
+      "context_id": 0,
+      "restoration": 0.8824912309646606,
+      "nmh_recovery": 0.19424167275428772,
+      "corrupt_overlap": 0.681294613962332,
+      "matched_overlap": 0.6370771210334196
+    },
+    {
+      "layer": 6,
+      "context_id": 0,
+      "restoration": 0.9248247146606445,
+      "nmh_recovery": 0.4574476182460785,
+      "corrupt_overlap": 0.2506564246802385,
+      "matched_overlap": 0.3730846436625912
+    },
+    {
+      "layer": 6,
+      "context_id": 0,
+      "restoration": 0.8920189142227173,
+      "nmh_recovery": -0.21892049908638,
+      "corrupt_overlap": 0.43946524804733006,
+      "matched_overlap": 0.535486615057701
+    },
+    {
+      "layer": 6,
+      "context_id": 0,
+      "restoration": 1.1011111736297607,
+      "nmh_recovery": -0.0696837455034256,
+      "corrupt_overlap": 0.5123061138716613,
+      "matched_overlap": 0.4625107803190014
+    },
+    {
+      "layer": 6,
+      "context_id": 0,
+      "restoration": 0.8301867246627808,
+      "nmh_recovery": 0.036484234035015106,
+      "corrupt_overlap": 0.5775695689169358,
+      "matched_overlap": 0.5049232619893125
+    },
+    {
+      "layer": 6,
+      "context_id": 0,
+      "restoration": 0.9975324869155884,
+      "nmh_recovery": 0.21679003536701202,
+      "corrupt_overlap": 0.3686714054502672,
+      "matched_overlap": 0.38848590948715006
+    },
+    {
+      "layer": 6,
+      "context_id": 1,
+      "restoration": 0.6400340795516968,
+      "nmh_recovery": 0.6283606290817261,
+      "corrupt_overlap": 0.6229797148797852,
+      "matched_overlap": 0.3925450633095647
+    },
+    {
+      "layer": 6,
+      "context_id": 1,
+      "restoration": 0.6240324974060059,
+      "nmh_recovery": 0.7511743307113647,
+      "corrupt_overlap": 0.5558125981652234,
+      "matched_overlap": 0.35006771041427226
+    },
+    {
+      "layer": 6,
+      "context_id": 1,
+      "restoration": 0.7150068879127502,
+      "nmh_recovery": 0.5580073595046997,
+      "corrupt_overlap": 0.33486694343218026,
+      "matched_overlap": 0.47936321793554076
+    },
+    {
+      "layer": 6,
+      "context_id": 1,
+      "restoration": 0.7390161752700806,
+      "nmh_recovery": 0.6111611127853394,
+      "corrupt_overlap": 0.24995348461924766,
+      "matched_overlap": 0.2362099895520072
+    },
+    {
+      "layer": 6,
+      "context_id": 1,
+      "restoration": 0.5614548325538635,
+      "nmh_recovery": 0.3751211166381836,
+      "corrupt_overlap": 0.1886959207703099,
+      "matched_overlap": 0.1551619129514463
+    },
+    {
+      "layer": 6,
+      "context_id": 1,
+      "restoration": 0.7016380429267883,
+      "nmh_recovery": 1.0098453760147095,
+      "corrupt_overlap": 0.5962314432135485,
+      "matched_overlap": 0.7157145895011047
+    },
+    {
+      "layer": 6,
+      "context_id": 1,
+      "restoration": 0.37967002391815186,
+      "nmh_recovery": 0.36267533898353577,
+      "corrupt_overlap": 0.6410274301072331,
+      "matched_overlap": 0.6906206563969902
+    },
+    {
+      "layer": 6,
+      "context_id": 1,
+      "restoration": 0.7111714482307434,
+      "nmh_recovery": 0.5614702105522156,
+      "corrupt_overlap": 0.5832648662404513,
+      "matched_overlap": 0.5509349825018612
+    },
+    {
+      "layer": 6,
+      "context_id": 1,
+      "restoration": 0.5404818058013916,
+      "nmh_recovery": 0.2710055112838745,
+      "corrupt_overlap": 0.33387223317927456,
+      "matched_overlap": 0.3405734377906958
+    },
+    {
+      "layer": 6,
+      "context_id": 1,
+      "restoration": 0.7917033433914185,
+      "nmh_recovery": 0.47087082266807556,
+      "corrupt_overlap": 0.2763846587497547,
+      "matched_overlap": 0.28762400507640257
+    },
+    {
+      "layer": 6,
+      "context_id": 2,
+      "restoration": 0.9324542880058289,
+      "nmh_recovery": 0.5311465263366699,
+      "corrupt_overlap": 0.5221678614007716,
+      "matched_overlap": 0.523529720280925
+    },
+    {
+      "layer": 6,
+      "context_id": 2,
+      "restoration": 1.033199429512024,
+      "nmh_recovery": 0.43399521708488464,
+      "corrupt_overlap": 0.5835704941433243,
+      "matched_overlap": 0.3848943776547017
+    },
+    {
+      "layer": 6,
+      "context_id": 2,
+      "restoration": 0.8948043584823608,
+      "nmh_recovery": 0.38665008544921875,
+      "corrupt_overlap": 0.6531975038835032,
+      "matched_overlap": 0.705980124193084
+    },
+    {
+      "layer": 6,
+      "context_id": 2,
+      "restoration": 0.7579143047332764,
+      "nmh_recovery": 0.3021908700466156,
+      "corrupt_overlap": 0.2980288378120464,
+      "matched_overlap": 0.2865183324638515
+    },
+    {
+      "layer": 6,
+      "context_id": 2,
+      "restoration": 1.0709116458892822,
+      "nmh_recovery": 0.8175981640815735,
+      "corrupt_overlap": 0.45813208157028157,
+      "matched_overlap": 0.5728906784799574
+    },
+    {
+      "layer": 6,
+      "context_id": 2,
+      "restoration": 0.8865000009536743,
+      "nmh_recovery": 0.327620267868042,
+      "corrupt_overlap": 0.33387223317927456,
+      "matched_overlap": 0.3443742206275027
+    },
+    {
+      "layer": 6,
+      "context_id": 2,
+      "restoration": 1.0328401327133179,
+      "nmh_recovery": 0.5491315126419067,
+      "corrupt_overlap": 0.5590337332108677,
+      "matched_overlap": 0.5052035034653753
+    },
+    {
+      "layer": 6,
+      "context_id": 2,
+      "restoration": 0.789422333240509,
+      "nmh_recovery": 0.49547311663627625,
+      "corrupt_overlap": 0.5433187570574329,
+      "matched_overlap": 0.5243736513393913
+    },
+    {
+      "layer": 6,
+      "context_id": 2,
+      "restoration": 0.9396548271179199,
+      "nmh_recovery": 0.7671763896942139,
+      "corrupt_overlap": 0.45967175848022784,
+      "matched_overlap": 0.4115871107047816
+    },
+    {
+      "layer": 6,
+      "context_id": 2,
+      "restoration": 1.0280205011367798,
+      "nmh_recovery": 0.6319476366043091,
+      "corrupt_overlap": 0.472315603592182,
+      "matched_overlap": 0.45114868340758757
+    },
+    {
+      "layer": 6,
+      "context_id": 3,
+      "restoration": 0.642874002456665,
+      "nmh_recovery": 0.1612328141927719,
+      "corrupt_overlap": 0.7671944552168148,
+      "matched_overlap": 0.578497870049718
+    },
+    {
+      "layer": 6,
+      "context_id": 3,
+      "restoration": 0.708697497844696,
+      "nmh_recovery": 0.2684711813926697,
+      "corrupt_overlap": 0.6430511117987869,
+      "matched_overlap": 0.5596785492072776
+    },
+    {
+      "layer": 6,
+      "context_id": 3,
+      "restoration": 0.9483130574226379,
+      "nmh_recovery": 0.46107059717178345,
+      "corrupt_overlap": 0.7300439204154309,
+      "matched_overlap": 0.6725313823129031
+    },
+    {
+      "layer": 6,
+      "context_id": 3,
+      "restoration": 0.8642098307609558,
+      "nmh_recovery": -0.14096403121948242,
+      "corrupt_overlap": 0.4605626593769108,
+      "matched_overlap": 0.55423179337727
+    },
+    {
+      "layer": 6,
+      "context_id": 3,
+      "restoration": 0.6788750886917114,
+      "nmh_recovery": -0.2828206419944763,
+      "corrupt_overlap": 0.5222874453207758,
+      "matched_overlap": 0.2535443461228841
+    },
+    {
+      "layer": 6,
+      "context_id": 3,
+      "restoration": 0.935910701751709,
+      "nmh_recovery": 0.5630185008049011,
+      "corrupt_overlap": 0.6170943333092392,
+      "matched_overlap": 0.5974322224560495
+    },
+    {
+      "layer": 6,
+      "context_id": 3,
+      "restoration": 0.7176154851913452,
+      "nmh_recovery": 0.27252641320228577,
+      "corrupt_overlap": 0.6004249808775168,
+      "matched_overlap": 0.5984854299296016
+    },
+    {
+      "layer": 6,
+      "context_id": 3,
+      "restoration": 0.8421235680580139,
+      "nmh_recovery": 0.4941723942756653,
+      "corrupt_overlap": 0.6214758991869018,
+      "matched_overlap": 0.47880507523232263
+    },
+    {
+      "layer": 6,
+      "context_id": 3,
+      "restoration": 0.8250285983085632,
+      "nmh_recovery": 0.12941224873065948,
+      "corrupt_overlap": 0.6518375911906846,
+      "matched_overlap": 0.44077759437394287
+    },
+    {
+      "layer": 6,
+      "context_id": 3,
+      "restoration": 0.9789850115776062,
+      "nmh_recovery": 0.3920871615409851,
+      "corrupt_overlap": 0.43975238008408,
+      "matched_overlap": 0.5008980470669584
+    },
+    {
+      "layer": 6,
+      "context_id": 4,
+      "restoration": 0.9262942671775818,
+      "nmh_recovery": 0.20681914687156677,
+      "corrupt_overlap": 0.5919593295492628,
+      "matched_overlap": 0.6866627049680107
+    },
+    {
+      "layer": 6,
+      "context_id": 4,
+      "restoration": 0.6884855031967163,
+      "nmh_recovery": 0.2913280725479126,
+      "corrupt_overlap": 0.35302837180518654,
+      "matched_overlap": 0.7859953568696129
+    },
+    {
+      "layer": 6,
+      "context_id": 4,
+      "restoration": 0.6910809278488159,
+      "nmh_recovery": 0.4552481472492218,
+      "corrupt_overlap": 0.47543028704929785,
+      "matched_overlap": 0.42134041774117487
+    },
+    {
+      "layer": 6,
+      "context_id": 4,
+      "restoration": 0.7502152919769287,
+      "nmh_recovery": 0.21719679236412048,
+      "corrupt_overlap": 0.3392938748686322,
+      "matched_overlap": 0.20599415256564177
+    },
+    {
+      "layer": 6,
+      "context_id": 4,
+      "restoration": 0.7634532451629639,
+      "nmh_recovery": 0.40938800573349,
+      "corrupt_overlap": 0.48826687079232883,
+      "matched_overlap": 0.6326616267524587
+    },
+    {
+      "layer": 6,
+      "context_id": 4,
+      "restoration": 0.744864821434021,
+      "nmh_recovery": 0.4444483816623688,
+      "corrupt_overlap": 0.5535588403365388,
+      "matched_overlap": 0.4281837300102941
+    },
+    {
+      "layer": 6,
+      "context_id": 4,
+      "restoration": 0.9241596460342407,
+      "nmh_recovery": 0.5979934334754944,
+      "corrupt_overlap": 0.2688615287517812,
+      "matched_overlap": 0.5194583149221093
+    },
+    {
+      "layer": 6,
+      "context_id": 4,
+      "restoration": 0.7772274613380432,
+      "nmh_recovery": 0.6947868466377258,
+      "corrupt_overlap": 0.587315749189151,
+      "matched_overlap": 0.6500320813614607
+    },
+    {
+      "layer": 6,
+      "context_id": 4,
+      "restoration": 0.7347434759140015,
+      "nmh_recovery": 0.4239949584007263,
+      "corrupt_overlap": 0.4479415188339468,
+      "matched_overlap": 0.6907288917707866
+    },
+    {
+      "layer": 6,
+      "context_id": 4,
+      "restoration": 0.8117401599884033,
+      "nmh_recovery": 0.35489898920059204,
+      "corrupt_overlap": 0.3856932539782299,
+      "matched_overlap": 0.2947662087613045
+    },
+    {
+      "layer": 6,
+      "context_id": 5,
+      "restoration": 0.7944989204406738,
+      "nmh_recovery": 0.13718844950199127,
+      "corrupt_overlap": 0.3268195261800347,
+      "matched_overlap": 0.3055243748053922
+    },
+    {
+      "layer": 6,
+      "context_id": 5,
+      "restoration": 1.035280466079712,
+      "nmh_recovery": 0.31922072172164917,
+      "corrupt_overlap": 0.42571393027407206,
+      "matched_overlap": 0.5853286526045809
+    },
+    {
+      "layer": 6,
+      "context_id": 5,
+      "restoration": 0.575797975063324,
+      "nmh_recovery": 0.08476807177066803,
+      "corrupt_overlap": 0.35724931348837347,
+      "matched_overlap": 0.5592476569277104
+    },
+    {
+      "layer": 6,
+      "context_id": 5,
+      "restoration": 0.9122654795646667,
+      "nmh_recovery": 0.4699825942516327,
+      "corrupt_overlap": 0.5832399414212154,
+      "matched_overlap": 0.5560466045700715
+    },
+    {
+      "layer": 6,
+      "context_id": 5,
+      "restoration": 0.5630882382392883,
+      "nmh_recovery": 0.03717450797557831,
+      "corrupt_overlap": 0.6329713373403445,
+      "matched_overlap": 0.5287941499780151
+    },
+    {
+      "layer": 6,
+      "context_id": 5,
+      "restoration": 0.7601290941238403,
+      "nmh_recovery": 0.1300112009048462,
+      "corrupt_overlap": 0.18457799036423378,
+      "matched_overlap": 0.1925426033796728
+    },
+    {
+      "layer": 6,
+      "context_id": 5,
+      "restoration": 0.9908676743507385,
+      "nmh_recovery": 0.31827685236930847,
+      "corrupt_overlap": 0.5805571124391681,
+      "matched_overlap": 0.5069815057474963
+    },
+    {
+      "layer": 6,
+      "context_id": 5,
+      "restoration": 0.6591342091560364,
+      "nmh_recovery": 0.05710870027542114,
+      "corrupt_overlap": 0.43914425185117745,
+      "matched_overlap": 0.18226971769167996
+    },
+    {
+      "layer": 6,
+      "context_id": 5,
+      "restoration": 0.6969748735427856,
+      "nmh_recovery": 0.19027931988239288,
+      "corrupt_overlap": 0.4465325414951524,
+      "matched_overlap": 0.28122692467931915
+    },
+    {
+      "layer": 6,
+      "context_id": 5,
+      "restoration": 0.9762536287307739,
+      "nmh_recovery": 0.3473358452320099,
+      "corrupt_overlap": 0.5700769277751736,
+      "matched_overlap": 0.3236685275622485
+    },
+    {
+      "layer": 6,
+      "context_id": 6,
+      "restoration": 1.0903784036636353,
+      "nmh_recovery": 0.5878713726997375,
+      "corrupt_overlap": 0.5221678614007716,
+      "matched_overlap": 0.46092096558652024
+    },
+    {
+      "layer": 6,
+      "context_id": 6,
+      "restoration": 1.0336843729019165,
+      "nmh_recovery": 0.20903807878494263,
+      "corrupt_overlap": 0.44433801761305947,
+      "matched_overlap": 0.2782591226469953
+    },
+    {
+      "layer": 6,
+      "context_id": 6,
+      "restoration": 0.5398128032684326,
+      "nmh_recovery": 0.14677441120147705,
+      "corrupt_overlap": 0.722178930068853,
+      "matched_overlap": 0.6784287265139741
+    },
+    {
+      "layer": 6,
+      "context_id": 6,
+      "restoration": 1.1476638317108154,
+      "nmh_recovery": 0.5087980628013611,
+      "corrupt_overlap": 0.8623291651812445,
+      "matched_overlap": 0.4723413717090766
+    },
+    {
+      "layer": 6,
+      "context_id": 6,
+      "restoration": 0.8272607922554016,
+      "nmh_recovery": 0.44015052914619446,
+      "corrupt_overlap": 0.26580181868622305,
+      "matched_overlap": 0.452787640053431
+    },
+    {
+      "layer": 6,
+      "context_id": 6,
+      "restoration": 0.8194412589073181,
+      "nmh_recovery": -0.16097334027290344,
+      "corrupt_overlap": 0.30691518099305115,
+      "matched_overlap": 0.19169422327689345
+    },
+    {
+      "layer": 6,
+      "context_id": 6,
+      "restoration": 0.8650349974632263,
+      "nmh_recovery": 0.14877372980117798,
+      "corrupt_overlap": 0.43715148548234795,
+      "matched_overlap": 0.4587838110533925
+    },
+    {
+      "layer": 6,
+      "context_id": 6,
+      "restoration": 0.9981691241264343,
+      "nmh_recovery": 0.18485324084758759,
+      "corrupt_overlap": 0.47501912459423945,
+      "matched_overlap": 0.2891970527106415
+    },
+    {
+      "layer": 6,
+      "context_id": 6,
+      "restoration": 0.9610412120819092,
+      "nmh_recovery": 0.30282750725746155,
+      "corrupt_overlap": 0.5096386299632222,
+      "matched_overlap": 0.5487800826139337
+    },
+    {
+      "layer": 6,
+      "context_id": 6,
+      "restoration": 0.8833428025245667,
+      "nmh_recovery": 0.6084633469581604,
+      "corrupt_overlap": 0.30695269934525615,
+      "matched_overlap": 0.5130604854880826
+    },
+    {
+      "layer": 6,
+      "context_id": 7,
+      "restoration": 0.865312933921814,
+      "nmh_recovery": 0.2563489079475403,
+      "corrupt_overlap": 0.44794146936135565,
+      "matched_overlap": 0.6165485938903907
+    },
+    {
+      "layer": 6,
+      "context_id": 7,
+      "restoration": 0.8241540789604187,
+      "nmh_recovery": 0.40762069821357727,
+      "corrupt_overlap": 0.47748351137698053,
+      "matched_overlap": 0.5546834843734133
+    },
+    {
+      "layer": 6,
+      "context_id": 7,
+      "restoration": 0.8629554510116577,
+      "nmh_recovery": 0.07580578327178955,
+      "corrupt_overlap": 0.3865953681019479,
+      "matched_overlap": 0.4874120426158474
+    },
+    {
+      "layer": 6,
+      "context_id": 7,
+      "restoration": 1.0512537956237793,
+      "nmh_recovery": 0.10991156101226807,
+      "corrupt_overlap": 0.2817519587155389,
+      "matched_overlap": 0.4906166234821277
+    },
+    {
+      "layer": 6,
+      "context_id": 7,
+      "restoration": 1.0421903133392334,
+      "nmh_recovery": 0.21362382173538208,
+      "corrupt_overlap": 0.5663099106792338,
+      "matched_overlap": 0.532985352610891
+    },
+    {
+      "layer": 6,
+      "context_id": 7,
+      "restoration": 1.1392806768417358,
+      "nmh_recovery": 0.15441922843456268,
+      "corrupt_overlap": 0.38873472461671527,
+      "matched_overlap": 0.5654597536596392
+    },
+    {
+      "layer": 6,
+      "context_id": 7,
+      "restoration": 0.9815967679023743,
+      "nmh_recovery": 0.2186427116394043,
+      "corrupt_overlap": 0.812547671544261,
+      "matched_overlap": 0.6527661255843396
+    },
+    {
+      "layer": 6,
+      "context_id": 7,
+      "restoration": 0.8874617218971252,
+      "nmh_recovery": 0.3198099136352539,
+      "corrupt_overlap": 0.5097976833403008,
+      "matched_overlap": 0.7769675640611408
+    },
+    {
+      "layer": 6,
+      "context_id": 7,
+      "restoration": 1.0079915523529053,
+      "nmh_recovery": -0.09372980892658234,
+      "corrupt_overlap": 0.3108825935195452,
+      "matched_overlap": 0.18673191458231644
+    },
+    {
+      "layer": 6,
+      "context_id": 7,
+      "restoration": 0.8560314774513245,
+      "nmh_recovery": 0.2353227436542511,
+      "corrupt_overlap": 0.5673522823683191,
+      "matched_overlap": 0.7274269691161401
+    },
+    {
+      "layer": 7,
+      "context_id": 0,
+      "restoration": 0.8212877511978149,
+      "nmh_recovery": 0.31729641556739807,
+      "corrupt_overlap": 0.4355842409784985,
+      "matched_overlap": 0.34034588377063674
+    },
+    {
+      "layer": 7,
+      "context_id": 0,
+      "restoration": 0.8581772446632385,
+      "nmh_recovery": -0.03527378290891647,
+      "corrupt_overlap": 0.3564390360931443,
+      "matched_overlap": 0.2450855843483426
+    },
+    {
+      "layer": 7,
+      "context_id": 0,
+      "restoration": 1.0104954242706299,
+      "nmh_recovery": 0.2029171884059906,
+      "corrupt_overlap": 0.4553117513565588,
+      "matched_overlap": 0.34579516692792595
+    },
+    {
+      "layer": 7,
+      "context_id": 0,
+      "restoration": 1.0015742778778076,
+      "nmh_recovery": 0.1843046098947525,
+      "corrupt_overlap": 0.3670407535026785,
+      "matched_overlap": 0.32021113806329216
+    },
+    {
+      "layer": 7,
+      "context_id": 0,
+      "restoration": 0.8632064461708069,
+      "nmh_recovery": 0.19258230924606323,
+      "corrupt_overlap": 0.6586560390467444,
+      "matched_overlap": 0.660317343915753
+    },
+    {
+      "layer": 7,
+      "context_id": 0,
+      "restoration": 0.9093742966651917,
+      "nmh_recovery": 0.4605085253715515,
+      "corrupt_overlap": 0.3133066215119745,
+      "matched_overlap": 0.2632196475172062
+    },
+    {
+      "layer": 7,
+      "context_id": 0,
+      "restoration": 0.8839207291603088,
+      "nmh_recovery": -0.2246789038181305,
+      "corrupt_overlap": 0.4849368799932065,
+      "matched_overlap": 0.5671882937894114
+    },
+    {
+      "layer": 7,
+      "context_id": 0,
+      "restoration": 1.1017096042633057,
+      "nmh_recovery": -0.05781777203083038,
+      "corrupt_overlap": 0.5825672546607424,
+      "matched_overlap": 0.5423151419727766
+    },
+    {
+      "layer": 7,
+      "context_id": 0,
+      "restoration": 0.8243629932403564,
+      "nmh_recovery": 0.047647811472415924,
+      "corrupt_overlap": 0.5819725285826283,
+      "matched_overlap": 0.5482734843926084
+    },
+    {
+      "layer": 7,
+      "context_id": 0,
+      "restoration": 0.9882531762123108,
+      "nmh_recovery": 0.21601928770542145,
+      "corrupt_overlap": 0.4769264355181154,
+      "matched_overlap": 0.3925111965399805
+    },
+    {
+      "layer": 7,
+      "context_id": 1,
+      "restoration": 0.6440702080726624,
+      "nmh_recovery": 0.6334418654441833,
+      "corrupt_overlap": 0.7016754389994448,
+      "matched_overlap": 0.4588876846053765
+    },
+    {
+      "layer": 7,
+      "context_id": 1,
+      "restoration": 0.6283708214759827,
+      "nmh_recovery": 0.7501394748687744,
+      "corrupt_overlap": 0.60845132271088,
+      "matched_overlap": 0.4146831029561679
+    },
+    {
+      "layer": 7,
+      "context_id": 1,
+      "restoration": 0.7100738286972046,
+      "nmh_recovery": 0.5493254065513611,
+      "corrupt_overlap": 0.3211824415784295,
+      "matched_overlap": 0.4284966359078484
+    },
+    {
+      "layer": 7,
+      "context_id": 1,
+      "restoration": 0.7408996224403381,
+      "nmh_recovery": 0.6135972738265991,
+      "corrupt_overlap": 0.33969600304756115,
+      "matched_overlap": 0.2563956567121186
+    },
+    {
+      "layer": 7,
+      "context_id": 1,
+      "restoration": 0.5617026686668396,
+      "nmh_recovery": 0.37650805711746216,
+      "corrupt_overlap": 0.18094670348520284,
+      "matched_overlap": 0.13609564185204792
+    },
+    {
+      "layer": 7,
+      "context_id": 1,
+      "restoration": 0.704547643661499,
+      "nmh_recovery": 1.01768958568573,
+      "corrupt_overlap": 0.6082735558979656,
+      "matched_overlap": 0.7057955214698562
+    },
+    {
+      "layer": 7,
+      "context_id": 1,
+      "restoration": 0.3732739984989166,
+      "nmh_recovery": 0.3597582280635834,
+      "corrupt_overlap": 0.5958964361640466,
+      "matched_overlap": 0.6561201291389128
+    },
+    {
+      "layer": 7,
+      "context_id": 1,
+      "restoration": 0.7173759937286377,
+      "nmh_recovery": 0.5696198344230652,
+      "corrupt_overlap": 0.6530750643960445,
+      "matched_overlap": 0.6528447938972637
+    },
+    {
+      "layer": 7,
+      "context_id": 1,
+      "restoration": 0.5350881814956665,
+      "nmh_recovery": 0.2727282643318176,
+      "corrupt_overlap": 0.37167595871538905,
+      "matched_overlap": 0.35773164721366824
+    },
+    {
+      "layer": 7,
+      "context_id": 1,
+      "restoration": 0.7896015048027039,
+      "nmh_recovery": 0.4715426564216614,
+      "corrupt_overlap": 0.3046465153120725,
+      "matched_overlap": 0.22102106041959863
+    },
+    {
+      "layer": 7,
+      "context_id": 2,
+      "restoration": 0.9261927604675293,
+      "nmh_recovery": 0.5382040739059448,
+      "corrupt_overlap": 0.6186244082822425,
+      "matched_overlap": 0.633540074102335
+    },
+    {
+      "layer": 7,
+      "context_id": 2,
+      "restoration": 1.0235629081726074,
+      "nmh_recovery": 0.43146654963493347,
+      "corrupt_overlap": 0.624879366551304,
+      "matched_overlap": 0.388137601549917
+    },
+    {
+      "layer": 7,
+      "context_id": 2,
+      "restoration": 0.8868720531463623,
+      "nmh_recovery": 0.3901410698890686,
+      "corrupt_overlap": 0.7029389389706064,
+      "matched_overlap": 0.7921189216445665
+    },
+    {
+      "layer": 7,
+      "context_id": 2,
+      "restoration": 0.7507709860801697,
+      "nmh_recovery": 0.300290584564209,
+      "corrupt_overlap": 0.27321192699566565,
+      "matched_overlap": 0.2196036355379126
+    },
+    {
+      "layer": 7,
+      "context_id": 2,
+      "restoration": 1.0481945276260376,
+      "nmh_recovery": 0.8137904405593872,
+      "corrupt_overlap": 0.39116436284954453,
+      "matched_overlap": 0.6203605886353006
+    },
+    {
+      "layer": 7,
+      "context_id": 2,
+      "restoration": 0.8752086758613586,
+      "nmh_recovery": 0.32733118534088135,
+      "corrupt_overlap": 0.37167595871538905,
+      "matched_overlap": 0.36707151563603024
+    },
+    {
+      "layer": 7,
+      "context_id": 2,
+      "restoration": 1.0268142223358154,
+      "nmh_recovery": 0.5562409162521362,
+      "corrupt_overlap": 0.6151133187634039,
+      "matched_overlap": 0.5144244962099433
+    },
+    {
+      "layer": 7,
+      "context_id": 2,
+      "restoration": 0.7840690612792969,
+      "nmh_recovery": 0.507415771484375,
+      "corrupt_overlap": 0.6236542824626705,
+      "matched_overlap": 0.5723486477281844
+    },
+    {
+      "layer": 7,
+      "context_id": 2,
+      "restoration": 0.9294591546058655,
+      "nmh_recovery": 0.7760511636734009,
+      "corrupt_overlap": 0.48226002817494235,
+      "matched_overlap": 0.4510256412796231
+    },
+    {
+      "layer": 7,
+      "context_id": 2,
+      "restoration": 1.0108016729354858,
+      "nmh_recovery": 0.6143888235092163,
+      "corrupt_overlap": 0.4301894421011789,
+      "matched_overlap": 0.444096179355942
+    },
+    {
+      "layer": 7,
+      "context_id": 3,
+      "restoration": 0.6363978981971741,
+      "nmh_recovery": 0.1449146568775177,
+      "corrupt_overlap": 0.7223626898350923,
+      "matched_overlap": 0.5525343953408159
+    },
+    {
+      "layer": 7,
+      "context_id": 3,
+      "restoration": 0.7009068727493286,
+      "nmh_recovery": 0.2549869418144226,
+      "corrupt_overlap": 0.5890704343943458,
+      "matched_overlap": 0.51974265351796
+    },
+    {
+      "layer": 7,
+      "context_id": 3,
+      "restoration": 0.9372251033782959,
+      "nmh_recovery": 0.4364255368709564,
+      "corrupt_overlap": 0.6828560408281427,
+      "matched_overlap": 0.6168164737728012
+    },
+    {
+      "layer": 7,
+      "context_id": 3,
+      "restoration": 0.8606621026992798,
+      "nmh_recovery": -0.14370910823345184,
+      "corrupt_overlap": 0.3271828178579695,
+      "matched_overlap": 0.4778974757811953
+    },
+    {
+      "layer": 7,
+      "context_id": 3,
+      "restoration": 0.6635638475418091,
+      "nmh_recovery": -0.28993117809295654,
+      "corrupt_overlap": 0.5055860189301169,
+      "matched_overlap": 0.21066893936284667
+    },
+    {
+      "layer": 7,
+      "context_id": 3,
+      "restoration": 0.9347968697547913,
+      "nmh_recovery": 0.5549274682998657,
+      "corrupt_overlap": 0.6503704382379646,
+      "matched_overlap": 0.665580608514922
+    },
+    {
+      "layer": 7,
+      "context_id": 3,
+      "restoration": 0.7248884439468384,
+      "nmh_recovery": 0.28579583764076233,
+      "corrupt_overlap": 0.6043873066631513,
+      "matched_overlap": 0.58200246349108
+    },
+    {
+      "layer": 7,
+      "context_id": 3,
+      "restoration": 0.8450833559036255,
+      "nmh_recovery": 0.48753222823143005,
+      "corrupt_overlap": 0.6171036595164892,
+      "matched_overlap": 0.4695485800670439
+    },
+    {
+      "layer": 7,
+      "context_id": 3,
+      "restoration": 0.8293925523757935,
+      "nmh_recovery": 0.13181407749652863,
+      "corrupt_overlap": 0.674544988106221,
+      "matched_overlap": 0.43442529059406215
+    },
+    {
+      "layer": 7,
+      "context_id": 3,
+      "restoration": 0.9686508774757385,
+      "nmh_recovery": 0.371580570936203,
+      "corrupt_overlap": 0.47827973765708715,
+      "matched_overlap": 0.5461144120540062
+    },
+    {
+      "layer": 7,
+      "context_id": 4,
+      "restoration": 0.9290589094161987,
+      "nmh_recovery": 0.19918863475322723,
+      "corrupt_overlap": 0.6441131580173032,
+      "matched_overlap": 0.8090958805400161
+    },
+    {
+      "layer": 7,
+      "context_id": 4,
+      "restoration": 0.6871339678764343,
+      "nmh_recovery": 0.29522672295570374,
+      "corrupt_overlap": 0.40983355244583336,
+      "matched_overlap": 0.8333253353567323
+    },
+    {
+      "layer": 7,
+      "context_id": 4,
+      "restoration": 0.6849715113639832,
+      "nmh_recovery": 0.4406779408454895,
+      "corrupt_overlap": 0.4118523145613317,
+      "matched_overlap": 0.4604480100122764
+    },
+    {
+      "layer": 7,
+      "context_id": 4,
+      "restoration": 0.7453737854957581,
+      "nmh_recovery": 0.21683430671691895,
+      "corrupt_overlap": 0.2855869801235786,
+      "matched_overlap": 0.13407152285917523
+    },
+    {
+      "layer": 7,
+      "context_id": 4,
+      "restoration": 0.7568385004997253,
+      "nmh_recovery": 0.38888847827911377,
+      "corrupt_overlap": 0.48955945730911293,
+      "matched_overlap": 0.686546697346559
+    },
+    {
+      "layer": 7,
+      "context_id": 4,
+      "restoration": 0.7487110495567322,
+      "nmh_recovery": 0.43847766518592834,
+      "corrupt_overlap": 0.6322133912217056,
+      "matched_overlap": 0.5427014812466215
+    },
+    {
+      "layer": 7,
+      "context_id": 4,
+      "restoration": 0.9270269870758057,
+      "nmh_recovery": 0.6018621921539307,
+      "corrupt_overlap": 0.3635594580446133,
+      "matched_overlap": 0.6577234239252896
+    },
+    {
+      "layer": 7,
+      "context_id": 4,
+      "restoration": 0.782754123210907,
+      "nmh_recovery": 0.6899951100349426,
+      "corrupt_overlap": 0.5911649307314467,
+      "matched_overlap": 0.7143274520410744
+    },
+    {
+      "layer": 7,
+      "context_id": 4,
+      "restoration": 0.7262579202651978,
+      "nmh_recovery": 0.39805901050567627,
+      "corrupt_overlap": 0.42120546091468025,
+      "matched_overlap": 0.649021872352732
+    },
+    {
+      "layer": 7,
+      "context_id": 4,
+      "restoration": 0.8167937397956848,
+      "nmh_recovery": 0.35628557205200195,
+      "corrupt_overlap": 0.5151218861715405,
+      "matched_overlap": 0.4768847904576354
+    },
+    {
+      "layer": 7,
+      "context_id": 5,
+      "restoration": 0.8055464029312134,
+      "nmh_recovery": 0.16200514137744904,
+      "corrupt_overlap": 0.3783908245330101,
+      "matched_overlap": 0.2998656594335638
+    },
+    {
+      "layer": 7,
+      "context_id": 5,
+      "restoration": 1.0408985614776611,
+      "nmh_recovery": 0.3296908736228943,
+      "corrupt_overlap": 0.5159241623229183,
+      "matched_overlap": 0.6171274888647345
+    },
+    {
+      "layer": 7,
+      "context_id": 5,
+      "restoration": 0.5783765316009521,
+      "nmh_recovery": 0.09894533455371857,
+      "corrupt_overlap": 0.367617579531822,
+      "matched_overlap": 0.436210977301354
+    },
+    {
+      "layer": 7,
+      "context_id": 5,
+      "restoration": 0.9200990796089172,
+      "nmh_recovery": 0.4829581677913666,
+      "corrupt_overlap": 0.6449734726863338,
+      "matched_overlap": 0.5755734413444621
+    },
+    {
+      "layer": 7,
+      "context_id": 5,
+      "restoration": 0.5638710260391235,
+      "nmh_recovery": 0.044094834476709366,
+      "corrupt_overlap": 0.5928722831146025,
+      "matched_overlap": 0.44583261194517604
+    },
+    {
+      "layer": 7,
+      "context_id": 5,
+      "restoration": 0.7613201141357422,
+      "nmh_recovery": 0.13353587687015533,
+      "corrupt_overlap": 0.2216979092984683,
+      "matched_overlap": 0.13906318748954977
+    },
+    {
+      "layer": 7,
+      "context_id": 5,
+      "restoration": 0.9909165501594543,
+      "nmh_recovery": 0.3251664638519287,
+      "corrupt_overlap": 0.6045892110993892,
+      "matched_overlap": 0.6332375369549363
+    },
+    {
+      "layer": 7,
+      "context_id": 5,
+      "restoration": 0.6542323231697083,
+      "nmh_recovery": 0.05761604383587837,
+      "corrupt_overlap": 0.42230540360793817,
+      "matched_overlap": 0.1134003324230342
+    },
+    {
+      "layer": 7,
+      "context_id": 5,
+      "restoration": 0.7046632766723633,
+      "nmh_recovery": 0.20735657215118408,
+      "corrupt_overlap": 0.5127180926410002,
+      "matched_overlap": 0.28861609825603696
+    },
+    {
+      "layer": 7,
+      "context_id": 5,
+      "restoration": 0.9744295477867126,
+      "nmh_recovery": 0.36161285638809204,
+      "corrupt_overlap": 0.6114947083181969,
+      "matched_overlap": 0.327142798086132
+    },
+    {
+      "layer": 7,
+      "context_id": 6,
+      "restoration": 1.0964994430541992,
+      "nmh_recovery": 0.6023635268211365,
+      "corrupt_overlap": 0.6186244082822425,
+      "matched_overlap": 0.525689440398177
+    },
+    {
+      "layer": 7,
+      "context_id": 6,
+      "restoration": 1.038556456565857,
+      "nmh_recovery": 0.22195561230182648,
+      "corrupt_overlap": 0.5247264218352579,
+      "matched_overlap": 0.4112713379129233
+    },
+    {
+      "layer": 7,
+      "context_id": 6,
+      "restoration": 0.5322869420051575,
+      "nmh_recovery": 0.1406465768814087,
+      "corrupt_overlap": 0.6799036346236609,
+      "matched_overlap": 0.6626951947275705
+    },
+    {
+      "layer": 7,
+      "context_id": 6,
+      "restoration": 1.153834342956543,
+      "nmh_recovery": 0.5255221724510193,
+      "corrupt_overlap": 0.8583100874338464,
+      "matched_overlap": 0.5430834865533929
+    },
+    {
+      "layer": 7,
+      "context_id": 6,
+      "restoration": 0.8234817981719971,
+      "nmh_recovery": 0.449312299489975,
+      "corrupt_overlap": 0.31705798786175976,
+      "matched_overlap": 0.47054628168084706
+    },
+    {
+      "layer": 7,
+      "context_id": 6,
+      "restoration": 0.8104192018508911,
+      "nmh_recovery": -0.16079740226268768,
+      "corrupt_overlap": 0.27120262204719425,
+      "matched_overlap": 0.12103489481442606
+    },
+    {
+      "layer": 7,
+      "context_id": 6,
+      "restoration": 0.8612136244773865,
+      "nmh_recovery": 0.14822688698768616,
+      "corrupt_overlap": 0.459659917293564,
+      "matched_overlap": 0.5129843983669015
+    },
+    {
+      "layer": 7,
+      "context_id": 6,
+      "restoration": 0.9910523295402527,
+      "nmh_recovery": 0.180701345205307,
+      "corrupt_overlap": 0.4903534054830364,
+      "matched_overlap": 0.2629981541908898
+    },
+    {
+      "layer": 7,
+      "context_id": 6,
+      "restoration": 0.9662708640098572,
+      "nmh_recovery": 0.3111349940299988,
+      "corrupt_overlap": 0.5532757695161461,
+      "matched_overlap": 0.7115790643038692
+    },
+    {
+      "layer": 7,
+      "context_id": 6,
+      "restoration": 0.8800960779190063,
+      "nmh_recovery": 0.6076139807701111,
+      "corrupt_overlap": 0.4125648176362783,
+      "matched_overlap": 0.6691930865923844
+    },
+    {
+      "layer": 7,
+      "context_id": 7,
+      "restoration": 0.8515354990959167,
+      "nmh_recovery": 0.23599660396575928,
+      "corrupt_overlap": 0.4212054092839773,
+      "matched_overlap": 0.5335299592673025
+    },
+    {
+      "layer": 7,
+      "context_id": 7,
+      "restoration": 0.8136354684829712,
+      "nmh_recovery": 0.3961949646472931,
+      "corrupt_overlap": 0.4442854304025935,
+      "matched_overlap": 0.5185724131778946
+    },
+    {
+      "layer": 7,
+      "context_id": 7,
+      "restoration": 0.8580948710441589,
+      "nmh_recovery": 0.06718391925096512,
+      "corrupt_overlap": 0.36432783899220106,
+      "matched_overlap": 0.41268954268023644
+    },
+    {
+      "layer": 7,
+      "context_id": 7,
+      "restoration": 1.0438892841339111,
+      "nmh_recovery": 0.10829852521419525,
+      "corrupt_overlap": 0.33957136853622444,
+      "matched_overlap": 0.40433077445411925
+    },
+    {
+      "layer": 7,
+      "context_id": 7,
+      "restoration": 1.0343416929244995,
+      "nmh_recovery": 0.20513080060482025,
+      "corrupt_overlap": 0.6187887631959226,
+      "matched_overlap": 0.6038775878809299
+    },
+    {
+      "layer": 7,
+      "context_id": 7,
+      "restoration": 1.135023593902588,
+      "nmh_recovery": 0.1524830162525177,
+      "corrupt_overlap": 0.49604358266034193,
+      "matched_overlap": 0.5621576169570762
+    },
+    {
+      "layer": 7,
+      "context_id": 7,
+      "restoration": 0.9809780716896057,
+      "nmh_recovery": 0.2218811810016632,
+      "corrupt_overlap": 0.8219901219141982,
+      "matched_overlap": 0.8104917538522732
+    },
+    {
+      "layer": 7,
+      "context_id": 7,
+      "restoration": 0.8830567598342896,
+      "nmh_recovery": 0.31641581654548645,
+      "corrupt_overlap": 0.5194668229109363,
+      "matched_overlap": 0.6521344703730242
+    },
+    {
+      "layer": 7,
+      "context_id": 7,
+      "restoration": 0.9998612999916077,
+      "nmh_recovery": -0.10463101416826248,
+      "corrupt_overlap": 0.23263571205932357,
+      "matched_overlap": 0.103988303980135
+    },
+    {
+      "layer": 7,
+      "context_id": 7,
+      "restoration": 0.8529449105262756,
+      "nmh_recovery": 0.2294759601354599,
+      "corrupt_overlap": 0.602843857159095,
+      "matched_overlap": 0.7388233653393519
+    },
+    {
+      "layer": 8,
+      "context_id": 0,
+      "restoration": 0.8156163096427917,
+      "nmh_recovery": 0.35233375430107117,
+      "corrupt_overlap": 0.4324465303119464,
+      "matched_overlap": 0.32265692606525354
+    },
+    {
+      "layer": 8,
+      "context_id": 0,
+      "restoration": 0.867577850818634,
+      "nmh_recovery": 0.04007314145565033,
+      "corrupt_overlap": 0.37947054529568314,
+      "matched_overlap": 0.326592339338291
+    },
+    {
+      "layer": 8,
+      "context_id": 0,
+      "restoration": 1.0052984952926636,
+      "nmh_recovery": 0.20844954252243042,
+      "corrupt_overlap": 0.4611792820391667,
+      "matched_overlap": 0.3387357072231484
+    },
+    {
+      "layer": 8,
+      "context_id": 0,
+      "restoration": 0.9967470169067383,
+      "nmh_recovery": 0.2278851866722107,
+      "corrupt_overlap": 0.38279370803528334,
+      "matched_overlap": 0.3042514929094399
+    },
+    {
+      "layer": 8,
+      "context_id": 0,
+      "restoration": 0.8560048341751099,
+      "nmh_recovery": 0.21014556288719177,
+      "corrupt_overlap": 0.6262135196130544,
+      "matched_overlap": 0.6462007088525288
+    },
+    {
+      "layer": 8,
+      "context_id": 0,
+      "restoration": 0.9125612378120422,
+      "nmh_recovery": 0.47898900508880615,
+      "corrupt_overlap": 0.3564673267511957,
+      "matched_overlap": 0.3462128750949534
+    },
+    {
+      "layer": 8,
+      "context_id": 0,
+      "restoration": 0.839139997959137,
+      "nmh_recovery": -0.26844531297683716,
+      "corrupt_overlap": 0.5025840806869117,
+      "matched_overlap": 0.5889859656580005
+    },
+    {
+      "layer": 8,
+      "context_id": 0,
+      "restoration": 1.098685622215271,
+      "nmh_recovery": -0.05126255005598068,
+      "corrupt_overlap": 0.6070826617638901,
+      "matched_overlap": 0.6327845362469499
+    },
+    {
+      "layer": 8,
+      "context_id": 0,
+      "restoration": 0.8135631680488586,
+      "nmh_recovery": 0.07415841519832611,
+      "corrupt_overlap": 0.5913181658204065,
+      "matched_overlap": 0.5506309457136745
+    },
+    {
+      "layer": 8,
+      "context_id": 0,
+      "restoration": 0.9711117744445801,
+      "nmh_recovery": 0.2485823780298233,
+      "corrupt_overlap": 0.46990624846584583,
+      "matched_overlap": 0.34015797160336775
+    },
+    {
+      "layer": 8,
+      "context_id": 1,
+      "restoration": 0.6526695489883423,
+      "nmh_recovery": 0.6692869663238525,
+      "corrupt_overlap": 0.6663552970754127,
+      "matched_overlap": 0.5175786409022987
+    },
+    {
+      "layer": 8,
+      "context_id": 1,
+      "restoration": 0.6420782804489136,
+      "nmh_recovery": 0.8273982405662537,
+      "corrupt_overlap": 0.5789739927328336,
+      "matched_overlap": 0.43733453822685076
+    },
+    {
+      "layer": 8,
+      "context_id": 1,
+      "restoration": 0.7044550180435181,
+      "nmh_recovery": 0.5663090348243713,
+      "corrupt_overlap": 0.28778158903831347,
+      "matched_overlap": 0.39706720143998103
+    },
+    {
+      "layer": 8,
+      "context_id": 1,
+      "restoration": 0.7512836456298828,
+      "nmh_recovery": 0.6721714735031128,
+      "corrupt_overlap": 0.3940221410842442,
+      "matched_overlap": 0.30566611416594786
+    },
+    {
+      "layer": 8,
+      "context_id": 1,
+      "restoration": 0.5708980560302734,
+      "nmh_recovery": 0.42738083004951477,
+      "corrupt_overlap": 0.20845454561986787,
+      "matched_overlap": 0.11957713712948531
+    },
+    {
+      "layer": 8,
+      "context_id": 1,
+      "restoration": 0.7117851972579956,
+      "nmh_recovery": 1.0761044025421143,
+      "corrupt_overlap": 0.5974626419294213,
+      "matched_overlap": 0.7361757523311531
+    },
+    {
+      "layer": 8,
+      "context_id": 1,
+      "restoration": 0.3494506776332855,
+      "nmh_recovery": 0.35515594482421875,
+      "corrupt_overlap": 0.5011443333813016,
+      "matched_overlap": 0.5321600947138537
+    },
+    {
+      "layer": 8,
+      "context_id": 1,
+      "restoration": 0.740685224533081,
+      "nmh_recovery": 0.6357667446136475,
+      "corrupt_overlap": 0.6602212687225487,
+      "matched_overlap": 0.7076556527911871
+    },
+    {
+      "layer": 8,
+      "context_id": 1,
+      "restoration": 0.5288413166999817,
+      "nmh_recovery": 0.30111783742904663,
+      "corrupt_overlap": 0.2946227639592317,
+      "matched_overlap": 0.24466068768999094
+    },
+    {
+      "layer": 8,
+      "context_id": 1,
+      "restoration": 0.7956103086471558,
+      "nmh_recovery": 0.5236060619354248,
+      "corrupt_overlap": 0.2934283326491948,
+      "matched_overlap": 0.1895459640630683
+    },
+    {
+      "layer": 8,
+      "context_id": 2,
+      "restoration": 0.91513991355896,
+      "nmh_recovery": 0.5619403123855591,
+      "corrupt_overlap": 0.5978341292617,
+      "matched_overlap": 0.5904667001467168
+    },
+    {
+      "layer": 8,
+      "context_id": 2,
+      "restoration": 1.0163973569869995,
+      "nmh_recovery": 0.4783727824687958,
+      "corrupt_overlap": 0.6062715759168722,
+      "matched_overlap": 0.4312982787658322
+    },
+    {
+      "layer": 8,
+      "context_id": 2,
+      "restoration": 0.8830775618553162,
+      "nmh_recovery": 0.4123755395412445,
+      "corrupt_overlap": 0.6761383074410379,
+      "matched_overlap": 0.7648141566579535
+    },
+    {
+      "layer": 8,
+      "context_id": 2,
+      "restoration": 0.7703274488449097,
+      "nmh_recovery": 0.4038794934749603,
+      "corrupt_overlap": 0.2924527496411102,
+      "matched_overlap": 0.21922553460283342
+    },
+    {
+      "layer": 8,
+      "context_id": 2,
+      "restoration": 1.0389106273651123,
+      "nmh_recovery": 0.8457579612731934,
+      "corrupt_overlap": 0.4304177483115005,
+      "matched_overlap": 0.5668160631837826
+    },
+    {
+      "layer": 8,
+      "context_id": 2,
+      "restoration": 0.8797168731689453,
+      "nmh_recovery": 0.3941567838191986,
+      "corrupt_overlap": 0.2946227639592317,
+      "matched_overlap": 0.33577637865384186
+    },
+    {
+      "layer": 8,
+      "context_id": 2,
+      "restoration": 1.029136061668396,
+      "nmh_recovery": 0.6133272647857666,
+      "corrupt_overlap": 0.63788542352785,
+      "matched_overlap": 0.4915249279547012
+    },
+    {
+      "layer": 8,
+      "context_id": 2,
+      "restoration": 0.7745410799980164,
+      "nmh_recovery": 0.5821367502212524,
+      "corrupt_overlap": 0.6274807305905414,
+      "matched_overlap": 0.5802014756215114
+    },
+    {
+      "layer": 8,
+      "context_id": 2,
+      "restoration": 0.9229182004928589,
+      "nmh_recovery": 0.8311994671821594,
+      "corrupt_overlap": 0.47537651569706707,
+      "matched_overlap": 0.4858358758450659
+    },
+    {
+      "layer": 8,
+      "context_id": 2,
+      "restoration": 1.0021497011184692,
+      "nmh_recovery": 0.6487035751342773,
+      "corrupt_overlap": 0.39175031911034175,
+      "matched_overlap": 0.39772693881775145
+    },
+    {
+      "layer": 8,
+      "context_id": 3,
+      "restoration": 0.6363218426704407,
+      "nmh_recovery": 0.15888868272304535,
+      "corrupt_overlap": 0.6339194231653602,
+      "matched_overlap": 0.421643889664309
+    },
+    {
+      "layer": 8,
+      "context_id": 3,
+      "restoration": 0.6923385262489319,
+      "nmh_recovery": 0.26897358894348145,
+      "corrupt_overlap": 0.5647124401867635,
+      "matched_overlap": 0.39554706812056767
+    },
+    {
+      "layer": 8,
+      "context_id": 3,
+      "restoration": 0.9323607087135315,
+      "nmh_recovery": 0.44367313385009766,
+      "corrupt_overlap": 0.6530776946800185,
+      "matched_overlap": 0.5394027875621183
+    },
+    {
+      "layer": 8,
+      "context_id": 3,
+      "restoration": 0.8333641290664673,
+      "nmh_recovery": -0.1549004465341568,
+      "corrupt_overlap": 0.3526540778479577,
+      "matched_overlap": 0.49819966840566665
+    },
+    {
+      "layer": 8,
+      "context_id": 3,
+      "restoration": 0.6188580989837646,
+      "nmh_recovery": -0.3002853989601135,
+      "corrupt_overlap": 0.48418965421102006,
+      "matched_overlap": 0.24730528735272786
+    },
+    {
+      "layer": 8,
+      "context_id": 3,
+      "restoration": 0.9297797083854675,
+      "nmh_recovery": 0.5549144744873047,
+      "corrupt_overlap": 0.6724963223207336,
+      "matched_overlap": 0.7047416520423473
+    },
+    {
+      "layer": 8,
+      "context_id": 3,
+      "restoration": 0.7155574560165405,
+      "nmh_recovery": 0.28155723214149475,
+      "corrupt_overlap": 0.588818808360698,
+      "matched_overlap": 0.5213430235691081
+    },
+    {
+      "layer": 8,
+      "context_id": 3,
+      "restoration": 0.8465244174003601,
+      "nmh_recovery": 0.5057529807090759,
+      "corrupt_overlap": 0.6145454504361184,
+      "matched_overlap": 0.47051669470077334
+    },
+    {
+      "layer": 8,
+      "context_id": 3,
+      "restoration": 0.8500751256942749,
+      "nmh_recovery": 0.15187056362628937,
+      "corrupt_overlap": 0.6840083824448719,
+      "matched_overlap": 0.484342552450809
+    },
+    {
+      "layer": 8,
+      "context_id": 3,
+      "restoration": 0.9578389525413513,
+      "nmh_recovery": 0.38101810216903687,
+      "corrupt_overlap": 0.4605453275665071,
+      "matched_overlap": 0.5278975876278938
+    },
+    {
+      "layer": 8,
+      "context_id": 4,
+      "restoration": 0.9291322827339172,
+      "nmh_recovery": 0.195611372590065,
+      "corrupt_overlap": 0.6791150937415633,
+      "matched_overlap": 0.8562334745100734
+    },
+    {
+      "layer": 8,
+      "context_id": 4,
+      "restoration": 0.6801764965057373,
+      "nmh_recovery": 0.3059099018573761,
+      "corrupt_overlap": 0.45297337313017727,
+      "matched_overlap": 0.7941301945619389
+    },
+    {
+      "layer": 8,
+      "context_id": 4,
+      "restoration": 0.6808271408081055,
+      "nmh_recovery": 0.44815587997436523,
+      "corrupt_overlap": 0.4278095534554131,
+      "matched_overlap": 0.49277208587248017
+    },
+    {
+      "layer": 8,
+      "context_id": 4,
+      "restoration": 0.7418389320373535,
+      "nmh_recovery": 0.20203691720962524,
+      "corrupt_overlap": 0.25570815019473037,
+      "matched_overlap": 0.16411433857577634
+    },
+    {
+      "layer": 8,
+      "context_id": 4,
+      "restoration": 0.7481701374053955,
+      "nmh_recovery": 0.3804081082344055,
+      "corrupt_overlap": 0.4331053530437906,
+      "matched_overlap": 0.6153404495321054
+    },
+    {
+      "layer": 8,
+      "context_id": 4,
+      "restoration": 0.7565745115280151,
+      "nmh_recovery": 0.4392867982387543,
+      "corrupt_overlap": 0.5861431073967397,
+      "matched_overlap": 0.6531492720314201
+    },
+    {
+      "layer": 8,
+      "context_id": 4,
+      "restoration": 0.9226881861686707,
+      "nmh_recovery": 0.6284177303314209,
+      "corrupt_overlap": 0.38417186182659324,
+      "matched_overlap": 0.546148060051698
+    },
+    {
+      "layer": 8,
+      "context_id": 4,
+      "restoration": 0.7877118587493896,
+      "nmh_recovery": 0.7195536494255066,
+      "corrupt_overlap": 0.5941940239011058,
+      "matched_overlap": 0.7230071196540245
+    },
+    {
+      "layer": 8,
+      "context_id": 4,
+      "restoration": 0.7206849455833435,
+      "nmh_recovery": 0.3917919993400574,
+      "corrupt_overlap": 0.4281308348912315,
+      "matched_overlap": 0.6510886044393253
+    },
+    {
+      "layer": 8,
+      "context_id": 4,
+      "restoration": 0.8190703988075256,
+      "nmh_recovery": 0.3619932532310486,
+      "corrupt_overlap": 0.5584804591824225,
+      "matched_overlap": 0.6170237850198863
+    },
+    {
+      "layer": 8,
+      "context_id": 5,
+      "restoration": 0.7978765964508057,
+      "nmh_recovery": 0.20067985355854034,
+      "corrupt_overlap": 0.34094575036885416,
+      "matched_overlap": 0.29051232195512583
+    },
+    {
+      "layer": 8,
+      "context_id": 5,
+      "restoration": 1.0499083995819092,
+      "nmh_recovery": 0.38818395137786865,
+      "corrupt_overlap": 0.5328157530975687,
+      "matched_overlap": 0.6129151419561698
+    },
+    {
+      "layer": 8,
+      "context_id": 5,
+      "restoration": 0.5564886331558228,
+      "nmh_recovery": 0.11230551451444626,
+      "corrupt_overlap": 0.39234957989513203,
+      "matched_overlap": 0.39035323932892574
+    },
+    {
+      "layer": 8,
+      "context_id": 5,
+      "restoration": 0.9126619100570679,
+      "nmh_recovery": 0.5093376636505127,
+      "corrupt_overlap": 0.6594048707834073,
+      "matched_overlap": 0.6511518356860073
+    },
+    {
+      "layer": 8,
+      "context_id": 5,
+      "restoration": 0.5331533551216125,
+      "nmh_recovery": 0.02505653165280819,
+      "corrupt_overlap": 0.5000554354298832,
+      "matched_overlap": 0.3251283329638549
+    },
+    {
+      "layer": 8,
+      "context_id": 5,
+      "restoration": 0.7602787613868713,
+      "nmh_recovery": 0.16927030682563782,
+      "corrupt_overlap": 0.2982208018223543,
+      "matched_overlap": 0.18571515250816936
+    },
+    {
+      "layer": 8,
+      "context_id": 5,
+      "restoration": 0.9996232390403748,
+      "nmh_recovery": 0.36221835017204285,
+      "corrupt_overlap": 0.6166051433920068,
+      "matched_overlap": 0.6581166503358616
+    },
+    {
+      "layer": 8,
+      "context_id": 5,
+      "restoration": 0.6439540386199951,
+      "nmh_recovery": 0.06878367811441422,
+      "corrupt_overlap": 0.3593820044483155,
+      "matched_overlap": 0.1308763822278932
+    },
+    {
+      "layer": 8,
+      "context_id": 5,
+      "restoration": 0.7253382802009583,
+      "nmh_recovery": 0.2405899465084076,
+      "corrupt_overlap": 0.5269854005348006,
+      "matched_overlap": 0.3660251537517337
+    },
+    {
+      "layer": 8,
+      "context_id": 5,
+      "restoration": 0.9839437007904053,
+      "nmh_recovery": 0.4245138168334961,
+      "corrupt_overlap": 0.5827445477974792,
+      "matched_overlap": 0.35132904312762414
+    },
+    {
+      "layer": 8,
+      "context_id": 6,
+      "restoration": 1.0759063959121704,
+      "nmh_recovery": 0.5817265510559082,
+      "corrupt_overlap": 0.5978341292617,
+      "matched_overlap": 0.4709810368090857
+    },
+    {
+      "layer": 8,
+      "context_id": 6,
+      "restoration": 1.0399831533432007,
+      "nmh_recovery": 0.22098122537136078,
+      "corrupt_overlap": 0.5377413283870448,
+      "matched_overlap": 0.48523267500171496
+    },
+    {
+      "layer": 8,
+      "context_id": 6,
+      "restoration": 0.5267592072486877,
+      "nmh_recovery": 0.1400134116411209,
+      "corrupt_overlap": 0.597967376288131,
+      "matched_overlap": 0.48284299982758266
+    },
+    {
+      "layer": 8,
+      "context_id": 6,
+      "restoration": 1.1431862115859985,
+      "nmh_recovery": 0.5328942537307739,
+      "corrupt_overlap": 0.8170423483165433,
+      "matched_overlap": 0.5420302635556431
+    },
+    {
+      "layer": 8,
+      "context_id": 6,
+      "restoration": 0.8219931125640869,
+      "nmh_recovery": 0.4735458791255951,
+      "corrupt_overlap": 0.34965733737885646,
+      "matched_overlap": 0.4698563969979132
+    },
+    {
+      "layer": 8,
+      "context_id": 6,
+      "restoration": 0.8014219999313354,
+      "nmh_recovery": -0.1654791533946991,
+      "corrupt_overlap": 0.23963580668397988,
+      "matched_overlap": 0.04372460037002083
+    },
+    {
+      "layer": 8,
+      "context_id": 6,
+      "restoration": 0.8191657066345215,
+      "nmh_recovery": 0.11052194982767105,
+      "corrupt_overlap": 0.46741917053653326,
+      "matched_overlap": 0.4892390648304749
+    },
+    {
+      "layer": 8,
+      "context_id": 6,
+      "restoration": 0.9787646532058716,
+      "nmh_recovery": 0.1884695589542389,
+      "corrupt_overlap": 0.4693400006682355,
+      "matched_overlap": 0.16860525020103706
+    },
+    {
+      "layer": 8,
+      "context_id": 6,
+      "restoration": 0.9532762169837952,
+      "nmh_recovery": 0.31595128774642944,
+      "corrupt_overlap": 0.5791665607261389,
+      "matched_overlap": 0.7778799577874239
+    },
+    {
+      "layer": 8,
+      "context_id": 6,
+      "restoration": 0.8708877563476562,
+      "nmh_recovery": 0.60243159532547,
+      "corrupt_overlap": 0.42533424883080956,
+      "matched_overlap": 0.6254468573636212
+    },
+    {
+      "layer": 8,
+      "context_id": 7,
+      "restoration": 0.856622040271759,
+      "nmh_recovery": 0.23045766353607178,
+      "corrupt_overlap": 0.42813078884076217,
+      "matched_overlap": 0.5534698698972328
+    },
+    {
+      "layer": 8,
+      "context_id": 7,
+      "restoration": 0.821823239326477,
+      "nmh_recovery": 0.43803533911705017,
+      "corrupt_overlap": 0.3887414190820462,
+      "matched_overlap": 0.41664031141412894
+    },
+    {
+      "layer": 8,
+      "context_id": 7,
+      "restoration": 0.870698869228363,
+      "nmh_recovery": 0.09829595685005188,
+      "corrupt_overlap": 0.31295459162012007,
+      "matched_overlap": 0.40217901788213195
+    },
+    {
+      "layer": 8,
+      "context_id": 7,
+      "restoration": 1.0356303453445435,
+      "nmh_recovery": 0.11067475378513336,
+      "corrupt_overlap": 0.3140384279691948,
+      "matched_overlap": 0.4062905826270149
+    },
+    {
+      "layer": 8,
+      "context_id": 7,
+      "restoration": 1.0260937213897705,
+      "nmh_recovery": 0.23380668461322784,
+      "corrupt_overlap": 0.5884109852234878,
+      "matched_overlap": 0.6489987110781745
+    },
+    {
+      "layer": 8,
+      "context_id": 7,
+      "restoration": 1.1218870878219604,
+      "nmh_recovery": 0.15564319491386414,
+      "corrupt_overlap": 0.5292582521725953,
+      "matched_overlap": 0.652893095506279
+    },
+    {
+      "layer": 8,
+      "context_id": 7,
+      "restoration": 0.9819396734237671,
+      "nmh_recovery": 0.2381642758846283,
+      "corrupt_overlap": 0.7968364665233613,
+      "matched_overlap": 0.7821581798946319
+    },
+    {
+      "layer": 8,
+      "context_id": 7,
+      "restoration": 0.882512092590332,
+      "nmh_recovery": 0.3442688286304474,
+      "corrupt_overlap": 0.5411149949244731,
+      "matched_overlap": 0.7098330549440826
+    },
+    {
+      "layer": 8,
+      "context_id": 7,
+      "restoration": 1.0099835395812988,
+      "nmh_recovery": -0.09029795974493027,
+      "corrupt_overlap": 0.2559378498868321,
+      "matched_overlap": 0.11314962301473036
+    },
+    {
+      "layer": 8,
+      "context_id": 7,
+      "restoration": 0.8465095162391663,
+      "nmh_recovery": 0.2537018954753876,
+      "corrupt_overlap": 0.5675073620708359,
+      "matched_overlap": 0.7418752981025766
+    }
+  ],
+  "elapsed_seconds": 237.59026455879211,
+  "configuration": {
+    "model": "gpt2",
+    "device": "cuda",
+    "out_dir": "/mnt/sdb/ccj/iclr_1_runs/p0_within_site_mechanism/full_seed20260713",
+    "seed": 20260713,
+    "n_fit": 256,
+    "n_cal": 128,
+    "n_contexts": 8,
+    "n_eval_io": 10,
+    "n_cf_fit": 24,
+    "n_cf_cal": 12,
+    "knn_k": 12,
+    "proj_rank": 32,
+    "chunk_size": 32,
+    "max_layer": 8
+  }
+}

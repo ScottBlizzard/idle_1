@@ -1,0 +1,87 @@
+{
+  "experiment": "phase1_known_ground_truth_crossfit_aggregate",
+  "n_model_seeds": 4,
+  "seeds": [
+    0,
+    1,
+    2,
+    3
+  ],
+  "per_seed": [
+    {
+      "seed": 0,
+      "trained_in_this_run": false,
+      "acc_off": 1.0,
+      "acc_on": 1.0,
+      "n_high_clean": 2,
+      "n_high_donor": 2,
+      "auroc": 0.9987869262695312,
+      "clean_ecdf": 0.7854637489608671,
+      "donor_ecdf": 0.014099805612700547,
+      "conformal_auroc": 0.9994068145751953,
+      "clean_conformal": 0.813080869510978,
+      "donor_conformal": 0.005157653443113772
+    },
+    {
+      "seed": 1,
+      "trained_in_this_run": true,
+      "acc_off": 1.0,
+      "acc_on": 1.0,
+      "n_high_clean": 3,
+      "n_high_donor": 3,
+      "auroc": 0.9998711480034722,
+      "clean_ecdf": 0.5007209767016039,
+      "donor_ecdf": 0.003122114214744044,
+      "conformal_auroc": 0.9999771118164064,
+      "clean_conformal": 0.43025147621423815,
+      "donor_conformal": 0.0020661801397205593
+    },
+    {
+      "seed": 2,
+      "trained_in_this_run": true,
+      "acc_off": 1.0,
+      "acc_on": 1.0,
+      "n_high_clean": 3,
+      "n_high_donor": 2,
+      "auroc": 1.0,
+      "clean_ecdf": 0.6753738286386217,
+      "donor_ecdf": 0.004203490818734266,
+      "conformal_auroc": 0.9993489583333334,
+      "clean_conformal": 0.7196076596806389,
+      "donor_conformal": 0.0019960079840319364
+    },
+    {
+      "seed": 3,
+      "trained_in_this_run": true,
+      "acc_off": 1.0,
+      "acc_on": 1.0,
+      "n_high_clean": 3,
+      "n_high_donor": 2,
+      "auroc": 1.0,
+      "clean_ecdf": 0.6437078524152408,
+      "donor_ecdf": 0.005121177200755925,
+      "conformal_auroc": 1.0,
+      "clean_conformal": 0.5730362192282102,
+      "donor_conformal": 0.002019398702594811
+    }
+  ],
+  "summary": {
+    "mean_auroc": 0.9996645185682509,
+    "min_auroc": 0.9987869262695312,
+    "mean_clean_ecdf": 0.6513166016790833,
+    "mean_donor_ecdf": 0.006636646961733696,
+    "min_clean_minus_donor_ecdf": 0.4975988624868598,
+    "max_abs_mean_z": 10591269.83595452,
+    "max_scale_floor_overlap_span": 0.0,
+    "mean_conformal_auroc": 0.9996832211812338,
+    "min_conformal_auroc": 0.9993489583333334,
+    "mean_clean_conformal": 0.6339940561585163,
+    "mean_donor_conformal": 0.00280981006736527
+  },
+  "decision": {
+    "cross_model_separation_robust": true,
+    "composite_conformal_separation_robust": true,
+    "million_scale_z_is_safe_evidence": false,
+    "defensible_claim": "When the target support is fixed by task design, cross-fitted empirical overlap separates on-support clean donors from off-support gate-on donors."
+  }
+}

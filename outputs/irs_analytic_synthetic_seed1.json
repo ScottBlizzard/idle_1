@@ -1,0 +1,84 @@
+{
+  "experiment": "irs_analytic_four_quadrant",
+  "seed": 1,
+  "configuration": {
+    "seed": 1,
+    "dimension": 8,
+    "n_fit": 1200,
+    "n_cal": 600,
+    "n_eval": 256,
+    "n_probes": 128,
+    "radius": 0.05,
+    "beta": 4.0,
+    "knn_k": 20,
+    "proj_rank": 8,
+    "out_dir": "outputs"
+  },
+  "rows": [
+    {
+      "condition": "true_restoration",
+      "mean_restoration": 1.0,
+      "irs_rmse": 0.0,
+      "irs_normalized_rmse": 0.0,
+      "irs_cosine": 1.0,
+      "blind_single_direction_rmse": 0.0,
+      "known_gradient_gap": 0.0,
+      "expected_directional_mse": 0.0,
+      "observed_directional_mse": 0.0,
+      "directional_mse_abs_error": 0.0,
+      "mean_conformal_support": 0.5201411960132891,
+      "support_accept_rate_alpha_0.05": 0.95703125
+    },
+    {
+      "condition": "on_support_lie",
+      "mean_restoration": 1.0,
+      "irs_rmse": 1.4142135623730951,
+      "irs_normalized_rmse": 3.6275642585958185,
+      "irs_cosine": 0.2523109833222921,
+      "blind_single_direction_rmse": 0.0,
+      "known_gradient_gap": 4.0,
+      "expected_directional_mse": 2.0,
+      "observed_directional_mse": 2.0000000000000004,
+      "directional_mse_abs_error": 4.440892098500626e-16,
+      "mean_conformal_support": 0.58140832641196,
+      "support_accept_rate_alpha_0.05": 0.97265625
+    },
+    {
+      "condition": "off_support_shortcut",
+      "mean_restoration": 1.0,
+      "irs_rmse": 1.4142135623730925,
+      "irs_normalized_rmse": 3.6410759483249806,
+      "irs_cosine": 0.2698754475000928,
+      "blind_single_direction_rmse": 0.0,
+      "known_gradient_gap": 4.0,
+      "expected_directional_mse": 2.0,
+      "observed_directional_mse": 1.9999999999999927,
+      "directional_mse_abs_error": 7.327471962526033e-15,
+      "mean_conformal_support": 0.003322259136212625,
+      "support_accept_rate_alpha_0.05": 0.0
+    },
+    {
+      "condition": "natural_ineffective",
+      "mean_restoration": 0.13533528323661276,
+      "irs_rmse": 1.812158279584065e-15,
+      "irs_normalized_rmse": 3.2165157045675915e-15,
+      "irs_cosine": 1.0,
+      "blind_single_direction_rmse": 2.0284370173088665e-15,
+      "known_gradient_gap": 0.0,
+      "expected_directional_mse": 0.0,
+      "observed_directional_mse": 3.283917630265078e-30,
+      "directional_mse_abs_error": 3.283917630265078e-30,
+      "mean_conformal_support": 0.5241772217607973,
+      "support_accept_rate_alpha_0.05": 0.9375
+    }
+  ],
+  "verdicts": {
+    "true_restore_high_R_high_S_low_IRS": true,
+    "on_support_lie_high_R_high_S_high_IRS": true,
+    "off_support_shortcut_high_R_low_S_high_IRS": true,
+    "natural_ineffective_low_R_high_S": true,
+    "known_gradient_mse_recovered": true,
+    "single_direction_blind_but_irs_detects": true
+  },
+  "all_pass": true
+}

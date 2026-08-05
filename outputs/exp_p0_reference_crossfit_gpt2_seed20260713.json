@@ -1,0 +1,2372 @@
+{
+  "experiment": "p0_reference_crossfit",
+  "interpretation_guardrail": "Scores measure overlap with the named reference distribution; no reference is assumed to be the uniquely correct causal-validity estimand.",
+  "model": "gpt2",
+  "seed": 20260713,
+  "n_layers_scanned": 12,
+  "sequence_signature": [
+    17,
+    3,
+    5,
+    12
+  ],
+  "clean_logit_diff": 3.4770455360412598,
+  "corrupt_logit_diff": -6.5087761878967285,
+  "denominator": 9.985821723937988,
+  "prompt_audit": {
+    "valid_single_token_names": 180,
+    "corrupt_fit_nominal": 256,
+    "corrupt_fit_unique_tokens": 256,
+    "corrupt_cal_nominal": 128,
+    "corrupt_cal_unique_tokens": 128,
+    "clean_fit_unique_tokens": 256,
+    "clean_cal_unique_tokens": 128,
+    "eval_unique_clean_tokens": 80,
+    "matched_contexts": 8,
+    "matched_fit_per_context": 24,
+    "matched_cal_per_context": 12
+  },
+  "configuration": {
+    "model": "gpt2",
+    "device": "cuda",
+    "out_dir": "/mnt/sdb/ccj/iclr_1_runs/p0_reference_crossfit/full_seed20260713",
+    "seed": 20260713,
+    "n_fit": 256,
+    "n_cal": 128,
+    "n_contexts": 8,
+    "n_eval_io": 10,
+    "n_cf_fit": 24,
+    "n_cf_cal": 12,
+    "knn_k": 12,
+    "proj_rank": 32,
+    "restore_threshold": 0.1,
+    "chunk_size": 32,
+    "max_layers": 0
+  },
+  "n_retained_sites": 14,
+  "reference_summary": {
+    "corrupt_observational": {
+      "mean_overlap_z": 0.40837513164021183,
+      "median_overlap_z": 0.4720339878336552,
+      "mean_overlap_ecdf": 0.3317466983219579,
+      "n_below_historical_0_3": 3
+    },
+    "clean_source": {
+      "mean_overlap_z": 0.4983883537374294,
+      "median_overlap_z": 0.5107937467975976,
+      "mean_overlap_ecdf": 0.43508019276676435,
+      "n_below_historical_0_3": 0
+    },
+    "mixture": {
+      "mean_overlap_z": 0.4880209979522556,
+      "median_overlap_z": 0.525281978666684,
+      "mean_overlap_ecdf": 0.3944159628181578,
+      "n_below_historical_0_3": 0
+    },
+    "matched_semantic_counterfactual": {
+      "mean_overlap_z": 0.5170125067654703,
+      "median_overlap_z": 0.5212526242165489,
+      "mean_overlap_ecdf": 0.5386943220971514,
+      "n_below_historical_0_3": 0
+    }
+  },
+  "sites": [
+    {
+      "layer": 0,
+      "pos": 3,
+      "restoration": 1.0445478002688022,
+      "references": {
+        "corrupt_observational": {
+          "knn": 24.942282873569276,
+          "recon": 26.12005018250603,
+          "maha": 4.593878296363831,
+          "knn_z": -0.07416161669206871,
+          "recon_z": 0.18928373750420527,
+          "maha_z": -0.018070381555578274,
+          "z_sum": 0.09705173925655824,
+          "overlap_z": 0.49127158833063705,
+          "overlap_ecdf": 0.4553964770695583,
+          "scale_floor_sensitivity": {
+            "1e-08": 0.49127158833063705,
+            "1e-06": 0.49127158833063705,
+            "1e-04": 0.49127158833063705,
+            "1e-03": 0.49127158833063705,
+            "1e-02": 0.49127158833063705
+          },
+          "diagnostics": {
+            "n_fit": 256,
+            "n_calibration": 128,
+            "unique_fit_activations": 238,
+            "unique_calibration_activations": 121,
+            "effective_rank": 237,
+            "selected_rank": 32,
+            "condition_number": 2.553489117744259,
+            "calibration": {
+              "knn": {
+                "median": 25.158137356681742,
+                "mad_scale": 2.9105957062496404,
+                "std": 2.9082412987638584
+              },
+              "recon": {
+                "median": 25.181718077601204,
+                "mad_scale": 4.957277985299602,
+                "std": 5.348891773993882
+              },
+              "maha": {
+                "median": 4.614261896131978,
+                "mad_scale": 1.128011586554188,
+                "std": 1.0818374841500595
+              }
+            }
+          }
+        },
+        "clean_source": {
+          "knn": 24.722002846500928,
+          "recon": 24.407942562913526,
+          "maha": 4.980461372380461,
+          "knn_z": -0.1364530339408632,
+          "recon_z": -0.15506485449799148,
+          "maha_z": 0.21605471749371294,
+          "z_sum": -0.07546317094514166,
+          "overlap_z": 0.505435700996272,
+          "overlap_ecdf": 0.4447798389137989,
+          "scale_floor_sensitivity": {
+            "1e-08": 0.505435700996272,
+            "1e-06": 0.505435700996272,
+            "1e-04": 0.505435700996272,
+            "1e-03": 0.505435700996272,
+            "1e-02": 0.505435700996272
+          },
+          "diagnostics": {
+            "n_fit": 256,
+            "n_calibration": 128,
+            "unique_fit_activations": 231,
+            "unique_calibration_activations": 123,
+            "effective_rank": 230,
+            "selected_rank": 32,
+            "condition_number": 2.754127881850657,
+            "calibration": {
+              "knn": {
+                "median": 25.041885207684786,
+                "mad_scale": 2.344267122140296,
+                "std": 2.827148181829207
+              },
+              "recon": {
+                "median": 25.424513799115317,
+                "mad_scale": 6.555781060078711,
+                "std": 6.163369321661385
+              },
+              "maha": {
+                "median": 4.785161784220834,
+                "mad_scale": 0.9039357734242017,
+                "std": 0.90881402288491
+              }
+            }
+          }
+        },
+        "mixture": {
+          "knn": 24.525859487272548,
+          "recon": 24.55514570868665,
+          "maha": 4.877233960604156,
+          "knn_z": -0.32369507259535635,
+          "recon_z": -0.051020930872777724,
+          "maha_z": -0.21857668902424043,
+          "z_sum": -0.5932926924923746,
+          "overlap_z": 0.541853080657613,
+          "overlap_ecdf": 0.47710148329312607,
+          "scale_floor_sensitivity": {
+            "1e-08": 0.541853080657613,
+            "1e-06": 0.541853080657613,
+            "1e-04": 0.541853080657613,
+            "1e-03": 0.541853080657613,
+            "1e-02": 0.541853080657613
+          },
+          "diagnostics": {
+            "n_fit": 256,
+            "n_calibration": 128,
+            "unique_fit_activations": 231,
+            "unique_calibration_activations": 121,
+            "effective_rank": 230,
+            "selected_rank": 32,
+            "condition_number": 2.6593942495318763,
+            "calibration": {
+              "knn": {
+                "median": 25.173468423011364,
+                "mad_scale": 2.0006759155965708,
+                "std": 2.780807720586442
+              },
+              "recon": {
+                "median": 24.84427044849818,
+                "mad_scale": 5.666786843471572,
+                "std": 5.650428455802428
+              },
+              "maha": {
+                "median": 5.089913803381208,
+                "mad_scale": 0.9730216141825903,
+                "std": 0.9652853555676548
+              }
+            }
+          }
+        },
+        "matched_semantic_counterfactual": {
+          "knn": 35.18762498871541,
+          "recon": 33.3227476496179,
+          "maha": 2.158464466605916,
+          "knn_z": -0.0784218732269821,
+          "recon_z": -0.10270669724380684,
+          "maha_z": -0.18613242174474348,
+          "z_sum": -0.36726099221553243,
+          "overlap_z": 0.5250763531326432,
+          "overlap_ecdf": 0.5424580810533712,
+          "scale_floor_sensitivity": {
+            "1e-08": 0.5250763531326432,
+            "1e-06": 0.5250763531326432,
+            "1e-04": 0.5250763531326432,
+            "1e-03": 0.5250763531326432,
+            "1e-02": 0.5250763531326432
+          },
+          "diagnostics": {
+            "n_contexts": 8,
+            "effective_rank_min": 23,
+            "effective_rank_max": 23,
+            "selected_rank_min": 23,
+            "selected_rank_max": 23
+          }
+        }
+      }
+    },
+    {
+      "layer": 1,
+      "pos": 3,
+      "restoration": 1.0924740611903876,
+      "references": {
+        "corrupt_observational": {
+          "knn": 27.694751787944778,
+          "recon": 27.53557468966809,
+          "maha": 4.708942493008547,
+          "knn_z": 0.16348019766962868,
+          "recon_z": 0.2124752795612063,
+          "maha_z": -0.08602612090831396,
+          "z_sum": 0.28992935632252104,
+          "overlap_z": 0.4775688058208276,
+          "overlap_ecdf": 0.4264493776756277,
+          "scale_floor_sensitivity": {
+            "1e-08": 0.4775688058208276,
+            "1e-06": 0.4775688058208276,
+            "1e-04": 0.4775688058208276,
+            "1e-03": 0.4775688058208276,
+            "1e-02": 0.4775688058208276
+          },
+          "diagnostics": {
+            "n_fit": 256,
+            "n_calibration": 128,
+            "unique_fit_activations": 238,
+            "unique_calibration_activations": 121,
+            "effective_rank": 237,
+            "selected_rank": 32,
+            "condition_number": 2.6261950440778548,
+            "calibration": {
+              "knn": {
+                "median": 27.347573659565754,
+                "mad_scale": 2.1236708379850713,
+                "std": 2.4051722968547447
+              },
+              "recon": {
+                "median": 26.445468344101922,
+                "mad_scale": 5.1305090541233795,
+                "std": 5.371630180484338
+              },
+              "maha": {
+                "median": 4.7908518015740045,
+                "mad_scale": 0.9521446242212456,
+                "std": 0.9727103467523724
+              }
+            }
+          }
+        },
+        "clean_source": {
+          "knn": 27.511548175209235,
+          "recon": 25.603648592748595,
+          "maha": 5.05891285757627,
+          "knn_z": -0.04946231618283231,
+          "recon_z": -0.15825001430559332,
+          "maha_z": 0.12226876455663886,
+          "z_sum": -0.0854435659317869,
+          "overlap_z": 0.5079304553650669,
+          "overlap_ecdf": 0.44679782117830086,
+          "scale_floor_sensitivity": {
+            "1e-08": 0.5079304553650669,
+            "1e-06": 0.5079304553650669,
+            "1e-04": 0.5079304553650669,
+            "1e-03": 0.5079304553650669,
+            "1e-02": 0.5079304553650669
+          },
+          "diagnostics": {
+            "n_fit": 256,
+            "n_calibration": 128,
+            "unique_fit_activations": 231,
+            "unique_calibration_activations": 123,
+            "effective_rank": 230,
+            "selected_rank": 32,
+            "condition_number": 2.768221804337595,
+            "calibration": {
+              "knn": {
+                "median": 27.613728967532683,
+                "mad_scale": 2.065831125775486,
+                "std": 2.391683287741332
+              },
+              "recon": {
+                "median": 26.63929413086155,
+                "mad_scale": 6.544362998369429,
+                "std": 6.235564389316394
+              },
+              "maha": {
+                "median": 4.947621556320314,
+                "mad_scale": 0.9102185800233706,
+                "std": 0.8256483924281491
+              }
+            }
+          }
+        },
+        "mixture": {
+          "knn": 27.197378382218584,
+          "recon": 25.92423292629283,
+          "maha": 4.9617694827145495,
+          "knn_z": -0.2531047413482389,
+          "recon_z": -0.07127407115958574,
+          "maha_z": -0.2543711851284545,
+          "z_sum": -0.5787499976362792,
+          "overlap_z": 0.5428768927218813,
+          "overlap_ecdf": 0.4609918854921517,
+          "scale_floor_sensitivity": {
+            "1e-08": 0.5428768927218813,
+            "1e-06": 0.5428768927218813,
+            "1e-04": 0.5428768927218813,
+            "1e-03": 0.5428768927218813,
+            "1e-02": 0.5428768927218813
+          },
+          "diagnostics": {
+            "n_fit": 256,
+            "n_calibration": 128,
+            "unique_fit_activations": 231,
+            "unique_calibration_activations": 121,
+            "effective_rank": 230,
+            "selected_rank": 32,
+            "condition_number": 2.718616672655121,
+            "calibration": {
+              "knn": {
+                "median": 27.649450971107804,
+                "mad_scale": 1.7861087330135157,
+                "std": 2.2695770241435507
+              },
+              "recon": {
+                "median": 26.316987551911453,
+                "mad_scale": 5.5104839562093435,
+                "std": 5.754755904439284
+              },
+              "maha": {
+                "median": 5.196083247062182,
+                "mad_scale": 0.9211490060452671,
+                "std": 0.8430741207953824
+              }
+            }
+          }
+        },
+        "matched_semantic_counterfactual": {
+          "knn": 38.05331932955219,
+          "recon": 35.43271901980158,
+          "maha": 2.261085682181496,
+          "knn_z": -0.09667862767433469,
+          "recon_z": -0.05704619921119949,
+          "maha_z": -0.08527105930073726,
+          "z_sum": -0.2389958861862714,
+          "overlap_z": 0.5181717333838745,
+          "overlap_ecdf": 0.541732000585671,
+          "scale_floor_sensitivity": {
+            "1e-08": 0.5181717333838745,
+            "1e-06": 0.5181717333838745,
+            "1e-04": 0.5181717333838745,
+            "1e-03": 0.5181717333838745,
+            "1e-02": 0.5181717333838745
+          },
+          "diagnostics": {
+            "n_contexts": 8,
+            "effective_rank_min": 23,
+            "effective_rank_max": 23,
+            "selected_rank_min": 23,
+            "selected_rank_max": 23
+          }
+        }
+      }
+    },
+    {
+      "layer": 2,
+      "pos": 3,
+      "restoration": 1.0727711571496337,
+      "references": {
+        "corrupt_observational": {
+          "knn": 30.30685716250939,
+          "recon": 29.15983528994379,
+          "maha": 4.77871940425919,
+          "knn_z": 0.2856093683997672,
+          "recon_z": 0.20288759454053057,
+          "maha_z": -0.006601272026938454,
+          "z_sum": 0.4818956909133593,
+          "overlap_z": 0.4637850262712636,
+          "overlap_ecdf": 0.4139433379472502,
+          "scale_floor_sensitivity": {
+            "1e-08": 0.4637850262712636,
+            "1e-06": 0.4637850262712636,
+            "1e-04": 0.4637850262712636,
+            "1e-03": 0.4637850262712636,
+            "1e-02": 0.4637850262712636
+          },
+          "diagnostics": {
+            "n_fit": 256,
+            "n_calibration": 128,
+            "unique_fit_activations": 238,
+            "unique_calibration_activations": 121,
+            "effective_rank": 237,
+            "selected_rank": 32,
+            "condition_number": 2.5770163119675074,
+            "calibration": {
+              "knn": {
+                "median": 29.758219167571315,
+                "mad_scale": 1.9209383712166759,
+                "std": 2.185750203912627
+              },
+              "recon": {
+                "median": 28.10248227146097,
+                "mad_scale": 5.211521290285649,
+                "std": 5.523475046293975
+              },
+              "maha": {
+                "median": 4.783685133555235,
+                "mad_scale": 0.7522382467772796,
+                "std": 0.8822225990932545
+              }
+            }
+          }
+        },
+        "clean_source": {
+          "knn": 30.004205578404385,
+          "recon": 27.275115716373552,
+          "maha": 5.043431949067882,
+          "knn_z": -0.06832440338869314,
+          "recon_z": -0.18752022283742004,
+          "maha_z": 0.02081047962228988,
+          "z_sum": -0.23503414660382332,
+          "overlap_z": 0.5181628559371682,
+          "overlap_ecdf": 0.453100586224173,
+          "scale_floor_sensitivity": {
+            "1e-08": 0.5181628559371682,
+            "1e-06": 0.5181628559371682,
+            "1e-04": 0.5181628559371682,
+            "1e-03": 0.5181628559371682,
+            "1e-02": 0.5181628559371682
+          },
+          "diagnostics": {
+            "n_fit": 256,
+            "n_calibration": 128,
+            "unique_fit_activations": 231,
+            "unique_calibration_activations": 123,
+            "effective_rank": 230,
+            "selected_rank": 32,
+            "condition_number": 2.649186327990036,
+            "calibration": {
+              "knn": {
+                "median": 30.15327588654113,
+                "mad_scale": 2.1818018269211192,
+                "std": 2.4432726889696204
+              },
+              "recon": {
+                "median": 28.545537022442524,
+                "mad_scale": 6.774849596730835,
+                "std": 6.429904120082156
+              },
+              "maha": {
+                "median": 5.025643681201158,
+                "mad_scale": 0.854774526564505,
+                "std": 0.7603945896809745
+              }
+            }
+          }
+        },
+        "mixture": {
+          "knn": 29.770326209532755,
+          "recon": 27.483039330613213,
+          "maha": 4.997849730497795,
+          "knn_z": -0.1335798077820794,
+          "recon_z": -0.09275269031291264,
+          "maha_z": -0.2729998510427849,
+          "z_sum": -0.4993323491377771,
+          "overlap_z": 0.5376047892378928,
+          "overlap_ecdf": 0.45614425163077177,
+          "scale_floor_sensitivity": {
+            "1e-08": 0.5376047892378928,
+            "1e-06": 0.5376047892378928,
+            "1e-04": 0.5376047892378928,
+            "1e-03": 0.5376047892378928,
+            "1e-02": 0.5376047892378928
+          },
+          "diagnostics": {
+            "n_fit": 256,
+            "n_calibration": 128,
+            "unique_fit_activations": 231,
+            "unique_calibration_activations": 121,
+            "effective_rank": 230,
+            "selected_rank": 32,
+            "condition_number": 2.6262255127271446,
+            "calibration": {
+              "knn": {
+                "median": 30.022928689052605,
+                "mad_scale": 1.8910229301418122,
+                "std": 2.260970761679355
+              },
+              "recon": {
+                "median": 28.000258025455235,
+                "mad_scale": 5.576320137961793,
+                "std": 5.826597671113838
+              },
+              "maha": {
+                "median": 5.202070831394028,
+                "mad_scale": 0.7480630488118022,
+                "std": 0.7999388228869052
+              }
+            }
+          }
+        },
+        "matched_semantic_counterfactual": {
+          "knn": 40.735460233039035,
+          "recon": 37.54864375528108,
+          "maha": 2.322727800499549,
+          "knn_z": -0.11765971348196975,
+          "recon_z": 0.026249313296774636,
+          "maha_z": -0.2332033973335547,
+          "z_sum": -0.3246137975187498,
+          "overlap_z": 0.5202888254220562,
+          "overlap_ecdf": 0.5520708900045982,
+          "scale_floor_sensitivity": {
+            "1e-08": 0.5202888254220562,
+            "1e-06": 0.5202888254220562,
+            "1e-04": 0.5202888254220562,
+            "1e-03": 0.5202888254220562,
+            "1e-02": 0.5202888254220562
+          },
+          "diagnostics": {
+            "n_contexts": 8,
+            "effective_rank_min": 23,
+            "effective_rank_max": 23,
+            "selected_rank_min": 23,
+            "selected_rank_max": 23
+          }
+        }
+      }
+    },
+    {
+      "layer": 3,
+      "pos": 3,
+      "restoration": 1.036225133806639,
+      "references": {
+        "corrupt_observational": {
+          "knn": 33.11174559907951,
+          "recon": 31.06888535331576,
+          "maha": 4.834615892856748,
+          "knn_z": 0.22368696342367173,
+          "recon_z": 0.22513748452593943,
+          "maha_z": 0.07220911429528194,
+          "z_sum": 0.5210335622448931,
+          "overlap_z": 0.4604376436275956,
+          "overlap_ecdf": 0.404328200328998,
+          "scale_floor_sensitivity": {
+            "1e-08": 0.4604376436275956,
+            "1e-06": 0.4604376436275956,
+            "1e-04": 0.4604376436275956,
+            "1e-03": 0.4604376436275956,
+            "1e-02": 0.4604376436275956
+          },
+          "diagnostics": {
+            "n_fit": 256,
+            "n_calibration": 128,
+            "unique_fit_activations": 238,
+            "unique_calibration_activations": 121,
+            "effective_rank": 237,
+            "selected_rank": 32,
+            "condition_number": 2.7651916380901147,
+            "calibration": {
+              "knn": {
+                "median": 32.64217630895679,
+                "mad_scale": 2.099225108766589,
+                "std": 2.2789904147015605
+              },
+              "recon": {
+                "median": 29.780609958213052,
+                "mad_scale": 5.722171933364916,
+                "std": 5.7699676867142236
+              },
+              "maha": {
+                "median": 4.779474381366759,
+                "mad_scale": 0.7636364471180294,
+                "std": 0.8540519705525241
+              }
+            }
+          }
+        },
+        "clean_source": {
+          "knn": 32.680501476191274,
+          "recon": 29.140297800708943,
+          "maha": 5.0602012656965725,
+          "knn_z": -0.12015464132079626,
+          "recon_z": -0.1292019086620944,
+          "maha_z": -0.002568971727635416,
+          "z_sum": -0.25192552171052607,
+          "overlap_z": 0.5192319567660731,
+          "overlap_ecdf": 0.4515738690681902,
+          "scale_floor_sensitivity": {
+            "1e-08": 0.5192319567660731,
+            "1e-06": 0.5192319567660731,
+            "1e-04": 0.5192319567660731,
+            "1e-03": 0.5192319567660731,
+            "1e-02": 0.5192319567660731
+          },
+          "diagnostics": {
+            "n_fit": 256,
+            "n_calibration": 128,
+            "unique_fit_activations": 231,
+            "unique_calibration_activations": 123,
+            "effective_rank": 230,
+            "selected_rank": 32,
+            "condition_number": 2.7997655836582385,
+            "calibration": {
+              "knn": {
+                "median": 32.97792003011634,
+                "mad_scale": 2.4752980879947994,
+                "std": 2.6793523800071952
+              },
+              "recon": {
+                "median": 30.04642607048613,
+                "mad_scale": 7.013273094494404,
+                "std": 6.660003545585195
+              },
+              "maha": {
+                "median": 5.062474707874623,
+                "mad_scale": 0.8849619299400522,
+                "std": 0.7582894660505394
+              }
+            }
+          }
+        },
+        "mixture": {
+          "knn": 32.50108037349889,
+          "recon": 29.309154777530797,
+          "maha": 5.049688928811554,
+          "knn_z": -0.05870374739393815,
+          "recon_z": -0.04467483754084386,
+          "maha_z": -0.3182889593479804,
+          "z_sum": -0.4216675442827623,
+          "overlap_z": 0.5321318643804362,
+          "overlap_ecdf": 0.44437474811021777,
+          "scale_floor_sensitivity": {
+            "1e-08": 0.5321318643804362,
+            "1e-06": 0.5321318643804362,
+            "1e-04": 0.5321318643804362,
+            "1e-03": 0.5321318643804362,
+            "1e-02": 0.5321318643804362
+          },
+          "diagnostics": {
+            "n_fit": 256,
+            "n_calibration": 128,
+            "unique_fit_activations": 231,
+            "unique_calibration_activations": 121,
+            "effective_rank": 230,
+            "selected_rank": 32,
+            "condition_number": 2.7961115144463045,
+            "calibration": {
+              "knn": {
+                "median": 32.65451531075814,
+                "mad_scale": 2.613716228874017,
+                "std": 2.411071162560294
+              },
+              "recon": {
+                "median": 29.55980289324191,
+                "mad_scale": 5.610498649982944,
+                "std": 6.022719500063183
+              },
+              "maha": {
+                "median": 5.294305152021375,
+                "mad_scale": 0.768535056041282,
+                "std": 0.7728793856734905
+              }
+            }
+          }
+        },
+        "matched_semantic_counterfactual": {
+          "knn": 44.06695603071118,
+          "recon": 40.18010902072039,
+          "maha": 2.3643550629030754,
+          "knn_z": -0.14894254172124605,
+          "recon_z": 0.20522262219181017,
+          "maha_z": -0.45219916994363063,
+          "z_sum": -0.3959190894730664,
+          "overlap_z": 0.5235816908710215,
+          "overlap_ecdf": 0.5524865609483987,
+          "scale_floor_sensitivity": {
+            "1e-08": 0.5235816908710215,
+            "1e-06": 0.5235816908710215,
+            "1e-04": 0.5235816908710215,
+            "1e-03": 0.5235816908710215,
+            "1e-02": 0.5235816908710215
+          },
+          "diagnostics": {
+            "n_contexts": 8,
+            "effective_rank_min": 23,
+            "effective_rank_max": 23,
+            "selected_rank_min": 23,
+            "selected_rank_max": 23
+          }
+        }
+      }
+    },
+    {
+      "layer": 4,
+      "pos": 3,
+      "restoration": 0.9523589344289928,
+      "references": {
+        "corrupt_observational": {
+          "knn": 35.297337985003395,
+          "recon": 32.62603744528783,
+          "maha": 4.872908006566249,
+          "knn_z": 0.3181027070227448,
+          "recon_z": 0.21953780907667664,
+          "maha_z": 0.05153432190643624,
+          "z_sum": 0.5891748380058578,
+          "overlap_z": 0.4559600246887556,
+          "overlap_ecdf": 0.3965660844886455,
+          "scale_floor_sensitivity": {
+            "1e-08": 0.4559600246887556,
+            "1e-06": 0.4559600246887556,
+            "1e-04": 0.4559600246887556,
+            "1e-03": 0.4559600246887556,
+            "1e-02": 0.4559600246887556
+          },
+          "diagnostics": {
+            "n_fit": 256,
+            "n_calibration": 128,
+            "unique_fit_activations": 238,
+            "unique_calibration_activations": 121,
+            "effective_rank": 237,
+            "selected_rank": 32,
+            "condition_number": 2.6638670159898283,
+            "calibration": {
+              "knn": {
+                "median": 34.662515492317084,
+                "mad_scale": 1.9956525948108836,
+                "std": 2.2531547601444584
+              },
+              "recon": {
+                "median": 31.33061667735734,
+                "mad_scale": 5.9006727514441275,
+                "std": 5.872111028384737
+              },
+              "maha": {
+                "median": 4.831970541085262,
+                "mad_scale": 0.7943728367147351,
+                "std": 0.8029998697354033
+              }
+            }
+          }
+        },
+        "clean_source": {
+          "knn": 34.810983112582974,
+          "recon": 30.74221562925041,
+          "maha": 5.068932868096243,
+          "knn_z": -0.0375954078048006,
+          "recon_z": -0.13240518546675034,
+          "maha_z": -0.002343263479358604,
+          "z_sum": -0.17234385675090946,
+          "overlap_z": 0.5134882940438434,
+          "overlap_ecdf": 0.45438905332263974,
+          "scale_floor_sensitivity": {
+            "1e-08": 0.5134882940438434,
+            "1e-06": 0.5134882940438434,
+            "1e-04": 0.5134882940438434,
+            "1e-03": 0.5134882940438434,
+            "1e-02": 0.5134882940438434
+          },
+          "diagnostics": {
+            "n_fit": 256,
+            "n_calibration": 128,
+            "unique_fit_activations": 231,
+            "unique_calibration_activations": 123,
+            "effective_rank": 230,
+            "selected_rank": 32,
+            "condition_number": 2.727659250933115,
+            "calibration": {
+              "knn": {
+                "median": 34.90828270209644,
+                "mad_scale": 2.5880711287574636,
+                "std": 2.8249373684037105
+              },
+              "recon": {
+                "median": 31.71593049899136,
+                "mad_scale": 7.3540538937991125,
+                "std": 6.887455912196451
+              },
+              "maha": {
+                "median": 5.070761402225422,
+                "mad_scale": 0.780336545713453,
+                "std": 0.748006836538151
+              }
+            }
+          }
+        },
+        "mixture": {
+          "knn": 34.670779449306266,
+          "recon": 30.815227988590106,
+          "maha": 5.073951041529763,
+          "knn_z": -0.07039728793116797,
+          "recon_z": -0.05968220501404442,
+          "maha_z": -0.3373406341198002,
+          "z_sum": -0.46742012706501257,
+          "overlap_z": 0.5361819480104728,
+          "overlap_ecdf": 0.4429234783455594,
+          "scale_floor_sensitivity": {
+            "1e-08": 0.5361819480104728,
+            "1e-06": 0.5361819480104728,
+            "1e-04": 0.5361819480104728,
+            "1e-03": 0.5361819480104728,
+            "1e-02": 0.5361819480104728
+          },
+          "diagnostics": {
+            "n_fit": 256,
+            "n_calibration": 128,
+            "unique_fit_activations": 231,
+            "unique_calibration_activations": 121,
+            "effective_rank": 230,
+            "selected_rank": 32,
+            "condition_number": 2.7205132888081356,
+            "calibration": {
+              "knn": {
+                "median": 34.86145037494457,
+                "mad_scale": 2.7084981714739587,
+                "std": 2.4180324214441455
+              },
+              "recon": {
+                "median": 31.150936238146198,
+                "mad_scale": 5.624930403913369,
+                "std": 6.222062183996155
+              },
+              "maha": {
+                "median": 5.319352564552373,
+                "mad_scale": 0.7274591264788476,
+                "std": 0.7491565972262549
+              }
+            }
+          }
+        },
+        "matched_semantic_counterfactual": {
+          "knn": 46.36604468528058,
+          "recon": 42.12061280369041,
+          "maha": 2.3969910537051278,
+          "knn_z": -0.18060905979393918,
+          "recon_z": 0.15434859075500293,
+          "maha_z": -0.5142759086591135,
+          "z_sum": -0.5405363776980497,
+          "overlap_z": 0.5337170052215845,
+          "overlap_ecdf": 0.5567805354031168,
+          "scale_floor_sensitivity": {
+            "1e-08": 0.5337170052215845,
+            "1e-06": 0.5337170052215845,
+            "1e-04": 0.5337170052215845,
+            "1e-03": 0.5337170052215845,
+            "1e-02": 0.5337170052215845
+          },
+          "diagnostics": {
+            "n_contexts": 8,
+            "effective_rank_min": 23,
+            "effective_rank_max": 23,
+            "selected_rank_min": 23,
+            "selected_rank_max": 23
+          }
+        }
+      }
+    },
+    {
+      "layer": 5,
+      "pos": 3,
+      "restoration": 0.9447613016387427,
+      "references": {
+        "corrupt_observational": {
+          "knn": 38.12276125425912,
+          "recon": 34.78907590220244,
+          "maha": 4.876713747957629,
+          "knn_z": 0.29087603874095286,
+          "recon_z": 0.1394453339315273,
+          "maha_z": -0.03838392414565929,
+          "z_sum": 0.391937448526821,
+          "overlap_z": 0.4713107839241486,
+          "overlap_ecdf": 0.38998923713284733,
+          "scale_floor_sensitivity": {
+            "1e-08": 0.4713107839241486,
+            "1e-06": 0.4713107839241486,
+            "1e-04": 0.4713107839241486,
+            "1e-03": 0.4713107839241486,
+            "1e-02": 0.4713107839241486
+          },
+          "diagnostics": {
+            "n_fit": 256,
+            "n_calibration": 128,
+            "unique_fit_activations": 238,
+            "unique_calibration_activations": 121,
+            "effective_rank": 237,
+            "selected_rank": 32,
+            "condition_number": 3.082858914074502,
+            "calibration": {
+              "knn": {
+                "median": 37.49908846342052,
+                "mad_scale": 2.14411882648753,
+                "std": 2.397628981033772
+              },
+              "recon": {
+                "median": 33.84706026374745,
+                "mad_scale": 6.755447542744936,
+                "std": 6.2002865402095955
+              },
+              "maha": {
+                "median": 4.908231304627693,
+                "mad_scale": 0.8211134575626334,
+                "std": 0.7822931687130821
+              }
+            }
+          }
+        },
+        "clean_source": {
+          "knn": 37.477428514846515,
+          "recon": 32.84078162881299,
+          "maha": 5.077926984570652,
+          "knn_z": -0.0778233166601767,
+          "recon_z": -0.12181588856103387,
+          "maha_z": -0.022856616188175295,
+          "z_sum": -0.22249582140938587,
+          "overlap_z": 0.5169543000209774,
+          "overlap_ecdf": 0.4588664209253829,
+          "scale_floor_sensitivity": {
+            "1e-08": 0.5169543000209774,
+            "1e-06": 0.5169543000209774,
+            "1e-04": 0.5169543000209774,
+            "1e-03": 0.5169543000209774,
+            "1e-02": 0.5169543000209774
+          },
+          "diagnostics": {
+            "n_fit": 256,
+            "n_calibration": 128,
+            "unique_fit_activations": 231,
+            "unique_calibration_activations": 123,
+            "effective_rank": 230,
+            "selected_rank": 32,
+            "condition_number": 3.1335405766335387,
+            "calibration": {
+              "knn": {
+                "median": 37.72110104023178,
+                "mad_scale": 3.131099210912387,
+                "std": 3.1365367188804263
+              },
+              "recon": {
+                "median": 33.8322343720073,
+                "mad_scale": 8.138944393099896,
+                "std": 7.165115241004055
+              },
+              "maha": {
+                "median": 5.095604307140517,
+                "mad_scale": 0.7734006829501848,
+                "std": 0.7561065499333689
+              }
+            }
+          }
+        },
+        "mixture": {
+          "knn": 37.52418215649377,
+          "recon": 32.815842004399606,
+          "maha": 5.098526668554593,
+          "knn_z": -0.02215247286028079,
+          "recon_z": -0.07957961735148344,
+          "maha_z": -0.37619730719249755,
+          "z_sum": -0.4779293974042618,
+          "overlap_z": 0.536777800430628,
+          "overlap_ecdf": 0.4366881249109163,
+          "scale_floor_sensitivity": {
+            "1e-08": 0.536777800430628,
+            "1e-06": 0.536777800430628,
+            "1e-04": 0.536777800430628,
+            "1e-03": 0.536777800430628,
+            "1e-02": 0.536777800430628
+          },
+          "diagnostics": {
+            "n_fit": 256,
+            "n_calibration": 128,
+            "unique_fit_activations": 231,
+            "unique_calibration_activations": 121,
+            "effective_rank": 230,
+            "selected_rank": 32,
+            "condition_number": 3.0930955771459367,
+            "calibration": {
+              "knn": {
+                "median": 37.58229782383711,
+                "mad_scale": 2.6234392751491864,
+                "std": 2.6124665697162954
+              },
+              "recon": {
+                "median": 33.26553825418058,
+                "mad_scale": 5.650897362257726,
+                "std": 6.620098545875928
+              },
+              "maha": {
+                "median": 5.363584859112198,
+                "mad_scale": 0.7045722696307782,
+                "std": 0.7257721069882898
+              }
+            }
+          }
+        },
+        "matched_semantic_counterfactual": {
+          "knn": 50.15754860708773,
+          "recon": 44.96713439317748,
+          "maha": 2.4417989003991027,
+          "knn_z": -0.16009769619872738,
+          "recon_z": 0.22008504397803522,
+          "maha_z": -0.3958413376309538,
+          "z_sum": -0.335853989851646,
+          "overlap_z": 0.5222164230110418,
+          "overlap_ecdf": 0.5581019710219453,
+          "scale_floor_sensitivity": {
+            "1e-08": 0.5222164230110418,
+            "1e-06": 0.5222164230110418,
+            "1e-04": 0.5222164230110418,
+            "1e-03": 0.5222164230110418,
+            "1e-02": 0.5222164230110418
+          },
+          "diagnostics": {
+            "n_contexts": 8,
+            "effective_rank_min": 23,
+            "effective_rank_max": 23,
+            "selected_rank_min": 23,
+            "selected_rank_max": 23
+          }
+        }
+      }
+    },
+    {
+      "layer": 6,
+      "pos": 3,
+      "restoration": 0.9285237180821159,
+      "references": {
+        "corrupt_observational": {
+          "knn": 42.11808165075048,
+          "recon": 37.96892812193985,
+          "maha": 4.918170135625008,
+          "knn_z": 0.22971705830697653,
+          "recon_z": 0.23922468050146212,
+          "maha_z": -0.09605264804327211,
+          "z_sum": 0.3728890907651665,
+          "overlap_z": 0.4727571917431618,
+          "overlap_ecdf": 0.38188729277426364,
+          "scale_floor_sensitivity": {
+            "1e-08": 0.4727571917431618,
+            "1e-06": 0.4727571917431618,
+            "1e-04": 0.4727571917431618,
+            "1e-03": 0.4727571917431618,
+            "1e-02": 0.4727571917431618
+          },
+          "diagnostics": {
+            "n_fit": 256,
+            "n_calibration": 128,
+            "unique_fit_activations": 238,
+            "unique_calibration_activations": 121,
+            "effective_rank": 237,
+            "selected_rank": 32,
+            "condition_number": 3.0575259677625173,
+            "calibration": {
+              "knn": {
+                "median": 41.527623028237116,
+                "mad_scale": 2.5703734274897285,
+                "std": 2.560818042478491
+              },
+              "recon": {
+                "median": 36.30567651388806,
+                "mad_scale": 6.952675637669509,
+                "std": 6.692627320003788
+              },
+              "maha": {
+                "median": 4.98628031136109,
+                "mad_scale": 0.7090921189949644,
+                "std": 0.7594362227985835
+              }
+            }
+          }
+        },
+        "clean_source": {
+          "knn": 41.37645978465572,
+          "recon": 36.04587703066183,
+          "maha": 5.094412522096954,
+          "knn_z": -0.2009176368523724,
+          "recon_z": -0.05430656329161319,
+          "maha_z": -0.05938547943499339,
+          "z_sum": -0.314609679578979,
+          "overlap_z": 0.5237429263037445,
+          "overlap_ecdf": 0.45940781318242613,
+          "scale_floor_sensitivity": {
+            "1e-08": 0.5237429263037445,
+            "1e-06": 0.5237429263037445,
+            "1e-04": 0.5237429263037445,
+            "1e-03": 0.5237429263037445,
+            "1e-02": 0.5237429263037445
+          },
+          "diagnostics": {
+            "n_fit": 256,
+            "n_calibration": 128,
+            "unique_fit_activations": 231,
+            "unique_calibration_activations": 123,
+            "effective_rank": 230,
+            "selected_rank": 32,
+            "condition_number": 3.1060704387655838,
+            "calibration": {
+              "knn": {
+                "median": 42.07077479052711,
+                "mad_scale": 3.4557195512982437,
+                "std": 3.5729564306395316
+              },
+              "recon": {
+                "median": 36.47457616913789,
+                "mad_scale": 7.894057596207115,
+                "std": 7.634394693471171
+              },
+              "maha": {
+                "median": 5.1389837518568235,
+                "mad_scale": 0.7505408760513382,
+                "std": 0.7593321573978764
+              }
+            }
+          }
+        },
+        "mixture": {
+          "knn": 41.67264167505975,
+          "recon": 35.77444380372797,
+          "maha": 5.146754321934208,
+          "knn_z": 0.004840921008954324,
+          "recon_z": -0.005916276753831795,
+          "maha_z": -0.42759936129449827,
+          "z_sum": -0.4286747170393757,
+          "overlap_z": 0.5324777386111448,
+          "overlap_ecdf": 0.4164415856525088,
+          "scale_floor_sensitivity": {
+            "1e-08": 0.5324777386111448,
+            "1e-06": 0.5324777386111448,
+            "1e-04": 0.5324777386111448,
+            "1e-03": 0.5324777386111448,
+            "1e-02": 0.5324777386111448
+          },
+          "diagnostics": {
+            "n_fit": 256,
+            "n_calibration": 128,
+            "unique_fit_activations": 231,
+            "unique_calibration_activations": 121,
+            "effective_rank": 230,
+            "selected_rank": 32,
+            "condition_number": 3.0544048448675714,
+            "calibration": {
+              "knn": {
+                "median": 41.65850122116389,
+                "mad_scale": 2.921025538261582,
+                "std": 2.8430838929261064
+              },
+              "recon": {
+                "median": 35.81440880189478,
+                "mad_scale": 6.755092743240104,
+                "std": 7.09590729973063
+              },
+              "maha": {
+                "median": 5.417873429230923,
+                "mad_scale": 0.6340493738716997,
+                "std": 0.7122739286418818
+              }
+            }
+          }
+        },
+        "matched_semantic_counterfactual": {
+          "knn": 54.97239304412452,
+          "recon": 49.122020194639084,
+          "maha": 2.4743071503737206,
+          "knn_z": -0.16164919367777136,
+          "recon_z": 0.2482696975937518,
+          "maha_z": -0.3223021270127563,
+          "z_sum": -0.23568162309677584,
+          "overlap_z": 0.5156255954525076,
+          "overlap_ecdf": 0.5387415770809347,
+          "scale_floor_sensitivity": {
+            "1e-08": 0.5156255954525076,
+            "1e-06": 0.5156255954525076,
+            "1e-04": 0.5156255954525076,
+            "1e-03": 0.5156255954525076,
+            "1e-02": 0.5156255954525076
+          },
+          "diagnostics": {
+            "n_contexts": 8,
+            "effective_rank_min": 23,
+            "effective_rank_max": 23,
+            "selected_rank_min": 23,
+            "selected_rank_max": 23
+          }
+        }
+      }
+    },
+    {
+      "layer": 7,
+      "pos": 3,
+      "restoration": 0.9207876061764741,
+      "references": {
+        "corrupt_observational": {
+          "knn": 46.66131464191378,
+          "recon": 41.85116790708064,
+          "maha": 4.9680587121760755,
+          "knn_z": 0.16482488954622196,
+          "recon_z": 0.19588506074896536,
+          "maha_z": -0.09808736255029467,
+          "z_sum": 0.2626225877448927,
+          "overlap_z": 0.481224339973506,
+          "overlap_ecdf": 0.37529186824326805,
+          "scale_floor_sensitivity": {
+            "1e-08": 0.481224339973506,
+            "1e-06": 0.481224339973506,
+            "1e-04": 0.481224339973506,
+            "1e-03": 0.481224339973506,
+            "1e-02": 0.481224339973506
+          },
+          "diagnostics": {
+            "n_fit": 256,
+            "n_calibration": 128,
+            "unique_fit_activations": 238,
+            "unique_calibration_activations": 121,
+            "effective_rank": 237,
+            "selected_rank": 32,
+            "condition_number": 3.2539747297279793,
+            "calibration": {
+              "knn": {
+                "median": 46.08361807293032,
+                "mad_scale": 3.5049110032709003,
+                "std": 3.22346562408118
+              },
+              "recon": {
+                "median": 40.385426586341936,
+                "mad_scale": 7.482660061642524,
+                "std": 7.226775561329235
+              },
+              "maha": {
+                "median": 5.043358835550672,
+                "mad_scale": 0.7676842502109855,
+                "std": 0.7890578456073635
+              }
+            }
+          }
+        },
+        "clean_source": {
+          "knn": 45.9459285254613,
+          "recon": 39.68974954989666,
+          "maha": 5.156992413328114,
+          "knn_z": -0.12372394285746816,
+          "recon_z": -0.10361818844796486,
+          "maha_z": -0.0541532217634614,
+          "z_sum": -0.28149535306889434,
+          "overlap_z": 0.5221969434786112,
+          "overlap_ecdf": 0.45237890944102066,
+          "scale_floor_sensitivity": {
+            "1e-08": 0.5221969434786112,
+            "1e-06": 0.5221969434786112,
+            "1e-04": 0.5221969434786112,
+            "1e-03": 0.5221969434786112,
+            "1e-02": 0.5221969434786112
+          },
+          "diagnostics": {
+            "n_fit": 256,
+            "n_calibration": 128,
+            "unique_fit_activations": 231,
+            "unique_calibration_activations": 123,
+            "effective_rank": 230,
+            "selected_rank": 32,
+            "condition_number": 3.289858412091143,
+            "calibration": {
+              "knn": {
+                "median": 46.48394037677363,
+                "mad_scale": 4.3484861449342285,
+                "std": 4.365341923114853
+              },
+              "recon": {
+                "median": 40.64588135014192,
+                "mad_scale": 9.227451421093056,
+                "std": 8.174180688370367
+              },
+              "maha": {
+                "median": 5.201419923823756,
+                "mad_scale": 0.8204038291516531,
+                "std": 0.7952375727619119
+              }
+            }
+          }
+        },
+        "mixture": {
+          "knn": 45.77550084184414,
+          "recon": 39.71286826030157,
+          "maha": 5.1362939942557615,
+          "knn_z": 0.003611702354082835,
+          "recon_z": 0.002433502975269325,
+          "maha_z": -0.23782517994836164,
+          "z_sum": -0.2317799746190095,
+          "overlap_z": 0.5184320929529318,
+          "overlap_ecdf": 0.40403085770345204,
+          "scale_floor_sensitivity": {
+            "1e-08": 0.5184320929529318,
+            "1e-06": 0.5184320929529318,
+            "1e-04": 0.5184320929529318,
+            "1e-03": 0.5184320929529318,
+            "1e-02": 0.5184320929529318
+          },
+          "diagnostics": {
+            "n_fit": 256,
+            "n_calibration": 128,
+            "unique_fit_activations": 231,
+            "unique_calibration_activations": 121,
+            "effective_rank": 230,
+            "selected_rank": 32,
+            "condition_number": 3.257340757324743,
+            "calibration": {
+              "knn": {
+                "median": 45.76185205162736,
+                "mad_scale": 3.7790462443170383,
+                "std": 3.628560510170014
+              },
+              "recon": {
+                "median": 39.69623365775702,
+                "mad_scale": 6.835661477958683,
+                "std": 7.72526879592616
+              },
+              "maha": {
+                "median": 5.300806579765355,
+                "mad_scale": 0.6917374583520326,
+                "std": 0.749497295891742
+              }
+            }
+          }
+        },
+        "matched_semantic_counterfactual": {
+          "knn": 60.740161195252846,
+          "recon": 54.34726743105345,
+          "maha": 2.4654134194009125,
+          "knn_z": -0.1940888702296652,
+          "recon_z": 0.316723317429502,
+          "maha_z": -0.34710371764173015,
+          "z_sum": -0.2244692704418935,
+          "overlap_z": 0.5109844611747403,
+          "overlap_ecdf": 0.5286762467964756,
+          "scale_floor_sensitivity": {
+            "1e-08": 0.5109844611747403,
+            "1e-06": 0.5109844611747403,
+            "1e-04": 0.5109844611747403,
+            "1e-03": 0.5109844611747403,
+            "1e-02": 0.5109844611747403
+          },
+          "diagnostics": {
+            "n_contexts": 8,
+            "effective_rank_min": 23,
+            "effective_rank_max": 23,
+            "selected_rank_min": 23,
+            "selected_rank_max": 23
+          }
+        }
+      }
+    },
+    {
+      "layer": 8,
+      "pos": 3,
+      "restoration": 0.9120515556791574,
+      "references": {
+        "corrupt_observational": {
+          "knn": 50.36715487660097,
+          "recon": 45.77951860898473,
+          "maha": 4.947147377057766,
+          "knn_z": 0.15009214850471767,
+          "recon_z": 0.22805131430590456,
+          "maha_z": -0.10341297374636689,
+          "z_sum": 0.2747304890642553,
+          "overlap_z": 0.47921937597955644,
+          "overlap_ecdf": 0.3704131947398272,
+          "scale_floor_sensitivity": {
+            "1e-08": 0.47921937597955644,
+            "1e-06": 0.47921937597955644,
+            "1e-04": 0.47921937597955644,
+            "1e-03": 0.47921937597955644,
+            "1e-02": 0.47921937597955644
+          },
+          "diagnostics": {
+            "n_fit": 256,
+            "n_calibration": 128,
+            "unique_fit_activations": 238,
+            "unique_calibration_activations": 121,
+            "effective_rank": 237,
+            "selected_rank": 32,
+            "condition_number": 3.163336040787994,
+            "calibration": {
+              "knn": {
+                "median": 49.68864108453245,
+                "mad_scale": 4.520648140680041,
+                "std": 3.801570341792234
+              },
+              "recon": {
+                "median": 43.963429609049086,
+                "mad_scale": 7.963510341797788,
+                "std": 7.730769448555533
+              },
+              "maha": {
+                "median": 5.031860078253629,
+                "mad_scale": 0.8191689894116354,
+                "std": 0.7930771094649681
+              }
+            }
+          }
+        },
+        "clean_source": {
+          "knn": 50.08219283254893,
+          "recon": 43.327862164203836,
+          "maha": 5.156251005250019,
+          "knn_z": -0.19684603085785413,
+          "recon_z": -0.0822561636947407,
+          "maha_z": -0.041878173955255595,
+          "z_sum": -0.3209803685078504,
+          "overlap_z": 0.5249027421923708,
+          "overlap_ecdf": 0.448663681956611,
+          "scale_floor_sensitivity": {
+            "1e-08": 0.5249027421923708,
+            "1e-06": 0.5249027421923708,
+            "1e-04": 0.5249027421923708,
+            "1e-03": 0.5249027421923708,
+            "1e-02": 0.5249027421923708
+          },
+          "diagnostics": {
+            "n_fit": 256,
+            "n_calibration": 128,
+            "unique_fit_activations": 231,
+            "unique_calibration_activations": 123,
+            "effective_rank": 230,
+            "selected_rank": 32,
+            "condition_number": 3.167092990041325,
+            "calibration": {
+              "knn": {
+                "median": 51.01978580872154,
+                "mad_scale": 4.76307788420517,
+                "std": 5.004233086591108
+              },
+              "recon": {
+                "median": 44.17094799641799,
+                "mad_scale": 10.249515590623872,
+                "std": 8.88214441355725
+              },
+              "maha": {
+                "median": 5.1917495143985235,
+                "mad_scale": 0.8476613423123914,
+                "std": 0.8119709011703174
+              }
+            }
+          }
+        },
+        "mixture": {
+          "knn": 49.831717190051634,
+          "recon": 43.30992538091046,
+          "maha": 5.128912964946167,
+          "knn_z": 0.011644491270650714,
+          "recon_z": 0.06361871238145553,
+          "maha_z": -0.16428392852213455,
+          "z_sum": -0.08902072487002836,
+          "overlap_z": 0.5074044615011002,
+          "overlap_ecdf": 0.39683730543228274,
+          "scale_floor_sensitivity": {
+            "1e-08": 0.5074044615011002,
+            "1e-06": 0.5074044615011002,
+            "1e-04": 0.5074044615011002,
+            "1e-03": 0.5074044615011002,
+            "1e-02": 0.5074044615011002
+          },
+          "diagnostics": {
+            "n_fit": 256,
+            "n_calibration": 128,
+            "unique_fit_activations": 231,
+            "unique_calibration_activations": 121,
+            "effective_rank": 230,
+            "selected_rank": 32,
+            "condition_number": 3.142768061328549,
+            "calibration": {
+              "knn": {
+                "median": 49.777634157563966,
+                "mad_scale": 4.644516555565142,
+                "std": 4.310630060766363
+              },
+              "recon": {
+                "median": 42.825548613937926,
+                "mad_scale": 7.613746786766451,
+                "std": 8.311756068813608
+              },
+              "maha": {
+                "median": 5.240265731436248,
+                "mad_scale": 0.6778068158692565,
+                "std": 0.8066969008840205
+              }
+            }
+          }
+        },
+        "matched_semantic_counterfactual": {
+          "knn": 65.06447352215669,
+          "recon": 58.87960379045561,
+          "maha": 2.4181078120052657,
+          "knn_z": -0.1704558339475595,
+          "recon_z": 0.2740739093730826,
+          "maha_z": -0.4085365452843037,
+          "z_sum": -0.30491846985878057,
+          "overlap_z": 0.5150547220896485,
+          "overlap_ecdf": 0.525418524000737,
+          "scale_floor_sensitivity": {
+            "1e-08": 0.5150547220896485,
+            "1e-06": 0.5150547220896485,
+            "1e-04": 0.5150547220896485,
+            "1e-03": 0.5150547220896485,
+            "1e-02": 0.5150547220896485
+          },
+          "diagnostics": {
+            "n_contexts": 8,
+            "effective_rank_min": 23,
+            "effective_rank_max": 23,
+            "selected_rank_min": 23,
+            "selected_rank_max": 23
+          }
+        }
+      }
+    },
+    {
+      "layer": 9,
+      "pos": 3,
+      "restoration": 0.7003866396591008,
+      "references": {
+        "corrupt_observational": {
+          "knn": 53.09036204608289,
+          "recon": 50.39282625940747,
+          "maha": 4.870883536626763,
+          "knn_z": 0.11328799974356454,
+          "recon_z": 0.33008323356642577,
+          "maha_z": -0.12774129608748158,
+          "z_sum": 0.31562993722250876,
+          "overlap_z": 0.4760186631972648,
+          "overlap_ecdf": 0.373318857368057,
+          "scale_floor_sensitivity": {
+            "1e-08": 0.4760186631972648,
+            "1e-06": 0.4760186631972648,
+            "1e-04": 0.4760186631972648,
+            "1e-03": 0.4760186631972648,
+            "1e-02": 0.4760186631972648
+          },
+          "diagnostics": {
+            "n_fit": 256,
+            "n_calibration": 128,
+            "unique_fit_activations": 238,
+            "unique_calibration_activations": 121,
+            "effective_rank": 237,
+            "selected_rank": 32,
+            "condition_number": 3.136617151235616,
+            "calibration": {
+              "knn": {
+                "median": 52.47099873163059,
+                "mad_scale": 5.467157296927053,
+                "std": 4.500358176971567
+              },
+              "recon": {
+                "median": 47.88936491115871,
+                "mad_scale": 7.584333567021269,
+                "std": 8.3312720934862
+              },
+              "maha": {
+                "median": 4.96853271365904,
+                "mad_scale": 0.764429202013134,
+                "std": 0.834437637560259
+              }
+            }
+          }
+        },
+        "clean_source": {
+          "knn": 53.393512271572924,
+          "recon": 47.43062532152154,
+          "maha": 5.126754695311978,
+          "knn_z": -0.10778629000261461,
+          "recon_z": -0.15025031231567926,
+          "maha_z": 0.15558929896429052,
+          "z_sum": -0.1024473033540032,
+          "overlap_z": 0.5080991995513519,
+          "overlap_ecdf": 0.44124483560484096,
+          "scale_floor_sensitivity": {
+            "1e-08": 0.5080991995513519,
+            "1e-06": 0.5080991995513519,
+            "1e-04": 0.5080991995513519,
+            "1e-03": 0.5080991995513519,
+            "1e-02": 0.5080991995513519
+          },
+          "diagnostics": {
+            "n_fit": 256,
+            "n_calibration": 128,
+            "unique_fit_activations": 231,
+            "unique_calibration_activations": 123,
+            "effective_rank": 230,
+            "selected_rank": 32,
+            "condition_number": 3.137808757322141,
+            "calibration": {
+              "knn": {
+                "median": 53.962143516082634,
+                "mad_scale": 5.275543341327623,
+                "std": 5.60403749383336
+              },
+              "recon": {
+                "median": 48.9434022606859,
+                "mad_scale": 10.068378001011983,
+                "std": 9.631871647103303
+              },
+              "maha": {
+                "median": 5.0062712693948,
+                "mad_scale": 0.774368332007396,
+                "std": 0.8717606607885428
+              }
+            }
+          }
+        },
+        "mixture": {
+          "knn": 52.85218615301902,
+          "recon": 47.658002228067105,
+          "maha": 5.066502655845623,
+          "knn_z": -0.06326232593233275,
+          "recon_z": 0.18642616895819802,
+          "maha_z": -0.16413573937999065,
+          "z_sum": -0.04097189635412536,
+          "overlap_z": 0.5035145136575967,
+          "overlap_ecdf": 0.394243882137665,
+          "scale_floor_sensitivity": {
+            "1e-08": 0.5035145136575967,
+            "1e-06": 0.5035145136575967,
+            "1e-04": 0.5035145136575967,
+            "1e-03": 0.5035145136575967,
+            "1e-02": 0.5035145136575967
+          },
+          "diagnostics": {
+            "n_fit": 256,
+            "n_calibration": 128,
+            "unique_fit_activations": 231,
+            "unique_calibration_activations": 121,
+            "effective_rank": 230,
+            "selected_rank": 32,
+            "condition_number": 3.124073604342286,
+            "calibration": {
+              "knn": {
+                "median": 53.177174902550945,
+                "mad_scale": 5.13716093650332,
+                "std": 4.984322652399639
+              },
+              "recon": {
+                "median": 46.24536912936417,
+                "mad_scale": 7.577439940954233,
+                "std": 8.877932319733372
+              },
+              "maha": {
+                "median": 5.182829071486957,
+                "mad_scale": 0.708720819004725,
+                "std": 0.8425373890214157
+              }
+            }
+          }
+        },
+        "matched_semantic_counterfactual": {
+          "knn": 69.17805120763589,
+          "recon": 63.567848267522116,
+          "maha": 2.3369532011122374,
+          "knn_z": -0.19767680258091866,
+          "recon_z": 0.12869018353605005,
+          "maha_z": -0.3225082895208919,
+          "z_sum": -0.3914949085657605,
+          "overlap_z": 0.5239676840619226,
+          "overlap_ecdf": 0.5279836441206767,
+          "scale_floor_sensitivity": {
+            "1e-08": 0.5239676840619226,
+            "1e-06": 0.5239676840619226,
+            "1e-04": 0.5239676840619226,
+            "1e-03": 0.5239676840619226,
+            "1e-02": 0.5239676840619226
+          },
+          "diagnostics": {
+            "n_contexts": 8,
+            "effective_rank_min": 23,
+            "effective_rank_max": 23,
+            "selected_rank_min": 23,
+            "selected_rank_max": 23
+          }
+        }
+      }
+    },
+    {
+      "layer": 9,
+      "pos": 16,
+      "restoration": 0.5950663782926633,
+      "references": {
+        "corrupt_observational": {
+          "knn": 45.44982892950289,
+          "recon": 53.02395465690087,
+          "maha": 6.355469719705275,
+          "knn_z": 0.9050095944857676,
+          "recon_z": 3.7632575550154796,
+          "maha_z": 1.4771273418437396,
+          "z_sum": 6.1453944913449865,
+          "overlap_z": 0.1681230596944014,
+          "overlap_ecdf": 0.10720678830265924,
+          "scale_floor_sensitivity": {
+            "1e-08": 0.1681230596944014,
+            "1e-06": 0.1681230596944014,
+            "1e-04": 0.1681230596944014,
+            "1e-03": 0.1681230596944014,
+            "1e-02": 0.1681230596944014
+          },
+          "diagnostics": {
+            "n_fit": 256,
+            "n_calibration": 128,
+            "unique_fit_activations": 256,
+            "unique_calibration_activations": 128,
+            "effective_rank": 255,
+            "selected_rank": 32,
+            "condition_number": 3.0291252976708614,
+            "calibration": {
+              "knn": {
+                "median": 39.57712761761181,
+                "mad_scale": 6.489103925166663,
+                "std": 5.673955791622703
+              },
+              "recon": {
+                "median": 31.555997121766367,
+                "mad_scale": 5.704620856078025,
+                "std": 5.419099480803697
+              },
+              "maha": {
+                "median": 5.009994163904757,
+                "mad_scale": 0.9108730965071066,
+                "std": 0.9130922766688812
+              }
+            }
+          }
+        },
+        "clean_source": {
+          "knn": 50.38637731821328,
+          "recon": 42.409204673363135,
+          "maha": 5.4030283079404295,
+          "knn_z": 0.415542750946681,
+          "recon_z": 0.30645993137818406,
+          "maha_z": 0.47172929204974545,
+          "z_sum": 1.1937319743746104,
+          "overlap_z": 0.4163161590254692,
+          "overlap_ecdf": 0.35721961799957264,
+          "scale_floor_sensitivity": {
+            "1e-08": 0.4163161590254692,
+            "1e-06": 0.4163161590254692,
+            "1e-04": 0.4163161590254692,
+            "1e-03": 0.4163161590254692,
+            "1e-02": 0.4163161590254692
+          },
+          "diagnostics": {
+            "n_fit": 256,
+            "n_calibration": 128,
+            "unique_fit_activations": 256,
+            "unique_calibration_activations": 128,
+            "effective_rank": 255,
+            "selected_rank": 32,
+            "condition_number": 2.376594857134472,
+            "calibration": {
+              "knn": {
+                "median": 47.6895899496553,
+                "mad_scale": 6.489795243483882,
+                "std": 5.821914697300825
+              },
+              "recon": {
+                "median": 40.489016083929,
+                "mad_scale": 6.265708475489218,
+                "std": 6.864929195383776
+              },
+              "maha": {
+                "median": 4.895460317431496,
+                "mad_scale": 1.075973018981846,
+                "std": 0.9223739402596935
+              }
+            }
+          }
+        },
+        "mixture": {
+          "knn": 50.78672504111178,
+          "recon": 43.46518392910059,
+          "maha": 5.753959270693296,
+          "knn_z": 0.8796761870562719,
+          "recon_z": 0.8335821247946736,
+          "maha_z": 0.8662550366776542,
+          "z_sum": 2.5795133485285993,
+          "overlap_z": 0.32474231938245257,
+          "overlap_ecdf": 0.2549813351938852,
+          "scale_floor_sensitivity": {
+            "1e-08": 0.32474231938245257,
+            "1e-06": 0.32474231938245257,
+            "1e-04": 0.32474231938245257,
+            "1e-03": 0.32474231938245257,
+            "1e-02": 0.32474231938245257
+          },
+          "diagnostics": {
+            "n_fit": 256,
+            "n_calibration": 128,
+            "unique_fit_activations": 256,
+            "unique_calibration_activations": 128,
+            "effective_rank": 255,
+            "selected_rank": 32,
+            "condition_number": 2.819823588088765,
+            "calibration": {
+              "knn": {
+                "median": 44.19388160138171,
+                "mad_scale": 7.494625336843782,
+                "std": 7.0596378762637775
+              },
+              "recon": {
+                "median": 36.61730357271376,
+                "mad_scale": 8.215003840291784,
+                "std": 7.856106732750824
+              },
+              "maha": {
+                "median": 4.934858081921657,
+                "mad_scale": 0.9455658600417907,
+                "std": 1.0011676241091814
+              }
+            }
+          }
+        },
+        "matched_semantic_counterfactual": {
+          "knn": 52.974125255891714,
+          "recon": 45.15641072054652,
+          "maha": 3.391139013184447,
+          "knn_z": 0.09728224791937616,
+          "recon_z": 0.24609277670874524,
+          "maha_z": 0.25037140016596604,
+          "z_sum": 0.5937464247940875,
+          "overlap_z": 0.4597897146221607,
+          "overlap_ecdf": 0.49068039084612636,
+          "scale_floor_sensitivity": {
+            "1e-08": 0.4597897146221607,
+            "1e-06": 0.4597897146221607,
+            "1e-04": 0.4597897146221607,
+            "1e-03": 0.4597897146221607,
+            "1e-02": 0.4597897146221607
+          },
+          "diagnostics": {
+            "n_contexts": 8,
+            "effective_rank_min": 23,
+            "effective_rank_max": 23,
+            "selected_rank_min": 23,
+            "selected_rank_max": 23
+          }
+        }
+      }
+    },
+    {
+      "layer": 10,
+      "pos": 3,
+      "restoration": 0.2653073142854196,
+      "references": {
+        "corrupt_observational": {
+          "knn": 56.21237683458967,
+          "recon": 56.23647875824132,
+          "maha": 4.7875615767899316,
+          "knn_z": 0.09291380894462943,
+          "recon_z": 0.33412140161845383,
+          "maha_z": -0.17483009078097694,
+          "z_sum": 0.2522051197821062,
+          "overlap_z": 0.4811692836389348,
+          "overlap_ecdf": 0.38334509459538485,
+          "scale_floor_sensitivity": {
+            "1e-08": 0.4811692836389348,
+            "1e-06": 0.4811692836389348,
+            "1e-04": 0.4811692836389348,
+            "1e-03": 0.4811692836389348,
+            "1e-02": 0.4811692836389348
+          },
+          "diagnostics": {
+            "n_fit": 256,
+            "n_calibration": 128,
+            "unique_fit_activations": 238,
+            "unique_calibration_activations": 121,
+            "effective_rank": 237,
+            "selected_rank": 32,
+            "condition_number": 2.8777277478783727,
+            "calibration": {
+              "knn": {
+                "median": 55.697984497869626,
+                "mad_scale": 5.536231293957417,
+                "std": 4.921014019404785
+              },
+              "recon": {
+                "median": 53.211040036367905,
+                "mad_scale": 9.054908506963221,
+                "std": 9.000416848910906
+              },
+              "maha": {
+                "median": 4.924410183665801,
+                "mad_scale": 0.7827520209167583,
+                "std": 0.8709368923306665
+              }
+            }
+          }
+        },
+        "clean_source": {
+          "knn": 55.959058756621765,
+          "recon": 53.41000786972646,
+          "maha": 4.975142949743539,
+          "knn_z": -0.1251600967422113,
+          "recon_z": -0.05511985959572872,
+          "maha_z": 0.11773733346678654,
+          "z_sum": -0.0625426228711535,
+          "overlap_z": 0.5053640761588659,
+          "overlap_ecdf": 0.4510428103398036,
+          "scale_floor_sensitivity": {
+            "1e-08": 0.5053640761588659,
+            "1e-06": 0.5053640761588659,
+            "1e-04": 0.5053640761588659,
+            "1e-03": 0.5053640761588659,
+            "1e-02": 0.5053640761588659
+          },
+          "diagnostics": {
+            "n_fit": 256,
+            "n_calibration": 128,
+            "unique_fit_activations": 231,
+            "unique_calibration_activations": 123,
+            "effective_rank": 230,
+            "selected_rank": 32,
+            "condition_number": 2.873650652387116,
+            "calibration": {
+              "knn": {
+                "median": 56.637696009684376,
+                "mad_scale": 5.422153471648279,
+                "std": 6.173533453809916
+              },
+              "recon": {
+                "median": 54.03955862481656,
+                "mad_scale": 11.421486914289542,
+                "std": 10.522358463101856
+              },
+              "maha": {
+                "median": 4.880710041751623,
+                "mad_scale": 0.8020642663743975,
+                "std": 0.9775622702395101
+              }
+            }
+          }
+        },
+        "mixture": {
+          "knn": 56.09708234162839,
+          "recon": 53.18187122890076,
+          "maha": 5.003356709388593,
+          "knn_z": -0.11442588999309833,
+          "recon_z": 0.20277870847404839,
+          "maha_z": -0.109785862708256,
+          "z_sum": -0.02143304422730593,
+          "overlap_z": 0.5025499094150288,
+          "overlap_ecdf": 0.3991282100791048,
+          "scale_floor_sensitivity": {
+            "1e-08": 0.5025499094150288,
+            "1e-06": 0.5025499094150288,
+            "1e-04": 0.5025499094150288,
+            "1e-03": 0.5025499094150288,
+            "1e-02": 0.5025499094150288
+          },
+          "diagnostics": {
+            "n_fit": 256,
+            "n_calibration": 128,
+            "unique_fit_activations": 231,
+            "unique_calibration_activations": 121,
+            "effective_rank": 230,
+            "selected_rank": 32,
+            "condition_number": 2.874950297120273,
+            "calibration": {
+              "knn": {
+                "median": 56.602945318480764,
+                "mad_scale": 4.420878674248314,
+                "std": 5.563603558284903
+              },
+              "recon": {
+                "median": 51.41923616501421,
+                "mad_scale": 8.692406994554537,
+                "std": 9.731203905675283
+              },
+              "maha": {
+                "median": 5.098574471093173,
+                "mad_scale": 0.8673043992705157,
+                "std": 0.8926460353482198
+              }
+            }
+          }
+        },
+        "matched_semantic_counterfactual": {
+          "knn": 73.24514460698275,
+          "recon": 68.96172191309863,
+          "maha": 2.2015862025403052,
+          "knn_z": -0.15563033601863094,
+          "recon_z": 0.08796038262441543,
+          "maha_z": -0.3332333585176932,
+          "z_sum": -0.40090331191190864,
+          "overlap_z": 0.5294972509758468,
+          "overlap_ecdf": 0.538884433474389,
+          "scale_floor_sensitivity": {
+            "1e-08": 0.5294972509758468,
+            "1e-06": 0.5294972509758468,
+            "1e-04": 0.5294972509758468,
+            "1e-03": 0.5294972509758468,
+            "1e-02": 0.5294972509758468
+          },
+          "diagnostics": {
+            "n_contexts": 8,
+            "effective_rank_min": 23,
+            "effective_rank_max": 23,
+            "selected_rank_min": 23,
+            "selected_rank_max": 23
+          }
+        }
+      }
+    },
+    {
+      "layer": 10,
+      "pos": 16,
+      "restoration": 0.8119824880265705,
+      "references": {
+        "corrupt_observational": {
+          "knn": 55.942234136921535,
+          "recon": 66.55295729426855,
+          "maha": 5.75242943925773,
+          "knn_z": 1.157450438258679,
+          "recon_z": 3.121954390791031,
+          "maha_z": 1.1838460808187847,
+          "z_sum": 5.463250909868495,
+          "overlap_z": 0.16696787224081094,
+          "overlap_ecdf": 0.0842615579190965,
+          "scale_floor_sensitivity": {
+            "1e-08": 0.16696787224081094,
+            "1e-06": 0.16696787224081094,
+            "1e-04": 0.16696787224081094,
+            "1e-03": 0.16696787224081094,
+            "1e-02": 0.16696787224081094
+          },
+          "diagnostics": {
+            "n_fit": 256,
+            "n_calibration": 128,
+            "unique_fit_activations": 256,
+            "unique_calibration_activations": 128,
+            "effective_rank": 255,
+            "selected_rank": 32,
+            "condition_number": 2.6809904669631215,
+            "calibration": {
+              "knn": {
+                "median": 49.11514663457595,
+                "mad_scale": 5.8983843080284,
+                "std": 5.773338410575588
+              },
+              "recon": {
+                "median": 44.511578290610416,
+                "mad_scale": 7.060122040435496,
+                "std": 6.851917469724614
+              },
+              "maha": {
+                "median": 4.841947284195499,
+                "mad_scale": 0.7690882875859278,
+                "std": 0.8198178035746946
+              }
+            }
+          }
+        },
+        "clean_source": {
+          "knn": 61.87009712269285,
+          "recon": 56.851659758226745,
+          "maha": 5.016121365726427,
+          "knn_z": 0.3165938228970204,
+          "recon_z": -0.009158683287754954,
+          "maha_z": 0.21489080273224634,
+          "z_sum": 0.5223259423415116,
+          "overlap_z": 0.46149285293608233,
+          "overlap_ecdf": 0.3892076052723076,
+          "scale_floor_sensitivity": {
+            "1e-08": 0.46149285293608233,
+            "1e-06": 0.46149285293608233,
+            "1e-04": 0.46149285293608233,
+            "1e-03": 0.46149285293608233,
+            "1e-02": 0.46149285293608233
+          },
+          "diagnostics": {
+            "n_fit": 256,
+            "n_calibration": 128,
+            "unique_fit_activations": 256,
+            "unique_calibration_activations": 128,
+            "effective_rank": 255,
+            "selected_rank": 32,
+            "condition_number": 2.232242756500909,
+            "calibration": {
+              "knn": {
+                "median": 60.34477965741069,
+                "mad_scale": 4.817900271472752,
+                "std": 5.031444008584469
+              },
+              "recon": {
+                "median": 56.90396679882352,
+                "mad_scale": 5.711196571969672,
+                "std": 7.821967021131168
+              },
+              "maha": {
+                "median": 4.859046321688552,
+                "mad_scale": 0.7309528469377553,
+                "std": 0.7170674047030203
+              }
+            }
+          }
+        },
+        "mixture": {
+          "knn": 62.2460987309769,
+          "recon": 57.246507800602046,
+          "maha": 5.323209073083065,
+          "knn_z": 0.6681942122549505,
+          "recon_z": 0.7018058595196072,
+          "maha_z": 0.5236988695173463,
+          "z_sum": 1.893698941291904,
+          "overlap_z": 0.3567322494326527,
+          "overlap_ecdf": 0.27362622487221744,
+          "scale_floor_sensitivity": {
+            "1e-08": 0.3567322494326527,
+            "1e-06": 0.3567322494326527,
+            "1e-04": 0.3567322494326527,
+            "1e-03": 0.3567322494326527,
+            "1e-02": 0.3567322494326527
+          },
+          "diagnostics": {
+            "n_fit": 256,
+            "n_calibration": 128,
+            "unique_fit_activations": 256,
+            "unique_calibration_activations": 128,
+            "effective_rank": 255,
+            "selected_rank": 32,
+            "condition_number": 2.8342636298283224,
+            "calibration": {
+              "knn": {
+                "median": 56.95551933991351,
+                "mad_scale": 7.9177270530514,
+                "std": 7.138561298561013
+              },
+              "recon": {
+                "median": 50.23841881196623,
+                "mad_scale": 9.985794352633254,
+                "std": 9.903634808972852
+              },
+              "maha": {
+                "median": 4.810808542464699,
+                "mad_scale": 0.9784258864079786,
+                "std": 0.8664012696380747
+              }
+            }
+          }
+        },
+        "matched_semantic_counterfactual": {
+          "knn": 65.95285797270355,
+          "recon": 59.51278394945431,
+          "maha": 2.5644291942124653,
+          "knn_z": -0.11530315540215072,
+          "recon_z": 0.10358796544406852,
+          "maha_z": -0.3538176820206652,
+          "z_sum": -0.3655328719787474,
+          "overlap_z": 0.5283803095609112,
+          "overlap_ecdf": 0.5479584237835784,
+          "scale_floor_sensitivity": {
+            "1e-08": 0.5283803095609112,
+            "1e-06": 0.5283803095609112,
+            "1e-04": 0.5283803095609112,
+            "1e-03": 0.5283803095609112,
+            "1e-02": 0.5283803095609112
+          },
+          "diagnostics": {
+            "n_contexts": 8,
+            "effective_rank_min": 23,
+            "effective_rank_max": 23,
+            "selected_rank_min": 23,
+            "selected_rank_max": 23
+          }
+        }
+      }
+    },
+    {
+      "layer": 11,
+      "pos": 16,
+      "restoration": 0.9999999283728713,
+      "references": {
+        "corrupt_observational": {
+          "knn": 71.28845807672151,
+          "recon": 79.72651700761169,
+          "maha": 5.682549763141429,
+          "knn_z": 1.0562791655905819,
+          "recon_z": 3.120380578643528,
+          "maha_z": 1.0380157383610733,
+          "z_sum": 5.214675482595183,
+          "overlap_z": 0.1714381838321017,
+          "overlap_ecdf": 0.08205640792192756,
+          "scale_floor_sensitivity": {
+            "1e-08": 0.1714381838321017,
+            "1e-06": 0.1714381838321017,
+            "1e-04": 0.1714381838321017,
+            "1e-03": 0.1714381838321017,
+            "1e-02": 0.1714381838321017
+          },
+          "diagnostics": {
+            "n_fit": 256,
+            "n_calibration": 128,
+            "unique_fit_activations": 256,
+            "unique_calibration_activations": 128,
+            "effective_rank": 255,
+            "selected_rank": 32,
+            "condition_number": 3.703184514267396,
+            "calibration": {
+              "knn": {
+                "median": 64.11595422689373,
+                "mad_scale": 6.790348691406325,
+                "std": 6.848917686470293
+              },
+              "recon": {
+                "median": 54.09141216924204,
+                "mad_scale": 8.215377641375259,
+                "std": 7.304962592241438
+              },
+              "maha": {
+                "median": 4.9258112746574,
+                "mad_scale": 0.7290240990746879,
+                "std": 0.7707326369604561
+              }
+            }
+          }
+        },
+        "clean_source": {
+          "knn": 78.11240102382011,
+          "recon": 70.94310646531872,
+          "maha": 5.006522402147459,
+          "knn_z": 0.4552661923557622,
+          "recon_z": 0.1145201025239223,
+          "maha_z": 0.33562337896512295,
+          "z_sum": 0.9054096738448074,
+          "overlap_z": 0.43411848954811455,
+          "overlap_ecdf": 0.38244983530563265,
+          "scale_floor_sensitivity": {
+            "1e-08": 0.43411848954811455,
+            "1e-06": 0.43411848954811455,
+            "1e-04": 0.43411848954811455,
+            "1e-03": 0.43411848954811455,
+            "1e-02": 0.43411848954811455
+          },
+          "diagnostics": {
+            "n_fit": 256,
+            "n_calibration": 128,
+            "unique_fit_activations": 256,
+            "unique_calibration_activations": 128,
+            "effective_rank": 255,
+            "selected_rank": 32,
+            "condition_number": 2.78376193536803,
+            "calibration": {
+              "knn": {
+                "median": 75.9166398591599,
+                "mad_scale": 4.823027058737441,
+                "std": 5.622834975128156
+              },
+              "recon": {
+                "median": 70.14833814952092,
+                "mad_scale": 6.939989558879159,
+                "std": 8.36656424640194
+              },
+              "maha": {
+                "median": 4.837384560301807,
+                "mad_scale": 0.5039513110415028,
+                "std": 0.6332301511294893
+              }
+            }
+          }
+        },
+        "mixture": {
+          "knn": 77.38471772200562,
+          "recon": 71.0845194240555,
+          "maha": 5.295031276702312,
+          "knn_z": 0.6282557687140427,
+          "recon_z": 0.594210722194771,
+          "maha_z": 0.622992060370391,
+          "z_sum": 1.8454585512792048,
+          "overlap_z": 0.359014310939748,
+          "overlap_ecdf": 0.26431010660035215,
+          "scale_floor_sensitivity": {
+            "1e-08": 0.359014310939748,
+            "1e-06": 0.359014310939748,
+            "1e-04": 0.359014310939748,
+            "1e-03": 0.359014310939748,
+            "1e-02": 0.359014310939748
+          },
+          "diagnostics": {
+            "n_fit": 256,
+            "n_calibration": 128,
+            "unique_fit_activations": 256,
+            "unique_calibration_activations": 128,
+            "effective_rank": 255,
+            "selected_rank": 32,
+            "condition_number": 3.3560029147561563,
+            "calibration": {
+              "knn": {
+                "median": 71.99376009298007,
+                "mad_scale": 8.580832675934097,
+                "std": 7.84523680289113
+              },
+              "recon": {
+                "median": 64.10983645866227,
+                "mad_scale": 11.73772654191027,
+                "std": 11.183854537845658
+              },
+              "maha": {
+                "median": 4.816028557542607,
+                "mad_scale": 0.7688745164343215,
+                "std": 0.7368116519466344
+              }
+            }
+          }
+        },
+        "matched_semantic_counterfactual": {
+          "knn": 77.85646268517402,
+          "recon": 70.53815463409686,
+          "maha": 2.462313845090702,
+          "knn_z": -0.06200755660884857,
+          "recon_z": 0.10790013156944127,
+          "maha_z": -0.1604423310338074,
+          "z_sum": -0.11454975607321465,
+          "overlap_z": 0.5118233257366249,
+          "overlap_ecdf": 0.5397472302401004,
+          "scale_floor_sensitivity": {
+            "1e-08": 0.5118233257366249,
+            "1e-06": 0.5118233257366249,
+            "1e-04": 0.5118233257366249,
+            "1e-03": 0.5118233257366249,
+            "1e-02": 0.5118233257366249
+          },
+          "diagnostics": {
+            "n_contexts": 8,
+            "effective_rank_min": 23,
+            "effective_rank_max": 23,
+            "selected_rank_min": 23,
+            "selected_rank_max": 23
+          }
+        }
+      }
+    }
+  ],
+  "elapsed_seconds": 527.0080070495605
+}

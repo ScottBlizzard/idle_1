@@ -1,0 +1,105 @@
+{
+  "probe_gate": {
+    "n_admissible_settings": 9,
+    "passes": false,
+    "settings": [
+      {
+        "interpolation": 0.1,
+        "n_probes": 4,
+        "spearman_vs_primary_layer_ranking": 0.9666666666666667,
+        "spearman_vs_nmh": -0.9500000000000001,
+        "min_endpoint_accept_rate": 0.96875,
+        "passes_frozen_gate": true
+      },
+      {
+        "interpolation": 0.1,
+        "n_probes": 8,
+        "spearman_vs_primary_layer_ranking": 0.9833333333333333,
+        "spearman_vs_nmh": -0.9833333333333333,
+        "min_endpoint_accept_rate": 0.965625,
+        "passes_frozen_gate": true
+      },
+      {
+        "interpolation": 0.1,
+        "n_probes": 16,
+        "spearman_vs_primary_layer_ranking": 0.9833333333333333,
+        "spearman_vs_nmh": -0.9833333333333333,
+        "min_endpoint_accept_rate": 0.96796875,
+        "passes_frozen_gate": true
+      },
+      {
+        "interpolation": 0.25,
+        "n_probes": 4,
+        "spearman_vs_primary_layer_ranking": 0.9666666666666667,
+        "spearman_vs_nmh": -0.9500000000000001,
+        "min_endpoint_accept_rate": 0.996875,
+        "passes_frozen_gate": true
+      },
+      {
+        "interpolation": 0.25,
+        "n_probes": 8,
+        "spearman_vs_primary_layer_ranking": 1.0,
+        "spearman_vs_nmh": -0.9666666666666667,
+        "min_endpoint_accept_rate": 0.996875,
+        "passes_frozen_gate": true
+      },
+      {
+        "interpolation": 0.25,
+        "n_probes": 16,
+        "spearman_vs_primary_layer_ranking": 1.0,
+        "spearman_vs_nmh": -0.9666666666666667,
+        "min_endpoint_accept_rate": 0.99765625,
+        "passes_frozen_gate": true
+      },
+      {
+        "interpolation": 0.5,
+        "n_probes": 4,
+        "spearman_vs_primary_layer_ranking": 0.8166666666666667,
+        "spearman_vs_nmh": -0.8499999999999999,
+        "min_endpoint_accept_rate": 0.978125,
+        "passes_frozen_gate": false
+      },
+      {
+        "interpolation": 0.5,
+        "n_probes": 8,
+        "spearman_vs_primary_layer_ranking": 0.7833333333333333,
+        "spearman_vs_nmh": -0.8333333333333333,
+        "min_endpoint_accept_rate": 0.975,
+        "passes_frozen_gate": false
+      },
+      {
+        "interpolation": 0.5,
+        "n_probes": 16,
+        "spearman_vs_primary_layer_ranking": 0.7666666666666667,
+        "spearman_vs_nmh": -0.8499999999999999,
+        "min_endpoint_accept_rate": 0.975,
+        "passes_frozen_gate": false
+      }
+    ]
+  },
+  "corruption_gate": {
+    "irs": {
+      "spearman_across_corruptions": 0.7833333333333333,
+      "p_value": 0.012519873019449882,
+      "mean_absolute_change": 0.4570163729438151,
+      "relative_l2_change": 0.8041397950824949
+    },
+    "single_direction": {
+      "spearman_across_corruptions": 0.8166666666666667,
+      "p_value": 0.007224785246358786,
+      "mean_absolute_change": 0.17980141893871515,
+      "relative_l2_change": 0.8578586735344627
+    },
+    "rank_correlation_delta": -0.033333333333333326,
+    "relative_l2_change_ratio_irs_over_single": 0.9373802700733436,
+    "minimum_irs_endpoint_acceptance": 0.996875,
+    "minimum_single_endpoint_acceptance": 0.6125,
+    "stability_noninferior": true,
+    "clear_stability_superiority": false
+  },
+  "decision": {
+    "probe_robustness_established": false,
+    "clear_irs_stability_advantage_established": false,
+    "oral_level_method_novelty_established_by_these_tests": false
+  }
+}
