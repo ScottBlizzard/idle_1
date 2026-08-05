@@ -160,6 +160,13 @@ def cosine(a: np.ndarray, b: np.ndarray, floor: float = 1e-12) -> float:
     return float(a @ b / denominator) if denominator > floor else 0.0
 
 
-def expected_tensor_calls(n_gates: int = 10, n_radii: int = 2, n_systems: int = 2) -> int:
-    per_gate_radius_system = 2 + 8 + 16 + 16
+def expected_tensor_calls(
+    residual_rank: int,
+    n_gates: int = 10,
+    n_radii: int = 2,
+    n_systems: int = 2,
+) -> int:
+    if residual_rank <= 0:
+        raise ValueError("residual_rank must be positive")
+    per_gate_radius_system = 2 + 10 * residual_rank
     return n_systems * (n_gates * n_radii * per_gate_radius_system + 1)

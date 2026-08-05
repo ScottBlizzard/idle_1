@@ -9,7 +9,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any, Literal
 
-from green_bridge_spec import SELECTED_GATES
+from green_bridge_spec import DIMENSIONS, SELECTED_GATES
 
 
 TailMode = Literal["path", "control", "joint"]
@@ -116,8 +116,12 @@ class GreenBridgeTail:
         self.U = residual_basis
         self.suffix_ids = suffix_token_ids
         self.gates = tuple(int(gate) for gate in selected_gates)
-        if tuple(self.U.shape) != (model.cfg.d_model, 4):
-            raise ValueError(f"residual basis must have shape [768,4], got {self.U.shape}")
+        if DIMENSIONS.residual_rank != 5:
+            raise ValueError("protocol-v1.2 residual rank must equal five")
+        if tuple(self.U.shape) != (model.cfg.d_model, DIMENSIONS.residual_rank):
+            raise ValueError(
+                f"residual basis must have shape [768,{DIMENSIONS.residual_rank}], got {self.U.shape}"
+            )
         if len(self.gates) != 10 or len(set(self.gates)) != 10:
             raise ValueError("exactly ten unique selected gates are required")
         if min(self.gates) < 0 or max(self.gates) >= model.cfg.d_mlp:
@@ -143,8 +147,8 @@ class GreenBridgeTail:
         if mode not in {"path", "control", "joint"}:
             raise ValueError(f"unknown tail mode {mode}")
         batch = anchor.resid_mid.shape[0]
-        if tuple(x.shape) != (batch, 4):
-            raise ValueError(f"x must have shape [{batch},4]")
+        if tuple(x.shape) != (batch, DIMENSIONS.residual_rank):
+            raise ValueError(f"x must have shape [{batch},{DIMENSIONS.residual_rank}]")
         if mode == "joint":
             if tuple(z.shape) != (batch, 10):
                 raise ValueError(f"joint z must have shape [{batch},10]")

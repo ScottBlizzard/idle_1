@@ -17,13 +17,16 @@ from typing import Any
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 OUTPUT_ROOT = PROJECT_ROOT / "outputs" / "green_bridge"
-SCHEMA_VERSION = "green-bridge-v1.1"
+SCHEMA_VERSION = "green-bridge-v1.2"
 THEORY_BASE_COMMIT = "126556f"
 GATE04_AMENDMENT_ID = "GPTPRO-GREEN-GATE04-v2-20260805"
+GATE08_AMENDMENT_ID = "GPTPRO-GREEN-GATE08-v2-20260805"
 HF_ATTN_IMPLEMENTATION = "eager"
 GATE04_LEGACY_PAIR_SLICE = (0, 16)
 GATE04_HOLDOUT_PAIR_SLICE = (16, 32)
-SALT = "idle1-gt-bridge-20260805"
+LEGACY_SALT = "idle1-gt-bridge-20260805"
+BASIS_V2_SALT = "idle1-gt-bridge-basis-v2-20260805"
+SALT = LEGACY_SALT
 MODEL_ID = "openai-community/gpt2"
 MODEL_REVISION = "607a30d783dfa663caf39e06633721c8d4cfcd7e"
 TRANSFORMER_LENS_COMMIT = "4a4dc26c750475b29e6f54b362c2aab988702c9c"
@@ -34,12 +37,35 @@ EVALUATION_NOUNS = (
     "expedition", "kingdom",
 )
 EVALUATION_CENTURIES = (12, 14, 16)
-DONOR_NOUNS = (
+LEGACY_DONOR_NOUNS = (
     "invasion", "insurgency", "rivalry", "hostility", "raids", "sanctions",
     "domination", "confrontation", "pilgrimage", "journey", "voyage",
     "operation", "outbreak", "reforms", "relationship", "modernization",
 )
-DONOR_CENTURIES = (11, 13, 15, 17)
+LEGACY_DONOR_CENTURIES = (11, 13, 15, 17)
+DONOR_NOUNS = LEGACY_DONOR_NOUNS
+DONOR_CENTURIES = LEGACY_DONOR_CENTURIES
+BASIS_V2_DONOR_NOUNS = (
+    "rebellion", "revolution", "occupation", "blockade", "crusade",
+    "migration", "settlement", "construction", "administration", "regime",
+    "competition", "partnership", "transition", "expansion", "uprising",
+    "conflict",
+)
+BASIS_V2_DONOR_CENTURIES = (11, 13, 15, 17)
+BASIS_V2_DONOR_SELECTION_ORDER = (
+    ("near", "basis_fit", 2, 2),
+    ("far", "basis_fit", 2, 2),
+    ("near", "basis_holdout", 1, 1),
+    ("far", "basis_holdout", 1, 1),
+    ("near", "radius_v2", 2, 2),
+    ("far", "radius_v2", 2, 2),
+)
+BASIS_V2_FIT_PAIRS = 512
+BASIS_V2_HOLDOUT_PAIRS = 256
+BASIS_V2_RADIUS_PAIRS = 512
+BASIS_V2_BOOTSTRAP_REPLICATES = 256
+BASIS_V2_BOOTSTRAP_QUANTILE = 0.95
+FIRST_ORDER_RESIDUAL_DIRECTIONS = 250
 DISTANCE_BINS = {"near": (8, 16), "far": (40, 56)}
 SUFFIX_MIN = 5
 SUFFIX_MAX = 94
@@ -53,7 +79,7 @@ class Dimensions:
     d_model: int = 768
     n_heads: int = 12
     d_mlp: int = 3072
-    residual_rank: int = 4
+    residual_rank: int = 5
     selected_gates: int = 10
     output_dimension: int = 100
 
@@ -78,6 +104,12 @@ class Thresholds:
     tail_derivative_relative: float = 1e-4
     center_rms: float = 2e-6
     center_max_abs: float = 2e-5
+    basis_fit_gap_min: float = 1.10
+    basis_holdout_gap_min: float = 1.10
+    basis_rank_floor: float = 1e-4
+    basis_angle_max_degrees: float = 15.0
+    basis_holdout_efficiency_min: float = 0.90
+    basis_bootstrap_q95_max_degrees: float = 15.0
     curvature_rms_min: float = 5e-4
     curvature_snr_min: float = 20.0
     gate_response_rms_min: float = 5e-4
@@ -134,6 +166,9 @@ FROZEN_SPEC: dict[str, Any] = {
     "evaluation_centuries": EVALUATION_CENTURIES,
     "donor_nouns": DONOR_NOUNS,
     "donor_centuries": DONOR_CENTURIES,
+    "basis_v2_donor_nouns": BASIS_V2_DONOR_NOUNS,
+    "basis_v2_donor_centuries": BASIS_V2_DONOR_CENTURIES,
+    "basis_v2_donor_selection_order": BASIS_V2_DONOR_SELECTION_ORDER,
     "distance_bins": DISTANCE_BINS,
     "suffix_range": (SUFFIX_MIN, SUFFIX_MAX),
     "selected_gates": SELECTED_GATES,
@@ -160,6 +195,20 @@ FROZEN_SPEC: dict[str, Any] = {
         "hf_tl_error_enters_epsilon_y": False,
     },
     "numerical_error_contract": "frozen-richardson-propagation-v1",
+    "gate08_amendment": {
+        "id": GATE08_AMENDMENT_ID,
+        "residual_rank": 5,
+        "basis_object": "projector-covariant",
+        "fit_pairs": BASIS_V2_FIT_PAIRS,
+        "holdout_pairs": BASIS_V2_HOLDOUT_PAIRS,
+        "radius_pairs": BASIS_V2_RADIUS_PAIRS,
+        "bootstrap_replicates": BASIS_V2_BOOTSTRAP_REPLICATES,
+        "bootstrap_quantile": BASIS_V2_BOOTSTRAP_QUANTILE,
+        "first_order_residual_directions": FIRST_ORDER_RESIDUAL_DIRECTIONS,
+        "attempt_index": 1,
+        "retry_allowed": False,
+        "rank6_fallback": False,
+    },
 }
 
 

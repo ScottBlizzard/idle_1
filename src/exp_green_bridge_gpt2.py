@@ -28,18 +28,36 @@ from analyze_green_bridge import BASELINES, development_decision, freeze_confirm
 from green_bridge_dataset import (
     ConfirmationLock,
     PairRecord,
-    build_donor_records,
+    basis_v2_plan_payload,
+    build_basis_v2_donor_records,
     build_evaluation_records,
+    build_legacy_donor_records,
     plan_payload,
     split_records,
-    write_plan,
+    validate_basis_v2_plan,
+    validate_evaluation_plan,
+    write_basis_v2_plan,
+)
+from green_bridge_basis import (
+    BasisAuditError,
+    construct_rank5_radii,
+    fit_rank5_basis,
+    matrix_sha256,
 )
 from green_bridge_spec import (
+    BASIS_V2_BOOTSTRAP_QUANTILE,
+    BASIS_V2_BOOTSTRAP_REPLICATES,
+    BASIS_V2_DONOR_NOUNS,
+    BASIS_V2_FIT_PAIRS,
+    BASIS_V2_HOLDOUT_PAIRS,
+    BASIS_V2_RADIUS_PAIRS,
     DIMENSIONS,
+    FIRST_ORDER_RESIDUAL_DIRECTIONS,
     FROZEN_SPEC,
     GATE04_AMENDMENT_ID,
     GATE04_HOLDOUT_PAIR_SLICE,
     GATE04_LEGACY_PAIR_SLICE,
+    GATE08_AMENDMENT_ID,
     HF_ATTN_IMPLEMENTATION,
     MODEL_ID,
     MODEL_REVISION,
@@ -76,6 +94,7 @@ SOURCE_FILES = (
     "src/green_bridge_spec.py",
     "src/green_bridge_dataset.py",
     "src/matched_bypass_gate.py",
+    "src/green_bridge_basis.py",
     "src/green_bridge_numerics.py",
     "src/green_bridge_tail.py",
     "src/green_bridge_path_target.py",
@@ -85,8 +104,10 @@ SOURCE_FILES = (
 )
 PROTOCOL_FILES = (
     "analysis/GPTPRO_GREEN_BRIDGE_20260805.md",
-    "analysis/GREEN_SERVER_GATE04_20260805.md",
     "analysis/GPTPRO_GREEN_GATE04_DECISION_20260805.md",
+    "analysis/GREEN_SERVER_GATE04_20260805.md",
+    "analysis/GREEN_SERVER_GATE08_20260805.md",
+    "analysis/GPTPRO_GREEN_GATE08_DECISION_20260805.md",
     "requirements-green-bridge.lock",
 )
 EXPECTED_PACKAGES = {
@@ -97,6 +118,7 @@ EXPECTED_PACKAGES = {
     "scipy": "1.15.3",
     "pandas": "2.2.3",
     "pyarrow": "19.0.1",
+    "threadpoolctl": "3.6.0",
 }
 TL_SOURCE_SHA256 = {
     "HookedTransformer.py": "f80ee1ec42039a287a2b9366c75f98eec23ff33c6e941ffeee03f0374eb20af3",
@@ -105,16 +127,23 @@ TL_SOURCE_SHA256 = {
     "utilities/addmm.py": "f9e72f6a3d6c508814fa8e69918c20e1cb72cbc9ae7bcb1a1abb2476e246bc38",
 }
 FORWARD_COUNTS = {
-    "mixed_per_tensor_item": 1682,
-    "first_order_per_tensor_item": 1682,
+    "mixed_per_tensor_item": 2082,
+    "first_order_per_tensor_item": 2082,
     "factorial_per_tensor_item": 16,
+    "first_order_residual_directions": 250,
     "tensor_items_total": 384,
     "energy_items_total": 384,
-    "tail_total": 1_303_648,
-    "jvp_total": 1_152,
-    "full_model_total": 4_544,
-    "conservative_units": 1_333_216,
+    "tail_evaluations_total": 1_610_848,
+    "jvp_invocations_total": 1_152,
+    "full_model_evaluations_total": 5_056,
+    "raw_invocations_total": 1_617_056,
+    "effective_units_total": 1_618_208,
+    "conservative_units_total": 1_643_488,
+    "development_effective_units": 541_920,
+    "confirmation_effective_units": 1_076_288,
 }
+REVIEW_COMMIT = "b87300a6f56cb4706db090486d8bec77a2fc2b23"
+GATE04_ORDERED_PROMPT_HASH = "619d21c10d4f30e6ce2597c3ba4df1de72cf0cb4f6cce322d82c2d3ec62803ce"
 
 
 class GreenStop(RuntimeError):
@@ -151,14 +180,86 @@ def source_hashes() -> dict[str, str]:
     return {name: sha256_file(PROJECT_ROOT / name) for name in SOURCE_FILES}
 
 
+def assert_clean_repository() -> dict:
+    branch = git_text("branch", "--show-current")
+    commit = git_text("rev-parse", "HEAD")
+    status = git_text("status", "--porcelain=v1", "--untracked-files=all")
+    if branch != "main":
+        raise GreenStop("00_REPOSITORY_CLEAN", f"branch={branch!r}, expected 'main'")
+    if status != "":
+        raise GreenStop("00_REPOSITORY_CLEAN", status)
+    try:
+        subprocess.check_call(
+            ["git", "merge-base", "--is-ancestor", REVIEW_COMMIT, commit],
+            cwd=PROJECT_ROOT,
+        )
+    except subprocess.CalledProcessError as exc:
+        raise GreenStop("00_REPOSITORY_CLEAN", "review commit is not an ancestor") from exc
+    return {
+        "branch": branch,
+        "commit": commit,
+        "status_porcelain": status,
+        "clean": True,
+        "review_commit_is_ancestor": True,
+    }
+
+
+def assert_empty_prepare_root(output_root: Path) -> None:
+    if output_root.exists() and (not output_root.is_dir() or any(output_root.iterdir())):
+        raise GreenStop("00_OUTPUT_ROOT_NOT_EMPTY", str(output_root))
+
+
+def write_run_ledger(output_root: Path, repository: dict) -> None:
+    write_json_atomic(output_root / "run_ledger.json", {
+        "protocol_run_id": "green-bridge-v1.2-one-shot",
+        "attempt_index": 1,
+        "retry_allowed": False,
+        "prepare_restart_allowed": False,
+        "development_restart_allowed": False,
+        "confirmation_restart_allowed": False,
+        "execution_commit": repository["commit"],
+        "prepare_started": True,
+        "development_started": False,
+        "confirmation_started": False,
+        "created_utc": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
+    })
+
+
+def claim_phase(output_root: Path, phase: str) -> None:
+    """Irreversibly claim a continuation phase before any model response."""
+    if phase not in {"development", "confirmation"}:
+        raise ValueError(f"invalid continuation phase: {phase}")
+    path = output_root / "run_ledger.json"
+    if not path.is_file():
+        raise GreenStop("17_MANIFEST_FREEZE", "run_ledger.json missing")
+    ledger = json.loads(path.read_text(encoding="utf-8"))
+    if ledger.get("attempt_index") != 1 or ledger.get("retry_allowed") is not False:
+        raise GreenStop("17_MANIFEST_FREEZE", "one-shot ledger contract changed")
+    key = phase + "_started"
+    if ledger.get(key) is not False:
+        raise GreenStop("17_MANIFEST_FREEZE", f"{phase} has already been claimed")
+    if phase == "confirmation" and ledger.get("development_started") is not True:
+        raise GreenStop("17_MANIFEST_FREEZE", "development was not claimed")
+    ledger[key] = True
+    ledger[phase + "_started_utc"] = time.strftime(
+        "%Y-%m-%dT%H:%M:%SZ", time.gmtime()
+    )
+    write_json_atomic(path, ledger)
+
+
 def first_order_directions() -> np.ndarray:
     seed = int.from_bytes(
-        hashlib.sha256(b"idle1-gt-bridge-20260805:first-order").digest()[:8], "big"
+        hashlib.sha256(
+            b"idle1-gt-bridge-basis-v2-20260805:first-order-r5"
+        ).digest()[:8], "big"
     )
     rng = np.random.Generator(np.random.PCG64(seed))
-    vectors = [np.eye(4, dtype=np.float64)[index] for index in range(4)]
-    while len(vectors) < 200:
-        value = rng.standard_normal(4)
+    vectors = [
+        np.eye(DIMENSIONS.residual_rank, dtype=np.float64)[index]
+        for index in range(DIMENSIONS.residual_rank)
+    ]
+    while len(vectors) < FIRST_ORDER_RESIDUAL_DIRECTIONS:
+        value = rng.standard_normal(DIMENSIONS.residual_rank)
         value /= np.linalg.norm(value)
         first = np.flatnonzero(np.abs(value) > 0)[0]
         if value[first] < 0:
@@ -175,6 +276,15 @@ def configure_runtime(device: str) -> dict:
             "01_ENVIRONMENT",
             "CUBLAS_WORKSPACE_CONFIG must equal :4096:8",
         )
+    thread_environment = {
+        name: os.environ.get(name)
+        for name in (
+            "OMP_NUM_THREADS", "MKL_NUM_THREADS", "OPENBLAS_NUM_THREADS",
+            "BLIS_NUM_THREADS", "VECLIB_MAXIMUM_THREADS", "NUMEXPR_NUM_THREADS",
+        )
+    }
+    if any(value != "1" for value in thread_environment.values()):
+        raise GreenStop("01_ENVIRONMENT", f"thread environment={thread_environment}")
     torch = torch_module()
     versions = {}
     for package, expected in EXPECTED_PACKAGES.items():
@@ -220,6 +330,7 @@ def configure_runtime(device: str) -> dict:
             torch.are_deterministic_algorithms_enabled()
         ),
         "cublas_workspace_config": os.environ["CUBLAS_WORKSPACE_CONFIG"],
+        "thread_environment": thread_environment,
     }
 
 
@@ -326,21 +437,37 @@ def token_pair_allowed(tokenizer, first: str, second: str) -> bool:
 
 def write_initial_manifest(
     output_root: Path,
+    repository: dict,
     environment: dict,
     model_cfg: dict,
-    split_payload: dict,
+    evaluation_payload: dict,
+    donor_v2_payload: dict,
+    legacy_donor_plan_sha256: str,
     gate04_panel: dict,
 ) -> dict:
-    execution_commit = git_text("rev-parse", "HEAD")
     directions = first_order_directions()
     direction_path = output_root / "first_order_directions.npy"
-    output_root.mkdir(parents=True, exist_ok=True)
     np.save(direction_path, directions, allow_pickle=False)
     payload = {
-        "schema_version": "green-bridge-manifest-v1.1",
+        "schema_version": "green-bridge-manifest-v1.2",
         "theory_base_commit": "126556f",
-        "execution_commit": execution_commit,
-        "repository_dirty_at_launch": bool(git_text("status", "--porcelain")),
+        "repository": {
+            "url": "https://github.com/ScottBlizzard/idle_1",
+            "branch": repository["branch"],
+            "review_commit": REVIEW_COMMIT,
+            "execution_commit": repository["commit"],
+            "review_commit_is_ancestor": True,
+            "status_porcelain": "",
+            "repository_dirty_at_launch": False,
+        },
+        "run": {
+            "protocol_run_id": "green-bridge-v1.2-one-shot",
+            "attempt_index": 1,
+            "retry_allowed": False,
+            "prepare_restart_allowed": False,
+            "development_restart_allowed": False,
+            "confirmation_restart_allowed": False,
+        },
         "frozen_spec": FROZEN_SPEC,
         "frozen_spec_sha256": frozen_spec_hash(),
         "source_sha256": source_hashes(),
@@ -348,29 +475,148 @@ def write_initial_manifest(
         "protocol_sha256": {
             name: sha256_file(PROJECT_ROOT / name) for name in PROTOCOL_FILES
         },
-        "splits_sha256": split_payload["records_sha256"],
+        "evaluation_plan_sha256": evaluation_payload["records_sha256"],
+        "legacy_donor_plan_sha256": legacy_donor_plan_sha256,
+        "basis_v2_full_plan_sha256": donor_v2_payload["records_sha256"],
+        "basis_fit_ordered_keys_sha256": donor_v2_payload["basis_fit_ordered_keys_sha256"],
+        "basis_holdout_ordered_keys_sha256": donor_v2_payload["basis_holdout_ordered_keys_sha256"],
+        "radius_v2_ordered_keys_sha256": donor_v2_payload["radius_v2_ordered_keys_sha256"],
+        "basis_v2_all_prompt_keys_sha256": donor_v2_payload["basis_v2_all_prompt_keys_sha256"],
         "first_order_directions_sha256": sha256_file(direction_path),
         "environment": environment,
         "model_config": model_cfg,
         "forward_counts": FORWARD_COUNTS,
         "transformer_lens_commit": TRANSFORMER_LENS_COMMIT,
         "amendment": {
-            "id": GATE04_AMENDMENT_ID,
-            "decision_document": "analysis/GPTPRO_GREEN_GATE04_DECISION_20260805.md",
-            "decision_base_commit": "0c81e05",
-            "theory_base_commit": "126556f",
-            "previous_terminal_gate": "04_HF_TL",
-            "previous_observed_max_abs_year_logit_error": 0.0001526,
-            "previous_development_responses_observed": False,
-            "previous_confirmation_responses_observed": False,
-            "confirmation_was_locked": True,
-            "amendment_scope": [
-                "HF-versus-TransformerLens preflight fidelity audit",
-                "conformance repair for frozen Richardson numerical propagation",
-            ],
-            "scientific_design_changed": False,
-            "second_threshold_amendment_allowed": False,
+            "id": GATE08_AMENDMENT_ID,
+            "decision_document": "analysis/GPTPRO_GREEN_GATE08_DECISION_20260805.md",
+            "prior_gate04_amendment": GATE04_AMENDMENT_ID,
+            "prior_execution_commit": "5083774e03b99c9958312c6686cf3ead40c3c115",
+            "prior_first_failed_gate": "08_BASIS_SPECTRUM",
+            "prior_sigma4_over_sigma5": 1.04,
+            "prior_sigma4_over_sigma1": 0.5501,
+            "prior_development_responses_observed": False,
+            "prior_confirmation_responses_observed": False,
+            "confirmation_remained_locked": True,
+            "scientific_design_change": {
+                "residual_rank": "4 -> 5",
+                "basis_object": "projector-covariant",
+                "new_donor_population": True,
+            },
+            "unchanged": {
+                "theorem_identity": True,
+                "actual_gate_coordinates": True,
+                "intervention_sites": True,
+                "matched_control": True,
+                "independent_target": True,
+                "residual_bypass_subtraction": True,
+                "evaluation_population": True,
+                "radii_multiplier": True,
+                "baselines": True,
+                "development_rules": True,
+                "confirmation_rules": True,
+            },
         },
+        "prior_artifacts": {
+            "protocol_v1_gate04_stop_preserved": True,
+            "protocol_v1_1_gate08_stop_preserved": True,
+            "gate08_stop": {
+                "result_sha256": "7d52411b487f7e85f0dc539c760541d16bf5c9b756da75490edd8b9ad5ad7f90",
+                "manifest_sha256": "baff192581726f4cae8f23418df5600ccb0fff549b0c81edff8c2c1f95d914df",
+                "hook_audit_sha256": "49aa7a1818fb06d63b975938aea7285d3198fccc97723a96a37afa097abdbb99",
+                "log_sha256": "845cb7746be048dacbcb6c841e45d29e3d51d7e7632074e08b63c92dea5d8fb8",
+                "repository_dirty_at_launch": True,
+                "dirty_reason": "untracked_offline_transport_bundle",
+            },
+        },
+        "dimensions": {
+            "residual_rank": 5,
+            "selected_gates": 10,
+            "output_dimension": 100,
+            "tensor_shape": [100, 5, 10],
+            "kronecker_design_rank": 50,
+        },
+        "structural_object": {
+            "equivalence": "(U,A,P,D) ~ (UQ,AQ,PQ,DQ), Q in O(5)",
+            "physical_projector": "Pi = U U^T",
+            "gate_coordinates_rotated": False,
+            "matched_bypass_identity": "H_path - H_control = C A",
+            "inverse_changed": False,
+        },
+        "donor_v2": {
+            "salt": "idle1-gt-bridge-basis-v2-20260805",
+            "nouns": list(BASIS_V2_DONOR_NOUNS),
+            "centuries": [11, 13, 15, 17],
+            "roles": {
+                "basis_fit": {"pairs": 512, "pairs_per_cell": 4, "orientation": {"up": 2, "down": 2}},
+                "basis_holdout": {"pairs": 256, "pairs_per_cell": 2, "orientation": {"up": 1, "down": 1}},
+                "radius_v2": {"pairs": 512, "pairs_per_cell": 4, "orientation": {"up": 2, "down": 2}},
+            },
+            "prompt_level_disjointness": True,
+            "unique_prompts": 2560,
+            "failed_quota_replacement_allowed": False,
+            "old_donor_responses_reused": False,
+        },
+        "basis": {
+            "fit_matrix_shape": [512, 768],
+            "holdout_matrix_shape": [256, 768],
+            "rank": 5,
+            "centered": False,
+            "dtype": "float64",
+            "device": "CPU",
+            "lapack_driver": "gesvd",
+            "scipy_function": "scipy.linalg.svd",
+            "full_matrices": False,
+            "overwrite_a": False,
+            "check_finite": True,
+            "sign_rule": "largest_absolute_coordinate_positive_first_index_tie",
+            "threadpoolctl_version": "3.6.0",
+            "blas_threads": 1,
+            "bootstrap_replicates": BASIS_V2_BOOTSTRAP_REPLICATES,
+            "bootstrap_quantile": BASIS_V2_BOOTSTRAP_QUANTILE,
+            "thresholds": {
+                "fit_sigma5_over_sigma6": THRESHOLDS.basis_fit_gap_min,
+                "fit_sigma5_over_sigma1": THRESHOLDS.basis_rank_floor,
+                "holdout_sigma5_over_sigma6": THRESHOLDS.basis_holdout_gap_min,
+                "holdout_sigma5_over_sigma1": THRESHOLDS.basis_rank_floor,
+                "fit_holdout_angle_degrees": THRESHOLDS.basis_angle_max_degrees,
+                "holdout_efficiency": THRESHOLDS.basis_holdout_efficiency_min,
+                "leave_one_noun_angle_degrees": THRESHOLDS.basis_angle_max_degrees,
+                "bootstrap_q95_angle_degrees": THRESHOLDS.basis_bootstrap_q95_max_degrees,
+            },
+            "bootstrap": {
+                "replicates": BASIS_V2_BOOTSTRAP_REPLICATES,
+                "unit": "noun",
+                "rng": "numpy.PCG64",
+                "seed_material": "idle1-gt-bridge-basis-v2-20260805:noun-bootstrap",
+                "quantile": BASIS_V2_BOOTSTRAP_QUANTILE,
+                "quantile_method": "higher",
+            },
+        },
+        "radii": {
+            "residual_scale": "median(norm(U^T d)/sqrt(5))",
+            "multiplier": 0.20,
+            "gate_scale_unchanged": True,
+            "donor_role": "radius_v2",
+            "leave_one_noun_relative_change_max": 0.20,
+            "search_allowed": False,
+            "inflation_allowed": False,
+        },
+        "gate04_replay": {
+            "audit_version": "hf-tl-fidelity-v2",
+            "legacy_panel_replayed": True,
+            "ordered_prompt_keys_sha256": GATE04_ORDERED_PROMPT_HASH,
+            "backend": "eager",
+            "batch_size": 1,
+            "thresholds_changed": False,
+            "error_enters_epsilon_y": False,
+        },
+        "confirmation": {
+            "locked_at_prepare": True,
+            "all_v1_1_rules_unchanged": True,
+            "retries": 0,
+        },
+        "protocol_files": list(PROTOCOL_FILES),
         "gate04": {
             "audit_version": "hf-tl-fidelity-v2",
             "hf_attention_implementation": HF_ATTN_IMPLEMENTATION,
@@ -429,13 +675,21 @@ def write_initial_manifest(
             "matched_control": True,
             "independent_target": True,
             "residual_bypass_subtraction": True,
-            "basis_design": True,
+            "basis_design": False,
             "radii": True,
             "finite_population": True,
             "baselines": True,
             "development_rules": True,
             "confirmation_lock": True,
             "confirmation_rules": True,
+        },
+        "compute": FORWARD_COUNTS,
+        "terminal_rule": {
+            "rank5_gate_failure": "terminate_oral_line",
+            "rank6_fallback": False,
+            "donor_replacement": False,
+            "threshold_amendment": False,
+            "second_basis_run": False,
         },
         "confirmation_open": False,
     }
@@ -852,30 +1106,6 @@ def no_op_audit(model, tokenizer, holdout, suffix_ids, device: str, references: 
     return result
 
 
-def canonical_basis(chords: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
-    from scipy.linalg import svd
-    old_threads = {name: os.environ.get(name) for name in ("OMP_NUM_THREADS", "MKL_NUM_THREADS")}
-    os.environ["OMP_NUM_THREADS"] = "1"
-    os.environ["MKL_NUM_THREADS"] = "1"
-    try:
-        _, singular, vt = svd(
-            np.asarray(chords, dtype=np.float64), full_matrices=False,
-            lapack_driver="gesvd", overwrite_a=False, check_finite=True,
-        )
-    finally:
-        for name, value in old_threads.items():
-            if value is None:
-                os.environ.pop(name, None)
-            else:
-                os.environ[name] = value
-    basis = vt[:4].T.copy()
-    for column in range(4):
-        pivot = int(np.argmax(np.abs(basis[:, column])))
-        if basis[pivot, column] < 0:
-            basis[:, column] *= -1
-    return basis, singular
-
-
 def donor_anchors(model, tokenizer, suffix_ids, records: Sequence[PairRecord], device: str) -> dict:
     """Collect only CPU float64 statistics; donor activations never enter scores."""
     chords, clean_pre, corrupt_pre, rms_anchor, metadata = [], [], [], [], []
@@ -904,11 +1134,17 @@ def donor_anchors(model, tokenizer, suffix_ids, records: Sequence[PairRecord], d
             chords.append(clean_resid - corrupt_resid)
             clean_pre.append(clean_gate)
             corrupt_pre.append(corrupt_gate)
-            rms_anchor.extend([
+            rms_anchor.append([
                 float(np.sqrt(np.mean(clean_resid**2))),
                 float(np.sqrt(np.mean(corrupt_resid**2))),
             ])
-            metadata.append({"noun": row.noun, "role": row.role, "pair_digest": row.pair_digest})
+            metadata.append({
+                "noun": row.noun,
+                "century": row.century,
+                "distance_bin": row.distance_bin,
+                "role": row.role,
+                "pair_digest": row.pair_digest,
+            })
             if (index + 1) % 64 == 0:
                 print(f"donors {index + 1}/{len(records)}", flush=True)
     return {
@@ -922,71 +1158,75 @@ def donor_anchors(model, tokenizer, suffix_ids, records: Sequence[PairRecord], d
 def build_basis_and_radii(donor: dict, output_root: Path) -> tuple[np.ndarray, dict]:
     roles = np.array([row["role"] for row in donor["metadata"]])
     nouns = np.array([row["noun"] for row in donor["metadata"]])
-    basis_mask = roles == "basis"
-    radius_mask = roles == "radius"
-    basis, singular = canonical_basis(donor["chords"][basis_mask])
-    if singular[3] / singular[4] < 1.10 or singular[3] / singular[0] < 1e-4:
-        raise GreenStop(
-            "08_BASIS_SPECTRUM",
-            f"sigma4/sigma5={singular[3]/singular[4]:.4g}, sigma4/sigma1={singular[3]/singular[0]:.4g}",
+    fit_mask = roles == "basis_fit"
+    holdout_mask = roles == "basis_holdout"
+    radius_mask = roles == "radius_v2"
+    if (int(fit_mask.sum()), int(holdout_mask.sum()), int(radius_mask.sum())) != (512, 256, 512):
+        raise GreenStop("07_DONOR_V2_PLAN", "donor role counts changed after capture")
+    try:
+        fitted = fit_rank5_basis(
+            donor["chords"][fit_mask],
+            donor["chords"][holdout_mask],
+            nouns[fit_mask],
+            BASIS_V2_DONOR_NOUNS,
         )
-    angles, leave_bases = {}, {}
-    for noun in sorted(set(nouns[basis_mask])):
-        leave, _ = canonical_basis(donor["chords"][basis_mask & (nouns != noun)])
-        smallest = np.linalg.svd(basis.T @ leave, compute_uv=False).min()
-        angle = math.degrees(math.acos(float(np.clip(smallest, -1.0, 1.0))))
-        angles[noun] = angle
-        leave_bases[noun] = leave
-        if angle > 15.0:
-            raise GreenStop("08_BASIS_STABILITY", f"leave-{noun} angle={angle:.3f}")
-
-    radius_chords = donor["chords"][radius_mask]
-    projected = radius_chords @ basis
-    sigma_x = float(np.median(np.linalg.norm(projected, axis=1) / 2.0))
-    h1 = 0.20 * sigma_x
-    residual_floor = 2.0**-10 * float(np.median(donor["rms_anchor"]))
-    if h1 < residual_floor:
-        raise GreenStop("09_RADIUS_FLOOR", f"h1={h1:.4e} < {residual_floor:.4e}")
-    clean = donor["clean_pre"][radius_mask]
-    corrupt = donor["corrupt_pre"][radius_mask]
-    pooled = np.concatenate([clean, corrupt], axis=0)
-    medians = np.median(pooled, axis=0)
-    mad = np.median(np.abs(pooled - medians), axis=0)
-    gate_sigma = np.maximum(1.4826 * mad, np.median(np.abs(clean - corrupt), axis=0))
-    h2 = 0.20 * gate_sigma
-    gate_floor = 2.0**-10 * np.maximum(1.0, np.median(np.abs(pooled), axis=0))
-    if np.any(h2 < gate_floor):
-        failed = np.flatnonzero(h2 < gate_floor).tolist()
-        raise GreenStop("09_RADIUS_FLOOR", f"gate radius floor failed slots {failed}")
-
-    radius_leave = {}
-    for noun in sorted(set(nouns[radius_mask])):
-        keep = radius_mask & (nouns != noun)
-        projected_leave = donor["chords"][keep] @ basis
-        sx = float(np.median(np.linalg.norm(projected_leave, axis=1) / 2.0))
-        cp, xp = donor["clean_pre"][keep], donor["corrupt_pre"][keep]
-        pp = np.concatenate([cp, xp], axis=0)
-        pm = np.median(pp, axis=0)
-        gs = np.maximum(1.4826 * np.median(np.abs(pp - pm), axis=0), np.median(np.abs(cp - xp), axis=0))
-        change = max(abs(sx - sigma_x) / sigma_x, float(np.max(np.abs(gs - gate_sigma) / gate_sigma)))
-        radius_leave[noun] = change
-        if change > 0.20:
-            raise GreenStop("09_RADIUS_STABILITY", f"leave-{noun} change={change:.3f}")
-
-    np.savez(
-        output_root / "donor_basis.npz", U=basis, singular_values=singular,
-        basis_chords=donor["chords"][basis_mask],
-        leave_one_names=np.array(sorted(leave_bases)),
-        leave_one_bases=np.stack([leave_bases[name] for name in sorted(leave_bases)]),
-    )
-    payload = {
-        "sigma_x": sigma_x, "h1": h1, "h2": h2.tolist(),
-        "residual_floor": residual_floor, "gate_floor": gate_floor.tolist(),
-        "basis_singular_values": singular.tolist(), "leave_one_basis_angles": angles,
-        "leave_one_radius_change": radius_leave,
+        radii = construct_rank5_radii(
+            donor["chords"][radius_mask],
+            donor["clean_pre"][radius_mask],
+            donor["corrupt_pre"][radius_mask],
+            donor["rms_anchor"][radius_mask],
+            nouns[radius_mask],
+            fitted["U"],
+            BASIS_V2_DONOR_NOUNS,
+        )
+    except BasisAuditError as exc:
+        raise GreenStop(exc.gate, exc.detail) from exc
+    pair_digests = np.array([row["pair_digest"] for row in donor["metadata"]])
+    fit_matrix = donor["chords"][fit_mask].astype(np.float64, copy=False)
+    holdout_matrix = donor["chords"][holdout_mask].astype(np.float64, copy=False)
+    radius_matrix = donor["chords"][radius_mask].astype(np.float64, copy=False)
+    matrix_hashes = {
+        "fit": matrix_sha256(fit_matrix),
+        "holdout": matrix_sha256(holdout_matrix),
+        "radius": matrix_sha256(radius_matrix),
+        "shapes": {
+            "fit": list(fit_matrix.shape),
+            "holdout": list(holdout_matrix.shape),
+            "radius": list(radius_matrix.shape),
+        },
+        "dtype": "float64",
+        "finite": bool(
+            np.isfinite(fit_matrix).all()
+            and np.isfinite(holdout_matrix).all()
+            and np.isfinite(radius_matrix).all()
+        ),
     }
-    write_json_atomic(output_root / "radii.json", payload)
-    return basis, payload
+    write_json_atomic(output_root / "donor_v2_matrix_hashes.json", matrix_hashes)
+    np.savez(
+        output_root / "donor_basis.npz",
+        U=fitted["U"],
+        projector=fitted["projector"],
+        singular_fit=fitted["singular_fit"],
+        singular_holdout=fitted["singular_holdout"],
+        U_holdout=fitted["U_holdout"],
+        leave_one_names=np.array(BASIS_V2_DONOR_NOUNS),
+        leave_one_bases=fitted["leave_one_bases"],
+        leave_one_angles=np.array([
+            fitted["leave_one_angles"][noun] for noun in BASIS_V2_DONOR_NOUNS
+        ]),
+        fit_pair_digests=pair_digests[fit_mask],
+        holdout_pair_digests=pair_digests[holdout_mask],
+    )
+    np.savez(
+        output_root / "basis_bootstrap.npz",
+        sampled_noun_indices=fitted["sampled_noun_indices"],
+        angles_degrees=fitted["bootstrap_angles"],
+        rank_floor_failures=np.array(fitted["bootstrap_floor_failures"], dtype=np.int64),
+    )
+    basis_audit = fitted["audit"] | {"matrix_hashes": matrix_hashes}
+    write_json_atomic(output_root / "basis_audit.json", basis_audit)
+    write_json_atomic(output_root / "radii.json", radii)
+    return fitted["U"], radii
 
 
 def target_basis_stability(model, tokenizer, suffix_ids, output_root: Path, radii: dict, records, device: str) -> dict:
@@ -1159,17 +1399,17 @@ def tail_audit(model, tokenizer, suffix_ids, U_np, radii: dict, records, device:
                 key: (value.to(device) if hasattr(value, "to") else value)
                 for key, value in plain.items()
             })
-            x = torch.zeros((1, 4), dtype=torch.float32, device=device)
+            x = torch.zeros((1, DIMENSIONS.residual_rank), dtype=torch.float32, device=device)
             z = torch.zeros(1, dtype=torch.float32, device=device)
             gate_slot = index % 10
             mode = "path"
             if kind == "x":
-                x[0, index % 4] = radii["h1"]
+                x[0, index % DIMENSIONS.residual_rank] = radii["h1"]
             elif kind == "z":
                 z[0] = radii["h2"][gate_slot]
             elif kind in {"path", "control"}:
                 mode = kind
-                x[0, index % 4] = radii["h1"]
+                x[0, index % DIMENSIONS.residual_rank] = radii["h1"]
                 z[0] = radii["h2"][gate_slot]
             manual = tail.evaluate(anchor, x, z, mode=mode, gate_slot=gate_slot)
             full = full_hook_endpoint(
@@ -1185,51 +1425,55 @@ def tail_audit(model, tokenizer, suffix_ids, U_np, radii: dict, records, device:
             derivative_errors.append(relative)
     result = {
         "n": 32, "condition_types": kinds, "max_abs": max(errors), "errors": errors,
-        "derivative_relative_max": max(derivative_errors),
+        "max_derivative_relative": max(derivative_errors),
         "derivative_relative_errors": derivative_errors,
     }
     if result["max_abs"] > THRESHOLDS.tail_max_abs:
         raise GreenStop("06_MANUAL_TAIL", f"max error {result['max_abs']:.3e}")
-    if result["derivative_relative_max"] > THRESHOLDS.tail_derivative_relative:
-        raise GreenStop("06_MANUAL_TAIL_DERIVATIVE", f"relative error {result['derivative_relative_max']:.3e}")
+    if result["max_derivative_relative"] > THRESHOLDS.tail_derivative_relative:
+        raise GreenStop("06_MANUAL_TAIL_DERIVATIVE", f"relative error {result['max_derivative_relative']:.3e}")
     return result
 
 
 def _jet_at_radius(tail: GreenBridgeTail, anchor: TailAnchor, gate_slot: int, hx: float, hz: float, center) -> GateJet:
-    """Evaluate the exact 42-condition one-gate design in two batched forwards."""
+    """Evaluate the exact rank-five 52-condition design in two batched forwards."""
     torch = torch_module()
     device = anchor.resid_mid.device
+    rank = DIMENSIONS.residual_rank
     path_x, path_z = [], []
     # Two z-axis endpoints.
     for sz in (1.0, -1.0):
-        path_x.append(np.zeros(4)); path_z.append(sz * hz)
-    # Eight x-axis endpoints.
-    for axis in range(4):
+        path_x.append(np.zeros(rank)); path_z.append(sz * hz)
+    # Ten x-axis endpoints.
+    for axis in range(rank):
         for sx in (1.0, -1.0):
-            value = np.zeros(4); value[axis] = sx * hx
+            value = np.zeros(rank); value[axis] = sx * hx
             path_x.append(value); path_z.append(0.0)
-    # Sixteen path corners, ordered by axis then (++,+-,-+,--).
-    for axis in range(4):
+    # Twenty path corners, ordered by axis then (++,+-,-+,--).
+    for axis in range(rank):
         for sx, sz in ((1, 1), (1, -1), (-1, 1), (-1, -1)):
-            value = np.zeros(4); value[axis] = sx * hx
+            value = np.zeros(rank); value[axis] = sx * hx
             path_x.append(value); path_z.append(sz * hz)
     control_x, control_z = [], []
-    for axis in range(4):
+    for axis in range(rank):
         for sx, sz in ((1, 1), (1, -1), (-1, 1), (-1, -1)):
-            value = np.zeros(4); value[axis] = sx * hx
+            value = np.zeros(rank); value[axis] = sx * hx
             control_x.append(value); control_z.append(sz * hz)
     px = torch.as_tensor(np.stack(path_x), dtype=torch.float32, device=device)
     pz = torch.as_tensor(path_z, dtype=torch.float32, device=device)
     cx = torch.as_tensor(np.stack(control_x), dtype=torch.float32, device=device)
     cz = torch.as_tensor(control_z, dtype=torch.float32, device=device)
-    path = tail.evaluate(_repeat_anchor(anchor, 26), px, pz, mode="path", gate_slot=gate_slot).double()
-    control = tail.evaluate(_repeat_anchor(anchor, 16), cx, cz, mode="control", gate_slot=gate_slot).double()
+    path_count = 2 + 6 * rank
+    control_count = 4 * rank
+    path = tail.evaluate(_repeat_anchor(anchor, path_count), px, pz, mode="path", gate_slot=gate_slot).double()
+    control = tail.evaluate(_repeat_anchor(anchor, control_count), cx, cz, mode="control", gate_slot=gate_slot).double()
     G = (path[0] - path[1]) / (2 * hz)
     C = (path[0] - 2 * center + path[1]) / (hz * hz)
     J, HP, HC = [], [], []
-    for axis in range(4):
+    mixed_start = 2 + 2 * rank
+    for axis in range(rank):
         J.append((path[2 + 2 * axis] - path[3 + 2 * axis]) / (2 * hx))
-        p = path[10 + 4 * axis:14 + 4 * axis]
+        p = path[mixed_start + 4 * axis:mixed_start + 4 + 4 * axis]
         c = control[4 * axis:4 + 4 * axis]
         HP.append((p[0] - p[1] - p[2] + p[3]) / (4 * hx * hz))
         HC.append((c[0] - c[1] - c[2] + c[3]) / (4 * hx * hz))
@@ -1357,7 +1601,10 @@ def classify_gate(full, half, rich, wb_A, contrast_norm: float, delta_norm: floa
 
 def mixed_system(tail, model, anchor, U, radii, delta, contrast, epsilon_y: float) -> dict:
     torch = torch_module()
-    zero_x = torch.zeros((1, 4), dtype=torch.float32, device=anchor.resid_mid.device)
+    zero_x = torch.zeros(
+        (1, DIMENSIONS.residual_rank), dtype=torch.float32,
+        device=anchor.resid_mid.device,
+    )
     zero_z = torch.zeros(1, dtype=torch.float32, device=anchor.resid_mid.device)
     center = tail.evaluate(anchor, zero_x, zero_z, mode="path", gate_slot=0)[0].double()
     center_error = center - anchor.year_logits[0].double()
@@ -1436,21 +1683,24 @@ def first_order_system(tail, anchor, radii, directions: np.ndarray, contrast) ->
     xs, zs, descriptors = [], [], []
     for radius_name, rho in (("full", 1.0), ("half", 0.5)):
         for kind in ("x", "z"):
-            count = 200 if kind == "x" else 10
+            count = FIRST_ORDER_RESIDUAL_DIRECTIONS if kind == "x" else 10
             for axis in range(count):
                 for sign in (1.0, -1.0):
-                    x = np.zeros(4); z = np.zeros(10)
+                    x = np.zeros(DIMENSIONS.residual_rank); z = np.zeros(10)
                     if kind == "x": x = sign * rho * radii["h1"] * directions[axis]
                     else: z[axis] = sign * rho * radii["h2"][axis]
                     xs.append(x); zs.append(z); descriptors.append((radius_name, kind, axis, sign, rho))
     values = joint_margins(tail, anchor, np.stack(xs), np.stack(zs), contrast)
-    response = {"full": {"x": np.zeros(200), "z": np.zeros(10)}, "half": {"x": np.zeros(200), "z": np.zeros(10)}}
+    response = {
+        "full": {"x": np.zeros(FIRST_ORDER_RESIDUAL_DIRECTIONS), "z": np.zeros(10)},
+        "half": {"x": np.zeros(FIRST_ORDER_RESIDUAL_DIRECTIONS), "z": np.zeros(10)},
+    }
     endpoints = {}
     for value, descriptor in zip(values, descriptors):
         radius_name, kind, axis, sign, rho = descriptor
         endpoints[radius_name, kind, axis, sign] = value
     for radius_name, rho in (("full", 1.0), ("half", 0.5)):
-        for kind, count in (("x", 200), ("z", 10)):
+        for kind, count in (("x", FIRST_ORDER_RESIDUAL_DIRECTIONS), ("z", 10)):
             for axis in range(count):
                 response[radius_name][kind][axis] = (
                     endpoints[radius_name, kind, axis, 1.0]
@@ -1752,9 +2002,9 @@ def duplicate_noise_audit(model, tokenizer, suffix_ids, U_np, radii, records, de
         for index, row in enumerate(ranked[:32]):
             tokens = tokenize_one(tokenizer, row.clean_prompt, device)
             anchor = captured[row.pair_digest]
-            x = torch.zeros((1, 4), dtype=torch.float32, device=device)
+            x = torch.zeros((1, DIMENSIONS.residual_rank), dtype=torch.float32, device=device)
             z = torch.zeros(1, dtype=torch.float32, device=device)
-            x[0, index % 4] = radii["h1"] * (1 if index % 2 else -1)
+            x[0, index % DIMENSIONS.residual_rank] = radii["h1"] * (1 if index % 2 else -1)
             z[0] = radii["h2"][index % 10] * (1 if index % 3 else -1)
             first = tail.evaluate(anchor, x, z, mode="path", gate_slot=index % 10)
             second = tail.evaluate(anchor, x, z, mode="path", gate_slot=index % 10)
@@ -1779,16 +2029,36 @@ def load_frozen_numeric(output_root: Path, device: str):
 
 
 def prepare(output_root: Path, device: str) -> None:
-    output_root.mkdir(parents=True, exist_ok=True)
+    repository = assert_clean_repository()
+    assert_empty_prepare_root(output_root)
     environment = configure_runtime(device)
     from transformers import AutoTokenizer
     tokenizer = AutoTokenizer.from_pretrained(MODEL_ID, revision=MODEL_REVISION)
     pair_allowed = lambda first, second: token_pair_allowed(tokenizer, first, second)
     evaluation = build_evaluation_records(pair_allowed)
-    donors = build_donor_records(pair_allowed)
-    legacy_gate04, holdout_gate04 = gate04_record_panels(donors)
+    validate_evaluation_plan(evaluation)
+    legacy_donors = build_legacy_donor_records(pair_allowed)
+    donors = build_basis_v2_donor_records(pair_allowed)
+    validate_basis_v2_plan(donors)
+    legacy_gate04, holdout_gate04 = gate04_record_panels(legacy_donors)
     gate04_panel = gate04_panel_metadata(legacy_gate04, holdout_gate04)
-    split_payload = write_plan(output_root / "splits.json", evaluation + donors)
+    if gate04_panel["ordered_prompt_keys_sha256"] != GATE04_ORDERED_PROMPT_HASH:
+        raise GreenStop(
+            "04_HF_TL_FIDELITY",
+            "legacy Gate-04 ordered prompt panel hash changed",
+        )
+    evaluation_payload = plan_payload(evaluation)
+    donor_v2_payload = basis_v2_plan_payload(donors)
+    legacy_payload = plan_payload(legacy_donors)
+    split_payload = evaluation_payload | {
+        "basis_v2_ordered_pair_keys": donor_v2_payload["ordered_pair_keys"],
+        "basis_v2_ordered_prompt_keys": donor_v2_payload["ordered_prompt_keys"],
+    }
+    output_root.mkdir(parents=True, exist_ok=True)
+    write_run_ledger(output_root, repository)
+    write_json_atomic(output_root / "splits.json", split_payload)
+    write_json_atomic(output_root / "gate04_legacy_panel.json", gate04_panel)
+    write_basis_v2_plan(output_root / "donor_v2_plan.json", donors)
     # Development gets its own physically separate view so its process never
     # parses confirmation prompt strings before the frozen analysis exists.
     write_json_atomic(
@@ -1796,9 +2066,18 @@ def prepare(output_root: Path, device: str) -> None:
         plan_payload([row for row in evaluation if row.split == "development"]),
     )
     tokenizer, hf_model, model, cfg = load_models(device, tokenizer=tokenizer)
-    suffix_ids, tokenizer_meta = validate_tokenizer(tokenizer, evaluation + donors)
+    suffix_ids, tokenizer_meta = validate_tokenizer(
+        tokenizer, evaluation + legacy_donors + donors
+    )
     manifest = write_initial_manifest(
-        output_root, environment, cfg, split_payload, gate04_panel
+        output_root,
+        repository,
+        environment,
+        cfg,
+        evaluation_payload,
+        donor_v2_payload,
+        legacy_payload["records_sha256"],
+        gate04_panel,
     )
     fingerprint = {
         "model_id": MODEL_ID, "model_revision": MODEL_REVISION,
@@ -1827,7 +2106,13 @@ def prepare(output_root: Path, device: str) -> None:
     write_json_atomic(output_root / "tail_audit.json", tail_result)
     manifest["artifact_sha256"] = {
         name: sha256_file(output_root / name)
-        for name in ("model_fingerprint.json", "splits.json", "donor_basis.npz", "radii.json", "hook_audit.json", "tail_audit.json")
+        for name in (
+            "model_fingerprint.json", "splits.json", "development_splits.json",
+            "gate04_legacy_panel.json", "hook_audit.json", "donor_v2_plan.json",
+            "donor_v2_matrix_hashes.json", "donor_basis.npz", "basis_audit.json",
+            "basis_bootstrap.npz", "radii.json", "first_order_directions.npy",
+            "tail_audit.json", "run_ledger.json",
+        )
     }
     manifest["prepare_complete"] = True
     write_json_atomic(output_root / "manifest.json", manifest)
@@ -1838,6 +2123,21 @@ def verify_freeze(output_root: Path, require_confirmation: bool = False) -> dict
     if not manifest_path.is_file():
         raise GreenStop("17_MANIFEST_FREEZE", "manifest.json missing")
     manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    if manifest.get("schema_version") != "green-bridge-manifest-v1.2":
+        raise GreenStop("17_MANIFEST_FREEZE", "manifest schema changed")
+    if manifest.get("prepare_complete") is not True:
+        raise GreenStop("17_MANIFEST_FREEZE", "prepare did not complete")
+    stopped = output_root / "result.json"
+    if stopped.is_file():
+        result = json.loads(stopped.read_text(encoding="utf-8"))
+        if result.get("verdict") == "STOP":
+            raise GreenStop("17_MANIFEST_FREEZE", "terminal STOP cannot continue")
+    ledger_path = output_root / "run_ledger.json"
+    if not ledger_path.is_file():
+        raise GreenStop("17_MANIFEST_FREEZE", "run ledger missing")
+    ledger = json.loads(ledger_path.read_text(encoding="utf-8"))
+    if ledger.get("attempt_index") != 1 or ledger.get("retry_allowed") is not False:
+        raise GreenStop("17_MANIFEST_FREEZE", "one-shot ledger contract changed")
     if manifest["frozen_spec_sha256"] != frozen_spec_hash():
         raise GreenStop("17_MANIFEST_FREEZE", "frozen spec hash changed")
     if manifest["source_sha256"] != source_hashes():
@@ -1851,6 +2151,7 @@ def verify_freeze(output_root: Path, require_confirmation: bool = False) -> dict
 
 def development_phase(output_root: Path, device: str) -> None:
     manifest = verify_freeze(output_root)
+    claim_phase(output_root, "development")
     U, radii, tokenizer, hf_model, model, suffix_ids, _ = load_frozen_numeric(output_root, device)
     del hf_model
     records = load_split_file(output_root, "development_splits.json")
@@ -1895,6 +2196,7 @@ def development_phase(output_root: Path, device: str) -> None:
 
 def confirmation_phase(output_root: Path, device: str) -> None:
     manifest = verify_freeze(output_root, require_confirmation=True)
+    claim_phase(output_root, "confirmation")
     frozen = json.loads((output_root / "frozen_analysis.json").read_text(encoding="utf-8"))
     if frozen["source_sha256"] != source_hashes():
         raise GreenStop("17_MANIFEST_FREEZE", "frozen source hash mismatch")
@@ -1947,18 +2249,20 @@ def finalize_hashes(output_root: Path) -> None:
 
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--phase", choices=("prepare", "development", "confirmation", "all"), required=True)
+    parser.add_argument("--phase", choices=("prepare", "development", "confirmation"), required=True)
     parser.add_argument("--device", default="cuda:0", help="hardware placement only")
     parser.add_argument("--output-root", type=Path, default=OUTPUT_ROOT, help="artifact location only")
     args = parser.parse_args()
     try:
-        if args.phase in {"prepare", "all"}:
+        if args.phase == "prepare":
             prepare(args.output_root, args.device)
-        if args.phase in {"development", "all"}:
+        if args.phase == "development":
             development_phase(args.output_root, args.device)
-        if args.phase in {"confirmation", "all"}:
+        if args.phase == "confirmation":
             confirmation_phase(args.output_root, args.device)
     except GreenStop as exc:
+        if exc.gate in {"00_REPOSITORY_CLEAN", "00_OUTPUT_ROOT_NOT_EMPTY"}:
+            raise
         terminal_stop(args.output_root, exc.gate, exc.detail)
 
 

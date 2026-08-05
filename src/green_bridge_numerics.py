@@ -42,6 +42,17 @@ def richardson_numerical_bounds(
     if epsilon_y < 0 or h1 <= 0 or h2 <= 0:
         raise ValueError("epsilon_y must be nonnegative and radii must be positive")
 
+    for name, value in (
+        ("rich.H_path", rich.H_path),
+        ("rich.H_control", rich.H_control),
+        ("rich.J_path", rich.J_path),
+        ("half.H_path", half.H_path),
+        ("half.H_control", half.H_control),
+        ("half.J_path", half.J_path),
+    ):
+        if np.asarray(value).shape != (5, 100):
+            raise ValueError(f"{name} must have shape [5,100]")
+
     k = int(np.asarray(rich.G).size)
     if k != 100:
         raise ValueError(f"the frozen output dimension is 100, got {k}")

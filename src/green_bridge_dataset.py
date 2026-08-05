@@ -7,6 +7,13 @@ from pathlib import Path
 from typing import Callable, Iterable, Sequence
 
 from green_bridge_spec import (
+    BASIS_V2_DONOR_CENTURIES,
+    BASIS_V2_DONOR_NOUNS,
+    BASIS_V2_DONOR_SELECTION_ORDER,
+    BASIS_V2_FIT_PAIRS,
+    BASIS_V2_HOLDOUT_PAIRS,
+    BASIS_V2_RADIUS_PAIRS,
+    BASIS_V2_SALT,
     DISTANCE_BINS,
     DONOR_CENTURIES,
     DONOR_NOUNS,
@@ -47,6 +54,20 @@ class PairRecord:
 
 def _digest(kind: str, noun: str, century: int, bin_name: str, role: str, a: int, b: int) -> str:
     key = f"{SALT}|{kind}|{noun}|{century:02d}|{bin_name}|{role}|{a:02d}|{b:02d}"
+    return hashlib.sha256(key.encode("utf-8")).hexdigest()
+
+
+def _digest_with_salt(
+    salt: str,
+    kind: str,
+    noun: str,
+    century: int,
+    bin_name: str,
+    role: str,
+    a: int,
+    b: int,
+) -> str:
+    key = f"{salt}|{kind}|{noun}|{century:02d}|{bin_name}|{role}|{a:02d}|{b:02d}"
     return hashlib.sha256(key.encode("utf-8")).hexdigest()
 
 
@@ -158,7 +179,7 @@ def build_evaluation_records(
     return records
 
 
-def build_donor_records(
+def build_legacy_donor_records(
     pair_allowed: Callable[[str, str], bool] | None = None,
 ) -> list[PairRecord]:
     records: list[PairRecord] = []
@@ -183,6 +204,202 @@ def build_donor_records(
                     )
                 )
     return records
+
+
+def build_donor_records(
+    pair_allowed: Callable[[str, str], bool] | None = None,
+) -> list[PairRecord]:
+    """Backward-compatible name for the immutable protocol-v1 donor plan."""
+    return build_legacy_donor_records(pair_allowed)
+
+
+def _select_basis_v2_role(
+    *,
+    noun: str,
+    century: int,
+    bin_name: str,
+    role: str,
+    count_up: int,
+    count_down: int,
+    used_suffixes: set[int],
+    pair_allowed: Callable[[str, str], bool] | None,
+) -> list[PairRecord]:
+    ranked = []
+    for a, b in _candidate_pairs(bin_name):
+        if a in used_suffixes or b in used_suffixes:
+            continue
+        clean_a = PROMPT.format(noun=noun, cc=century, y=a)
+        clean_b = PROMPT.format(noun=noun, cc=century, y=b)
+        if pair_allowed is not None and not pair_allowed(clean_a, clean_b):
+            continue
+        pair_hash = _digest_with_salt(
+            BASIS_V2_SALT, "pair", noun, century, bin_name, role, a, b
+        )
+        orient_hash = _digest_with_salt(
+            BASIS_V2_SALT, "orient", noun, century, bin_name, role, a, b
+        )
+        ranked.append((pair_hash, orient_hash, a, b))
+    ranked.sort(key=lambda row: row[0])
+    quotas = {"up": count_up, "down": count_down}
+    selected = []
+    for pair_hash, orient_hash, a, b in ranked:
+        if a in used_suffixes or b in used_suffixes:
+            continue
+        preferred = "up" if int(orient_hash[:2], 16) & 1 else "down"
+        opposite = "down" if preferred == "up" else "up"
+        orientation = preferred if quotas[preferred] else opposite
+        if quotas[orientation] == 0:
+            continue
+        y, y_prime = (a, b) if orientation == "up" else (b, a)
+        selected.append(PairRecord(
+            population="donor_v2",
+            split="donor",
+            role=role,
+            noun=noun,
+            century=century,
+            distance_bin=bin_name,
+            cell_id=cell_id(noun, century, bin_name),
+            item_index=len(selected),
+            y=y,
+            y_prime=y_prime,
+            clean_prompt=PROMPT.format(noun=noun, cc=century, y=y),
+            corrupt_prompt=PROMPT.format(noun=noun, cc=century, y=y_prime),
+            pair_digest=pair_hash,
+            orientation_digest=orient_hash,
+        ))
+        quotas[orientation] -= 1
+        used_suffixes.update((a, b))
+        if not any(quotas.values()):
+            break
+    if any(quotas.values()):
+        raise RuntimeError(
+            f"basis-v2 quota failure for {noun}/{century}/{bin_name}/{role}: {quotas}"
+        )
+    return selected
+
+
+def build_basis_v2_donor_records(
+    pair_allowed: Callable[[str, str], bool] | None = None,
+) -> list[PairRecord]:
+    records = []
+    for noun in BASIS_V2_DONOR_NOUNS:
+        for century in BASIS_V2_DONOR_CENTURIES:
+            used_suffixes: set[int] = set()
+            for bin_name, role, count_up, count_down in BASIS_V2_DONOR_SELECTION_ORDER:
+                records.extend(_select_basis_v2_role(
+                    noun=noun,
+                    century=century,
+                    bin_name=bin_name,
+                    role=role,
+                    count_up=count_up,
+                    count_down=count_down,
+                    used_suffixes=used_suffixes,
+                    pair_allowed=pair_allowed,
+                ))
+            if len(used_suffixes) != 40:
+                raise RuntimeError(
+                    f"basis-v2 suffix quota failure for {noun}/{century}: {len(used_suffixes)}"
+                )
+    validate_basis_v2_plan(records)
+    return records
+
+
+def validate_evaluation_plan(records: Sequence[PairRecord]) -> None:
+    evaluation = [row for row in records if row.population == "evaluation"]
+    if len(evaluation) != 768:
+        raise AssertionError(f"expected 768 evaluation records, got {len(evaluation)}")
+    cells = sorted({row.cell_id for row in evaluation})
+    if len(cells) != 48:
+        raise AssertionError(f"expected 48 evaluation cells, got {len(cells)}")
+    development = {row.cell_id for row in evaluation if row.split == "development"}
+    confirmation = {row.cell_id for row in evaluation if row.split == "confirmation"}
+    if len(development) != 16 or len(confirmation) != 32 or development & confirmation:
+        raise AssertionError("development/confirmation cell split is invalid")
+    for cid in cells:
+        subset = [row for row in evaluation if row.cell_id == cid]
+        for role in ("tensor", "energy"):
+            role_rows = [row for row in subset if row.role == role]
+            if len(role_rows) != 8 or sum(row.orientation == "up" for row in role_rows) != 4:
+                raise AssertionError(f"{cid}/{role} quota failed")
+        tensor_pairs = {tuple(sorted((row.y, row.y_prime))) for row in subset if row.role == "tensor"}
+        energy_pairs = {tuple(sorted((row.y, row.y_prime))) for row in subset if row.role == "energy"}
+        if tensor_pairs & energy_pairs:
+            raise AssertionError(f"tensor/energy pair overlap in {cid}")
+
+
+def validate_basis_v2_plan(records: Sequence[PairRecord]) -> None:
+    rows = [row for row in records if row.population == "donor_v2"]
+    expected_counts = {
+        "basis_fit": BASIS_V2_FIT_PAIRS,
+        "basis_holdout": BASIS_V2_HOLDOUT_PAIRS,
+        "radius_v2": BASIS_V2_RADIUS_PAIRS,
+    }
+    counts = {role: sum(row.role == role for row in rows) for role in expected_counts}
+    if counts != expected_counts or len(rows) != 1280:
+        raise AssertionError(f"invalid basis-v2 role counts: {counts}")
+    if set(BASIS_V2_DONOR_NOUNS) & set(EVALUATION_NOUNS):
+        raise AssertionError("basis-v2/evaluation noun overlap")
+    if set(BASIS_V2_DONOR_NOUNS) & set(DONOR_NOUNS):
+        raise AssertionError("basis-v2/legacy donor noun overlap")
+    prompts = [prompt for row in rows for prompt in (row.clean_prompt, row.corrupt_prompt)]
+    if len(prompts) != 2560 or len(set(prompts)) != 2560:
+        raise AssertionError("basis-v2 prompt keys are not unique")
+    for noun in BASIS_V2_DONOR_NOUNS:
+        for century in BASIS_V2_DONOR_CENTURIES:
+            subset = [row for row in rows if row.noun == noun and row.century == century]
+            suffixes = [suffix for row in subset for suffix in (row.y, row.y_prime)]
+            if len(subset) != 20 or len(suffixes) != 40 or len(set(suffixes)) != 40:
+                raise AssertionError(f"basis-v2 suffix reuse for {noun}/{century}")
+            cursor = 0
+            for bin_name, role, count_up, count_down in BASIS_V2_DONOR_SELECTION_ORDER:
+                count = count_up + count_down
+                group = subset[cursor:cursor + count]
+                cursor += count
+                if any(row.distance_bin != bin_name or row.role != role for row in group):
+                    raise AssertionError(f"basis-v2 role order failed for {noun}/{century}")
+                if sum(row.orientation == "up" for row in group) != count_up:
+                    raise AssertionError(f"basis-v2 orientation quota failed for {noun}/{century}/{role}")
+
+
+def basis_v2_plan_payload(records: Sequence[PairRecord]) -> dict:
+    validate_basis_v2_plan(records)
+    rows = [asdict(record) for record in records]
+    pair_keys = [
+        [row.noun, row.century, row.distance_bin, row.role, row.y, row.y_prime, row.pair_digest]
+        for row in records
+    ]
+    prompt_keys = [
+        [row.pair_digest, system, prompt]
+        for row in records
+        for system, prompt in (("clean", row.clean_prompt), ("corrupt", row.corrupt_prompt))
+    ]
+    by_role = {}
+    for role in ("basis_fit", "basis_holdout", "radius_v2"):
+        keys = [key for key, row in zip(pair_keys, records) if row.role == role]
+        by_role[role + "_ordered_keys_sha256"] = sha256_text(canonical_json(keys))
+    return {
+        "schema_version": "green-bridge-donor-v2-plan-v1",
+        "records": rows,
+        "records_sha256": sha256_text(canonical_json(rows)),
+        "counts": {
+            role: sum(row.role == role for row in records)
+            for role in ("basis_fit", "basis_holdout", "radius_v2")
+        },
+        "unique_prompt_count": len({prompt for row in records for prompt in (row.clean_prompt, row.corrupt_prompt)}),
+        "prompt_overlap_count": 0,
+        "legacy_noun_overlap_count": len(set(BASIS_V2_DONOR_NOUNS) & set(DONOR_NOUNS)),
+        "evaluation_noun_overlap_count": len(set(BASIS_V2_DONOR_NOUNS) & set(EVALUATION_NOUNS)),
+        "ordered_pair_keys": pair_keys,
+        "ordered_prompt_keys": prompt_keys,
+        "basis_v2_all_prompt_keys_sha256": sha256_text(canonical_json(prompt_keys)),
+        **by_role,
+    }
+
+
+def write_basis_v2_plan(path: Path, records: Sequence[PairRecord]) -> dict:
+    payload = basis_v2_plan_payload(records)
+    write_json_atomic(path, payload)
+    return payload
 
 
 def validate_plan(records: Sequence[PairRecord]) -> None:
