@@ -1,6 +1,24 @@
 # GPT Pro review entry point
 
-## Round 2: formal theory gate (current task)
+## Round 3: real-transformer green bridge (current task)
+
+The Round 2 theory package is now available at
+[`analysis/GPTPRO_THEORY_PACKAGE_20260805.md`](analysis/GPTPRO_THEORY_PACKAGE_20260805.md).
+It proves the restricted ASG-RDAG result but returns **THEORY AMBER** because the
+proposed Greater-Than blocks do not instantiate the theorem.
+
+The execution agent has completed the authorized CPU implementation and tests;
+see
+[`analysis/CPU_THEORY_GATE_EXECUTION_20260805.md`](analysis/CPU_THEORY_GATE_EXECUTION_20260805.md).
+
+For the current task, follow
+[`GPTPRO_GREEN_BRIDGE_PROMPT_20260805.md`](GPTPRO_GREEN_BRIDGE_PROMPT_20260805.md)
+exactly. The requested output is
+`analysis/GPTPRO_GREEN_BRIDGE_20260805.md`. The only permissible terminal
+decisions are `BRIDGE GREEN — SERVER EXECUTION AUTHORIZED` and
+`BRIDGE RED — DO NOT OPEN THE SERVER`.
+
+## Round 2: formal theory gate (completed)
 
 The first adversarial review has been returned as
 [`GPTPRO_0805.md`](GPTPRO_0805.md).  It concludes that the current snapshot is

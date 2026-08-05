@@ -77,6 +77,32 @@ def test_composite_conformal_empirical_false_alarm_control() -> None:
     assert false_alarm <= 0.13, false_alarm
 
 
+def test_explicit_normalization_and_final_calibration_splits() -> None:
+    rng = np.random.RandomState(19)
+    fit = rng.randn(100, 7)
+    normalization = rng.randn(30, 7)
+    final_calibration = rng.randn(17, 7)
+    ref = CrossFitSiteReference(
+        fit,
+        final_calibration,
+        normalization_ref=normalization,
+        target_law="induced_endpoint_v1",
+        knn_k=5,
+        proj_rank=5,
+    )
+    diagnostics = ref.diagnostics()
+    assert diagnostics["explicit_composite_splits"] is True
+    assert diagnostics["target_law"] == "induced_endpoint_v1"
+    assert diagnostics["n_composite_normalization"] == 30
+    assert diagnostics["n_composite_calibration"] == 17
+    assert not np.shares_memory(
+        ref.composite_normalization_ref, ref.composite_calibration_ref
+    )
+    scores = ref.score(rng.randn(9, 7))["overlap_conformal"]
+    grid = 1.0 / 18.0
+    assert np.allclose(scores / grid, np.round(scores / grid))
+
+
 if __name__ == "__main__":
     tests = [
         test_held_out_knn_keeps_nearest_neighbor,
@@ -85,6 +111,7 @@ if __name__ == "__main__":
         test_cross_fit_scoring_is_finite_and_separates_shift,
         test_composite_conformal_uses_disjoint_normalization_and_calibration,
         test_composite_conformal_empirical_false_alarm_control,
+        test_explicit_normalization_and_final_calibration_splits,
     ]
     for test in tests:
         test()

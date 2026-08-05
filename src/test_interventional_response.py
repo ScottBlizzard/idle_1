@@ -69,6 +69,28 @@ def test_signature_comparison_detects_mismatch() -> None:
     assert different.mean_cosine < 0.0
 
 
+def test_vector_output_energy_uses_frobenius_convention() -> None:
+    scalar_target = np.ones((3, 5, 1))
+    scalar_patch = 2.0 * scalar_target
+    scalar = compare_signatures(scalar_patch, scalar_target)
+    for k in (2, 7):
+        target = np.repeat(scalar_target, k, axis=2)
+        patch = np.repeat(scalar_patch, k, axis=2)
+        vector = compare_signatures(patch, target)
+        assert np.allclose(vector.rmse, np.sqrt(k) * scalar.rmse)
+        assert np.allclose(vector.per_item_rmse, np.sqrt(k) * scalar.per_item_rmse)
+        assert np.allclose(vector.normalized_rmse, scalar.normalized_rmse)
+
+
+def test_signature_comparison_reports_normalization_floor() -> None:
+    target = np.zeros((4, 3, 2))
+    target[0] = 1.0
+    patch = target + 0.1
+    comparison = compare_signatures(patch, target, normalization_floor=1e-3)
+    assert comparison.normalization_floor_active.tolist() == [False, True, True, True]
+    assert comparison.normalization_floor_fraction == 0.75
+
+
 if __name__ == "__main__":
     tests = [
         test_symmetric_signature_recovers_linear_directional_derivative,
@@ -76,6 +98,8 @@ if __name__ == "__main__":
         test_forward_linear_bias_and_symmetric_quadratic_cancellation,
         test_reference_chord_probes_point_toward_reference,
         test_signature_comparison_detects_mismatch,
+        test_vector_output_energy_uses_frobenius_convention,
+        test_signature_comparison_reports_normalization_floor,
     ]
     for test in tests:
         test()

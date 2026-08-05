@@ -131,6 +131,9 @@ class IRSComparison:
     mean_cosine: float
     per_item_rmse: np.ndarray
     per_item_normalized_rmse: np.ndarray
+    per_item_target_rms: np.ndarray
+    normalization_floor_active: np.ndarray
+    normalization_floor_fraction: float
 
 
 def compare_signatures(
@@ -139,7 +142,13 @@ def compare_signatures(
     *,
     normalization_floor: float = 1e-8,
 ) -> IRSComparison:
-    """Compare paired response signatures without collapsing their scale silently."""
+    """Compare paired signatures using probe-mean, output-summed energy.
+
+    The output coordinate axis is summed, not silently averaged.  Consequently,
+    replicating a scalar output ``k`` times multiplies squared energy by ``k``.
+    Scalar-output historical results are unchanged.  The returned floor mask
+    makes ill-conditioned normalized scores auditable.
+    """
     patched = _finite_array(patched, "patched")
     target = _finite_array(target, "target")
     if patched.shape != target.shape or patched.ndim != 3:
@@ -147,8 +156,9 @@ def compare_signatures(
     if normalization_floor <= 0:
         raise ValueError("normalization_floor must be positive")
     diff = patched - target
-    per_item_rmse = np.sqrt(np.mean(diff ** 2, axis=(1, 2)))
-    target_rms = np.sqrt(np.mean(target ** 2, axis=(1, 2)))
+    per_item_rmse = np.sqrt(np.mean(np.sum(diff ** 2, axis=2), axis=1))
+    target_rms = np.sqrt(np.mean(np.sum(target ** 2, axis=2), axis=1))
+    floor_active = target_rms < normalization_floor
     per_item_normalized = per_item_rmse / np.maximum(target_rms, normalization_floor)
     patch_flat = patched.reshape(len(patched), -1)
     target_flat = target.reshape(len(target), -1)
@@ -160,9 +170,12 @@ def compare_signatures(
         where=denom > normalization_floor,
     )
     return IRSComparison(
-        rmse=float(np.sqrt(np.mean(diff ** 2))),
+        rmse=float(np.sqrt(np.mean(np.sum(diff ** 2, axis=2)))),
         normalized_rmse=float(np.mean(per_item_normalized)),
         mean_cosine=float(np.mean(cosine)),
         per_item_rmse=per_item_rmse,
         per_item_normalized_rmse=per_item_normalized,
+        per_item_target_rms=target_rms,
+        normalization_floor_active=floor_active,
+        normalization_floor_fraction=float(np.mean(floor_active)),
     )

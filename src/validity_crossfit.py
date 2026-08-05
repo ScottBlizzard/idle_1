@@ -49,6 +49,8 @@ class CrossFitSiteReference:
         fit_ref: np.ndarray,
         calibration_ref: np.ndarray,
         *,
+        normalization_ref: np.ndarray | None = None,
+        target_law: str = "natural_reference",
         knn_k: int = 12,
         proj_rank: int = 32,
         shrinkage: float = 1e-2,
@@ -56,18 +58,34 @@ class CrossFitSiteReference:
     ):
         fit_ref = _as_2d_f64(fit_ref, "fit_ref")
         calibration_ref = _as_2d_f64(calibration_ref, "calibration_ref")
-        if fit_ref.shape[1] != calibration_ref.shape[1]:
-            raise ValueError("fit_ref and calibration_ref must have the same width")
+        if normalization_ref is not None:
+            normalization_ref = _as_2d_f64(normalization_ref, "normalization_ref")
+        widths = [fit_ref.shape[1], calibration_ref.shape[1]]
+        if normalization_ref is not None:
+            widths.append(normalization_ref.shape[1])
+        if len(set(widths)) != 1:
+            raise ValueError("all reference splits must have the same width")
+        if not isinstance(target_law, str) or not target_law.strip():
+            raise ValueError("target_law must be a nonempty declared-law label")
         if knn_k < 1 or proj_rank < 1:
             raise ValueError("knn_k and proj_rank must be positive")
-        if len(calibration_ref) < 4:
+        if normalization_ref is None and len(calibration_ref) < 4:
             raise ValueError(
                 "calibration_ref needs at least 4 rows so composite conformal "
                 "normalization and final calibration remain independent"
             )
+        if normalization_ref is not None and (
+            len(normalization_ref) < 2 or len(calibration_ref) < 2
+        ):
+            raise ValueError(
+                "explicit normalization and final calibration splits each need "
+                "at least 2 rows"
+            )
 
         self.fit_ref = fit_ref
         self.calibration_ref = calibration_ref
+        self.target_law = target_law.strip()
+        self.explicit_composite_splits = normalization_ref is not None
         self.mean_orig = fit_ref.mean(axis=0)
         centered = fit_ref - self.mean_orig
 
@@ -94,7 +112,13 @@ class CrossFitSiteReference:
         self.cov_inv = np.linalg.pinv(cov + ridge * np.eye(selected_rank), hermitian=True)
         self.proj_mean = self.fit_proj.mean(axis=0)
 
-        calibration_raw = self.raw_metrics(calibration_ref)
+        marginal_ref = (
+            calibration_ref
+            if normalization_ref is None
+            else np.concatenate([normalization_ref, calibration_ref], axis=0)
+        )
+        calibration_raw = self.raw_metrics(marginal_ref)
+        self.marginal_reference = marginal_ref
         self.calibration_raw = calibration_raw
         self.calibration_stats: dict[str, CalibrationStats] = {}
         for name in self.COMPONENTS:
@@ -111,17 +135,25 @@ class CrossFitSiteReference:
         # scalar nonconformity.  In contrast, the historical overlap_ecdf below is
         # only a geometric mean of marginal tail probabilities and has no joint
         # finite-sample coverage guarantee.
-        normalization_stop = len(calibration_ref) // 2
-        self.composite_normalization_ref = calibration_ref[:normalization_stop]
-        self.composite_calibration_ref = calibration_ref[normalization_stop:]
-        self.composite_normalization_raw = {
-            name: values[:normalization_stop]
-            for name, values in calibration_raw.items()
-        }
-        self.composite_calibration_raw = {
-            name: values[normalization_stop:]
-            for name, values in calibration_raw.items()
-        }
+        if normalization_ref is None:
+            normalization_stop = len(calibration_ref) // 2
+            self.composite_normalization_ref = calibration_ref[:normalization_stop]
+            self.composite_calibration_ref = calibration_ref[normalization_stop:]
+            self.composite_normalization_raw = {
+                name: values[:normalization_stop]
+                for name, values in calibration_raw.items()
+            }
+            self.composite_calibration_raw = {
+                name: values[normalization_stop:]
+                for name, values in calibration_raw.items()
+            }
+        else:
+            self.composite_normalization_ref = normalization_ref
+            self.composite_calibration_ref = calibration_ref
+            normalization_raw = self.raw_metrics(normalization_ref)
+            final_calibration_raw = self.raw_metrics(calibration_ref)
+            self.composite_normalization_raw = normalization_raw
+            self.composite_calibration_raw = final_calibration_raw
         self.composite_stats: dict[str, CalibrationStats] = {}
         for name in self.COMPONENTS:
             values = self.composite_normalization_raw[name]
@@ -254,8 +286,11 @@ class CrossFitSiteReference:
         return {
             "n_fit": int(len(self.fit_ref)),
             "n_calibration": int(len(self.calibration_ref)),
+            "n_marginal_reference": int(len(self.marginal_reference)),
             "n_composite_normalization": int(len(self.composite_normalization_ref)),
             "n_composite_calibration": int(len(self.composite_calibration_ref)),
+            "explicit_composite_splits": self.explicit_composite_splits,
+            "target_law": self.target_law,
             "unique_fit_activations": _unique_rows(self.fit_ref),
             "unique_calibration_activations": _unique_rows(self.calibration_ref),
             "effective_rank": int(self.effective_rank),
