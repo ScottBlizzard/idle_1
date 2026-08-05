@@ -1,0 +1,8 @@
+# Python 3.11.13 and CUDA runtime 12.6 are required outside pip.
+torch==2.7.1
+transformer-lens==3.6.0
+transformers==5.13.0
+numpy==2.2.6
+scipy==1.15.3
+pandas==2.2.3
+pyarrow==19.0.1
