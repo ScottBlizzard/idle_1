@@ -7,18 +7,12 @@ from pathlib import Path
 from typing import Callable, Iterable, Sequence
 
 from green_bridge_spec import (
-    BASIS_V2_DONOR_CENTURIES,
-    BASIS_V2_DONOR_NOUNS,
-    BASIS_V2_DONOR_SELECTION_ORDER,
-    BASIS_V2_FIT_PAIRS,
-    BASIS_V2_HOLDOUT_PAIRS,
-    BASIS_V2_RADIUS_PAIRS,
-    BASIS_V2_SALT,
     DISTANCE_BINS,
     DONOR_CENTURIES,
     DONOR_NOUNS,
     EVALUATION_CENTURIES,
     EVALUATION_NOUNS,
+    HISTORICAL_V12_BASIS_SPEC,
     OUTPUT_ROOT,
     PROMPT,
     SALT,
@@ -28,6 +22,15 @@ from green_bridge_spec import (
     sha256_text,
     write_json_atomic,
 )
+
+# Historical aliases are local to the archived v1.2 replay helpers below.
+BASIS_V2_DONOR_CENTURIES = HISTORICAL_V12_BASIS_SPEC["donor_centuries"]
+BASIS_V2_DONOR_NOUNS = HISTORICAL_V12_BASIS_SPEC["donor_nouns"]
+BASIS_V2_DONOR_SELECTION_ORDER = HISTORICAL_V12_BASIS_SPEC["donor_selection_order"]
+BASIS_V2_FIT_PAIRS = HISTORICAL_V12_BASIS_SPEC["fit_pairs"]
+BASIS_V2_HOLDOUT_PAIRS = HISTORICAL_V12_BASIS_SPEC["holdout_pairs"]
+BASIS_V2_RADIUS_PAIRS = HISTORICAL_V12_BASIS_SPEC["radius_pairs"]
+BASIS_V2_SALT = HISTORICAL_V12_BASIS_SPEC["salt"]
 
 
 @dataclass(frozen=True)

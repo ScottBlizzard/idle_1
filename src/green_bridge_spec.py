@@ -17,7 +17,9 @@ from typing import Any
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 OUTPUT_ROOT = PROJECT_ROOT / "outputs" / "green_bridge"
-SCHEMA_VERSION = "green-bridge-v1.2"
+SCHEMA_VERSION = "green-bridge-v1.3"
+PROTOCOL_ID = "structural-envelope-matched-bypass-v1"
+AMENDMENT_ID = "GPTPRO-GREEN-STRUCTURAL-ENVELOPE-v1-20260805"
 THEORY_BASE_COMMIT = "126556f"
 GATE04_AMENDMENT_ID = "GPTPRO-GREEN-GATE04-v2-20260805"
 GATE08_AMENDMENT_ID = "GPTPRO-GREEN-GATE08-v2-20260805"
@@ -25,7 +27,6 @@ HF_ATTN_IMPLEMENTATION = "eager"
 GATE04_LEGACY_PAIR_SLICE = (0, 16)
 GATE04_HOLDOUT_PAIR_SLICE = (16, 32)
 LEGACY_SALT = "idle1-gt-bridge-20260805"
-BASIS_V2_SALT = "idle1-gt-bridge-basis-v2-20260805"
 SALT = LEGACY_SALT
 MODEL_ID = "openai-community/gpt2"
 MODEL_REVISION = "607a30d783dfa663caf39e06633721c8d4cfcd7e"
@@ -45,27 +46,52 @@ LEGACY_DONOR_NOUNS = (
 LEGACY_DONOR_CENTURIES = (11, 13, 15, 17)
 DONOR_NOUNS = LEGACY_DONOR_NOUNS
 DONOR_CENTURIES = LEGACY_DONOR_CENTURIES
-BASIS_V2_DONOR_NOUNS = (
-    "rebellion", "revolution", "occupation", "blockade", "crusade",
-    "migration", "settlement", "construction", "administration", "regime",
-    "competition", "partnership", "transition", "expansion", "uprising",
-    "conflict",
-)
-BASIS_V2_DONOR_CENTURIES = (11, 13, 15, 17)
-BASIS_V2_DONOR_SELECTION_ORDER = (
-    ("near", "basis_fit", 2, 2),
-    ("far", "basis_fit", 2, 2),
-    ("near", "basis_holdout", 1, 1),
-    ("far", "basis_holdout", 1, 1),
-    ("near", "radius_v2", 2, 2),
-    ("far", "radius_v2", 2, 2),
-)
-BASIS_V2_FIT_PAIRS = 512
-BASIS_V2_HOLDOUT_PAIRS = 256
-BASIS_V2_RADIUS_PAIRS = 512
-BASIS_V2_BOOTSTRAP_REPLICATES = 256
-BASIS_V2_BOOTSTRAP_QUANTILE = 0.95
+PROBE_FRAME_DIM = 5
+COMMON_FRAME_DIM = 4
+ALL_GATE_FRAME_DIM = 14
 FIRST_ORDER_RESIDUAL_DIRECTIONS = 250
+RESIDUAL_RADIUS_MULTIPLIER = 0.20
+GATE_RADIUS = 0.20
+HALF_RADIUS_MULTIPLIER = 0.50
+STRUCTURAL_FRAME_ORTHOGONAL_MAX = 5e-13
+STRUCTURAL_ATOM_RESIDUAL_MAX = 1e-12
+STRUCTURAL_GRADIENT_RESIDUAL_MAX = 1e-10
+STRUCTURAL_GRADIENT_AUTOGRAD_MAX_ABS = 1e-10
+STRUCTURAL_GRADIENT_AUTOGRAD_RELATIVE = 1e-9
+SHIFT_GRADIENT_NORMALIZED_MAX = 1e-12
+FIRST_ORDER_COEFFICIENT_SEED = 8998478401382166109
+FIRST_ORDER_COEFFICIENT_SHA256 = (
+    "b39a9a0bdda54bf63d1496f690bd4c89"
+    "c6fa618ba7beb152364cb9f2b3f18a1a"
+)
+
+# Frozen solely to reproduce the archived v1.2 STOP.  Nothing below this
+# namespace is an active v1.3 scientific choice.
+HISTORICAL_V12_BASIS_SPEC: dict[str, Any] = {
+    "salt": "idle1-gt-bridge-basis-v2-20260805",
+    "donor_nouns": (
+        "rebellion", "revolution", "occupation", "blockade", "crusade",
+        "migration", "settlement", "construction", "administration", "regime",
+        "competition", "partnership", "transition", "expansion", "uprising",
+        "conflict",
+    ),
+    "donor_centuries": (11, 13, 15, 17),
+    "donor_selection_order": (
+        ("near", "basis_fit", 2, 2),
+        ("far", "basis_fit", 2, 2),
+        ("near", "basis_holdout", 1, 1),
+        ("far", "basis_holdout", 1, 1),
+        ("near", "radius_v2", 2, 2),
+        ("far", "radius_v2", 2, 2),
+    ),
+    "residual_rank": 5,
+    "fit_pairs": 512,
+    "holdout_pairs": 256,
+    "radius_pairs": 512,
+    "bootstrap_replicates": 256,
+    "bootstrap_quantile": 0.95,
+    "rank6_fallback": False,
+}
 DISTANCE_BINS = {"near": (8, 16), "far": (40, 56)}
 SUFFIX_MIN = 5
 SUFFIX_MAX = 94
@@ -79,7 +105,7 @@ class Dimensions:
     d_model: int = 768
     n_heads: int = 12
     d_mlp: int = 3072
-    residual_rank: int = 5
+    probe_frame_dim: int = PROBE_FRAME_DIM
     selected_gates: int = 10
     output_dimension: int = 100
 
@@ -104,12 +130,6 @@ class Thresholds:
     tail_derivative_relative: float = 1e-4
     center_rms: float = 2e-6
     center_max_abs: float = 2e-5
-    basis_fit_gap_min: float = 1.10
-    basis_holdout_gap_min: float = 1.10
-    basis_rank_floor: float = 1e-4
-    basis_angle_max_degrees: float = 15.0
-    basis_holdout_efficiency_min: float = 0.90
-    basis_bootstrap_q95_max_degrees: float = 15.0
     curvature_rms_min: float = 5e-4
     curvature_snr_min: float = 20.0
     gate_response_rms_min: float = 5e-4
@@ -164,11 +184,6 @@ FROZEN_SPEC: dict[str, Any] = {
     "prompt": PROMPT,
     "evaluation_nouns": EVALUATION_NOUNS,
     "evaluation_centuries": EVALUATION_CENTURIES,
-    "donor_nouns": DONOR_NOUNS,
-    "donor_centuries": DONOR_CENTURIES,
-    "basis_v2_donor_nouns": BASIS_V2_DONOR_NOUNS,
-    "basis_v2_donor_centuries": BASIS_V2_DONOR_CENTURIES,
-    "basis_v2_donor_selection_order": BASIS_V2_DONOR_SELECTION_ORDER,
     "distance_bins": DISTANCE_BINS,
     "suffix_range": (SUFFIX_MIN, SUFFIX_MAX),
     "selected_gates": SELECTED_GATES,
@@ -181,7 +196,20 @@ FROZEN_SPEC: dict[str, Any] = {
         "gate": "blocks.10.mlp.hook_post",
         "target_bypass_subtraction": "blocks.10.hook_resid_post",
     },
-    "radii": {"full": 1.0, "half": 0.5, "multiplier": 0.20},
+    "protocol_id": PROTOCOL_ID,
+    "amendment_id": AMENDMENT_ID,
+    "probe_frames": {
+        "probe_frame_dim": PROBE_FRAME_DIM,
+        "common_frame_dim": COMMON_FRAME_DIM,
+        "all_gate_frame_dim": ALL_GATE_FRAME_DIM,
+        "construction": "exact-layernorm-structural-envelope",
+    },
+    "radii": {
+        "full": 1.0,
+        "half": HALF_RADIUS_MULTIPLIER,
+        "residual_multiplier": RESIDUAL_RADIUS_MULTIPLIER,
+        "gate": GATE_RADIUS,
+    },
     "bootstrap": {"replicates": 100_000, "seed": 20260805},
     "gate04_amendment": {
         "id": GATE04_AMENDMENT_ID,
@@ -195,19 +223,15 @@ FROZEN_SPEC: dict[str, Any] = {
         "hf_tl_error_enters_epsilon_y": False,
     },
     "numerical_error_contract": "frozen-richardson-propagation-v1",
-    "gate08_amendment": {
-        "id": GATE08_AMENDMENT_ID,
-        "residual_rank": 5,
-        "basis_object": "projector-covariant",
-        "fit_pairs": BASIS_V2_FIT_PAIRS,
-        "holdout_pairs": BASIS_V2_HOLDOUT_PAIRS,
-        "radius_pairs": BASIS_V2_RADIUS_PAIRS,
-        "bootstrap_replicates": BASIS_V2_BOOTSTRAP_REPLICATES,
-        "bootstrap_quantile": BASIS_V2_BOOTSTRAP_QUANTILE,
+    "structural_envelope_amendment": {
+        "id": AMENDMENT_ID,
+        "basis_object": "ambient-rank-one-operator",
+        "probe_completeness": "exact-layernorm-envelope",
         "first_order_residual_directions": FIRST_ORDER_RESIDUAL_DIRECTIONS,
+        "first_order_coefficient_seed": FIRST_ORDER_COEFFICIENT_SEED,
+        "first_order_coefficient_sha256": FIRST_ORDER_COEFFICIENT_SHA256,
         "attempt_index": 1,
         "retry_allowed": False,
-        "rank6_fallback": False,
     },
 }
 
@@ -237,14 +261,24 @@ def frozen_spec_hash() -> str:
 
 
 def write_json_atomic(path: Path, value: Any) -> None:
-    """Write JSON through a same-directory temporary file then replace."""
+    """Durably write JSON through a same-filesystem temporary and rename."""
+    import os
+
     path.parent.mkdir(parents=True, exist_ok=True)
     temporary = path.with_suffix(path.suffix + ".tmp")
-    temporary.write_text(
-        json.dumps(value, indent=2, sort_keys=True, ensure_ascii=False, allow_nan=False),
-        encoding="utf-8",
-    )
-    temporary.replace(path)
+    payload = json.dumps(
+        value, indent=2, sort_keys=True, ensure_ascii=False, allow_nan=False
+    ).encode("utf-8")
+    with temporary.open("wb") as handle:
+        handle.write(payload)
+        handle.flush()
+        os.fsync(handle.fileno())
+    os.replace(temporary, path)
+    directory_fd = os.open(path.parent, os.O_RDONLY)
+    try:
+        os.fsync(directory_fd)
+    finally:
+        os.close(directory_fd)
 
 
 def assert_scientific_override_free(arguments: dict[str, Any]) -> None:

@@ -161,12 +161,61 @@ def cosine(a: np.ndarray, b: np.ndarray, floor: float = 1e-12) -> float:
 
 
 def expected_tensor_calls(
-    residual_rank: int,
+    probe_frame_dim: int = 5,
     n_gates: int = 10,
     n_radii: int = 2,
     n_systems: int = 2,
 ) -> int:
-    if residual_rank <= 0:
-        raise ValueError("residual_rank must be positive")
-    per_gate_radius_system = 2 + 10 * residual_rank
+    if probe_frame_dim <= 0:
+        raise ValueError("probe_frame_dim must be positive")
+    per_gate_radius_system = 2 + 10 * probe_frame_dim
     return n_systems * (n_gates * n_radii * per_gate_radius_system + 1)
+
+
+def reconstruct_cotangent(Q: np.ndarray, A_hat: np.ndarray) -> np.ndarray:
+    """Reconstruct the ambient cotangent without an ambient operator matrix."""
+    frame = _array(Q, "Q", 2)
+    coefficients = _array(A_hat, "A_hat", 1)
+    if frame.shape[1] != coefficients.size:
+        raise ValueError("frame and cotangent-coordinate dimensions disagree")
+    return frame @ coefficients
+
+
+def operator_action(G_hat: np.ndarray, g_hat: np.ndarray, v: np.ndarray) -> np.ndarray:
+    response = _array(G_hat, "G_hat", 1)
+    cotangent = _array(g_hat, "g_hat", 1)
+    direction = _array(v, "v", 1)
+    if cotangent.shape != direction.shape:
+        raise ValueError("cotangent and physical direction dimensions disagree")
+    return response * float(cotangent @ direction)
+
+
+def operator_frobenius_norm(G_hat: np.ndarray, g_hat: np.ndarray) -> float:
+    response = _array(G_hat, "G_hat", 1)
+    cotangent = _array(g_hat, "g_hat", 1)
+    return float(np.linalg.norm(response) * np.linalg.norm(cotangent))
+
+
+def operator_inner_product(
+    G1: np.ndarray, g1: np.ndarray, G2: np.ndarray, g2: np.ndarray
+) -> float:
+    response1 = _array(G1, "G1", 1)
+    response2 = _array(G2, "G2", 1)
+    cotangent1 = _array(g1, "g1", 1)
+    cotangent2 = _array(g2, "g2", 1)
+    if response1.shape != response2.shape or cotangent1.shape != cotangent2.shape:
+        raise ValueError("operator factor dimensions disagree")
+    return float((response1 @ response2) * (cotangent1 @ cotangent2))
+
+
+def direct_bypass_in_common_frame(
+    direct_gate_coordinates: np.ndarray,
+    gate_frame: np.ndarray,
+    common_frame: np.ndarray,
+) -> np.ndarray:
+    direct = _array(direct_gate_coordinates, "direct_gate_coordinates", 2)
+    gate = _array(gate_frame, "gate_frame", 2)
+    common = _array(common_frame, "common_frame", 2)
+    if direct.shape[1] != gate.shape[1] or gate.shape[0] != common.shape[0]:
+        raise ValueError("direct bypass and frame dimensions disagree")
+    return direct @ gate.T @ common

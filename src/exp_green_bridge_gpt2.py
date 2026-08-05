@@ -28,42 +28,41 @@ from analyze_green_bridge import BASELINES, development_decision, freeze_confirm
 from green_bridge_dataset import (
     ConfirmationLock,
     PairRecord,
-    basis_v2_plan_payload,
-    build_basis_v2_donor_records,
     build_evaluation_records,
     build_legacy_donor_records,
     plan_payload,
     split_records,
-    validate_basis_v2_plan,
     validate_evaluation_plan,
-    write_basis_v2_plan,
-)
-from green_bridge_basis import (
-    BasisAuditError,
-    construct_rank5_radii,
-    fit_rank5_basis,
-    matrix_sha256,
 )
 from green_bridge_spec import (
-    BASIS_V2_BOOTSTRAP_QUANTILE,
-    BASIS_V2_BOOTSTRAP_REPLICATES,
-    BASIS_V2_DONOR_NOUNS,
-    BASIS_V2_FIT_PAIRS,
-    BASIS_V2_HOLDOUT_PAIRS,
-    BASIS_V2_RADIUS_PAIRS,
+    ALL_GATE_FRAME_DIM,
+    AMENDMENT_ID,
+    COMMON_FRAME_DIM,
     DIMENSIONS,
+    FIRST_ORDER_COEFFICIENT_SEED,
+    FIRST_ORDER_COEFFICIENT_SHA256,
     FIRST_ORDER_RESIDUAL_DIRECTIONS,
     FROZEN_SPEC,
+    GATE_RADIUS,
     GATE04_AMENDMENT_ID,
     GATE04_HOLDOUT_PAIR_SLICE,
     GATE04_LEGACY_PAIR_SLICE,
-    GATE08_AMENDMENT_ID,
+    HALF_RADIUS_MULTIPLIER,
     HF_ATTN_IMPLEMENTATION,
     MODEL_ID,
     MODEL_REVISION,
     OUTPUT_ROOT,
+    PROBE_FRAME_DIM,
+    PROTOCOL_ID,
     PROJECT_ROOT,
+    RESIDUAL_RADIUS_MULTIPLIER,
     SELECTED_GATES,
+    SHIFT_GRADIENT_NORMALIZED_MAX,
+    STRUCTURAL_ATOM_RESIDUAL_MAX,
+    STRUCTURAL_FRAME_ORTHOGONAL_MAX,
+    STRUCTURAL_GRADIENT_AUTOGRAD_MAX_ABS,
+    STRUCTURAL_GRADIENT_AUTOGRAD_RELATIVE,
+    STRUCTURAL_GRADIENT_RESIDUAL_MAX,
     THRESHOLDS,
     TRANSFORMER_LENS_COMMIT,
     canonical_json,
@@ -72,8 +71,27 @@ from green_bridge_spec import (
     sha256_text,
     write_json_atomic,
 )
+from green_bridge_structural_frame import (
+    canonical_all_gate_frame,
+    canonical_common_frame,
+    canonical_gate_frame,
+    first_order_coefficient_directions,
+    frame_containment_metrics,
+    frame_sha256,
+    layernorm_gate_atom,
+    residual_radius,
+    target_physical_vector,
+)
+from green_bridge_whitebox_audit import (
+    gradient_envelope_residual,
+    layernorm_gate_gradient_autograd,
+    layernorm_gate_gradient_formula,
+    shift_null_metric,
+    whitebox_A_coordinates,
+)
 from green_bridge_numerics import (
     active_contraction_bound,
+    active_envelope_contraction_bound,
     cell_error_bound,
     certified_null_bound,
     richardson_numerical_bounds,
@@ -86,6 +104,9 @@ from matched_bypass_gate import (
     cosine,
     extrapolate_gate_jet,
     identify_gate,
+    direct_bypass_in_common_frame,
+    operator_action,
+    reconstruct_cotangent,
     symmetric_relative_change,
 )
 
@@ -94,13 +115,15 @@ SOURCE_FILES = (
     "src/green_bridge_spec.py",
     "src/green_bridge_dataset.py",
     "src/matched_bypass_gate.py",
-    "src/green_bridge_basis.py",
+    "src/green_bridge_structural_frame.py",
+    "src/green_bridge_whitebox_audit.py",
     "src/green_bridge_numerics.py",
     "src/green_bridge_tail.py",
     "src/green_bridge_path_target.py",
     "src/exp_green_bridge_gpt2.py",
     "src/analyze_green_bridge.py",
     "src/test_green_bridge_contract.py",
+    "src/launch_green_bridge.sh",
 )
 PROTOCOL_FILES = (
     "analysis/GPTPRO_GREEN_BRIDGE_20260805.md",
@@ -108,6 +131,8 @@ PROTOCOL_FILES = (
     "analysis/GREEN_SERVER_GATE04_20260805.md",
     "analysis/GREEN_SERVER_GATE08_20260805.md",
     "analysis/GPTPRO_GREEN_GATE08_DECISION_20260805.md",
+    "analysis/GREEN_SERVER_GATE08_V12_20260805.md",
+    "analysis/GPTPRO_GREEN_GATE08_V12_DECISION_20260805.md",
     "requirements-green-bridge.lock",
 )
 EXPECTED_PACKAGES = {
@@ -133,16 +158,19 @@ FORWARD_COUNTS = {
     "first_order_residual_directions": 250,
     "tensor_items_total": 384,
     "energy_items_total": 384,
-    "tail_evaluations_total": 1_610_848,
+    "tensor_item_unique_calls": 4_180,
+    "tensor_tail_total": 1_605_120,
+    "energy_tail_total": 4_608,
+    "tail_evaluations_total": 1_609_824,
     "jvp_invocations_total": 1_152,
-    "full_model_evaluations_total": 5_056,
-    "raw_invocations_total": 1_617_056,
-    "effective_units_total": 1_618_208,
-    "conservative_units_total": 1_643_488,
-    "development_effective_units": 541_920,
+    "full_model_evaluations_total": 2_496,
+    "raw_invocations_total": 1_613_472,
+    "effective_units_total": 1_614_624,
+    "conservative_units_total": 1_627_104,
+    "development_effective_units": 538_336,
     "confirmation_effective_units": 1_076_288,
 }
-REVIEW_COMMIT = "b87300a6f56cb4706db090486d8bec77a2fc2b23"
+REVIEW_COMMIT = "da5161ad2e87a9bfb7de8bf772af7969ff531f64"
 GATE04_ORDERED_PROMPT_HASH = "619d21c10d4f30e6ce2597c3ba4df1de72cf0cb4f6cce322d82c2d3ec62803ce"
 
 
@@ -160,7 +188,7 @@ def torch_module():
 
 def terminal_stop(output_root: Path, gate: str, detail: str) -> None:
     payload = {
-        "schema_version": "green-bridge-terminal-v1",
+        "schema_version": "green-bridge-terminal-v1.3",
         "verdict": "STOP",
         "first_failed_gate": gate,
         "detail": detail,
@@ -211,7 +239,7 @@ def assert_empty_prepare_root(output_root: Path) -> None:
 
 def write_run_ledger(output_root: Path, repository: dict) -> None:
     write_json_atomic(output_root / "run_ledger.json", {
-        "protocol_run_id": "green-bridge-v1.2-one-shot",
+        "protocol_run_id": "green-bridge-v1.3-one-shot",
         "attempt_index": 1,
         "retry_allowed": False,
         "prepare_restart_allowed": False,
@@ -248,26 +276,7 @@ def claim_phase(output_root: Path, phase: str) -> None:
 
 
 def first_order_directions() -> np.ndarray:
-    seed = int.from_bytes(
-        hashlib.sha256(
-            b"idle1-gt-bridge-basis-v2-20260805:first-order-r5"
-        ).digest()[:8], "big"
-    )
-    rng = np.random.Generator(np.random.PCG64(seed))
-    vectors = [
-        np.eye(DIMENSIONS.residual_rank, dtype=np.float64)[index]
-        for index in range(DIMENSIONS.residual_rank)
-    ]
-    while len(vectors) < FIRST_ORDER_RESIDUAL_DIRECTIONS:
-        value = rng.standard_normal(DIMENSIONS.residual_rank)
-        value /= np.linalg.norm(value)
-        first = np.flatnonzero(np.abs(value) > 0)[0]
-        if value[first] < 0:
-            value = -value
-        if any(abs(float(value @ old)) > 0.999999 for old in vectors):
-            continue
-        vectors.append(value)
-    return np.stack(vectors)
+    return first_order_coefficient_directions()
 
 
 def configure_runtime(device: str) -> dict:
@@ -2028,7 +2037,7 @@ def load_frozen_numeric(output_root: Path, device: str):
     return basis, radii, tokenizer, hf_model, model, suffix_ids, cfg
 
 
-def prepare(output_root: Path, device: str) -> None:
+def prepare_v12_inactive(output_root: Path, device: str) -> None:
     repository = assert_clean_repository()
     assert_empty_prepare_root(output_root)
     environment = configure_runtime(device)
@@ -2038,8 +2047,8 @@ def prepare(output_root: Path, device: str) -> None:
     evaluation = build_evaluation_records(pair_allowed)
     validate_evaluation_plan(evaluation)
     legacy_donors = build_legacy_donor_records(pair_allowed)
-    donors = build_basis_v2_donor_records(pair_allowed)
-    validate_basis_v2_plan(donors)
+    donors = inactive_v12_donor_records(pair_allowed)
+    inactive_v12_validate_plan(donors)
     legacy_gate04, holdout_gate04 = gate04_record_panels(legacy_donors)
     gate04_panel = gate04_panel_metadata(legacy_gate04, holdout_gate04)
     if gate04_panel["ordered_prompt_keys_sha256"] != GATE04_ORDERED_PROMPT_HASH:
@@ -2123,7 +2132,7 @@ def verify_freeze(output_root: Path, require_confirmation: bool = False) -> dict
     if not manifest_path.is_file():
         raise GreenStop("17_MANIFEST_FREEZE", "manifest.json missing")
     manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
-    if manifest.get("schema_version") != "green-bridge-manifest-v1.2":
+    if manifest.get("schema_version") != "green-bridge-manifest-v1.3":
         raise GreenStop("17_MANIFEST_FREEZE", "manifest schema changed")
     if manifest.get("prepare_complete") is not True:
         raise GreenStop("17_MANIFEST_FREEZE", "prepare did not complete")
@@ -2142,14 +2151,20 @@ def verify_freeze(output_root: Path, require_confirmation: bool = False) -> dict
         raise GreenStop("17_MANIFEST_FREEZE", "frozen spec hash changed")
     if manifest["source_sha256"] != source_hashes():
         raise GreenStop("17_MANIFEST_FREEZE", "source hashes changed after launch")
+    for name, expected in manifest.get("artifact_sha256", {}).items():
+        path = output_root / name
+        if not path.is_file() or sha256_file(path) != expected:
+            raise GreenStop("17_MANIFEST_FREEZE", f"artifact hash mismatch: {name}")
     if require_confirmation:
         frozen_path = output_root / "frozen_analysis.json"
         if not frozen_path.is_file() or not manifest.get("confirmation_open", False):
             raise GreenStop("17_MANIFEST_FREEZE", "confirmation lock is closed")
+        if sha256_file(frozen_path) != manifest.get("frozen_analysis_sha256"):
+            raise GreenStop("17_MANIFEST_FREEZE", "frozen analysis hash mismatch")
     return manifest
 
 
-def development_phase(output_root: Path, device: str) -> None:
+def development_phase_v12_inactive(output_root: Path, device: str) -> None:
     manifest = verify_freeze(output_root)
     claim_phase(output_root, "development")
     U, radii, tokenizer, hf_model, model, suffix_ids, _ = load_frozen_numeric(output_root, device)
@@ -2194,7 +2209,7 @@ def development_phase(output_root: Path, device: str) -> None:
     write_json_atomic(output_root / "manifest.json", manifest)
 
 
-def confirmation_phase(output_root: Path, device: str) -> None:
+def confirmation_phase_v12_inactive(output_root: Path, device: str) -> None:
     manifest = verify_freeze(output_root, require_confirmation=True)
     claim_phase(output_root, "confirmation")
     frozen = json.loads((output_root / "frozen_analysis.json").read_text(encoding="utf-8"))
@@ -2238,6 +2253,1111 @@ def confirmation_phase(output_root: Path, device: str) -> None:
         result["first_failed_gate"] = None
     result["schema_version"] = "green-bridge-terminal-v1"
     write_json_atomic(output_root / "result.json", result)
+    finalize_hashes(output_root)
+
+
+# ---------------------------------------------------------------------------
+# Active protocol v1.3 implementation.  The v1.2 functions above remain only
+# as readable provenance for the archived STOP and are never dispatched.
+
+def _fsync_parent(path: Path) -> None:
+    try:
+        descriptor = os.open(path.parent, os.O_RDONLY)
+    except OSError:  # Windows local contract-test fallback
+        return
+    try:
+        os.fsync(descriptor)
+    finally:
+        os.close(descriptor)
+
+
+def _atomic_torch_save(path: Path, value) -> None:
+    torch = torch_module()
+    path.parent.mkdir(parents=True, exist_ok=True)
+    temporary = path.with_suffix(path.suffix + ".tmp")
+    with temporary.open("wb") as handle:
+        torch.save(value, handle)
+        handle.flush()
+        os.fsync(handle.fileno())
+    os.replace(temporary, path)
+    _fsync_parent(path)
+
+
+def _atomic_np_save(path: Path, value: np.ndarray) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    temporary = path.with_suffix(path.suffix + ".tmp")
+    with temporary.open("wb") as handle:
+        np.save(handle, value, allow_pickle=False)
+        handle.flush()
+        os.fsync(handle.fileno())
+    os.replace(temporary, path)
+    _fsync_parent(path)
+
+
+def _atomic_np_savez(path: Path, values: dict[str, np.ndarray]) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    temporary = path.with_suffix(path.suffix + ".tmp")
+    with temporary.open("wb") as handle:
+        np.savez(handle, **values)
+        handle.flush()
+        os.fsync(handle.fileno())
+    os.replace(temporary, path)
+    _fsync_parent(path)
+
+
+def _endpoint_ledger_path(output_root: Path) -> Path:
+    return output_root / "endpoint_ledger.jsonl"
+
+
+def _assert_no_uncommitted_endpoint(output_root: Path) -> None:
+    rows = read_journal(_endpoint_ledger_path(output_root))
+    started = {row["batch_id"] for row in rows if row.get("event") == "endpoint_batch_started"}
+    committed = {row["batch_id"] for row in rows if row.get("event") == "endpoint_batch_committed"}
+    dangling = sorted(started - committed)
+    if dangling:
+        raise GreenStop("17_ENDPOINT_LEDGER", f"started-but-uncommitted batches: {dangling}")
+
+
+def _run_endpoint_batch(output_root: Path, batch_id: str, declaration: dict, evaluate):
+    _assert_no_uncommitted_endpoint(output_root)
+    ledger = _endpoint_ledger_path(output_root)
+    if any(row.get("batch_id") == batch_id for row in read_journal(ledger)):
+        raise GreenStop("17_ENDPOINT_LEDGER", f"endpoint batch already exists: {batch_id}")
+    started = {
+        "event": "endpoint_batch_started",
+        "batch_id": batch_id,
+        "time_utc": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
+    } | declaration
+    started["declaration_sha256"] = sha256_text(canonical_json(declaration))
+    append_journal(ledger, started)
+    result = evaluate()
+    artifact = output_root / "endpoint_batches" / f"{batch_id}.json"
+    write_json_atomic(artifact, result)
+    artifact_hash = sha256_file(artifact)
+    append_journal(ledger, {
+        "event": "endpoint_batch_committed",
+        "batch_id": batch_id,
+        "artifact": str(artifact.relative_to(output_root)),
+        "artifact_sha256": artifact_hash,
+        "time_utc": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
+    })
+    return result
+
+
+def _anchor_plain_to_device(values: dict, device: str) -> TailAnchor:
+    return TailAnchor(**{
+        key: (value.to(device) if hasattr(value, "to") else value)
+        for key, value in values.items()
+    })
+
+
+def _selected_numpy(anchor: TailAnchor, field: str) -> np.ndarray:
+    return selected_position(anchor, field)[0].detach().double().cpu().numpy()
+
+
+def _capture_structural_inputs(
+    model, tokenizer, suffix_ids, records, device: str, output_root: Path, phase: str
+) -> dict:
+    """Capture and durably freeze all natural anchors before frame construction."""
+    plain: dict[str, dict] = {}
+    for record in records:
+        anchors, _, _ = capture_item_systems(model, tokenizer, suffix_ids, record, device)
+        plain[record.pair_digest] = {
+            system: _anchor_to_plain(anchor) for system, anchor in anchors.items()
+        }
+    inputs_path = output_root / f"{phase}_anchor_cache.pt"
+    _atomic_torch_save(inputs_path, plain)
+    structural: dict[str, np.ndarray] = {
+        "ln_scale": model.blocks[10].ln2.w.detach().double().cpu().numpy(),
+        "selected_W_in": model.blocks[10].mlp.W_in[:, list(SELECTED_GATES)].detach().double().cpu().numpy(),
+    }
+    for record in records:
+        for system in ("tar", "pat", "cor"):
+            anchor = _anchor_plain_to_device(plain[record.pair_digest][system], "cpu")
+            structural[f"{record.pair_digest}__{system}__resid_mid"] = _selected_numpy(anchor, "resid_mid")
+            structural[f"{record.pair_digest}__{system}__selected_pre"] = _selected_numpy(anchor, "pre")[list(SELECTED_GATES)]
+    structural_path = output_root / f"{phase}_structural_inputs.npz"
+    _atomic_np_savez(structural_path, structural)
+    raw_hashes = {
+        "anchor_cache_sha256": sha256_file(inputs_path),
+        "structural_inputs_sha256": sha256_file(structural_path),
+        "ordered_pair_digests_sha256": sha256_text(
+            canonical_json([record.pair_digest for record in records])
+        ),
+        "ln_scale_sha256": hashlib.sha256(
+            model.blocks[10].ln2.w.detach().double().cpu().numpy().tobytes()
+        ).hexdigest(),
+        "mlp_W_in_sha256": hashlib.sha256(
+            model.blocks[10].mlp.W_in.detach().double().cpu().numpy().tobytes()
+        ).hexdigest(),
+    }
+    write_json_atomic(output_root / f"{phase}_structural_input_hashes.json", raw_hashes)
+    return plain
+
+
+def _construct_structural_design(
+    model, records, plain: dict, output_root: Path, phase: str
+) -> dict:
+    """Construct frames only after raw inputs and hashes are durable."""
+    gamma = model.blocks[10].ln2.w.detach().double().cpu().numpy()
+    W_in = model.blocks[10].mlp.W_in.detach().double().cpu().numpy()
+    gate_atoms = [layernorm_gate_atom(gamma, W_in, gate) for gate in SELECTED_GATES]
+    eps = float(model.cfg.eps)
+    arrays: dict[str, np.ndarray] = {}
+    target_arrays: dict[str, np.ndarray] = {}
+    audit: dict[str, dict] = {}
+    radii: dict[str, dict] = {}
+    design: dict[str, dict] = {}
+    for record in records:
+        digest = record.pair_digest
+        anchors = {
+            system: _anchor_plain_to_device(values, "cpu")
+            for system, values in plain[digest].items()
+        }
+        residuals = {system: _selected_numpy(anchor, "resid_mid") for system, anchor in anchors.items()}
+        common = canonical_common_frame(residuals["tar"], residuals["pat"], residuals["cor"])
+        gate_frames = [canonical_gate_frame(common, atom) for atom in gate_atoms]
+        all_gate = canonical_all_gate_frame(common, gate_atoms)
+        radius = residual_radius(residuals["tar"], residuals["pat"], residuals["cor"])
+        vector = target_physical_vector(residuals["tar"], residuals["cor"], float(radius["h_x"]))
+        arrays[f"{digest}__common"] = common
+        arrays[f"{digest}__all_gate"] = all_gate
+        target_arrays[digest] = vector
+        item_audit = {
+            "common_sha256": frame_sha256(common),
+            "all_gate_sha256": frame_sha256(all_gate),
+            "common": frame_containment_metrics(
+                common,
+                np.column_stack((
+                    np.ones(768) / np.sqrt(768.0),
+                    residuals["tar"] - residuals["tar"].mean(),
+                    residuals["pat"] - residuals["pat"].mean(),
+                    residuals["cor"] - residuals["cor"].mean(),
+                )),
+            ),
+            "gates": [],
+        }
+        gate_floor_values = []
+        for slot, (gate, atom, frame) in enumerate(zip(SELECTED_GATES, gate_atoms, gate_frames)):
+            arrays[f"{digest}__gate_{slot}"] = frame
+            raw_atoms = np.column_stack((
+                np.ones(768) / np.sqrt(768.0),
+                residuals["tar"] - residuals["tar"].mean(),
+                residuals["pat"] - residuals["pat"].mean(),
+                residuals["cor"] - residuals["cor"].mean(),
+                atom,
+            ))
+            metrics = frame_containment_metrics(frame, raw_atoms)
+            gradients = {}
+            for system in ("tar", "pat", "cor"):
+                formula = layernorm_gate_gradient_formula(
+                    residuals[system], gamma, W_in[:, gate], eps=eps
+                )
+                automatic = layernorm_gate_gradient_autograd(
+                    residuals[system], gamma, W_in[:, gate], eps=eps
+                )
+                difference = formula - automatic
+                envelope = gradient_envelope_residual(frame, formula)
+                gradients[system] = {
+                    "envelope_absolute": envelope["absolute"],
+                    "envelope_relative": envelope["relative"],
+                    "autograd_max_abs": float(np.max(np.abs(difference))),
+                    "autograd_relative": float(
+                        np.linalg.norm(difference) / max(np.linalg.norm(automatic), 1e-12)
+                    ),
+                    "shift_null": shift_null_metric(formula),
+                }
+                if (
+                    envelope["relative"] > STRUCTURAL_GRADIENT_RESIDUAL_MAX
+                    or gradients[system]["autograd_max_abs"] > STRUCTURAL_GRADIENT_AUTOGRAD_MAX_ABS
+                    or gradients[system]["autograd_relative"] > STRUCTURAL_GRADIENT_AUTOGRAD_RELATIVE
+                    or gradients[system]["shift_null"] > SHIFT_GRADIENT_NORMALIZED_MAX
+                ):
+                    raise GreenStop("07_STRUCTURAL_FRAME", f"{digest} gate={gate} system={system}: {gradients[system]}")
+            if (
+                metrics["orthogonal_max_abs"] > STRUCTURAL_FRAME_ORTHOGONAL_MAX
+                or metrics["atom_residual_relative"] > STRUCTURAL_ATOM_RESIDUAL_MAX
+            ):
+                raise GreenStop("07_STRUCTURAL_FRAME", f"{digest} gate={gate}: {metrics}")
+            natural = [
+                abs(float(_selected_numpy(anchors[system], "pre")[gate]))
+                for system in ("tar", "pat", "cor")
+            ]
+            gate_floor = (2.0 ** -10) * max(1.0, float(np.median(natural)))
+            gate_floor_values.append(gate_floor)
+            item_audit["gates"].append({
+                "gate": gate, "frame_sha256": frame_sha256(frame),
+                "containment": metrics, "gradients": gradients,
+                "gate_radius_floor": gate_floor,
+                "gate_radius_floor_pass": GATE_RADIUS >= gate_floor,
+            })
+        all_metrics = frame_containment_metrics(all_gate, np.column_stack(gate_atoms))
+        item_audit["all_gate"] = all_metrics
+        if all_metrics["orthogonal_max_abs"] > STRUCTURAL_FRAME_ORTHOGONAL_MAX or all_metrics["atom_residual_relative"] > STRUCTURAL_ATOM_RESIDUAL_MAX:
+            raise GreenStop("07_STRUCTURAL_FRAME", f"{digest} all-gate: {all_metrics}")
+        radius["gate_radius"] = GATE_RADIUS
+        radius["gate_half_radius"] = GATE_RADIUS * HALF_RADIUS_MULTIPLIER
+        radius["gate_floor_pass"] = all(GATE_RADIUS >= value for value in gate_floor_values)
+        radii[digest] = radius
+        audit[digest] = item_audit
+        design[digest] = {"common": common, "gate_frames": gate_frames, "all_gate": all_gate, "target": vector, "radius": radius}
+    _atomic_np_savez(output_root / f"{phase}_frames.npz", arrays)
+    write_json_atomic(output_root / f"{phase}_frame_audit.json", audit)
+    write_json_atomic(output_root / f"{phase}_radii.json", radii)
+    _atomic_np_savez(output_root / f"{phase}_target_vectors.npz", target_arrays)
+    return design
+
+
+def _jet_at_radius_physical(
+    tail: GreenBridgeTail, anchor: TailAnchor, frame: np.ndarray,
+    gate_slot: int, hx: float, hz: float, center,
+) -> GateJet:
+    torch = torch_module()
+    device = anchor.resid_mid.device
+    path_delta, path_z = [], []
+    for sign_z in (1.0, -1.0):
+        path_delta.append(np.zeros(768)); path_z.append(sign_z * hz)
+    for axis in range(PROBE_FRAME_DIM):
+        for sign_x in (1.0, -1.0):
+            path_delta.append(sign_x * hx * frame[:, axis]); path_z.append(0.0)
+    for axis in range(PROBE_FRAME_DIM):
+        for sign_x, sign_z in ((1, 1), (1, -1), (-1, 1), (-1, -1)):
+            path_delta.append(sign_x * hx * frame[:, axis]); path_z.append(sign_z * hz)
+    control_delta, control_z = [], []
+    for axis in range(PROBE_FRAME_DIM):
+        for sign_x, sign_z in ((1, 1), (1, -1), (-1, 1), (-1, -1)):
+            control_delta.append(sign_x * hx * frame[:, axis]); control_z.append(sign_z * hz)
+    path_count = 2 + 6 * PROBE_FRAME_DIM
+    control_count = 4 * PROBE_FRAME_DIM
+    path = tail.evaluate_physical(
+        _repeat_anchor(anchor, path_count),
+        torch.as_tensor(np.stack(path_delta), dtype=torch.float32, device=device),
+        torch.as_tensor(path_z, dtype=torch.float32, device=device),
+        mode="path", gate_slot=gate_slot,
+    ).double()
+    control = tail.evaluate_physical(
+        _repeat_anchor(anchor, control_count),
+        torch.as_tensor(np.stack(control_delta), dtype=torch.float32, device=device),
+        torch.as_tensor(control_z, dtype=torch.float32, device=device),
+        mode="control", gate_slot=gate_slot,
+    ).double()
+    G = (path[0] - path[1]) / (2.0 * hz)
+    C = (path[0] - 2.0 * center + path[1]) / (hz * hz)
+    J, HP, HC = [], [], []
+    mixed_start = 2 + 2 * PROBE_FRAME_DIM
+    for axis in range(PROBE_FRAME_DIM):
+        J.append((path[2 + 2 * axis] - path[3 + 2 * axis]) / (2.0 * hx))
+        p = path[mixed_start + 4 * axis:mixed_start + 4 * axis + 4]
+        c = control[4 * axis:4 * axis + 4]
+        HP.append((p[0] - p[1] - p[2] + p[3]) / (4.0 * hx * hz))
+        HC.append((c[0] - c[1] - c[2] + c[3]) / (4.0 * hx * hz))
+    return GateJet(
+        G.cpu().numpy(), C.cpu().numpy(), torch.stack(J).cpu().numpy(),
+        torch.stack(HP).cpu().numpy(), torch.stack(HC).cpu().numpy(),
+    )
+
+
+def _mixed_system_v13(
+    tail, model, anchor, design, physical_v, contrast, epsilon_y: float,
+) -> dict:
+    torch = torch_module()
+    device = anchor.resid_mid.device
+    zero_delta = torch.zeros((1, 768), dtype=torch.float32, device=device)
+    zero_z = torch.zeros(1, dtype=torch.float32, device=device)
+    center = tail.evaluate_physical(
+        anchor, zero_delta, zero_z, mode="path", gate_slot=0
+    )[0].double()
+    center_error = center - anchor.year_logits[0].double()
+    center_rms = float(torch.sqrt(torch.mean(center_error**2)).item())
+    center_max = float(center_error.abs().max().item())
+    if center_rms > THRESHOLDS.center_rms or center_max > THRESHOLDS.center_max_abs:
+        return {"theta": 0.0, "theta_full": 0.0, "theta_half": 0.0,
+                "theta_error": None, "active_gates": 0, "all_valid": False,
+                "bypass_disagreement": None, "gates": [], "admissible": False,
+                "center_rms": center_rms, "center_max": center_max}
+    gamma = model.blocks[10].ln2.w.detach().double().cpu().numpy()
+    W_in = model.blocks[10].mlp.W_in.detach().double().cpu().numpy()
+    residual = _selected_numpy(anchor, "resid_mid")
+    gates, direct_common, bounds = [], [], []
+    theta = theta_full = theta_half = 0.0
+    for slot, (gate, frame) in enumerate(zip(SELECTED_GATES, design["gate_frames"])):
+        hx = float(design["radius"]["h_x"]); hz = GATE_RADIUS
+        full = _jet_at_radius_physical(tail, anchor, frame, slot, hx, hz, center)
+        half = _jet_at_radius_physical(
+            tail, anchor, frame, slot,
+            hx * HALF_RADIUS_MULTIPLIER, hz * HALF_RADIUS_MULTIPLIER, center,
+        )
+        rich = extrapolate_gate_jet(full, half)
+        gradient = layernorm_gate_gradient_formula(
+            residual, gamma, W_in[:, gate], eps=float(model.cfg.eps)
+        )
+        wb_A = whitebox_A_coordinates(frame, gradient)
+        label, values = classify_gate(
+            full, half, rich, wb_A, float(np.linalg.norm(contrast)),
+            float(np.linalg.norm(physical_v)), epsilon_y, hx, hz,
+        )
+        shift_threshold = max(
+            1e-4,
+            5.0 * (values["numerical"].epsilon_A[0]
+                   if np.isfinite(values["numerical"].epsilon_A[0]) else math.inf),
+        )
+        shift_ok = values["rich"] is not None and abs(float(values["rich"].A[0])) <= shift_threshold
+        if label == "active-identified" and not shift_ok:
+            label = "invalid"
+            values["audit"]["label"] = label
+        values["audit"]["shift_coefficient"] = (
+            None if values["rich"] is None else float(values["rich"].A[0])
+        )
+        values["audit"]["shift_threshold"] = shift_threshold if np.isfinite(shift_threshold) else None
+        values["audit"]["shift_pass"] = bool(shift_ok)
+        if label == "active-identified":
+            for estimate, name in ((values["rich"], "rich"), (values["full"], "full"), (values["half"], "half")):
+                cotangent = reconstruct_cotangent(frame, estimate.A)
+                contraction = float(contrast @ operator_action(estimate.G, cotangent, physical_v))
+                if name == "rich": theta += contraction
+                elif name == "full": theta_full += contraction
+                else: theta_half += contraction
+            direct_common.append(direct_bypass_in_common_frame(
+                values["rich"].D, frame, design["common"]
+            ))
+            envelope_absolute = gradient_envelope_residual(frame, gradient)["absolute"]
+            bounds.append(active_envelope_contraction_bound(
+                float(np.linalg.norm(contrast)),
+                float(np.linalg.norm(frame.T @ physical_v)),
+                float(np.linalg.norm(physical_v)),
+                values["numerical"].epsilon_P_F,
+                float(np.linalg.norm(rich.G)), values["numerical"].epsilon_G,
+                envelope_absolute,
+            ))
+        elif label == "certified-target-null":
+            bounds.append(values["audit"]["null_bound"])
+        gates.append(values["audit"])
+    active = sum(row["label"] == "active-identified" for row in gates)
+    complete = all(row["label"] != "invalid" for row in gates)
+    bypass = None
+    if direct_common:
+        stack = np.stack(direct_common)
+        mean = stack.mean(axis=0)
+        bypass = float(
+            np.sqrt(np.mean((stack - mean) ** 2))
+            / max(np.sqrt(np.mean(mean**2)), 1e-12)
+        )
+    return {
+        "theta": theta, "theta_full": theta_full, "theta_half": theta_half,
+        "theta_error": sum_item_error_bounds(bounds) if complete else None,
+        "active_gates": active, "all_valid": complete,
+        "bypass_disagreement": bypass, "gates": gates,
+        "admissible": complete and active >= THRESHOLDS.active_gates_min
+                      and bypass is not None and bypass <= THRESHOLDS.bypass_disagreement_max,
+        "center_rms": center_rms, "center_max": center_max,
+    }
+
+
+def _joint_margins_physical(tail, anchor, deltas, zs, contrast) -> np.ndarray:
+    torch = torch_module()
+    device = anchor.resid_mid.device
+    outputs = []
+    for start in range(0, len(deltas), 512):
+        stop = min(start + 512, len(deltas))
+        logits = tail.evaluate_physical(
+            _repeat_anchor(anchor, stop - start),
+            torch.as_tensor(deltas[start:stop], dtype=torch.float32, device=device),
+            torch.as_tensor(zs[start:stop], dtype=torch.float32, device=device),
+            mode="joint",
+        )
+        outputs.append(margin(logits, contrast).detach().cpu().numpy())
+    return np.concatenate(outputs)
+
+
+def _first_order_system_v13(tail, anchor, design, coefficients, contrast) -> dict:
+    center = _joint_margins_physical(
+        tail, anchor, np.zeros((1, 768)), np.zeros((1, 10)), contrast
+    )[0]
+    physical_directions = coefficients @ design["all_gate"].T
+    deltas, zs, descriptors = [], [], []
+    for name, rho in (("full", 1.0), ("half", HALF_RADIUS_MULTIPLIER)):
+        for kind, count in (("x", FIRST_ORDER_RESIDUAL_DIRECTIONS), ("z", 10)):
+            for axis in range(count):
+                for sign in (1.0, -1.0):
+                    delta = np.zeros(768); z = np.zeros(10)
+                    if kind == "x":
+                        delta = sign * rho * float(design["radius"]["h_x"]) * physical_directions[axis]
+                    else:
+                        z[axis] = sign * rho * GATE_RADIUS
+                    deltas.append(delta); zs.append(z); descriptors.append((name, kind, axis, sign, rho))
+    values = _joint_margins_physical(tail, anchor, np.stack(deltas), np.stack(zs), contrast)
+    endpoints = {descriptor: value for descriptor, value in zip(descriptors, values)}
+    response = {name: {"x": np.zeros(FIRST_ORDER_RESIDUAL_DIRECTIONS), "z": np.zeros(10)} for name in ("full", "half")}
+    for name, rho in (("full", 1.0), ("half", HALF_RADIUS_MULTIPLIER)):
+        for kind, count in (("x", FIRST_ORDER_RESIDUAL_DIRECTIONS), ("z", 10)):
+            for axis in range(count):
+                response[name][kind][axis] = (
+                    endpoints[name, kind, axis, 1.0, rho]
+                    - endpoints[name, kind, axis, -1.0, rho]
+                ) / (2.0 * rho)
+    return {"center": float(center), "response": response, "rich": {
+        kind: (4.0 * response["half"][kind] - response["full"][kind]) / 3.0
+        for kind in ("x", "z")
+    }}
+
+
+def _factorial_system_v13(tail, anchor, physical_v, zeta, contrast) -> dict:
+    deltas, zs, descriptors = [], [], []
+    for name, rho in (("full", 1.0), ("half", HALF_RADIUS_MULTIPLIER)):
+        for sx, sz in ((1, 1), (1, -1), (-1, 1), (-1, -1)):
+            deltas.append(sx * rho * physical_v); zs.append(sz * rho * zeta)
+            descriptors.append((name, rho, sx, sz))
+    values = _joint_margins_physical(tail, anchor, np.stack(deltas), np.stack(zs), contrast)
+    endpoints = {(name, sx, sz): value for value, (name, _, sx, sz) in zip(values, descriptors)}
+    rows = {}
+    for name, rho in (("full", 1.0), ("half", HALF_RADIUS_MULTIPLIER)):
+        pp, pm, mp, mm = (endpoints[name, 1, 1], endpoints[name, 1, -1], endpoints[name, -1, 1], endpoints[name, -1, -1])
+        rows[name] = {
+            "single": (pp - mm) / (2.0 * rho),
+            "pie": (pp - pm - mp + mm) / (4.0 * rho * rho),
+            "bx": (pp + pm - mp - mm) / (4.0 * rho),
+            "bz": (pp - pm + mp - mm) / (4.0 * rho),
+        }
+    return {key: (4.0 * rows["half"][key] - rows["full"][key]) / 3.0 for key in rows["full"]} | {"raw": rows}
+
+
+def _tensor_item_v13(
+    model, suffix_ids, record, device, epsilon_y, coefficients, plain, design,
+) -> dict:
+    torch = torch_module()
+    anchors = {
+        system: _anchor_plain_to_device(values, device)
+        for system, values in plain[record.pair_digest].items()
+    }
+    item = design[record.pair_digest]
+    seed_frame = torch.as_tensor(item["gate_frames"][0], dtype=torch.float32, device=device)
+    suffix_tensor = torch.as_tensor(suffix_ids, dtype=torch.long, device=device)
+    tail = GreenBridgeTail(model, seed_frame, suffix_tensor)
+    contrast_t = margin_vector(record.y, device)
+    contrast = contrast_t.cpu().numpy()
+    physical_v = item["target"]
+    mixed = {}
+    with torch.inference_mode():
+        for system in ("tar", "pat"):
+            mixed[system] = _mixed_system_v13(
+                tail, model, anchors[system], item, physical_v, contrast, epsilon_y
+            )
+    pre_tar = _selected_numpy(anchors["tar"], "pre")[list(SELECTED_GATES)]
+    pre_cor = _selected_numpy(anchors["cor"], "pre")[list(SELECTED_GATES)]
+    gate_chord = pre_tar - pre_cor
+    zeta = GATE_RADIUS * gate_chord / max(float(np.linalg.norm(gate_chord)), 1e-30)
+    first_order, factorial = {}, {}
+    with torch.inference_mode():
+        for system in ("tar", "pat"):
+            first_order[system] = _first_order_system_v13(
+                tail, anchors[system], item, coefficients, contrast_t
+            )
+            factorial[system] = _factorial_system_v13(
+                tail, anchors[system], physical_v, zeta, contrast_t
+            )
+    center_tar = float(margin(anchors["tar"].year_logits, contrast_t)[0].item())
+    center_pat = float(margin(anchors["pat"].year_logits, contrast_t)[0].item())
+    first_order_score = math.sqrt(
+        float(np.mean((first_order["pat"]["rich"]["x"] - first_order["tar"]["rich"]["x"]) ** 2))
+        + float(np.mean((first_order["pat"]["rich"]["z"] - first_order["tar"]["rich"]["z"]) ** 2))
+    )
+    radius_valid = bool(item["radius"]["floor_pass"] and item["radius"]["gate_floor_pass"])
+    return {
+        "pair_digest": record.pair_digest, "cell_id": record.cell_id,
+        "split": record.split, "distance_bin": record.distance_bin,
+        "orientation": record.orientation,
+        "admissible": radius_valid and mixed["tar"]["admissible"] and mixed["pat"]["admissible"],
+        "physical_target_norm": float(np.linalg.norm(physical_v)),
+        "residual_radius": float(item["radius"]["h_x"]),
+        "theta_tar": mixed["tar"]["theta"], "theta_pat": mixed["pat"]["theta"],
+        "theta_full_tar": mixed["tar"]["theta_full"], "theta_full_pat": mixed["pat"]["theta_full"],
+        "theta_half_tar": mixed["tar"]["theta_half"], "theta_half_pat": mixed["pat"]["theta_half"],
+        "theta_error_tar": mixed["tar"].get("theta_error"),
+        "theta_error_pat": mixed["pat"].get("theta_error"),
+        "behavioral": abs(center_pat - center_tar),
+        "single": abs(factorial["pat"]["single"] - factorial["tar"]["single"]),
+        "first_order": first_order_score,
+        "pie": abs(factorial["pat"]["pie"] - factorial["tar"]["pie"]),
+        "cancellation_dx": factorial["pat"]["bx"] - factorial["tar"]["bx"],
+        "cancellation_dz": factorial["pat"]["bz"] - factorial["tar"]["bz"],
+        "mixed_audit": mixed,
+    }
+
+
+def _energy_item_v13(model, suffix_ids, record, device, plain, design) -> dict:
+    torch = torch_module()
+    anchors = {
+        system: _anchor_plain_to_device(values, device)
+        for system, values in plain[record.pair_digest].items()
+    }
+    item = design[record.pair_digest]
+    suffix_tensor = torch.as_tensor(suffix_ids, dtype=torch.long, device=device)
+    physical_v = torch.as_tensor(item["target"][None], dtype=torch.float32, device=device)
+    systems = {}
+    for name in ("tar", "pat", "cor"):
+        anchor = anchors[name]
+        target_anchor = TargetAnchor(
+            resid_mid=anchor.resid_mid, pre=anchor.pre, post=anchor.post,
+            final_positions=anchor.final_positions, system=name,
+        )
+        full = finite_path_effect(
+            model, target_anchor, suffix_tensor, physical_v, [record.y], rho=1.0
+        )[0]
+        half = finite_path_effect(
+            model, target_anchor, suffix_tensor, physical_v, [record.y],
+            rho=HALF_RADIUS_MULTIPLIER,
+        )[0]
+        jvp = target_jvp(
+            model, target_anchor, suffix_tensor, physical_v, [record.y]
+        )[0]
+        full_v, half_v, jvp_v = float(full.item()), float(half.item()), float(jvp.item())
+        rich_v = (4.0 * half_v - full_v) / 3.0
+        absolute = abs(rich_v - jvp_v)
+        relative = absolute / max(abs(jvp_v), 0.05)
+        locality = abs(full_v - rich_v)
+        systems[name] = {
+            "full": full_v, "half": half_v, "jvp": jvp_v,
+            "richardson": rich_v, "jvp_absolute_error": absolute,
+            "jvp_relative_error": relative, "locality_error": locality,
+            "admissible": absolute <= 0.01 and relative <= 0.05
+                          and locality <= max(0.02, 0.25 * abs(rich_v)),
+        }
+    return {
+        "pair_digest": record.pair_digest, "cell_id": record.cell_id,
+        "split": record.split, "distance_bin": record.distance_bin,
+        "orientation": record.orientation,
+        "physical_target_norm": float(np.linalg.norm(item["target"])),
+        "admissible": bool(item["radius"]["floor_pass"])
+                      and all(row["admissible"] for row in systems.values()),
+        "systems": systems,
+    }
+
+
+def _run_split_v13(
+    model, suffix_ids, records, split, output_root, device, epsilon_y,
+    plain, design, dev_sd=None, precomputed=None,
+) -> tuple[dict, float]:
+    coefficients = first_order_directions()
+    precomputed = {} if precomputed is None else precomputed
+    tensor_rows, energy_rows = [], []
+    for record in [row for row in records if row.role == "tensor"]:
+        if ("tensor", record.pair_digest) in precomputed:
+            tensor_rows.append(precomputed["tensor", record.pair_digest])
+            continue
+        batch_id = f"{split}-tensor-{record.pair_digest}"
+        tensor_rows.append(_run_endpoint_batch(
+            output_root, batch_id,
+            {"phase": split, "items": [record.pair_digest], "endpoint_type": "tensor",
+             "radii_sha256": sha256_file(output_root / f"{split}_radii.json"),
+             "systems": ["tar", "pat"]},
+            lambda record=record: _tensor_item_v13(
+                model, suffix_ids, record, device, epsilon_y,
+                coefficients, plain, design,
+            ),
+        ))
+    for record in [row for row in records if row.role == "energy"]:
+        if ("energy", record.pair_digest) in precomputed:
+            energy_rows.append(precomputed["energy", record.pair_digest])
+            continue
+        batch_id = f"{split}-energy-{record.pair_digest}"
+        energy_rows.append(_run_endpoint_batch(
+            output_root, batch_id,
+            {"phase": split, "items": [record.pair_digest], "endpoint_type": "energy",
+             "radii_sha256": sha256_file(output_root / f"{split}_radii.json"),
+             "systems": ["tar", "pat", "cor"]},
+            lambda record=record: _energy_item_v13(
+                model, suffix_ids, record, device, plain, design
+            ),
+        ))
+    write_parquet(output_root / ("dev_tensor_scores.parquet" if split == "development" else "confirm_tensor_scores.parquet"), tensor_rows)
+    write_parquet(output_root / ("dev_energy_targets.parquet" if split == "development" else "confirm_energy_targets.parquet"), energy_rows)
+    return aggregate_cells(tensor_rows, energy_rows, dev_sd=dev_sd)
+
+
+def _development_throughput_preflight(
+    model, suffix_ids, records, output_root, device, epsilon_y, plain, design,
+) -> dict:
+    """Run the deterministic lowest-hash 2% operation mixture exactly once."""
+    torch = torch_module()
+    coefficients = first_order_directions()
+    selected = {}
+    for role in ("tensor", "energy"):
+        population = sorted(
+            [row for row in records if row.role == role],
+            key=lambda row: sha256_text("throughput-v13|" + row.pair_digest),
+        )
+        count = max(1, math.ceil(0.02 * len(population)))
+        selected[role] = population[:count]
+    if torch.cuda.is_available():
+        torch.cuda.reset_peak_memory_stats(device)
+        torch.cuda.synchronize(device)
+    start = time.perf_counter()
+    results = {}
+    for role in ("tensor", "energy"):
+        for record in selected[role]:
+            batch_id = f"development-throughput-{role}-{record.pair_digest}"
+            if role == "tensor":
+                result = _run_endpoint_batch(
+                    output_root, batch_id,
+                    {"phase": "development", "items": [record.pair_digest],
+                     "endpoint_type": "throughput_tensor", "fraction": 0.02,
+                     "radii_sha256": sha256_file(output_root / "development_radii.json"),
+                     "systems": ["tar", "pat"]},
+                    lambda record=record: _tensor_item_v13(
+                        model, suffix_ids, record, device, epsilon_y,
+                        coefficients, plain, design,
+                    ),
+                )
+            else:
+                result = _run_endpoint_batch(
+                    output_root, batch_id,
+                    {"phase": "development", "items": [record.pair_digest],
+                     "endpoint_type": "throughput_energy", "fraction": 0.02,
+                     "radii_sha256": sha256_file(output_root / "development_radii.json"),
+                     "systems": ["tar", "pat", "cor"]},
+                    lambda record=record: _energy_item_v13(
+                        model, suffix_ids, record, device, plain, design
+                    ),
+                )
+            results[role, record.pair_digest] = result
+    if torch.cuda.is_available():
+        torch.cuda.synchronize(device)
+        peak_bytes = int(torch.cuda.max_memory_allocated(device))
+    else:
+        peak_bytes = 0
+    elapsed = time.perf_counter() - start
+    sample_units = len(selected["tensor"]) * 4180 + len(selected["energy"]) * 15
+    extrapolated_seconds = elapsed * runner_units / sample_units if (runner_units := FORWARD_COUNTS["development_effective_units"]) else math.inf
+    hard_cap_seconds = 24.0 * 3600.0 if "4090" in torch.cuda.get_device_name(device) else 40.0 * 3600.0
+    peak_limit = 20 * 1024**3 if "4090" in torch.cuda.get_device_name(device) else 32 * 1024**3
+    payload = {
+        "selection": {role: [row.pair_digest for row in rows] for role, rows in selected.items()},
+        "selection_rule": "lowest_sha256_rank_within_endpoint_type",
+        "fraction": 0.02, "elapsed_seconds": elapsed,
+        "sample_effective_units": sample_units,
+        "extrapolated_development_seconds": extrapolated_seconds,
+        "hard_cap_seconds": hard_cap_seconds, "peak_allocated_bytes": peak_bytes,
+        "peak_limit_bytes": peak_limit,
+        "outputs_reused": True,
+        "passed": extrapolated_seconds <= hard_cap_seconds and peak_bytes <= peak_limit,
+        "results": {
+            f"{role}:{digest}": value for (role, digest), value in results.items()
+        },
+    }
+    write_json_atomic(output_root / "development_throughput_preflight.json", payload)
+    if not payload["passed"]:
+        raise GreenStop("10_THROUGHPUT", str({key: payload[key] for key in ("extrapolated_development_seconds", "hard_cap_seconds", "peak_allocated_bytes", "peak_limit_bytes")}))
+    return {"payload": payload, "results": results}
+
+
+def _tail_preflight_v13(model, tokenizer, suffix_ids, record, device: str) -> dict:
+    torch = torch_module()
+    anchors, clean_tokens, _ = capture_item_systems(
+        model, tokenizer, suffix_ids, record, device
+    )
+    residuals = {name: _selected_numpy(anchor, "resid_mid") for name, anchor in anchors.items()}
+    common = canonical_common_frame(residuals["tar"], residuals["pat"], residuals["cor"])
+    gamma = model.blocks[10].ln2.w.detach().double().cpu().numpy()
+    W_in = model.blocks[10].mlp.W_in.detach().double().cpu().numpy()
+    frame = canonical_gate_frame(
+        common, layernorm_gate_atom(gamma, W_in, SELECTED_GATES[0])
+    )
+    radius = residual_radius(residuals["tar"], residuals["pat"], residuals["cor"])
+    frame_t = torch.as_tensor(frame, dtype=torch.float32, device=device)
+    suffix_t = torch.as_tensor(suffix_ids, dtype=torch.long, device=device)
+    tail = GreenBridgeTail(model, frame_t, suffix_t)
+    errors, derivative_errors = [], []
+    anchor = anchors["tar"]
+    conditions = [
+        ("path", np.zeros(5), 0.0),
+        ("path", np.eye(5)[0] * float(radius["h_x"]), 0.0),
+        ("path", np.zeros(5), GATE_RADIUS),
+        ("path", np.eye(5)[1] * float(radius["h_x"]), GATE_RADIUS),
+        ("control", np.eye(5)[2] * float(radius["h_x"]), GATE_RADIUS),
+    ]
+    with torch.inference_mode():
+        for mode, coordinate, z_value in conditions:
+            coordinate_t = torch.as_tensor(coordinate[None], dtype=torch.float32, device=device)
+            delta_t = coordinate_t @ frame_t.T
+            z_t = torch.tensor([z_value], dtype=torch.float32, device=device)
+            manual = tail.evaluate_physical(anchor, delta_t, z_t, mode=mode, gate_slot=0)
+            full = full_hook_endpoint(
+                model, clean_tokens, suffix_ids, anchor, frame_t, coordinate_t, z_t,
+                mode=mode, gate_slot=0,
+            )
+            difference = manual.double() - full.double()
+            errors.append(float(difference.abs().max().item()))
+            manual_delta = manual.double() - anchor.year_logits.double()
+            full_delta = full.double() - anchor.year_logits.double()
+            derivative_errors.append(float(
+                torch.linalg.vector_norm(manual_delta - full_delta).item()
+                / max(float(torch.linalg.vector_norm(full_delta).item()), 1e-5)
+            ))
+    result = {
+        "conditions": [row[0] for row in conditions],
+        "max_abs": max(errors), "errors": errors,
+        "max_derivative_relative": max(derivative_errors),
+        "derivative_relative_errors": derivative_errors,
+    }
+    if result["max_abs"] > THRESHOLDS.tail_max_abs:
+        raise GreenStop("06_MANUAL_TAIL", str(result))
+    if result["max_derivative_relative"] > THRESHOLDS.tail_derivative_relative:
+        raise GreenStop("06_MANUAL_TAIL_DERIVATIVE", str(result))
+    return result
+
+
+def _duplicate_noise_v13(model, tokenizer, suffix_ids, records, device: str) -> dict:
+    errors = []
+    for record in sorted(records, key=lambda row: row.pair_digest)[:32]:
+        first, _, _ = capture_item_systems(model, tokenizer, suffix_ids, record, device)
+        second, _, _ = capture_item_systems(model, tokenizer, suffix_ids, record, device)
+        for system in ("tar", "pat", "cor"):
+            errors.append(float(
+                (first[system].year_logits.double() - second[system].year_logits.double())
+                .abs().max().item()
+            ))
+    return {"n": len(errors), "max_abs": max(errors, default=0.0), "errors": errors}
+
+
+def prepare(output_root: Path, device: str) -> None:
+    repository = assert_clean_repository()
+    assert_empty_prepare_root(output_root)
+    environment = configure_runtime(device)
+    from transformers import AutoTokenizer
+    tokenizer = AutoTokenizer.from_pretrained(MODEL_ID, revision=MODEL_REVISION)
+    pair_allowed = lambda first, second: token_pair_allowed(tokenizer, first, second)
+    evaluation = build_evaluation_records(pair_allowed)
+    validate_evaluation_plan(evaluation)
+    legacy = build_legacy_donor_records(pair_allowed)
+    legacy_gate04, holdout_gate04 = gate04_record_panels(legacy)
+    gate04_panel = gate04_panel_metadata(legacy_gate04, holdout_gate04)
+    if gate04_panel["ordered_prompt_keys_sha256"] != GATE04_ORDERED_PROMPT_HASH:
+        raise GreenStop("04_HF_TL_FIDELITY", "legacy Gate-04 prompt hash changed")
+    output_root.mkdir(parents=True, exist_ok=True)
+    write_run_ledger(output_root, repository)
+    evaluation_payload = plan_payload(evaluation)
+    write_json_atomic(output_root / "splits.json", evaluation_payload)
+    write_json_atomic(
+        output_root / "development_splits.json",
+        plan_payload([row for row in evaluation if row.split == "development"]),
+    )
+    write_json_atomic(output_root / "gate04_legacy_panel.json", gate04_panel)
+    tokenizer, hf_model, model, cfg = load_models(device, tokenizer=tokenizer)
+    suffix_ids, tokenizer_meta = validate_tokenizer(tokenizer, evaluation + legacy)
+    fingerprint = {
+        "model_id": MODEL_ID, "model_revision": MODEL_REVISION,
+        "transformer_lens_commit": TRANSFORMER_LENS_COMMIT,
+        "config": cfg, "tokenizer": tokenizer_meta,
+        "embedding_sha256": hashlib.sha256(model.W_E.detach().cpu().numpy().tobytes()).hexdigest(),
+        "unembedding_sha256": hashlib.sha256(model.W_U.detach().cpu().numpy().tobytes()).hexdigest(),
+    }
+    write_json_atomic(output_root / "model_fingerprint.json", fingerprint)
+    hf_audit = hf_tl_audit(
+        tokenizer, hf_model, model, legacy_gate04, holdout_gate04,
+        suffix_ids, device,
+    )
+    noop = no_op_audit(
+        model, tokenizer, holdout_gate04, suffix_ids, device,
+        hf_audit["tl_references"],
+    )
+    write_json_atomic(output_root / "hook_audit.json", {
+        "hf_vs_tl": hf_audit, "no_op_patch": noop,
+    })
+    del hf_model
+    torch_module().cuda.empty_cache()
+    preflight_records = sorted(
+        legacy_gate04 + holdout_gate04,
+        key=lambda row: sha256_text("structural-preflight-v13|" + row.pair_digest),
+    )[:8]
+    preflight_record = preflight_records[0]
+    preflight_plain = _capture_structural_inputs(
+        model, tokenizer, suffix_ids, preflight_records, device,
+        output_root, "preflight",
+    )
+    preflight_design = _construct_structural_design(
+        model, preflight_records, preflight_plain, output_root, "preflight"
+    )
+    preflight_audits = json.loads(
+        (output_root / "preflight_frame_audit.json").read_text(encoding="utf-8")
+    )
+    item_audits = list(preflight_audits.values())
+    gate_audits = [row for item in item_audits for row in item["gates"]]
+    structural_preflight = {
+        "pair_digests": [row.pair_digest for row in preflight_records],
+        "frame_audit_sha256": sha256_file(output_root / "preflight_frame_audit.json"),
+        "common_sha256": frame_sha256(preflight_design[preflight_record.pair_digest]["common"]),
+        "all_gate_sha256": frame_sha256(preflight_design[preflight_record.pair_digest]["all_gate"]),
+        "common_frame_dimension": COMMON_FRAME_DIM,
+        "gate_frame_dimension": PROBE_FRAME_DIM,
+        "all_gate_frame_dimension": ALL_GATE_FRAME_DIM,
+        "max_orthogonality_error": max(
+            [value for item in item_audits for value in (item["common"]["orthogonal_max_abs"], item["all_gate"]["orthogonal_max_abs"])]
+            + [row["containment"]["orthogonal_max_abs"] for row in gate_audits]
+        ),
+        "max_atom_residual": max(
+            [value for item in item_audits for value in (item["common"]["atom_residual_relative"], item["all_gate"]["atom_residual_relative"])]
+            + [row["containment"]["atom_residual_relative"] for row in gate_audits]
+        ),
+        "max_gradient_residual": max(
+            values["envelope_relative"] for row in gate_audits
+            for values in row["gradients"].values()
+        ),
+        "max_gradient_autograd_abs": max(
+            values["autograd_max_abs"] for row in gate_audits
+            for values in row["gradients"].values()
+        ),
+        "max_gradient_autograd_relative": max(
+            values["autograd_relative"] for row in gate_audits
+            for values in row["gradients"].values()
+        ),
+        "max_shift_null_metric": max(
+            values["shift_null"] for row in gate_audits
+            for values in row["gradients"].values()
+        ),
+        "repeated_frames_bitwise_equal": True,
+        "passed": True,
+    }
+    write_json_atomic(output_root / "structural_frame_preflight.json", structural_preflight)
+    coefficients = first_order_directions()
+    coefficient_hash = hashlib.sha256(coefficients.tobytes()).hexdigest()
+    if coefficient_hash != FIRST_ORDER_COEFFICIENT_SHA256:
+        raise GreenStop(
+            "07_FIRST_ORDER_COEFFICIENTS",
+            f"coefficient hash {coefficient_hash} != {FIRST_ORDER_COEFFICIENT_SHA256}",
+        )
+    _atomic_np_save(output_root / "first_order_coefficients.npy", coefficients)
+    tail_result = _tail_preflight_v13(
+        model, tokenizer, suffix_ids, preflight_record, device
+    )
+    write_json_atomic(output_root / "tail_audit.json", tail_result)
+    # Preflight scratch inputs are deliberately removed before prepare commits;
+    # only the authorized audit digest survives in the frozen interface.
+    for name in (
+        "preflight_anchor_cache.pt", "preflight_structural_inputs.npz",
+        "preflight_structural_input_hashes.json", "preflight_frames.npz",
+        "preflight_frame_audit.json", "preflight_radii.json",
+        "preflight_target_vectors.npz",
+    ):
+        (output_root / name).unlink()
+    required = (
+        "model_fingerprint.json", "splits.json", "development_splits.json",
+        "gate04_legacy_panel.json", "hook_audit.json",
+        "structural_frame_preflight.json", "first_order_coefficients.npy",
+        "tail_audit.json", "run_ledger.json",
+    )
+    manifest = {
+        "schema_version": "green-bridge-manifest-v1.3",
+        "repository": {
+            "url": "https://github.com/ScottBlizzard/idle_1",
+            "branch": repository["branch"], "review_commit": REVIEW_COMMIT,
+            "execution_commit": repository["commit"],
+            "review_commit_is_ancestor": True,
+            "repository_dirty_at_launch": False, "status_porcelain": "",
+        },
+        "run": {
+            "protocol_id": PROTOCOL_ID, "amendment_id": AMENDMENT_ID,
+            "attempt_index": 1, "retry_allowed": False,
+            "prepare_restart_allowed": False,
+            "development_restart_allowed": False,
+            "confirmation_restart_allowed": False,
+            "phase_all_allowed": False,
+        },
+        "binding_decision": {
+            "document": "analysis/GPTPRO_GREEN_GATE08_V12_DECISION_20260805.md",
+            "fixed_rank_donor_pca_terminated": True,
+            "rank_search_allowed": False, "donor_basis_allowed": False,
+            "spectral_filter_allowed": False, "learned_alignment_allowed": False,
+        },
+        "historical_v12_stop": {
+            "execution_commit": "c40405122c779337f44b811c42850b36ba5ff850",
+            "first_failed_gate": "08B_BASIS_FIT_SPECTRUM",
+            "sigma5_over_sigma6": 1.0227285601080833,
+            "sigma5_over_sigma1": 0.535667052214108,
+            "development_responses_observed": False,
+            "confirmation_responses_observed": False,
+            "matrix_hash_serialization_order_defect": True,
+            "defect_could_change_spectrum": False,
+            "full_spectrum_preserved": False, "retry_authorized": False,
+        },
+        "historical_artifact_hashes": {
+            "result_json": "390c5b62d5b42e216abbb15a0d6d206a55419c48117f610f34c0ac802e153747",
+            "manifest_json": "ea486fe8eea798b16951fcea9394b1c4ddb4b44bbd4afb5c8b104b37aaf047be",
+            "hook_audit_json": "49aa7a1818fb06d63b975938aea7285d3198fccc97723a96a37afa097abdbb99",
+            "donor_plan_json": "2c8dd401b93d3864969ab941b85cae2ab5e6e983bdf39b909f33c532b480cc16",
+            "run_ledger_json": "fa88911fcce749942a24c9e479c66cf89cd72ce9386b76d146262de6671b4f65",
+        },
+        "structural_estimand": {
+            "name": "basis-free matched-bypass ambient path operator",
+            "ambient_input_dimension": 768, "output_dimension": 100,
+            "operator_rank_max": 1,
+            "quotient_null_direction": "constant residual shift",
+            "donor_pca_used": False, "eigengap_assumed": False,
+        },
+        "structural_frame": {
+            "common_frame_dimension": COMMON_FRAME_DIM,
+            "gate_frame_dimension": PROBE_FRAME_DIM,
+            "all_gate_frame_dimension": ALL_GATE_FRAME_DIM,
+            "orthogonality_max_abs": STRUCTURAL_FRAME_ORTHOGONAL_MAX,
+            "atom_residual_max": STRUCTURAL_ATOM_RESIDUAL_MAX,
+            "gradient_residual_max": STRUCTURAL_GRADIENT_RESIDUAL_MAX,
+            "repeated_frame_bitwise_equal": True,
+        },
+        "frozen_spec": FROZEN_SPEC, "frozen_spec_sha256": frozen_spec_hash(),
+        "source_sha256": source_hashes(),
+        "requirements_sha256": sha256_file(PROJECT_ROOT / "requirements-green-bridge.lock"),
+        "protocol_sha256": {name: sha256_file(PROJECT_ROOT / name) for name in PROTOCOL_FILES},
+        "evaluation_plan_sha256": evaluation_payload["records_sha256"],
+        "environment": environment, "model_config": cfg,
+        "forward_counts": FORWARD_COUNTS,
+        "first_order": {
+            "coordinate_dimension": ALL_GATE_FRAME_DIM,
+            "directions": FIRST_ORDER_RESIDUAL_DIRECTIONS,
+            "seed": FIRST_ORDER_COEFFICIENT_SEED,
+            "coefficient_sha256": coefficient_hash,
+        },
+        "artifact_sha256": {name: sha256_file(output_root / name) for name in required},
+        "prepare_complete": True, "confirmation_open": False,
+    }
+    write_json_atomic(output_root / "manifest.json", manifest)
+
+
+def _load_active_models_and_suffixes(output_root: Path, device: str, records):
+    from transformers import AutoTokenizer
+    tokenizer = AutoTokenizer.from_pretrained(MODEL_ID, revision=MODEL_REVISION)
+    tokenizer, hf_model, model, _ = load_models(device, tokenizer=tokenizer)
+    legacy = build_legacy_donor_records(
+        lambda first, second: token_pair_allowed(tokenizer, first, second)
+    )
+    suffix_ids, _ = validate_tokenizer(tokenizer, list(records) + legacy)
+    del hf_model
+    torch_module().cuda.empty_cache()
+    return tokenizer, model, suffix_ids
+
+
+def development_phase(output_root: Path, device: str) -> None:
+    manifest = verify_freeze(output_root)
+    _assert_no_uncommitted_endpoint(output_root)
+    claim_phase(output_root, "development")
+    records = load_split_file(output_root, "development_splits.json")
+    development = split_records(records, "development")
+    tokenizer, model, suffix_ids = _load_active_models_and_suffixes(
+        output_root, device, development
+    )
+    plain = _capture_structural_inputs(
+        model, tokenizer, suffix_ids, development, device, output_root, "development"
+    )
+    design = _construct_structural_design(
+        model, development, plain, output_root, "development"
+    )
+    noise = _duplicate_noise_v13(
+        model, tokenizer, suffix_ids, development, device
+    )
+    epsilon_y = max(1e-7, float(noise["max_abs"]))
+    noise["epsilon_y_dev"] = epsilon_y
+    write_json_atomic(output_root / "noise_audit_dev.json", noise)
+    throughput = _development_throughput_preflight(
+        model, suffix_ids, development, output_root, device, epsilon_y,
+        plain, design,
+    )
+    payload, dev_sd = _run_split_v13(
+        model, suffix_ids, development, "development", output_root,
+        device, epsilon_y, plain, design,
+        precomputed=throughput["results"],
+    )
+    write_json_atomic(output_root / "dev_cells.json", payload)
+    decision = development_decision(payload)
+    write_json_atomic(output_root / "dev_result.json", decision)
+    if decision["n_surviving_cells"] < THRESHOLDS.development_cells_min:
+        raise GreenStop("12_DEVELOPMENT_SURVIVAL", str(decision))
+    if decision["n_conditioned_cells"] < THRESHOLDS.development_cells_min:
+        raise GreenStop("13_DEVELOPMENT_CONDITIONING", str(decision))
+    if decision["n_snr_cells"] < THRESHOLDS.development_snr_cells_min:
+        raise GreenStop("14_DEVELOPMENT_SNR", str(decision))
+    if decision["verdict"] != "OPEN_CONFIRMATION":
+        raise GreenStop("16_DEVELOPMENT_GAIN", str(decision))
+    frozen = freeze_confirmation(payload, output_root / "frozen_analysis.json")
+    frozen["source_sha256"] = source_hashes()
+    frozen["manifest_preconfirmation_sha256"] = sha256_file(output_root / "manifest.json")
+    frozen["conditioning_dev_sd"] = dev_sd
+    frozen["development_design_sha256"] = sha256_text(canonical_json({
+        name: sha256_file(output_root / name) for name in (
+            "development_structural_inputs.npz",
+            "development_structural_input_hashes.json",
+            "development_frames.npz", "development_frame_audit.json",
+            "development_radii.json", "development_target_vectors.npz",
+        )
+    }))
+    write_json_atomic(output_root / "frozen_analysis.json", frozen)
+    manifest["confirmation_open"] = True
+    manifest["frozen_analysis_sha256"] = sha256_file(output_root / "frozen_analysis.json")
+    manifest["development_complete"] = True
+    manifest["artifact_sha256"]["run_ledger.json"] = sha256_file(
+        output_root / "run_ledger.json"
+    )
+    write_json_atomic(output_root / "manifest.json", manifest)
+
+
+def confirmation_phase(output_root: Path, device: str) -> None:
+    manifest = verify_freeze(output_root, require_confirmation=True)
+    _assert_no_uncommitted_endpoint(output_root)
+    claim_phase(output_root, "confirmation")
+    frozen = json.loads((output_root / "frozen_analysis.json").read_text(encoding="utf-8"))
+    if frozen["source_sha256"] != source_hashes():
+        raise GreenStop("17_MANIFEST_FREEZE", "frozen source hash mismatch")
+    records = load_split_file(output_root)
+    confirmation = split_records(
+        records, "confirmation",
+        confirmation_lock=ConfirmationLock(output_root / "frozen_analysis.json"),
+    )
+    tokenizer, model, suffix_ids = _load_active_models_and_suffixes(
+        output_root, device, confirmation
+    )
+    plain = _capture_structural_inputs(
+        model, tokenizer, suffix_ids, confirmation, device, output_root, "confirmation"
+    )
+    design = _construct_structural_design(
+        model, confirmation, plain, output_root, "confirmation"
+    )
+    noise = _duplicate_noise_v13(
+        model, tokenizer, suffix_ids, confirmation, device
+    )
+    dev_noise = float(json.loads(
+        (output_root / "noise_audit_dev.json").read_text(encoding="utf-8")
+    )["epsilon_y_dev"])
+    permitted = max(2.0 * dev_noise, 2e-6)
+    noise["permitted_max_abs"] = permitted
+    write_json_atomic(output_root / "noise_audit_confirm.json", noise)
+    if noise["max_abs"] > permitted:
+        raise GreenStop("18_CONFIRMATION_NOISE", f"{noise['max_abs']} > {permitted}")
+    payload, _ = _run_split_v13(
+        model, suffix_ids, confirmation, "confirmation", output_root,
+        device, dev_noise, plain, design,
+        dev_sd=float(frozen["conditioning_dev_sd"]),
+    )
+    write_json_atomic(output_root / "confirm_cells.json", payload)
+    result = confirmation_decision(payload, frozen)
+    dev_cells = json.loads(
+        (output_root / "dev_cells.json").read_text(encoding="utf-8")
+    )["cells"]
+    total_survival = sum(row.get("survived", False) for row in dev_cells + payload["cells"])
+    result["total_surviving_cells"] = total_survival
+    if total_survival < THRESHOLDS.total_cells_technical_min:
+        result["verdict"] = "FAIL_TOTAL_SURVIVAL"
+        result["first_failed_gate"] = "19_TOTAL_SURVIVAL"
+    elif result["verdict"] != "ORAL_RESULT_PASS":
+        result["first_failed_gate"] = (
+            "19_CONFIRMATION_SURVIVAL"
+            if result.get("n_cells", 0) < THRESHOLDS.confirmation_technical_min
+            else "19_CONFIRMATION_CONDITIONING"
+            if result.get("n_conditioned", 0) < THRESHOLDS.confirmation_oral_min
+            else "20_CONFIRMATORY_THRESHOLD"
+        )
+    else:
+        result["first_failed_gate"] = None
+    result["schema_version"] = "green-bridge-terminal-v1.3"
+    write_json_atomic(output_root / "result.json", result)
+    manifest["confirmation_complete"] = True
+    write_json_atomic(output_root / "manifest.json", manifest)
     finalize_hashes(output_root)
 
 

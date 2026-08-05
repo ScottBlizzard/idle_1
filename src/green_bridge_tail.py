@@ -9,7 +9,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any, Literal
 
-from green_bridge_spec import DIMENSIONS, SELECTED_GATES
+from green_bridge_spec import PROBE_FRAME_DIM, SELECTED_GATES
 
 
 TailMode = Literal["path", "control", "joint"]
@@ -116,11 +116,9 @@ class GreenBridgeTail:
         self.U = residual_basis
         self.suffix_ids = suffix_token_ids
         self.gates = tuple(int(gate) for gate in selected_gates)
-        if DIMENSIONS.residual_rank != 5:
-            raise ValueError("protocol-v1.2 residual rank must equal five")
-        if tuple(self.U.shape) != (model.cfg.d_model, DIMENSIONS.residual_rank):
+        if tuple(self.U.shape) != (model.cfg.d_model, PROBE_FRAME_DIM):
             raise ValueError(
-                f"residual basis must have shape [768,{DIMENSIONS.residual_rank}], got {self.U.shape}"
+                f"legacy coordinate frame must have shape [768,{PROBE_FRAME_DIM}], got {self.U.shape}"
             )
         if len(self.gates) != 10 or len(set(self.gates)) != 10:
             raise ValueError("exactly ten unique selected gates are required")
@@ -147,8 +145,36 @@ class GreenBridgeTail:
         if mode not in {"path", "control", "joint"}:
             raise ValueError(f"unknown tail mode {mode}")
         batch = anchor.resid_mid.shape[0]
-        if tuple(x.shape) != (batch, DIMENSIONS.residual_rank):
-            raise ValueError(f"x must have shape [{batch},{DIMENSIONS.residual_rank}]")
+        if tuple(x.shape) != (batch, PROBE_FRAME_DIM):
+            raise ValueError(f"x must have shape [{batch},{PROBE_FRAME_DIM}]")
+        return self.evaluate_physical(
+            anchor,
+            self._project_x(x),
+            z,
+            mode=mode,
+            gate_slot=gate_slot,
+            subtract_residual_bypass=subtract_residual_bypass,
+        )
+
+    def evaluate_physical(
+        self,
+        anchor: TailAnchor,
+        residual_delta,
+        z,
+        *,
+        mode: TailMode,
+        gate_slot: int | None = None,
+        subtract_residual_bypass: bool = False,
+    ):
+        """Evaluate an intervention expressed directly in residual coordinates."""
+        torch = _torch()
+        if mode not in {"path", "control", "joint"}:
+            raise ValueError(f"unknown tail mode {mode}")
+        batch = anchor.resid_mid.shape[0]
+        if tuple(residual_delta.shape) != (batch, self.model.cfg.d_model):
+            raise ValueError(
+                f"residual_delta must have shape [{batch},{self.model.cfg.d_model}]"
+            )
         if mode == "joint":
             if tuple(z.shape) != (batch, 10):
                 raise ValueError(f"joint z must have shape [{batch},10]")
@@ -161,7 +187,7 @@ class GreenBridgeTail:
 
         rows = torch.arange(batch, device=anchor.resid_mid.device)
         positions = anchor.final_positions
-        residual_delta = self._project_x(x).to(anchor.resid_mid.dtype)
+        residual_delta = residual_delta.to(anchor.resid_mid.dtype)
         resid_mid = anchor.resid_mid.clone()
         resid_mid[rows, positions, :] += residual_delta
         block10 = self.model.blocks[10]

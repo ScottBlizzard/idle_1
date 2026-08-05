@@ -80,7 +80,7 @@ def richardson_numerical_bounds(
 
     C_norm = float(np.linalg.norm(rich_C))
     inverse_admissible = C_norm > epsilon_C
-    residual_rank = int(rich_delta_H.shape[0])
+    probe_frame_dim = int(rich_delta_H.shape[0])
     if inverse_admissible:
         A_max = (
             np.linalg.norm(rich_delta_H, axis=1) + epsilon_delta_H
@@ -89,9 +89,9 @@ def richardson_numerical_bounds(
         epsilon_P = epsilon_G * A_max + float(np.linalg.norm(rich_G)) * epsilon_A
         epsilon_P_F = float(np.linalg.norm(epsilon_P))
     else:
-        A_max = np.full(residual_rank, np.inf, dtype=np.float64)
-        epsilon_A = np.full(residual_rank, np.inf, dtype=np.float64)
-        epsilon_P = np.full(residual_rank, np.inf, dtype=np.float64)
+        A_max = np.full(probe_frame_dim, np.inf, dtype=np.float64)
+        epsilon_A = np.full(probe_frame_dim, np.inf, dtype=np.float64)
+        epsilon_P = np.full(probe_frame_dim, np.inf, dtype=np.float64)
         epsilon_P_F = math.inf
 
     return GateNumericalBounds(
@@ -116,6 +116,27 @@ def active_contraction_bound(
     epsilon_P_F: float,
 ) -> float:
     return float(contrast_norm * delta_norm * epsilon_P_F)
+
+
+def active_envelope_contraction_bound(
+    contrast_norm: float,
+    projected_direction_norm: float,
+    physical_direction_norm: float,
+    epsilon_P_F: float,
+    gate_response_norm: float,
+    epsilon_G: float,
+    envelope_residual_absolute: float,
+) -> float:
+    """Frozen v1.3 ambient-operator error including envelope residual."""
+    return float(
+        contrast_norm
+        * (
+            projected_direction_norm * epsilon_P_F
+            + (gate_response_norm + epsilon_G)
+            * physical_direction_norm
+            * envelope_residual_absolute
+        )
+    )
 
 
 def certified_null_bound(

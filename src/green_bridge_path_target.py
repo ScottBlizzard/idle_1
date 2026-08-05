@@ -9,7 +9,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any
 
-from green_bridge_spec import DIMENSIONS, SELECTED_GATES
+from green_bridge_spec import SELECTED_GATES
 
 
 @dataclass(frozen=True)
@@ -50,23 +50,24 @@ def logit_contrast(clean_suffix: int, *, device=None, dtype=None):
 def evaluate_joint_target(
     model,
     anchor: TargetAnchor,
-    residual_basis,
     suffix_token_ids,
-    x,
+    physical_delta,
     *,
     selected_gates=SELECTED_GATES,
 ):
     """Evaluate the joint selected-gate curve with the residual bypass removed."""
     torch = _torch()
     batch = anchor.resid_mid.shape[0]
-    if DIMENSIONS.residual_rank != 5:
-        raise ValueError("protocol-v1.2 residual rank must equal five")
-    if tuple(x.shape) != (batch, DIMENSIONS.residual_rank):
-        raise ValueError(f"x must have shape [{batch},{DIMENSIONS.residual_rank}]")
-    gate_ids = torch.tensor(selected_gates, dtype=torch.long, device=x.device)
-    rows = torch.arange(batch, device=x.device)
+    if tuple(physical_delta.shape) != (batch, model.cfg.d_model):
+        raise ValueError(
+            f"physical_delta must have shape [{batch},{model.cfg.d_model}]"
+        )
+    gate_ids = torch.tensor(
+        selected_gates, dtype=torch.long, device=physical_delta.device
+    )
+    rows = torch.arange(batch, device=physical_delta.device)
     positions = anchor.final_positions
-    residual_delta = (x @ residual_basis.T).to(anchor.resid_mid.dtype)
+    residual_delta = physical_delta.to(anchor.resid_mid.dtype)
     resid_mid = anchor.resid_mid.clone()
     resid_mid[rows, positions, :] += residual_delta
 
@@ -96,7 +97,6 @@ def evaluate_joint_target(
 def finite_path_effect(
     model,
     anchor: TargetAnchor,
-    residual_basis,
     suffix_token_ids,
     direction,
     clean_suffixes,
@@ -108,10 +108,10 @@ def finite_path_effect(
     if rho <= 0:
         raise ValueError("rho must be positive")
     plus = evaluate_joint_target(
-        model, anchor, residual_basis, suffix_token_ids, rho * direction
+        model, anchor, suffix_token_ids, rho * direction
     ).double()
     minus = evaluate_joint_target(
-        model, anchor, residual_basis, suffix_token_ids, -rho * direction
+        model, anchor, suffix_token_ids, -rho * direction
     ).double()
     response = (plus - minus) / (2.0 * rho)
     contrast = torch.stack(
@@ -127,7 +127,6 @@ def target_richardson(full, half):
 def target_jvp(
     model,
     anchor: TargetAnchor,
-    residual_basis,
     suffix_token_ids,
     direction,
     clean_suffixes,
@@ -138,7 +137,7 @@ def target_jvp(
 
     def curve(x):
         logits = evaluate_joint_target(
-            model, anchor, residual_basis, suffix_token_ids, x
+            model, anchor, suffix_token_ids, x
         ).double()
         contrasts = torch.stack(
             [logit_contrast(int(y), device=logits.device) for y in clean_suffixes], dim=0

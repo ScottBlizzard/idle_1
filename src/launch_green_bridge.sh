@@ -1,8 +1,13 @@
 #!/usr/bin/env bash
-# Frozen GREEN bridge launcher. Usage: bash src/launch_green_bridge.sh [GPU_ID]
+# Frozen v1.3 launcher. Usage: bash src/launch_green_bridge.sh GPU_ID PHASE
 set -euo pipefail
 
-GPU_ID="${1:-0}"
+GPU_ID="${1:-4}"
+PHASE="${2:-prepare}"
+if [[ "$PHASE" != "prepare" && "$PHASE" != "development" && "$PHASE" != "confirmation" ]]; then
+  echo "phase must be prepare, development, or confirmation" >&2
+  exit 2
+fi
 PROJECT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 ENV_NAME="green_bridge_20260805"
 
@@ -46,14 +51,21 @@ else
 fi
 
 cd "$PROJECT_DIR"
-mkdir -p outputs/green_bridge
 export CUDA_VISIBLE_DEVICES="$GPU_ID"
 export HF_ENDPOINT="${HF_ENDPOINT:-https://hf-mirror.com}"
 export PYTHONHASHSEED=20260805
 export TOKENIZERS_PARALLELISM=false
 export CUBLAS_WORKSPACE_CONFIG=:4096:8
+export OMP_NUM_THREADS=1
+export MKL_NUM_THREADS=1
+export OPENBLAS_NUM_THREADS=1
+export BLIS_NUM_THREADS=1
+export VECLIB_MAXIMUM_THREADS=1
+export NUMEXPR_NUM_THREADS=1
 
+TEST_LOG="/tmp/green_bridge_v13_contract_${PHASE}.log"
+RUN_LOG="/tmp/green_bridge_v13_${PHASE}.log"
 python src/test_green_bridge_contract.py \
-  2>&1 | tee outputs/green_bridge/contract_test.log
-python src/exp_green_bridge_gpt2.py --phase all --device cuda:0 \
-  2>&1 | tee outputs/green_bridge/run.log
+  2>&1 | tee "$TEST_LOG"
+python src/exp_green_bridge_gpt2.py --phase "$PHASE" --device cuda:0 \
+  --output-root outputs/green_bridge 2>&1 | tee "$RUN_LOG"
