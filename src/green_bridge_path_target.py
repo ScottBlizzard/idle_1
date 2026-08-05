@@ -9,7 +9,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any
 
-from green_bridge_spec import SELECTED_GATES
+from green_bridge_spec import DIMENSIONS, SELECTED_GATES
 
 
 @dataclass(frozen=True)
@@ -59,8 +59,10 @@ def evaluate_joint_target(
     """Evaluate the joint selected-gate curve with the residual bypass removed."""
     torch = _torch()
     batch = anchor.resid_mid.shape[0]
-    if tuple(x.shape) != (batch, 4):
-        raise ValueError(f"x must have shape [{batch},4]")
+    if DIMENSIONS.residual_rank != 5:
+        raise ValueError("protocol-v1.2 residual rank must equal five")
+    if tuple(x.shape) != (batch, DIMENSIONS.residual_rank):
+        raise ValueError(f"x must have shape [{batch},{DIMENSIONS.residual_rank}]")
     gate_ids = torch.tensor(selected_gates, dtype=torch.long, device=x.device)
     rows = torch.arange(batch, device=x.device)
     positions = anchor.final_positions
