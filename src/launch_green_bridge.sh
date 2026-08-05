@@ -29,6 +29,7 @@ python -m pip install --no-deps --force-reinstall \
 cd "$PROJECT_DIR"
 mkdir -p outputs/green_bridge
 export CUDA_VISIBLE_DEVICES="$GPU_ID"
+export HF_ENDPOINT="${HF_ENDPOINT:-https://hf-mirror.com}"
 export PYTHONHASHSEED=20260805
 export TOKENIZERS_PARALLELISM=false
 export CUBLAS_WORKSPACE_CONFIG=:4096:8
