@@ -23,8 +23,27 @@ conda activate "$ENV_NAME"
 python -m pip install --upgrade "pip==25.1.1"
 python -m pip install "torch==2.7.1" --index-url https://download.pytorch.org/whl/cu126
 python -m pip install -r "$PROJECT_DIR/requirements-green-bridge.lock"
-python -m pip install --no-deps --force-reinstall \
-  "git+https://github.com/TransformerLensOrg/TransformerLens.git@4a4dc26c750475b29e6f54b362c2aab988702c9c"
+if python - <<'PY'
+from pathlib import Path
+import hashlib
+import transformer_lens
+
+expected = {
+    "HookedTransformer.py": "f80ee1ec42039a287a2b9366c75f98eec23ff33c6e941ffeee03f0374eb20af3",
+    "HookedRootModule.py": "e7144971a973ec2d63bf7400db6443caba5d03f22f310f6789d52fa4a56ad245",
+    "components/mlps/mlp.py": "615cb178d3ce65d8784af18dec86fbfe2b3957ddc02d3b99bdd2d45aa6759b32",
+    "utilities/addmm.py": "f9e72f6a3d6c508814fa8e69918c20e1cb72cbc9ae7bcb1a1abb2476e246bc38",
+}
+root = Path(transformer_lens.__file__).resolve().parent
+actual = {name: hashlib.sha256((root / name).read_bytes()).hexdigest() for name in expected}
+raise SystemExit(0 if actual == expected else 1)
+PY
+then
+  echo "TransformerLens source matches frozen commit 4a4dc26"
+else
+  python -m pip install --no-deps --force-reinstall \
+    "git+https://github.com/TransformerLensOrg/TransformerLens.git@4a4dc26c750475b29e6f54b362c2aab988702c9c"
+fi
 
 cd "$PROJECT_DIR"
 mkdir -p outputs/green_bridge
