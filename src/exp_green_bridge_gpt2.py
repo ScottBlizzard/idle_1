@@ -458,7 +458,8 @@ def verify_v134_terminal_archive() -> dict:
     archive = PROJECT_ROOT / "analysis" / "GREEN_V134_TERMINAL_ARCHIVE_20260825"
     result_path = archive / "result.json"
     ledger_path = archive / "run_ledger.json"
-    if not result_path.is_file() or sha256_file(result_path) != PREDECESSOR_RUN["result_sha256"]:
+    expected_result = "e340700ec23616cd2c8dd4c02f341896ee616f3aeffdf574dbcdc67075196cb2"
+    if not result_path.is_file() or sha256_file(result_path) != expected_result:
         raise GreenStop("00A_PREDECESSOR_ARCHIVE", "v1.3.4 result mismatch")
     if not ledger_path.is_file() or sha256_file(ledger_path) != "923def2e80e680b8004ad6d2235587cffbc8f4287326e502ec87a2184ac3b97d":
         raise GreenStop("00A_PREDECESSOR_ARCHIVE", "v1.3.4 ledger mismatch")

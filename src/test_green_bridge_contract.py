@@ -382,6 +382,7 @@ class PredecessorArchiveContractTests(unittest.TestCase):
     def test_v131_diagnostic_hash_is_frozen(self): self.assertIn("666a20604fa4b123732bd68a15681fa7a16cafeef8edc2b61544fd911567d07d",inspect.getsource(runner.verify_v131_terminal_archive))
     def test_v132_development_hash_is_frozen(self): self.assertEqual(runner.V132_TERMINAL_HASHES["outputs/green_bridge_v132/dev_cells.json"],"1294a76d6d79c81f240c20c4257aa6b0fe76457d46b30cfc5d5699e27759ae1f")
     def test_v133_prepare_stop_hash_is_frozen(self): self.assertEqual(runner.V133_TERMINAL_HASHES["outputs/green_bridge_v133/result.json"],"e1084e999ff3c94c7d7cec343f22b6d7462f142440955edcde561b860d36a1d8")
+    def test_v134_development_stop_hash_is_self_contained(self): self.assertIn("e340700ec23616cd2c8dd4c02f341896ee616f3aeffdf574dbcdc67075196cb2",inspect.getsource(runner.verify_v134_terminal_archive))
     def test_v135_development_stop_hash_is_frozen(self): self.assertEqual(runner.PREDECESSOR_RUN["result_sha256"],"c1c53e6b7fcf062a3c258a79f3ef4b87a0b33724e7087c2182f6f7e14fb81b20")
 
 
