@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
-# Frozen v1.3.4 coordinator. Workers expose GPUs 0-7 individually.
+# Frozen v1.3.5 coordinator. Workers expose GPUs 0-7 individually.
 set -euo pipefail
 GPU_ID="${1:-4}"
 PHASE="${2:-prepare}"
 if [[ "$GPU_ID" != "4" ]]; then
-  echo "coordinator physical GPU must be 4 for v1.3.4" >&2
+  echo "coordinator physical GPU must be 4 for v1.3.5" >&2
   exit 2
 fi
 if [[ "$PHASE" != "prepare" && "$PHASE" != "development" && "$PHASE" != "confirmation" ]]; then
@@ -13,7 +13,7 @@ if [[ "$PHASE" != "prepare" && "$PHASE" != "development" && "$PHASE" != "confirm
 fi
 PROJECT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 ENV_NAME="green_bridge_20260805"
-RUNTIME_ROOT="/mnt/sdb/ccj/iclr_1_runs/green_bridge_v134_runtime"
+RUNTIME_ROOT="/mnt/sdb/ccj/iclr_1_runs/green_bridge_v135_runtime"
 mkdir -p "$RUNTIME_ROOT/huggingface" "$RUNTIME_ROOT/pip" "$RUNTIME_ROOT/torch" "$RUNTIME_ROOT/tmp"
 export HF_HOME="$RUNTIME_ROOT/huggingface"
 export HF_HUB_CACHE="$RUNTIME_ROOT/huggingface/hub"
@@ -62,8 +62,8 @@ export PYTHONHASHSEED=20260805 TOKENIZERS_PARALLELISM=false
 export CUBLAS_WORKSPACE_CONFIG=:4096:8
 export OMP_NUM_THREADS=1 MKL_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1
 export BLIS_NUM_THREADS=1 VECLIB_MAXIMUM_THREADS=1 NUMEXPR_NUM_THREADS=1
-TEST_LOG="/tmp/green_bridge_v134_contract_${PHASE}.log"
-RUN_LOG="/tmp/green_bridge_v134_${PHASE}.log"
+TEST_LOG="/tmp/green_bridge_v135_contract_${PHASE}.log"
+RUN_LOG="/tmp/green_bridge_v135_${PHASE}.log"
 python src/test_green_bridge_contract.py 2>&1 | tee "$TEST_LOG"
 python src/exp_green_bridge_gpt2.py --phase "$PHASE" --device cuda:0 \
-  --output-root outputs/green_bridge_v134 2>&1 | tee "$RUN_LOG"
+  --output-root outputs/green_bridge_v135 2>&1 | tee "$RUN_LOG"

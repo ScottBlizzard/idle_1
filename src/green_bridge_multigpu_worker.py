@@ -121,7 +121,7 @@ def main() -> None:
         })
     torch.cuda.synchronize("cuda:0")
     payload = {
-        "schema_version": "green-bridge-v1.3.4-worker-v1",
+        "schema_version": "green-bridge-v1.3.5-worker-v1",
         "worker_index": args.worker_index,
         "physical_gpu": args.physical_gpu,
         "split": args.split,

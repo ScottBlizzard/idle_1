@@ -1,0 +1,7 @@
+{
+  "detail": "{'return_codes': [1, 1, 1, 1, 1, 1, 1, 1], 'shard_root': 'outputs/green_bridge_v134/shards/development'}",
+  "first_failed_gate": "11_MULTIGPU_WORKER",
+  "schema_version": "green-bridge-terminal-v1.3.4",
+  "time_utc": "2026-08-25T06:40:29Z",
+  "verdict": "STOP"
+}

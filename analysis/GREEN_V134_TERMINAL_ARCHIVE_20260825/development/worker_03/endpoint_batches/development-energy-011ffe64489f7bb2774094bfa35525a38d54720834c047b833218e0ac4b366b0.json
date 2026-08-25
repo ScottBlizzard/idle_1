@@ -1,0 +1,41 @@
+{
+  "admissible": true,
+  "cell_id": "treaty|14|near",
+  "distance_bin": "near",
+  "orientation": "up",
+  "pair_digest": "011ffe64489f7bb2774094bfa35525a38d54720834c047b833218e0ac4b366b0",
+  "physical_target_norm": 0.41853977685892857,
+  "split": "development",
+  "systems": {
+    "cor": {
+      "admissible": true,
+      "full": -0.002536607825237771,
+      "half": -0.00252453102197816,
+      "jvp": -0.002531837047411027,
+      "jvp_absolute_error": 1.1331626519403473e-05,
+      "jvp_relative_error": 0.00022663253038806945,
+      "locality_error": 1.6102404346147754e-05,
+      "richardson": -0.0025205054208916233
+    },
+    "pat": {
+      "admissible": true,
+      "full": -0.0028910122439865134,
+      "half": -0.0028919336684468094,
+      "jvp": -0.002891309684102728,
+      "jvp_absolute_error": 9.311258308466325e-07,
+      "jvp_relative_error": 1.862251661693265e-05,
+      "locality_error": 1.22856594706117e-06,
+      "richardson": -0.0028922408099335746
+    },
+    "tar": {
+      "admissible": true,
+      "full": -0.0034500158927290915,
+      "half": -0.003464592827690972,
+      "jvp": -0.003448595456241355,
+      "jvp_absolute_error": 2.0856349770244104e-05,
+      "jvp_relative_error": 0.0004171269954048821,
+      "locality_error": 1.9435913282507718e-05,
+      "richardson": -0.003469451806011599
+    }
+  }
+}
