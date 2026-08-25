@@ -23,6 +23,8 @@ mkdir -p \
 export HF_HOME="$RUNTIME_ROOT/huggingface"
 export HF_HUB_CACHE="$RUNTIME_ROOT/huggingface/hub"
 export TRANSFORMERS_CACHE="$RUNTIME_ROOT/huggingface/transformers"
+export HF_HUB_OFFLINE=1
+export TRANSFORMERS_OFFLINE=1
 export PIP_CACHE_DIR="$RUNTIME_ROOT/pip"
 export TORCH_HOME="$RUNTIME_ROOT/torch"
 export TMPDIR="$RUNTIME_ROOT/tmp"
