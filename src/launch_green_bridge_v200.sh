@@ -14,10 +14,15 @@ fi
 PROJECT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 ENV_NAME="green_bridge_20260805"
 RUNTIME_ROOT="/mnt/sdb/ccj/iclr_1_runs/green_bridge_v200_runtime"
-mkdir -p "$RUNTIME_ROOT/huggingface" "$RUNTIME_ROOT/pip" "$RUNTIME_ROOT/torch" "$RUNTIME_ROOT/tmp"
-export HF_HOME="$RUNTIME_ROOT/huggingface"
-export HF_HUB_CACHE="$RUNTIME_ROOT/huggingface/hub"
-export TRANSFORMERS_CACHE="$RUNTIME_ROOT/huggingface/transformers"
+CACHE_ROOT="/mnt/sdb/ccj/iclr_1_runs/green_bridge_v136_runtime"
+mkdir -p "$RUNTIME_ROOT/pip" "$RUNTIME_ROOT/torch" "$RUNTIME_ROOT/tmp"
+if [[ ! -d "$CACHE_ROOT/huggingface/hub" ]]; then
+  echo "STOP 01_ENVIRONMENT: frozen Hugging Face cache missing" >&2
+  exit 1
+fi
+export HF_HOME="$CACHE_ROOT/huggingface"
+export HF_HUB_CACHE="$CACHE_ROOT/huggingface/hub"
+export TRANSFORMERS_CACHE="$CACHE_ROOT/huggingface/transformers"
 export HF_HUB_OFFLINE=1
 export TRANSFORMERS_OFFLINE=1
 export PIP_CACHE_DIR="$RUNTIME_ROOT/pip"
