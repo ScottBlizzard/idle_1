@@ -70,6 +70,9 @@ def joint_composition_certificate_v300(per_gate_bounds: Iterable[float], target_
 
 
 def radius_candidate_eligibility_v300(rows: Iterable[dict], relative_fidelity: float = 0.10) -> bool:
+    rows = list(rows)
+    if not rows:
+        return False
     for row in rows:
         estimate = np.asarray(row["fine"], dtype=np.float64)
         ad = np.asarray(row["ad_midpoint"], dtype=np.float64)

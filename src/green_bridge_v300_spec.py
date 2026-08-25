@@ -170,3 +170,20 @@ FROZEN_SPEC = {
 
 def frozen_spec_sha256() -> str:
     return sha256_text(canonical_json(FROZEN_SPEC))
+
+
+def radius_candidate_payload_v300() -> dict:
+    return {
+        "schema": "green-bridge-v3.0.0-global-radius-candidates-v1",
+        "candidates": list(RADIUS_CANDIDATES),
+        "binding_hash_id": V300_RADIUS_CANDIDATE_SHA256,
+    }
+
+
+def computed_radius_candidate_payload_sha256_v300() -> str:
+    return sha256_text(canonical_json(radius_candidate_payload_v300()))
+
+
+def radius_candidate_payload_sha256_v300() -> str:
+    """Return the binding hash supplied by the external protocol decision."""
+    return V300_RADIUS_CANDIDATE_SHA256

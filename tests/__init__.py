@@ -1,0 +1,1 @@
+"""GREEN protocol contract tests."""

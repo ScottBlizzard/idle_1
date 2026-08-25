@@ -36,6 +36,21 @@ def computed_coefficient_payload_sha256_v300() -> str:
     return hashlib.sha256(canonical_json(coefficient_payload_v300()).encode("utf-8")).hexdigest()
 
 
+def coefficient_payload_sha256_v300() -> str:
+    """Return the binding hash supplied by the external protocol decision."""
+    return V300_COEFFICIENT_SHA256
+
+
+def coefficient_serializer_status_v300() -> dict:
+    computed = computed_coefficient_payload_sha256_v300()
+    return {
+        "binding_sha256": V300_COEFFICIENT_SHA256,
+        "computed_typed_payload_sha256": computed,
+        "byte_serializer_specified_by_decision": False,
+        "resolved": computed == V300_COEFFICIENT_SHA256,
+    }
+
+
 def deterministic_complement_v300(frame: np.ndarray, count: int = 6) -> np.ndarray:
     q = np.asarray(frame, dtype=np.float64)
     if q.shape != (768, 5):
