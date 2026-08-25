@@ -9,6 +9,10 @@ from typing import Iterable
 import numpy as np
 
 from green_bridge_spec import OUTPUT_ROOT, THRESHOLDS, frozen_spec_hash, write_json_atomic
+from green_bridge_numerics import (
+    robust_interval_auc_lower_bound,
+    worst_case_interval_rmse,
+)
 
 
 BASELINES = ("behavioral", "single", "first_order", "pie")
@@ -328,6 +332,218 @@ def confirmation_decision(confirm_payload: dict, frozen: dict) -> dict:
         "per_bin": per_bin,
         "cancellation": cancellation_result,
         "half_radius": radius,
+    }
+
+
+def development_decision_v200(payload: dict) -> dict:
+    cells = _cells(payload)
+    conditioned = sum(bool(cell.get("conditioned", False)) for cell in cells)
+    snr_count = sum(
+        float(cell.get("snr", 0.0)) >= THRESHOLDS.development_snr_min
+        for cell in cells
+    )
+    base = {
+        "schema_version": "green-bridge-development-v2.0.0",
+        "phase": "development",
+        "n_surviving_cells": len(cells),
+        "n_conditioned_cells": conditioned,
+        "n_snr_cells": snr_count,
+        "mixed_worst_rmse": None,
+        "mixed_midpoint_rmse_diagnostic": None,
+        "best_baseline": None,
+        "best_baseline_loocv_rmse": None,
+        "robust_relative_gain": None,
+        "baseline_calibration": {},
+        "spec_sha256": frozen_spec_hash(),
+    }
+    counts_pass = (
+        len(cells) >= THRESHOLDS.development_cells_min
+        and conditioned >= THRESHOLDS.development_cells_min
+        and snr_count >= THRESHOLDS.development_snr_cells_min
+    )
+    if not counts_pass:
+        return base | {"verdict": "STOP_ORAL"}
+    calibration = calibrate_development(cells)
+    y = np.asarray([cell["target"] for cell in cells], dtype=np.float64)
+    intervals = np.asarray(
+        [[cell["mixed_lower"], cell["mixed_upper"]] for cell in cells],
+        dtype=np.float64,
+    )
+    midpoint = intervals.mean(axis=1)
+    mixed_worst = worst_case_interval_rmse(y, intervals)
+    best_name = min(BASELINES, key=lambda name: calibration[name]["loocv_rmse"])
+    best_rmse = float(calibration[best_name]["loocv_rmse"])
+    gain = 1.0 - mixed_worst / best_rmse if best_rmse > 0 else float("-inf")
+    verdict = (
+        "STOP_ORAL" if gain < THRESHOLDS.development_stop_below
+        else "POSTER_ONLY" if gain < THRESHOLDS.confirmation_open_gain_min
+        else "OPEN_CONFIRMATION"
+    )
+    return base | {
+        "verdict": verdict,
+        "mixed_worst_rmse": mixed_worst,
+        "mixed_midpoint_rmse_diagnostic": rmse(y, midpoint),
+        "best_baseline": best_name,
+        "best_baseline_loocv_rmse": best_rmse,
+        "robust_relative_gain": gain,
+        "baseline_calibration": calibration,
+    }
+
+
+def freeze_confirmation_v200(development: dict, path: Path, *, split_sha256: str) -> dict:
+    result = development_decision_v200(development)
+    if result["verdict"] != "OPEN_CONFIRMATION":
+        raise PermissionError(f"confirmation cannot open after {result['verdict']}")
+    frozen = {
+        "schema_version": "green-bridge-frozen-analysis-v2.0.0",
+        "spec_sha256": frozen_spec_hash(),
+        "split_sha256": split_sha256,
+        "baseline_calibration": {
+            name: {
+                "alpha": result["baseline_calibration"][name]["alpha"],
+                "beta": result["baseline_calibration"][name]["beta"],
+            }
+            for name in BASELINES
+        },
+        "analysis": {
+            "mixed_error": "worst-case-interval-rmse",
+            "cancellation": "robust-interval-auc-lower-bound",
+        },
+        "bootstrap_replicates": 100_000,
+        "bootstrap_seed": 20260805,
+        "confirmation_retries": 0,
+        "development_summary": result,
+    }
+    write_json_atomic(path, frozen)
+    return frozen
+
+
+def confirmation_decision_v200(confirm_payload: dict, frozen: dict) -> dict:
+    cells = _cells(confirm_payload)
+    conditioned = sum(bool(cell.get("conditioned", False)) for cell in cells)
+    if len(cells) < THRESHOLDS.confirmation_technical_min:
+        return {
+            "schema_version": "green-bridge-confirmation-v2.0.0",
+            "phase": "confirmation", "verdict": "FAIL_SURVIVAL",
+            "n_cells": len(cells), "n_conditioned": conditioned,
+        }
+    y = np.asarray([cell["target"] for cell in cells], dtype=np.float64)
+    intervals = np.asarray(
+        [[cell["mixed_lower"], cell["mixed_upper"]] for cell in cells], dtype=np.float64
+    )
+    predictions = {}
+    for name in BASELINES:
+        calibration = frozen["baseline_calibration"][name]
+        raw = np.asarray([cell["baselines"][name] for cell in cells], dtype=np.float64)
+        predictions[name] = calibration["alpha"] + calibration["beta"] * raw
+    baseline_rmse = {name: rmse(y, prediction) for name, prediction in predictions.items()}
+    best_name = min(BASELINES, key=baseline_rmse.get)
+    best_rmse = baseline_rmse[best_name]
+    mixed_worst = worst_case_interval_rmse(y, intervals)
+    relative_gain = 1.0 - mixed_worst / best_rmse if best_rmse > 0 else float("-inf")
+    absolute_gain = best_rmse - mixed_worst
+    rng = np.random.Generator(np.random.PCG64(int(frozen["bootstrap_seed"])))
+    replicates = int(frozen["bootstrap_replicates"])
+    bootstrap_gain = np.empty(replicates, dtype=np.float64)
+    for replicate in range(replicates):
+        idx = _stratified_indices(cells, rng)
+        mixed_r = worst_case_interval_rmse(y[idx], intervals[idx])
+        best_r = min(rmse(y[idx], predictions[name][idx]) for name in BASELINES)
+        bootstrap_gain[replicate] = 1.0 - mixed_r / best_r if best_r > 0 else -np.inf
+    relative_lcb = float(np.percentile(bootstrap_gain, 2.5))
+    per_bin = {}
+    for bin_name in ("near", "far"):
+        idx = np.asarray([i for i, cell in enumerate(cells) if cell["distance_bin"] == bin_name])
+        mixed_b = worst_case_interval_rmse(y[idx], intervals[idx])
+        best_b = min(rmse(y[idx], predictions[name][idx]) for name in BASELINES)
+        gains = np.empty(replicates, dtype=np.float64)
+        for replicate in range(replicates):
+            sample = rng.choice(idx, size=len(idx), replace=True)
+            mr = worst_case_interval_rmse(y[sample], intervals[sample])
+            br = min(rmse(y[sample], predictions[name][sample]) for name in BASELINES)
+            gains[replicate] = 1.0 - mr / br if br > 0 else -np.inf
+        per_bin[bin_name] = {
+            "n": len(idx), "relative_gain": 1.0 - mixed_b / best_b,
+            "relative_gain_lcb": float(np.percentile(gains, 2.5)),
+            "absolute_gain": best_b - mixed_b,
+        }
+    cancellation = [
+        i for i, cell in enumerate(cells)
+        if cell["cancellation_dx"] * cell["cancellation_dz"] < 0
+        and min(abs(cell["cancellation_dx"]), abs(cell["cancellation_dz"]))
+        >= THRESHOLDS.cancellation_main_effect_min
+    ]
+    cancellation_result = {"n": len(cancellation), "valid": False}
+    if cancellation:
+        idx = np.asarray(cancellation, dtype=int)
+        labels = y[idx] >= THRESHOLDS.cancellation_target_threshold
+        bin_counts = {
+            name: sum(cells[i]["distance_bin"] == name for i in idx) for name in ("near", "far")
+        }
+        balanced = (
+            len(idx) >= THRESHOLDS.cancellation_size_min
+            and int(labels.sum()) >= THRESHOLDS.cancellation_class_min
+            and int((~labels).sum()) >= THRESHOLDS.cancellation_class_min
+            and min(bin_counts.values()) >= THRESHOLDS.cancellation_bin_min
+        )
+        if balanced:
+            point = robust_interval_auc_lower_bound(labels, intervals[idx])
+            auc_boot = np.empty(replicates, dtype=np.float64)
+            strata = {}
+            for bin_name in ("near", "far"):
+                for label in (False, True):
+                    group = np.asarray([
+                        i for i in idx
+                        if cells[i]["distance_bin"] == bin_name
+                        and bool(y[i] >= THRESHOLDS.cancellation_target_threshold) == label
+                    ], dtype=int)
+                    strata[bin_name, label] = group
+            for replicate in range(replicates):
+                sample = np.concatenate([
+                    rng.choice(group, size=len(group), replace=True)
+                    for group in strata.values() if len(group)
+                ])
+                auc_boot[replicate] = robust_interval_auc_lower_bound(
+                    y[sample] >= THRESHOLDS.cancellation_target_threshold, intervals[sample]
+                )
+            cancellation_result = {
+                "n": len(idx), "valid": True, "auroc_lower": point,
+                "auroc_lcb": float(np.percentile(auc_boot, 2.5)),
+                "bin_counts": bin_counts,
+            }
+    coarse = np.asarray([cell["mixed_coarse"] for cell in cells], dtype=np.float64)
+    fine = np.asarray([cell["mixed_fine"] for cell in cells], dtype=np.float64)
+    change = np.abs(coarse - fine) / np.maximum((np.abs(coarse) + np.abs(fine)) / 2.0, 0.05)
+    radius = {"spearman": spearman(coarse, fine), "median_change": float(np.median(change)), "bins": {}}
+    for bin_name in ("near", "far"):
+        idx = np.asarray([i for i, cell in enumerate(cells) if cell["distance_bin"] == bin_name])
+        radius["bins"][bin_name] = {
+            "spearman": spearman(coarse[idx], fine[idx]),
+            "median_change": float(np.median(change[idx])),
+        }
+    success = (
+        len(cells) >= THRESHOLDS.confirmation_oral_min
+        and conditioned >= THRESHOLDS.confirmation_oral_min
+        and all(sum(cell["distance_bin"] == name for cell in cells) >= THRESHOLDS.cells_per_bin_min for name in ("near", "far"))
+        and relative_gain >= THRESHOLDS.confirmation_relative_gain_min
+        and relative_lcb >= THRESHOLDS.confirmation_relative_lcb_min
+        and absolute_gain >= THRESHOLDS.confirmation_absolute_gain_min
+        and all(row["relative_gain"] >= THRESHOLDS.per_bin_relative_gain_min and row["relative_gain_lcb"] > 0 and row["absolute_gain"] >= THRESHOLDS.per_bin_absolute_gain_min for row in per_bin.values())
+        and cancellation_result.get("valid", False)
+        and cancellation_result.get("auroc_lower", 0.0) >= THRESHOLDS.cancellation_auroc_min
+        and cancellation_result.get("auroc_lcb", 0.0) >= THRESHOLDS.cancellation_auroc_lcb_min
+        and radius["spearman"] >= THRESHOLDS.half_radius_spearman_min
+        and radius["median_change"] <= THRESHOLDS.half_radius_change_max
+        and all(row["spearman"] >= THRESHOLDS.half_radius_spearman_min and row["median_change"] <= THRESHOLDS.half_radius_change_max for row in radius["bins"].values())
+    )
+    return {
+        "schema_version": "green-bridge-confirmation-v2.0.0",
+        "phase": "confirmation", "verdict": "ORAL_RESULT_PASS" if success else "ORAL_RESULT_FAIL",
+        "n_cells": len(cells), "n_conditioned": conditioned,
+        "mixed_worst_rmse": mixed_worst, "baseline_rmse": baseline_rmse,
+        "best_baseline": best_name, "robust_relative_gain": relative_gain,
+        "relative_gain_lcb": relative_lcb, "robust_absolute_gain": absolute_gain,
+        "per_bin": per_bin, "cancellation": cancellation_result, "radius": radius,
     }
 
 

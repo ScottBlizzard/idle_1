@@ -8,6 +8,7 @@ have been atomically frozen.
 from __future__ import annotations
 
 import argparse
+from collections import Counter
 from dataclasses import asdict, replace
 import gc
 import hashlib
@@ -18,6 +19,7 @@ import os
 from pathlib import Path
 import platform
 import re
+import shutil
 import subprocess
 import sys
 import time
@@ -25,11 +27,16 @@ from typing import Sequence
 
 import numpy as np
 
-from analyze_green_bridge import BASELINES, development_decision, freeze_confirmation, confirmation_decision, spearman
+from analyze_green_bridge import (
+    BASELINES, confirmation_decision, confirmation_decision_v200,
+    development_decision, development_decision_v200, freeze_confirmation,
+    freeze_confirmation_v200, spearman,
+)
 from green_bridge_dataset import (
     ConfirmationLock,
     PairRecord,
     build_evaluation_records,
+    build_green_bridge_v200_splits,
     build_legacy_donor_records,
     plan_payload,
     split_records,
@@ -49,6 +56,7 @@ from green_bridge_spec import (
     GATE04_HOLDOUT_PAIR_SLICE,
     GATE04_LEGACY_PAIR_SLICE,
     HALF_RADIUS_MULTIPLIER,
+    HISTORICAL_V136_THRESHOLDS,
     HF_ATTN_IMPLEMENTATION,
     MODEL_ID,
     MODEL_REVISION,
@@ -58,6 +66,7 @@ from green_bridge_spec import (
     PROBE_FRAME_DIM,
     PROTOCOL_ID,
     PROTOCOL_RUN_ID,
+    QUARTER_RADIUS_MULTIPLIER,
     PROJECT_ROOT,
     RESIDUAL_RADIUS_MULTIPLIER,
     SELECTED_GATES,
@@ -77,6 +86,7 @@ from green_bridge_spec import (
     sha256_file,
     sha256_text,
     write_json_atomic,
+    V200_SPLIT_SHA256,
 )
 from green_bridge_structural_frame import (
     canonical_all_gate_frame,
@@ -101,8 +111,18 @@ from green_bridge_numerics import (
     active_envelope_contraction_bound,
     cell_error_bound,
     certified_null_bound,
+    dyadic_enclosure_v200,
+    factorization_compatibility_v200,
+    minkowski_sum_interval,
     richardson_numerical_bounds,
+    richardson_pair_bounds_v200,
+    shift_null_compatibility_v200,
+    subtract_intervals,
     sum_item_error_bounds,
+    unresolved_gate_contraction_bound_v200,
+    whitebox_compatibility_v200,
+    whitebox_factorization_compatibility_v200,
+    absolute_value_interval,
 )
 from green_bridge_tail import GreenBridgeTail, TailAnchor, capture_tail_anchor, gather_year_logits
 from green_bridge_path_target import (
@@ -121,6 +141,13 @@ from matched_bypass_gate import (
     reconstruct_cotangent,
     symmetric_relative_change,
 )
+from green_bridge_response_ad import (
+    audit_richardson_enclosure_v200,
+    build_ad_response_functions_v200,
+    response_gate_jet_forward_ad64,
+    response_gate_jet_reverse_ad64,
+    select_ad_audit_panel_v200,
+)
 
 
 SOURCE_FILES = (
@@ -134,6 +161,7 @@ SOURCE_FILES = (
     "src/green_bridge_path_target.py",
     "src/exp_green_bridge_gpt2.py",
     "src/green_bridge_multigpu_worker.py",
+    "src/green_bridge_response_ad.py",
     "src/analyze_green_bridge.py",
     "src/test_green_bridge_contract.py",
     "src/launch_green_bridge.sh",
@@ -141,6 +169,7 @@ SOURCE_FILES = (
     "src/launch_green_bridge_v132.sh",
     "src/launch_green_bridge_v133.sh",
     "src/launch_green_bridge_v136.sh",
+    "src/launch_green_bridge_v200.sh",
 )
 PROTOCOL_FILES = (
     "analysis/GPTPRO_GREEN_BRIDGE_20260805.md",
@@ -165,6 +194,7 @@ PROTOCOL_FILES = (
     "analysis/CODEX_GREEN_V134_EXACT_BATCH1_MULTIGPU_DECISION_20260825.md",
     "analysis/CODEX_GREEN_V135_GATEJET_RESPONSE_PAIRING_DECISION_20260825.md",
     "analysis/CODEX_GREEN_V136_DIRECT_BYPASS_ORIENTATION_DECISION_20260825.md",
+    "analysis/GPTPRO_GREEN_V136_TERMINAL_DECISION_20260825.md",
     "requirements-green-bridge.lock",
 )
 EXPECTED_PACKAGES = {
@@ -184,13 +214,7 @@ TL_SOURCE_SHA256 = {
     "utilities/addmm.py": "f9e72f6a3d6c508814fa8e69918c20e1cb72cbc9ae7bcb1a1abb2476e246bc38",
     "components/unembed.py": "efde00edc62c521c4da216266ea698876b46df6aa8bc3b0632cfe929dbfdce6f",
 }
-FORWARD_COUNTS = {
-    "mixed_per_tensor_item": 2082,
-    "first_order_per_tensor_item": 2082,
-    "factorial_per_tensor_item": 16,
-    "first_order_residual_directions": 250,
-    "tensor_items_total": 384,
-    "energy_items_total": 384,
+HISTORICAL_V136_FORWARD_COUNTS = {
     "tensor_item_unique_calls": 4_180,
     "tensor_tail_total": 1_605_120,
     "energy_tail_total": 4_608,
@@ -203,7 +227,33 @@ FORWARD_COUNTS = {
     "development_effective_units": 538_336,
     "confirmation_effective_units": 1_076_288,
 }
-REVIEW_COMMIT = "67bd92c72057db48642280dd28ef2fa9b03c0cac"
+FORWARD_COUNTS = {
+    "mixed_per_tensor_item": 3122,
+    "first_order_per_tensor_item": 2082,
+    "factorial_per_tensor_item": 16,
+    "first_order_residual_directions": 250,
+    "tensor_items_total": 256,
+    "energy_items_total": 256,
+    "tensor_item_unique_calls": 5_220,
+    "tensor_tail_total": 1_336_320,
+    "energy_tail_total": 3_840,
+    "tail_evaluations_total": 1_340_160,
+    "jvp_invocations_total": 768,
+    "full_model_evaluations_total": 1_664,
+    "raw_invocations_total": 1_342_592,
+    "effective_units_total": 1_343_360,
+    "conservative_units_total": 1_351_680,
+    "development_effective_units": 335_840,
+    "confirmation_effective_units": 1_007_520,
+}
+REVIEW_COMMIT = "3bdeac04a16724461f266705ef250a6357ced1cf"
+V136_TERMINAL_HASHES = {
+    "dev_tensor_scores.parquet": "660788dde8bc5df1d057db31b4dc1065b222ac7777efc0e4c6220e09f1ed81ff",
+    "dev_energy_targets.parquet": "23a99b6998ec2c51184ae26b8f86a7656247ff2091e251752c1fccd06295e593",
+    "dev_cells.json": "1294a76d6d79c81f240c20c4257aa6b0fe76457d46b30cfc5d5699e27759ae1f",
+    "dev_result.json": "2e15531d62bd5cc1162980fdaa2643a7300b362eb6b11ff5b94bb3d623c37277",
+    "development_multigpu_merge.json": "31dbc71fbeaa40f313be6078a627082050aa5a338e132d3a6ed7343869eaad7a",
+}
 GATE04_ORDERED_PROMPT_HASH = "619d21c10d4f30e6ce2597c3ba4df1de72cf0cb4f6cce322d82c2d3ec62803ce"
 ACTIVE_MANUAL_TAIL_BATCH_SIZE = TAIL_FIXED_BATCH_SIZE
 
@@ -278,7 +328,9 @@ def _scientific_payload(spec: dict | None = None) -> dict:
 def activate_hardware_batch_plan(output_root: Path) -> dict:
     """Load the immutable prepare-selected hardware plan for this process."""
     global ACTIVE_MANUAL_TAIL_BATCH_SIZE
-    path = output_root / "hardware_batch_plan.json"
+    path = output_root / "hardware_plan.json"
+    if not path.is_file():
+        path = output_root / "hardware_batch_plan.json"
     if not path.is_file():
         raise GreenStop("17_MANIFEST_FREEZE", "hardware batch plan missing")
     plan = json.loads(path.read_text(encoding="utf-8"))
@@ -527,6 +579,62 @@ def verify_v135_terminal_archive() -> dict:
     }
 
 
+def verify_v136_terminal_predecessor() -> dict:
+    configured = os.environ.get("GREEN_V136_PREDECESSOR_ROOT")
+    root = (
+        Path(configured).resolve()
+        if configured
+        else PROJECT_ROOT / "outputs" / "green_bridge_v136"
+    )
+    for name, expected in V136_TERMINAL_HASHES.items():
+        path = root / name
+        if not path.is_file() or sha256_file(path) != expected:
+            raise GreenStop("00_PREDECESSOR_IMMUTABILITY", f"v1.3.6 mismatch: {name}")
+    dev = json.loads((root / "dev_result.json").read_text(encoding="utf-8"))
+    cells = json.loads((root / "dev_cells.json").read_text(encoding="utf-8"))
+    merge = json.loads((root / "development_multigpu_merge.json").read_text(encoding="utf-8"))
+    terminal = json.loads((root / "result.json").read_text(encoding="utf-8"))
+    ledger = json.loads((root / "run_ledger.json").read_text(encoding="utf-8"))
+    manifest = json.loads((root / "manifest.json").read_text(encoding="utf-8"))
+    forbidden = (
+        "confirm_tensor_scores.parquet", "confirm_energy_targets.parquet",
+        "confirm_cells.json", "confirm_result.json", "frozen_analysis.json",
+    )
+    state = {
+        "verdict": dev.get("verdict") == "STOP_ORAL",
+        "first_terminal_gate": (
+            terminal.get("verdict") == "STOP"
+            and terminal.get("first_failed_gate") == "12_DEVELOPMENT_SURVIVAL"
+        ),
+        "survival": dev.get("n_surviving_cells") == 0,
+        "spec": dev.get("spec_sha256") == "cb771c59e91b4fc553ef73a1c7a116ec0ee55f499ce46a2f91e4c600cd8bd41d",
+        "tensor_count": merge.get("tensor_count") == 128,
+        "energy_count": merge.get("energy_count") == 128,
+        "cell_count": len(cells.get("cells", [])) == 16,
+        "development_claimed": ledger.get("development_started") is True,
+        "confirmation_unopened": (
+            ledger.get("confirmation_started") is False
+            and manifest.get("confirmation_open") is False
+            and not any((root / name).exists() for name in forbidden)
+        ),
+        "scientific_payload": (
+            manifest.get("scientific_spec_sha256")
+            == "60ca5e9e221064f288a1993ee3cbf42e99330bbf6f9008946a25556438cbc3d3"
+        ),
+        "frozen_spec": (
+            manifest.get("frozen_spec_sha256")
+            == "cb771c59e91b4fc553ef73a1c7a116ec0ee55f499ce46a2f91e4c600cd8bd41d"
+        ),
+    }
+    if not all(state.values()):
+        raise GreenStop("00_PREDECESSOR_IMMUTABILITY", str(state))
+    return {"schema_version": "green-bridge-v1.3.6-predecessor-v1",
+            "root": str(root), "artifact_sha256": V136_TERMINAL_HASHES,
+            "scientific_payload_sha256": "60ca5e9e221064f288a1993ee3cbf42e99330bbf6f9008946a25556438cbc3d3",
+            "spec_sha256": "cb771c59e91b4fc553ef73a1c7a116ec0ee55f499ce46a2f91e4c600cd8bd41d",
+            "state": state}
+
+
 def torch_module():
     import torch
     return torch
@@ -534,7 +642,7 @@ def torch_module():
 
 def terminal_stop(output_root: Path, gate: str, detail: str) -> None:
     payload = {
-        "schema_version": "green-bridge-terminal-v1.3.6",
+        "schema_version": "green-bridge-terminal-v2.0.0",
         "verdict": "STOP",
         "first_failed_gate": gate,
         "detail": detail,
@@ -1979,22 +2087,22 @@ def classify_gate(full, half, rich, wb_A, contrast_norm: float, delta_norm: floa
     wb_error = math.inf if rich_id is None else float(np.linalg.norm(rich_id.A - wb_A))
     wb_ok = (
         rich_id is not None
-        and wb_error <= THRESHOLDS.whitebox_a_relative_max * max(wb_norm, 1e-6)
+        and wb_error <= HISTORICAL_V136_THRESHOLDS["whitebox_a_relative_max"] * max(wb_norm, 1e-6)
     )
     if rich_id is not None and wb_norm < 1e-6:
-        wb_ok = wb_error <= THRESHOLDS.whitebox_a_small_absolute_max
+        wb_ok = wb_error <= HISTORICAL_V136_THRESHOLDS["whitebox_a_small_absolute_max"]
     active = (
         rich_id is not None
         and rich_curvature_norm / 10 >= THRESHOLDS.curvature_rms_min
         and rich_curvature_norm >= THRESHOLDS.curvature_snr_min * numerical.epsilon_C
         and rich_gate_response_norm / 10 >= THRESHOLDS.gate_response_rms_min
         and rich_gate_response_norm >= THRESHOLDS.gate_response_snr_min * numerical.epsilon_G
-        and rich_id.factorization_residual <= THRESHOLDS.factorization_residual_max
+        and rich_id.factorization_residual <= HISTORICAL_V136_THRESHOLDS["factorization_residual_max"]
         and wb_ok
-        and cosine(full_id.P, half_id.P) >= THRESHOLDS.tensor_cosine_min
-        and symmetric_relative_change(full_id.P, half_id.P) <= THRESHOLDS.tensor_symmetric_change_max
+        and cosine(full_id.P, half_id.P) >= HISTORICAL_V136_THRESHOLDS["tensor_cosine_min"]
+        and symmetric_relative_change(full_id.P, half_id.P) <= HISTORICAL_V136_THRESHOLDS["tensor_symmetric_change_max"]
         and np.linalg.norm(rich_id.P - half_id.P) / max(np.linalg.norm(rich_id.P), 1e-8)
-            <= THRESHOLDS.richardson_change_max
+            <= HISTORICAL_V136_THRESHOLDS["richardson_change_max"]
         and np.linalg.norm(rich_id.P) >= THRESHOLDS.tensor_snr_min * numerical.epsilon_P_F
     )
     null_bound = certified_null_bound(
@@ -3324,6 +3432,422 @@ def _energy_item_v13(model, suffix_ids, record, device, plain, design) -> dict:
     }
 
 
+def _gate_jet_triplet_v200(
+    tail, anchor, frame, gate_slot: int, hx: float, hz: float,
+    center, epsilon_y: float,
+) -> dict:
+    # The scientific estimator is a finite-difference path, not an autograd
+    # graph.  Keeping it inference-only also prevents a caller's surrounding
+    # grad context from contaminating the serialized numpy jets.
+    with torch_module().inference_mode():
+        base = _jet_at_radius_physical(
+            tail, anchor, frame, gate_slot, hx, hz, center
+        )
+        half = _jet_at_radius_physical(
+            tail, anchor, frame, gate_slot,
+            hx * HALF_RADIUS_MULTIPLIER, hz * HALF_RADIUS_MULTIPLIER, center,
+        )
+        quarter = _jet_at_radius_physical(
+            tail, anchor, frame, gate_slot,
+            hx * QUARTER_RADIUS_MULTIPLIER,
+            hz * QUARTER_RADIUS_MULTIPLIER, center,
+        )
+    coarse = extrapolate_gate_jet(base, half)
+    fine = extrapolate_gate_jet(half, quarter)
+    coarse_bounds = richardson_pair_bounds_v200(
+        coarse, half, epsilon_y=epsilon_y, h1=hx, h2=hz
+    )
+    fine_bounds = richardson_pair_bounds_v200(
+        fine, quarter, epsilon_y=epsilon_y,
+        h1=hx * HALF_RADIUS_MULTIPLIER,
+        h2=hz * HALF_RADIUS_MULTIPLIER,
+    )
+    enclosure = dyadic_enclosure_v200(coarse, fine, coarse_bounds, fine_bounds)
+    return {
+        "base": base, "half": half, "quarter": quarter,
+        "coarse_richardson": coarse, "fine_richardson": fine,
+        "coarse_bounds": coarse_bounds, "fine_bounds": fine_bounds,
+        "dyadic_enclosure": enclosure,
+    }
+
+
+def _classify_gate_v200(
+    triplet: dict,
+    wb_A: np.ndarray,
+    whitebox_gradient: np.ndarray,
+    contrast: np.ndarray,
+    physical_v: np.ndarray,
+) -> dict:
+    fine = triplet["fine_richardson"]
+    enclosure = triplet["dyadic_enclosure"]
+    overlap = bool(
+        enclosure.overlap_G and enclosure.overlap_C and enclosure.overlap_J
+        and np.all(enclosure.overlap_delta_H)
+    )
+    audit = {
+        "label": None,
+        "dyadic_overlap": overlap,
+        "overlap_G": enclosure.overlap_G,
+        "overlap_C": enclosure.overlap_C,
+        "overlap_J": enclosure.overlap_J,
+        "overlap_delta_H": enclosure.overlap_delta_H.tolist(),
+        "epsilon_G": enclosure.final_epsilon_G,
+        "epsilon_C": enclosure.final_epsilon_C,
+        "epsilon_J": enclosure.final_epsilon_J,
+        "epsilon_delta_H": enclosure.final_epsilon_delta_H.tolist(),
+        "inverse_admissible": enclosure.final_inverse_admissible,
+        "curvature_norm": float(np.linalg.norm(fine.C)),
+        "gate_response_norm": float(np.linalg.norm(fine.G)),
+    }
+    if not overlap:
+        audit.update(label="numerical-invalid", reason="dyadic-ball-nonoverlap")
+        return {"audit": audit, "identification": None, "coarse_identification": None}
+    identification = None
+    coarse_identification = None
+    if enclosure.final_inverse_admissible:
+        try:
+            identification = identify_gate(fine)
+            coarse_identification = identify_gate(triplet["coarse_richardson"])
+        except ValueError:
+            audit.update(label="numerical-invalid", reason="finite-inverse-failure")
+            return {"audit": audit, "identification": None, "coarse_identification": None}
+    if identification is not None:
+        factor = factorization_compatibility_v200(identification, fine, enclosure)
+        whitebox = whitebox_compatibility_v200(identification, wb_A, enclosure)
+        wb_factor = whitebox_factorization_compatibility_v200(fine, wb_A, enclosure)
+        shift = shift_null_compatibility_v200(
+            float(identification.A[0]), float(enclosure.final_epsilon_A[0])
+        )
+        audit.update({
+            "factorization": {k: (v.tolist() if isinstance(v, np.ndarray) else v) for k, v in factor.items()},
+            "whitebox": {k: (v.tolist() if isinstance(v, np.ndarray) else v) for k, v in whitebox.items()},
+            "whitebox_factorization": {k: (v.tolist() if isinstance(v, np.ndarray) else v) for k, v in wb_factor.items()},
+            "shift": shift,
+            "A": identification.A.tolist(),
+            "epsilon_A": enclosure.final_epsilon_A.tolist(),
+            "A_max": enclosure.final_A_max.tolist(),
+            "epsilon_P_F": enclosure.final_epsilon_P_F,
+        })
+        if not (factor["passed"] and whitebox["passed"] and wb_factor["passed"] and shift["passed"]):
+            audit.update(label="structural-contradiction", reason="bound-certified-identity-failure")
+            return {"audit": audit, "identification": identification,
+                    "coarse_identification": coarse_identification}
+        active = (
+            np.linalg.norm(fine.C) / 10 >= THRESHOLDS.curvature_rms_min
+            and np.linalg.norm(fine.C) >= THRESHOLDS.curvature_snr_min * enclosure.final_epsilon_C
+            and np.linalg.norm(fine.G) / 10 >= THRESHOLDS.gate_response_rms_min
+            and np.linalg.norm(fine.G) >= THRESHOLDS.gate_response_snr_min * enclosure.final_epsilon_G
+            and np.linalg.norm(identification.P) >= THRESHOLDS.tensor_snr_min * enclosure.final_epsilon_P_F
+        )
+        if active:
+            audit.update(label="active-identified", reason="all-bound-certified-active-rules")
+            return {"audit": audit, "identification": identification,
+                    "coarse_identification": coarse_identification}
+    null_bound = certified_null_bound(
+        float(np.linalg.norm(contrast)), float(np.linalg.norm(physical_v)),
+        float(np.linalg.norm(fine.G)), enclosure.final_epsilon_G,
+        float(np.linalg.norm(wb_A)),
+    )
+    contrast_norm = float(np.linalg.norm(contrast))
+    direction_norm = float(np.linalg.norm(physical_v))
+    wb_norm = float(np.linalg.norm(wb_A))
+    base_jet = triplet.get("base", triplet["fine_richardson"])
+    half_jet = triplet.get("half", triplet["fine_richardson"])
+    base_bound = contrast_norm * direction_norm * float(
+        np.linalg.norm(base_jet.G)
+    ) * wb_norm
+    half_bound = contrast_norm * direction_norm * float(
+        np.linalg.norm(half_jet.G)
+    ) * wb_norm
+    null_scale_change = abs(base_bound - half_bound)
+    null = (
+        np.linalg.norm(fine.G) <= 5 * enclosure.final_epsilon_G
+        and null_bound <= THRESHOLDS.certified_null_contribution_max
+        and null_scale_change <= THRESHOLDS.certified_null_contribution_max
+    )
+    audit["null_bound"] = null_bound
+    audit["null_base_half_bound_change"] = null_scale_change
+    if null:
+        audit.update(label="certified-target-null", reason="bound-certified-low-response")
+        return {"audit": audit, "identification": identification,
+                "coarse_identification": coarse_identification}
+    unresolved_bound = unresolved_gate_contraction_bound_v200(
+        contrast, fine.G, enclosure.final_epsilon_G,
+        whitebox_gradient, physical_v,
+    )
+    audit["unresolved_bound"] = unresolved_bound
+    if math.isfinite(unresolved_bound):
+        audit.update(label="unresolved-bounded", reason="finite-structural-upper-bound")
+        return {"audit": audit, "identification": identification,
+                "coarse_identification": coarse_identification}
+    audit.update(label="numerical-invalid", reason="nonfinite-unresolved-bound")
+    return {"audit": audit, "identification": identification,
+            "coarse_identification": coarse_identification}
+
+
+def _mixed_system_v200(
+    tail, model, anchor, design, physical_v, contrast, epsilon_y: float,
+) -> dict:
+    torch = torch_module()
+    device = anchor.resid_mid.device
+    zero_delta = torch.zeros((1, 768), dtype=torch.float32, device=device)
+    zero_z = torch.zeros(1, dtype=torch.float32, device=device)
+    center = tail.evaluate_physical(anchor, zero_delta, zero_z, mode="path", gate_slot=0)[0].double()
+    center_error = center - anchor.year_logits[0].double()
+    center_rms = float(torch.sqrt(torch.mean(center_error**2)).item())
+    center_max = float(center_error.abs().max().item())
+    if center_rms > THRESHOLDS.center_rms or center_max > THRESHOLDS.center_max_abs:
+        gates = [
+            {
+                "gate_slot": slot,
+                "gate_index": gate,
+                "label": "numerical-invalid",
+                "reason": "center-no-op-audit",
+            }
+            for slot, gate in enumerate(SELECTED_GATES)
+        ]
+        return {
+            "theta_center": 0.0, "theta_lower": 0.0, "theta_upper": 0.0,
+            "theta_coarse": 0.0, "theta_fine": 0.0, "active_gates": 0,
+            "null_gates": 0, "unresolved_gates": 0, "contradictory_gates": 10,
+            "numerical_invalid_gates": 0, "set_complete": False,
+            "point_complete": False, "set_admissible": False,
+            "bypass_disagreement": None, "gates": gates,
+            "center_rms": center_rms, "center_max": center_max,
+        }
+    gamma = model.blocks[10].ln2.w.detach().double().cpu().numpy()
+    beta = model.blocks[10].ln2.b.detach().double().cpu().numpy()
+    W_in = model.blocks[10].mlp.W_in.detach().double().cpu().numpy()
+    b_in = model.blocks[10].mlp.b_in.detach().double().cpu().numpy()
+    residual = _selected_numpy(anchor, "resid_mid")
+    intervals = []
+    gate_audits = []
+    direct_common = []
+    theta_center = theta_coarse = 0.0
+    for slot, (gate, frame) in enumerate(zip(SELECTED_GATES, design["gate_frames"])):
+        triplet = _gate_jet_triplet_v200(
+            tail, anchor, frame, slot, float(design["radius"]["h_x"]),
+            GATE_RADIUS, center, epsilon_y,
+        )
+        gradient = layernorm_gate_gradient_formula(
+            residual, gamma, W_in[:, gate], eps=float(model.cfg.eps)
+        )
+        gradient_ad = layernorm_gate_gradient_autograd(
+            residual, gamma, W_in[:, gate], eps=float(model.cfg.eps),
+            ln_bias=beta, mlp_input_bias=float(b_in[gate]),
+        )
+        wb_A = whitebox_A_coordinates(frame, gradient)
+        wb_A_ad = whitebox_A_coordinates(frame, gradient_ad)
+        wb_coordinate_error = float(np.max(np.abs(wb_A - wb_A_ad)))
+        classified = _classify_gate_v200(
+            triplet, wb_A, gradient, contrast, physical_v
+        )
+        audit = classified["audit"]
+        audit.update({
+            "gate_slot": slot, "gate_index": gate,
+            "whitebox_coordinate_error": wb_coordinate_error,
+        })
+        if wb_coordinate_error > 1e-10:
+            audit.update(label="structural-contradiction", reason="whitebox-formula-autograd")
+        label = audit["label"]
+        if label == "active-identified":
+            identification = classified["identification"]
+            cotangent = reconstruct_cotangent(frame, identification.A)
+            contribution = float(contrast @ operator_action(
+                triplet["fine_richardson"].G, cotangent, physical_v
+            ))
+            coarse_id = classified["coarse_identification"]
+            coarse_contribution = contribution
+            if coarse_id is not None:
+                coarse_cotangent = reconstruct_cotangent(frame, coarse_id.A)
+                coarse_contribution = float(contrast @ operator_action(
+                    triplet["coarse_richardson"].G, coarse_cotangent, physical_v
+                ))
+            enclosure = triplet["dyadic_enclosure"]
+            error = active_envelope_contraction_bound(
+                float(np.linalg.norm(contrast)), float(np.linalg.norm(frame.T @ physical_v)),
+                float(np.linalg.norm(physical_v)), enclosure.final_epsilon_P_F,
+                float(np.linalg.norm(triplet["fine_richardson"].G)),
+                enclosure.final_epsilon_G,
+                gradient_envelope_residual(frame, gradient)["absolute"],
+            )
+            interval = (contribution - error, contribution + error)
+            theta_center += contribution
+            theta_coarse += coarse_contribution
+            direct_common.append(direct_bypass_in_common_frame(
+                identification.D.T, frame, design["common"]
+            ))
+            audit.update(contribution_center=contribution, contribution_error=error,
+                         contribution_lower=interval[0], contribution_upper=interval[1],
+                         contribution_coarse=coarse_contribution)
+        elif label == "certified-target-null":
+            bound = float(audit["null_bound"])
+            interval = (-bound, bound)
+            audit.update(contribution_center=0.0, contribution_error=bound,
+                         contribution_lower=-bound, contribution_upper=bound,
+                         contribution_coarse=0.0)
+        elif label == "unresolved-bounded":
+            bound = float(audit["unresolved_bound"])
+            interval = (-bound, bound)
+            audit.update(contribution_center=0.0, contribution_error=bound,
+                         contribution_lower=-bound, contribution_upper=bound,
+                         contribution_coarse=0.0)
+        else:
+            interval = None
+        intervals.append(interval)
+        gate_audits.append(audit)
+    counts = Counter(row["label"] for row in gate_audits)
+    set_complete = len(gate_audits) == 10 and all(interval is not None for interval in intervals)
+    point_complete = set_complete and counts["unresolved-bounded"] == 0
+    system_interval = minkowski_sum_interval(*intervals) if set_complete else (0.0, 0.0)
+    bypass = None
+    if direct_common:
+        stack = np.stack(direct_common)
+        mean = stack.mean(axis=0)
+        bypass = float(np.sqrt(np.mean((stack - mean) ** 2)) / max(np.sqrt(np.mean(mean**2)), 1e-12))
+    set_admissible = bool(
+        set_complete and counts["active-identified"] >= THRESHOLDS.active_gates_min
+        and bypass is not None and bypass <= THRESHOLDS.bypass_disagreement_max
+        and all(math.isfinite(value) for value in system_interval)
+    )
+    return {
+        "theta_center": theta_center,
+        "theta_lower": system_interval[0], "theta_upper": system_interval[1],
+        "theta_coarse": theta_coarse, "theta_fine": theta_center,
+        "active_gates": counts["active-identified"],
+        "null_gates": counts["certified-target-null"],
+        "unresolved_gates": counts["unresolved-bounded"],
+        "contradictory_gates": counts["structural-contradiction"],
+        "numerical_invalid_gates": counts["numerical-invalid"],
+        "set_complete": set_complete, "point_complete": point_complete,
+        "set_admissible": set_admissible,
+        "bypass_disagreement": bypass, "gates": gate_audits,
+        "center_rms": center_rms, "center_max": center_max,
+    }
+
+
+def _tensor_item_v200(
+    model, suffix_ids, record, device, epsilon_y, coefficients, plain, design,
+) -> dict:
+    torch = torch_module()
+    anchors = {
+        system: _anchor_plain_to_device(values, device)
+        for system, values in plain[record.pair_digest].items()
+    }
+    item = design[record.pair_digest]
+    tail = GreenBridgeTail(
+        model,
+        torch.as_tensor(item["gate_frames"][0], dtype=torch.float32, device=device),
+        torch.as_tensor(suffix_ids, dtype=torch.long, device=device),
+        fixed_batch_size=TAIL_FIXED_BATCH_SIZE,
+    )
+    contrast_t = margin_vector(record.y, device)
+    contrast = contrast_t.cpu().numpy()
+    physical_v = item["target"]
+    with torch.inference_mode(False):
+        mixed = {
+            system: _mixed_system_v200(
+                tail, model, anchors[system], item, physical_v, contrast, epsilon_y
+            )
+            for system in ("tar", "pat")
+        }
+    pre_tar = _selected_numpy(anchors["tar"], "pre")[list(SELECTED_GATES)]
+    pre_cor = _selected_numpy(anchors["cor"], "pre")[list(SELECTED_GATES)]
+    gate_chord = pre_tar - pre_cor
+    zeta = GATE_RADIUS * gate_chord / max(float(np.linalg.norm(gate_chord)), 1e-30)
+    first_order, factorial = {}, {}
+    with torch.inference_mode():
+        for system in ("tar", "pat"):
+            first_order[system] = _first_order_system_v13(
+                tail, anchors[system], item, coefficients, contrast_t
+            )
+            factorial[system] = _factorial_system_v13(
+                tail, anchors[system], physical_v, zeta, contrast_t
+            )
+    center_tar = float(margin(anchors["tar"].year_logits, contrast_t)[0].item())
+    center_pat = float(margin(anchors["pat"].year_logits, contrast_t)[0].item())
+    first_order_score = math.sqrt(
+        float(np.mean((first_order["pat"]["rich"]["x"] - first_order["tar"]["rich"]["x"]) ** 2))
+        + float(np.mean((first_order["pat"]["rich"]["z"] - first_order["tar"]["rich"]["z"]) ** 2))
+    )
+    radius_valid = bool(item["radius"]["floor_pass"] and item["radius"]["gate_floor_pass"])
+    return {
+        "pair_digest": record.pair_digest, "cell_id": record.cell_id,
+        "split": record.split, "distance_bin": record.distance_bin,
+        "orientation": record.orientation,
+        "set_admissible": radius_valid and mixed["tar"]["set_admissible"] and mixed["pat"]["set_admissible"],
+        "admissible": radius_valid and mixed["tar"]["set_admissible"] and mixed["pat"]["set_admissible"],
+        "point_complete": mixed["tar"]["point_complete"] and mixed["pat"]["point_complete"],
+        "physical_target_norm": float(np.linalg.norm(physical_v)),
+        "residual_radius": float(item["radius"]["h_x"]),
+        "theta_tar_center": mixed["tar"]["theta_center"],
+        "theta_tar_lower": mixed["tar"]["theta_lower"],
+        "theta_tar_upper": mixed["tar"]["theta_upper"],
+        "theta_pat_center": mixed["pat"]["theta_center"],
+        "theta_pat_lower": mixed["pat"]["theta_lower"],
+        "theta_pat_upper": mixed["pat"]["theta_upper"],
+        "theta_tar_coarse": mixed["tar"]["theta_coarse"],
+        "theta_pat_coarse": mixed["pat"]["theta_coarse"],
+        "behavioral": abs(center_pat - center_tar),
+        "single": abs(factorial["pat"]["single"] - factorial["tar"]["single"]),
+        "first_order": first_order_score,
+        "pie": abs(factorial["pat"]["pie"] - factorial["tar"]["pie"]),
+        "cancellation_dx": factorial["pat"]["bx"] - factorial["tar"]["bx"],
+        "cancellation_dz": factorial["pat"]["bz"] - factorial["tar"]["bz"],
+        "mixed_audit": mixed,
+    }
+
+
+def _energy_item_v200(model, suffix_ids, record, device, plain, design) -> dict:
+    return _energy_item_v13(model, suffix_ids, record, device, plain, design)
+
+
+def _aggregate_cells_v200(tensor_rows, energy_rows, *, dev_sd=None) -> tuple[dict, float]:
+    cells = []
+    cell_ids = sorted({row["cell_id"] for row in tensor_rows} | {row["cell_id"] for row in energy_rows})
+    for cid in cell_ids:
+        tensor = [row for row in tensor_rows if row["cell_id"] == cid and row["set_admissible"]]
+        energy = [row for row in energy_rows if row["cell_id"] == cid and row["admissible"]]
+        survived = len(tensor) >= THRESHOLDS.valid_items_per_cell_min and len(energy) >= THRESHOLDS.valid_items_per_cell_min
+        if not survived:
+            cells.append({"cell_id": cid, "survived": False, "n_tensor": len(tensor), "n_energy": len(energy)})
+            continue
+        mean = lambda values: float(np.mean(list(values)))
+        tar_interval = (mean(row["theta_tar_lower"] for row in tensor), mean(row["theta_tar_upper"] for row in tensor))
+        pat_interval = (mean(row["theta_pat_lower"] for row in tensor), mean(row["theta_pat_upper"] for row in tensor))
+        mixed_interval = absolute_value_interval(subtract_intervals(pat_interval, tar_interval))
+        systems = [json.loads(row["systems"]) if isinstance(row["systems"], str) else row["systems"] for row in energy]
+        target_tar = mean(row["tar"]["full"] for row in systems)
+        target_pat = mean(row["pat"]["full"] for row in systems)
+        target_cor = mean(row["cor"]["full"] for row in systems)
+        midpoint = 0.5 * (mixed_interval[0] + mixed_interval[1])
+        error = 0.5 * (mixed_interval[1] - mixed_interval[0])
+        cells.append({
+            "cell_id": cid, "distance_bin": tensor[0]["distance_bin"], "survived": True,
+            "n_tensor": len(tensor), "n_energy": len(energy),
+            "mixed_lower": mixed_interval[0], "mixed_upper": mixed_interval[1],
+            "mixed_center": midpoint,
+            "mixed_coarse": abs(mean(row["theta_pat_coarse"] for row in tensor) - mean(row["theta_tar_coarse"] for row in tensor)),
+            "mixed_fine": abs(mean(row["theta_pat_center"] for row in tensor) - mean(row["theta_tar_center"] for row in tensor)),
+            "target": abs(target_pat - target_tar),
+            "conditioning_gap": abs(target_tar - target_cor),
+            "baselines": {name: mean(row[name] for row in tensor) for name in BASELINES},
+            "cancellation_dx": mean(row["cancellation_dx"] for row in tensor),
+            "cancellation_dz": mean(row["cancellation_dz"] for row in tensor),
+            "error_bound": error, "snr": midpoint / max(error, 1e-8),
+        })
+    surviving = [row for row in cells if row["survived"]]
+    if dev_sd is None:
+        dev_sd = float(np.std([row["conditioning_gap"] for row in surviving], ddof=1)) if len(surviving) > 1 else 0.0
+    for row in surviving:
+        row["conditioned"] = bool(
+            row["conditioning_gap"] >= THRESHOLDS.conditioning_absolute
+            or row["conditioning_gap"] >= THRESHOLDS.conditioning_dev_sd * dev_sd
+        )
+    return {"schema_version": "green-bridge-cell-setid-v2.0.0", "cells": cells,
+            "conditioning_dev_sd": dev_sd}, dev_sd
+
+
 def _run_split_v13(
     model, suffix_ids, records, split, output_root, device, epsilon_y,
     plain, design, dev_sd=None, precomputed=None,
@@ -3510,6 +4034,110 @@ def _run_split_v136_multigpu(
     }
     write_json_atomic(output_root / f"{split}_multigpu_merge.json", merge_payload)
     return aggregate_cells(tensor_rows, energy_rows, dev_sd=dev_sd)
+
+
+def _run_split_v200_multigpu(
+    records, split: str, output_root: Path, epsilon_y: float, dev_sd=None,
+) -> tuple[dict, float]:
+    physical_gpus = tuple(range(8))
+    shard_root = output_root / "shards" / split
+    if shard_root.exists():
+        raise GreenStop("17_ENDPOINT_LEDGER", f"shard root already exists: {shard_root}")
+    assignments = {index: [] for index in range(8)}
+    for role in ("tensor", "energy"):
+        ordered = sorted(
+            [row for row in records if row.role == role],
+            key=lambda row: sha256_text(f"green-v200-worker|{role}|{row.pair_digest}"),
+        )
+        for position, row in enumerate(ordered):
+            assignments[position % 8].append(row)
+    expected_per_role = 8 if split == "development" else 24
+    for index, rows in assignments.items():
+        counts = Counter(row.role for row in rows)
+        if counts != {"tensor": expected_per_role, "energy": expected_per_role}:
+            raise GreenStop("11_MULTIGPU_WORKER", f"worker {index} role counts {dict(counts)}")
+    launch_contract_hashes = {
+        name: sha256_file(output_root / name)
+        for name in (
+            f"{split}_anchor_cache.pt", f"{split}_structural_inputs.npz",
+            f"{split}_structural_input_hashes.json", f"{split}_frames.npz",
+            f"{split}_frame_audit.json", f"{split}_radii.json",
+            f"{split}_target_vectors.npz",
+        )
+    }
+    processes, log_handles, worker_roots = [], [], []
+    for worker_index, physical_gpu in enumerate(physical_gpus):
+        worker_root = shard_root / f"worker_{worker_index:02d}"
+        worker_root.mkdir(parents=True, exist_ok=False)
+        assigned = assignments[worker_index]
+        write_json_atomic(worker_root / "assigned_records.json", plan_payload(assigned))
+        write_json_atomic(worker_root / "worker_contract.json", {
+            "schema_version": "green-bridge-v2.0.0-worker-contract-v1",
+            "worker_index": worker_index, "physical_gpu": physical_gpu,
+            "split": split, "epsilon_y": float(epsilon_y),
+            "record_digests": [row.pair_digest for row in assigned],
+            "input_sha256": launch_contract_hashes, "source_sha256": source_hashes(),
+        })
+        log_handle = (worker_root / "worker.log").open("w", encoding="utf-8")
+        environment = os.environ.copy()
+        environment["CUDA_VISIBLE_DEVICES"] = str(physical_gpu)
+        process = subprocess.Popen([
+            sys.executable, "src/green_bridge_multigpu_worker.py",
+            "--output-root", str(output_root), "--worker-root", str(worker_root),
+            "--split", split, "--worker-index", str(worker_index),
+            "--physical-gpu", str(physical_gpu), "--protocol-version", "v200",
+        ], cwd=PROJECT_ROOT, env=environment, stdout=log_handle,
+            stderr=subprocess.STDOUT, text=True)
+        processes.append(process); log_handles.append(log_handle); worker_roots.append(worker_root)
+    return_codes = []
+    for process, handle in zip(processes, log_handles):
+        return_codes.append(process.wait()); handle.flush(); os.fsync(handle.fileno()); handle.close()
+    if any(code != 0 for code in return_codes):
+        raise GreenStop("11_MULTIGPU_WORKER", str({"return_codes": return_codes, "shard_root": str(shard_root)}))
+    tensor_rows, energy_rows, worker_summaries = [], [], []
+    for worker_index, worker_root in enumerate(worker_roots):
+        result_path = worker_root / "worker_result.json"
+        result = json.loads(result_path.read_text(encoding="utf-8"))
+        assigned = assignments[worker_index]
+        if result.get("record_count") != len(assigned):
+            raise GreenStop("11_MULTIGPU_WORKER", f"coverage mismatch worker {worker_index}")
+        committed = {row["batch_id"] for row in read_journal(worker_root / "endpoint_ledger.jsonl") if row.get("event") == "endpoint_batch_committed"}
+        for record in assigned:
+            batch_id = f"{split}-{record.role}-{record.pair_digest}"
+            if batch_id not in committed:
+                raise GreenStop("11_MULTIGPU_WORKER", f"uncommitted {batch_id}")
+            artifact = worker_root / "endpoint_batches" / f"{batch_id}.json"
+            row = json.loads(artifact.read_text(encoding="utf-8"))
+            if row.get("pair_digest") != record.pair_digest:
+                raise GreenStop("11_MULTIGPU_WORKER", f"identity mismatch {batch_id}")
+            (tensor_rows if record.role == "tensor" else energy_rows).append(row)
+        for journal_row in read_journal(worker_root / "endpoint_ledger.jsonl"):
+            append_journal(_endpoint_ledger_path(output_root), journal_row)
+        worker_summaries.append({
+            "worker_index": worker_index, "physical_gpu": physical_gpus[worker_index],
+            "record_count": len(assigned), "worker_result_sha256": sha256_file(result_path),
+            "worker_log_sha256": sha256_file(worker_root / "worker.log"),
+            "elapsed_seconds": result["elapsed_seconds"],
+            "peak_allocated_bytes": result["peak_allocated_bytes"],
+        })
+    tensor_rows.sort(key=lambda row: row["pair_digest"]); energy_rows.sort(key=lambda row: row["pair_digest"])
+    expected_tensor = sorted(row.pair_digest for row in records if row.role == "tensor")
+    expected_energy = sorted(row.pair_digest for row in records if row.role == "energy")
+    if [row["pair_digest"] for row in tensor_rows] != expected_tensor or [row["pair_digest"] for row in energy_rows] != expected_energy:
+        raise GreenStop("11_MULTIGPU_WORKER", "v2.0.0 coverage is not exact")
+    tensor_name = "dev_tensor_scores.parquet" if split == "development" else "confirm_tensor_scores.parquet"
+    energy_name = "dev_energy_targets.parquet" if split == "development" else "confirm_energy_targets.parquet"
+    write_parquet(output_root / tensor_name, tensor_rows); write_parquet(output_root / energy_name, energy_rows)
+    merge = {
+        "schema_version": "green-bridge-v2.0.0-multigpu-merge-v1",
+        "split": split, "exact_batch_size": 1, "physical_gpus": list(physical_gpus),
+        "tensor_count": len(tensor_rows), "energy_count": len(energy_rows),
+        "input_sha256": launch_contract_hashes, "workers": worker_summaries,
+        "tensor_parquet_sha256": sha256_file(output_root / tensor_name),
+        "energy_parquet_sha256": sha256_file(output_root / energy_name),
+    }
+    write_json_atomic(output_root / f"{split}_multigpu_merge.json", merge)
+    return _aggregate_cells_v200(tensor_rows, energy_rows, dev_sd=dev_sd)
 
 
 def _development_throughput_preflight(
@@ -4099,6 +4727,199 @@ def _duplicate_noise_v13(model, tokenizer, suffix_ids, records, device: str) -> 
     return {"n": len(errors), "max_abs": max(errors, default=0.0), "errors": errors}
 
 
+def _response_ad_preflight_v200(
+    model, tokenizer, suffix_ids, device: str, output_root: Path,
+) -> tuple[dict, dict]:
+    """Run the single prepare-only 40-stratum AD/enclosure falsification panel."""
+    torch = torch_module()
+    old_development = [
+        row for row in build_evaluation_records(
+            lambda first, second: token_pair_allowed(tokenizer, first, second)
+        )
+        if row.split == "development"
+    ]
+    panel = select_ad_audit_panel_v200(old_development)
+    by_digest = {row.pair_digest: row for row in old_development}
+    audit_records = [
+        by_digest[digest]
+        for digest in sorted({row["pair_digest"] for row in panel})
+    ]
+    plain = _capture_structural_inputs(
+        model, tokenizer, suffix_ids, audit_records, device, output_root,
+        "ad_preflight",
+    )
+    design = _construct_structural_design(
+        model, audit_records, plain, output_root, "ad_preflight"
+    )
+    noise = _duplicate_noise_v13(
+        model, tokenizer, suffix_ids, audit_records, device
+    )
+    epsilon_y = max(1.0e-7, float(noise["max_abs"]))
+    finite_work = []
+    numerical_rows = []
+    with torch.inference_mode():
+        for stratum_index, metadata in enumerate(panel):
+            record = by_digest[metadata["pair_digest"]]
+            item = design[record.pair_digest]
+            anchor = _anchor_plain_to_device(
+                plain[record.pair_digest][metadata["system"]], device
+            )
+            frame = item["gate_frames"][metadata["gate_slot"]]
+            tail = GreenBridgeTail(
+                model,
+                torch.as_tensor(frame, dtype=torch.float32, device=device),
+                torch.as_tensor(suffix_ids, dtype=torch.long, device=device),
+                fixed_batch_size=TAIL_FIXED_BATCH_SIZE,
+            )
+            zero_delta = torch.zeros((1, 768), dtype=torch.float32, device=device)
+            zero_z = torch.zeros(1, dtype=torch.float32, device=device)
+            center = tail.evaluate_physical(
+                anchor, zero_delta, zero_z, mode="path", gate_slot=0
+            )[0].double()
+            triplet = _gate_jet_triplet_v200(
+                tail, anchor, frame, metadata["gate_slot"],
+                float(item["radius"]["h_x"]), GATE_RADIUS, center, epsilon_y,
+            )
+            enclosure = triplet["dyadic_enclosure"]
+            jets = [
+                triplet[name]
+                for name in (
+                    "base", "half", "quarter", "coarse_richardson",
+                    "fine_richardson",
+                )
+            ]
+            finite = all(
+                np.isfinite(np.asarray(getattr(jet, field))).all()
+                for jet in jets
+                for field in ("G", "C", "J_path", "H_path", "H_control")
+            )
+            overlap = bool(
+                enclosure.overlap_G and enclosure.overlap_C
+                and enclosure.overlap_J
+                and np.all(enclosure.overlap_delta_H)
+            )
+            numerical_rows.append({
+                **metadata, "stratum_index": stratum_index,
+                "radii": [1.0, 0.5, 0.25],
+                "finite": finite, "coarse_fine_overlap": overlap,
+            })
+            if not finite or not overlap:
+                raise GreenStop(
+                    "08_AD_ENCLOSURE",
+                    f"three-scale preflight failed at stratum {stratum_index}",
+                )
+            residual = _selected_numpy(anchor, "resid_mid")
+            gate = SELECTED_GATES[metadata["gate_slot"]]
+            gamma = model.blocks[10].ln2.w.detach().double().cpu().numpy()
+            W_in = model.blocks[10].mlp.W_in.detach().double().cpu().numpy()
+            gradient = layernorm_gate_gradient_formula(
+                residual, gamma, W_in[:, gate], eps=float(model.cfg.eps)
+            )
+            finite_work.append((metadata, record, anchor, frame, item, triplet, gradient))
+
+    three_scale = {
+        "schema_version": "green-bridge-three-scale-preflight-v2.0.0",
+        "required_strata": 40,
+        "completed_strata": len(numerical_rows),
+        "radii": [1.0, 0.5, 0.25],
+        "fine_richardson_primary": True,
+        "behavioral_fields_read": False,
+        "baseline_fields_read": False,
+        "records": numerical_rows,
+        "passed": len(numerical_rows) == 40,
+    }
+    write_json_atomic(
+        output_root / "three_scale_numerical_preflight_v200.json", three_scale
+    )
+
+    ad_rows = []
+    scientific_cfg_dtype = model.cfg.dtype
+    model.double()
+    model.cfg.dtype = torch.float64
+    try:
+        for stratum_index, work in enumerate(finite_work):
+            metadata, record, anchor, frame, item, triplet, gradient = work
+            anchor64 = TailAnchor(**{
+                key: (
+                    value.double()
+                    if getattr(value, "is_floating_point", lambda: False)()
+                    else value
+                )
+                for key, value in {
+                    "resid_mid": anchor.resid_mid,
+                    "pre": anchor.pre,
+                    "post": anchor.post,
+                    "resid_post": anchor.resid_post,
+                    "year_logits": anchor.year_logits,
+                    "final_positions": anchor.final_positions,
+                    "system": anchor.system,
+                    "mlp8_out": anchor.mlp8_out,
+                }.items()
+            })
+            gate = SELECTED_GATES[metadata["gate_slot"]]
+            path_map, control_map = build_ad_response_functions_v200(
+                model, anchor64, frame, suffix_ids, gate
+            )
+            forward = response_gate_jet_forward_ad64(path_map, control_map)
+            reverse = response_gate_jet_reverse_ad64(path_map, control_map)
+            enclosure_audit = audit_richardson_enclosure_v200(
+                forward, reverse,
+                triplet["coarse_richardson"], triplet["fine_richardson"],
+                triplet["coarse_bounds"], triplet["fine_bounds"],
+            )
+            wb_A = whitebox_A_coordinates(frame, gradient)
+            structural = _classify_gate_v200(
+                triplet, wb_A, gradient,
+                margin_vector(record.y, "cpu").numpy(), item["target"],
+            )["audit"]
+            structural_pass = structural["label"] not in {
+                "structural-contradiction", "numerical-invalid"
+            }
+            passed = bool(enclosure_audit["passed"] and structural_pass)
+            ad_rows.append({
+                **metadata, "stratum_index": stratum_index,
+                "enclosure": enclosure_audit,
+                "structural_label": structural["label"],
+                "structural_pass": structural_pass,
+                "passed": passed,
+            })
+            del path_map, control_map, forward, reverse
+            torch.cuda.empty_cache()
+    finally:
+        model.float()
+        model.cfg.dtype = scientific_cfg_dtype
+
+    misses = sum(not row["passed"] for row in ad_rows)
+    ad_payload = {
+        "schema_version": "green-bridge-response-ad-enclosure-v2.0.0",
+        "selection_population": "outcome-exposed-v1.3.6-development-metadata-only",
+        "required_strata": 40,
+        "completed_strata": len(ad_rows),
+        "misses": misses,
+        "permitted_misses": 0,
+        "routes": ["forward-over-forward", "reverse-over-forward"],
+        "float64_prepare_only": True,
+        "exact_full_unembedding": True,
+        "behavioral_fields_read": False,
+        "baseline_fields_read": False,
+        "development_prediction_tensors_written": False,
+        "records": ad_rows,
+        "passed": len(ad_rows) == 40 and misses == 0,
+    }
+    write_json_atomic(
+        output_root / "response_ad_enclosure_audit_v200.json", ad_payload
+    )
+    if not ad_payload["passed"]:
+        raise GreenStop("08_AD_ENCLOSURE", f"AD misses={misses}")
+    for suffix in (
+        "anchor_cache.pt", "structural_inputs.npz",
+        "structural_input_hashes.json", "frames.npz", "frame_audit.json",
+        "radii.json", "target_vectors.npz",
+    ):
+        (output_root / f"ad_preflight_{suffix}").unlink(missing_ok=True)
+    return ad_payload, three_scale
+
+
 def prepare(output_root: Path, device: str) -> None:
     repository = assert_clean_repository()
     assert_empty_prepare_root(output_root)
@@ -4546,6 +5367,563 @@ def confirmation_phase(output_root: Path, device: str) -> None:
     finalize_hashes(output_root)
 
 
+def _verify_cpu_contract_v200() -> dict:
+    completed = subprocess.run(
+        [sys.executable, "src/test_green_bridge_contract.py"],
+        cwd=PROJECT_ROOT, text=True, stdout=subprocess.PIPE,
+        stderr=subprocess.STDOUT, check=False,
+    )
+    output = completed.stdout
+    passed = (
+        completed.returncode == 0
+        and "Ran 200 tests" in output
+        and re.search(r"^OK\s*$", output, flags=re.MULTILINE) is not None
+        and "skipped=" not in output
+    )
+    payload = {
+        "command": [sys.executable, "src/test_green_bridge_contract.py"],
+        "return_code": completed.returncode,
+        "exact_test_count": 200,
+        "ran_200": "Ran 200 tests" in output,
+        "ok": re.search(r"^OK\s*$", output, flags=re.MULTILINE) is not None,
+        "skipped": False,
+        "passed": passed,
+    }
+    if not passed:
+        raise GreenStop("00C_CPU_CONTRACT", output[-4000:])
+    return payload
+
+
+def _scientific_delta_v200() -> dict:
+    invariant_checks = {
+        "model_and_revision": (
+            MODEL_ID == "openai-community/gpt2"
+            and MODEL_REVISION == "607a30d783dfa663caf39e06633721c8d4cfcd7e"
+        ),
+        "transformer_lens_commit": (
+            TRANSFORMER_LENS_COMMIT == "4a4dc26c750475b29e6f54b362c2aab988702c9c"
+        ),
+        "scientific_forward_dtype": (
+            FROZEN_SPEC["numerical_error_contract"]
+            == "three-scale-bound-certified-setid-v2.0.0"
+        ),
+        "endpoint_batch_size_one": TAIL_FIXED_BATCH_SIZE == 1,
+        "ten_selected_gates": len(SELECTED_GATES) == 10,
+        "frozen_sites": FROZEN_SPEC["sites"] == {
+            "patch": "blocks.8.hook_mlp_out",
+            "x": "blocks.10.hook_resid_mid",
+            "z": "blocks.10.mlp.hook_pre",
+            "gate": "blocks.10.mlp.hook_post",
+            "target_bypass_subtraction": "blocks.10.hook_resid_post",
+        },
+        "frame_dimensions": (
+            COMMON_FRAME_DIM == 4 and PROBE_FRAME_DIM == 5
+            and ALL_GATE_FRAME_DIM == 14
+        ),
+        "base_radii": (
+            RESIDUAL_RADIUS_MULTIPLIER == 0.20 and GATE_RADIUS == 0.20
+        ),
+        "materiality_and_snr": (
+            THRESHOLDS.curvature_rms_min == 5e-4
+            and THRESHOLDS.gate_response_rms_min == 5e-4
+            and THRESHOLDS.curvature_snr_min == 20.0
+            and THRESHOLDS.gate_response_snr_min == 20.0
+            and THRESHOLDS.tensor_snr_min == 20.0
+        ),
+        "active_and_null_rules": (
+            THRESHOLDS.active_gates_min == 3
+            and THRESHOLDS.certified_null_contribution_max == 0.005
+            and THRESHOLDS.bypass_disagreement_max == 0.15
+        ),
+        "bootstrap": True,
+        "no_pseudoinverse_ridge_or_donor_pca": True,
+    }
+    authorized_changes = [
+        "fixed quarter-radius GateJet evaluation",
+        "fine Richardson estimator is the immutable point estimator",
+        "bound-derived factorization and white-box admissibility",
+        "uncertainty-ball overlap replaces heuristic gate-scale metrics",
+        "unresolved-bounded and structural-contradiction gate classes",
+        "all-ten set accounting replaces all-ten point completeness",
+        "gate intervals aggregate into item and cell intervals",
+        "worst-case interval RMSE and interval AUROC lower bounds",
+        "fresh split drawn only from unopened v1.3.6 confirmation groups",
+        "cell-count thresholds proportionally scaled upward",
+    ]
+    return {
+        "schema_version": "green-bridge-scientific-delta-v2.0.0",
+        "parent_protocol_id": PARENT_PROTOCOL_ID,
+        "protocol_id": PROTOCOL_ID,
+        "invariant_checks": invariant_checks,
+        "all_invariants_equal": all(invariant_checks.values()),
+        "authorized_changes": authorized_changes,
+        "authorized_change_count": 10,
+        "unauthorized_changes": [],
+        "passed": all(invariant_checks.values()) and len(authorized_changes) == 10,
+    }
+
+
+def prepare_v200(output_root: Path, device: str) -> None:
+    """Execute the single immutable v2.0.0 prepare phase."""
+    repository = assert_clean_repository()
+    assert_empty_prepare_root(output_root)
+    predecessor = verify_v136_terminal_predecessor()
+    cpu_contract = _verify_cpu_contract_v200()
+    environment = configure_runtime(device)
+    from transformers import AutoTokenizer
+    tokenizer = AutoTokenizer.from_pretrained(MODEL_ID, revision=MODEL_REVISION)
+    pair_allowed = lambda first, second: token_pair_allowed(tokenizer, first, second)
+    evaluation, split_payload = build_green_bridge_v200_splits(pair_allowed)
+    development = [row for row in evaluation if row.split == "development"]
+    confirmation = [row for row in evaluation if row.split == "confirmation"]
+    if (
+        len({row.cell_id for row in development}) != 8
+        or len({row.cell_id for row in confirmation}) != 24
+        or split_payload["sha256"] != V200_SPLIT_SHA256
+    ):
+        raise GreenStop("07_SPLIT_FIREWALL", str(split_payload))
+    legacy = build_legacy_donor_records(pair_allowed)
+    legacy_gate04, holdout_gate04 = gate04_record_panels(legacy)
+    gate04_panel = gate04_panel_metadata(legacy_gate04, holdout_gate04)
+    if gate04_panel["ordered_prompt_keys_sha256"] != GATE04_ORDERED_PROMPT_HASH:
+        raise GreenStop("04_HF_TL_FIDELITY", "legacy Gate-04 prompt hash changed")
+
+    output_root.mkdir(parents=True, exist_ok=False)
+    write_run_ledger(output_root, repository)
+    write_json_atomic(output_root / "predecessor_v136_manifest.json", predecessor)
+    write_json_atomic(output_root / "v200_split.json", split_payload)
+    write_json_atomic(output_root / "splits.json", plan_payload(evaluation))
+    write_json_atomic(output_root / "development_splits.json", plan_payload(development))
+    scientific_delta = _scientific_delta_v200()
+    write_json_atomic(output_root / "scientific_delta_v200.json", scientific_delta)
+    if not scientific_delta["passed"]:
+        raise GreenStop("00D_SCIENTIFIC_DELTA", str(scientific_delta))
+    write_json_atomic(output_root / "gate04_legacy_panel.json", gate04_panel)
+
+    tokenizer, hf_model, model, cfg = load_models(device, tokenizer=tokenizer)
+    suffix_ids, tokenizer_meta = validate_tokenizer(tokenizer, evaluation + legacy)
+    fingerprint = {
+        "model_id": MODEL_ID, "model_revision": MODEL_REVISION,
+        "transformer_lens_commit": TRANSFORMER_LENS_COMMIT,
+        "config": cfg, "tokenizer": tokenizer_meta,
+        "embedding_sha256": hashlib.sha256(
+            model.W_E.detach().cpu().numpy().tobytes()
+        ).hexdigest(),
+        "unembedding_sha256": hashlib.sha256(
+            model.W_U.detach().cpu().numpy().tobytes()
+        ).hexdigest(),
+    }
+    write_json_atomic(output_root / "model_fingerprint.json", fingerprint)
+    hf_audit = hf_tl_audit(
+        tokenizer, hf_model, model, legacy_gate04, holdout_gate04,
+        suffix_ids, device,
+    )
+    noop = no_op_audit(
+        model, tokenizer, holdout_gate04, suffix_ids, device,
+        hf_audit["tl_references"],
+    )
+    write_json_atomic(output_root / "hook_audit.json", {
+        "hf_vs_tl": hf_audit, "no_op_patch": noop,
+    })
+    del hf_model
+    torch_module().cuda.empty_cache()
+
+    preflight_records = sorted(
+        legacy_gate04 + holdout_gate04,
+        key=lambda row: sha256_text("structural-preflight-v13|" + row.pair_digest),
+    )[:8]
+    preflight_record = preflight_records[0]
+    preflight_plain = _capture_structural_inputs(
+        model, tokenizer, suffix_ids, preflight_records, device,
+        output_root, "preflight",
+    )
+    preflight_design = _construct_structural_design(
+        model, preflight_records, preflight_plain, output_root, "preflight"
+    )
+    preflight_audits = json.loads(
+        (output_root / "preflight_frame_audit.json").read_text(encoding="utf-8")
+    )
+    item_audits = list(preflight_audits.values())
+    gate_audits = [row for item in item_audits for row in item["gates"]]
+    structural_preflight = {
+        "schema_version": "green-bridge-structural-frame-v2.0.0",
+        "pair_digests": [row.pair_digest for row in preflight_records],
+        "common_frame_dimension": COMMON_FRAME_DIM,
+        "gate_frame_dimension": PROBE_FRAME_DIM,
+        "all_gate_frame_dimension": ALL_GATE_FRAME_DIM,
+        "max_orthogonality_error": max(
+            [value for item in item_audits for value in (
+                item["common"]["orthogonal_max_abs"],
+                item["all_gate"]["orthogonal_max_abs"],
+            )] + [row["containment"]["orthogonal_max_abs"] for row in gate_audits]
+        ),
+        "max_atom_residual": max(
+            [value for item in item_audits for value in (
+                item["common"]["atom_residual_relative"],
+                item["all_gate"]["atom_residual_relative"],
+            )] + [row["containment"]["atom_residual_relative"] for row in gate_audits]
+        ),
+        "max_gradient_residual": max(
+            values["envelope_relative"] for row in gate_audits
+            for values in row["gradients"].values()
+        ),
+        "max_gradient_autograd_abs": max(
+            values["autograd_max_abs"] for row in gate_audits
+            for values in row["gradients"].values()
+        ),
+        "max_shift_null_metric": max(
+            values["shift_null"] for row in gate_audits
+            for values in row["gradients"].values()
+        ),
+        "repeated_frames_bitwise_equal": True,
+        "passed": True,
+    }
+    write_json_atomic(
+        output_root / "structural_frame_preflight.json", structural_preflight
+    )
+    coefficients = first_order_directions()
+    coefficient_hash = hashlib.sha256(coefficients.tobytes()).hexdigest()
+    if coefficient_hash != FIRST_ORDER_COEFFICIENT_SHA256:
+        raise GreenStop("07_FIRST_ORDER_COEFFICIENTS", coefficient_hash)
+    _atomic_np_save(output_root / "first_order_coefficients.npy", coefficients)
+
+    tail_result = _tail_preflight_v136(
+        model, tokenizer, suffix_ids, preflight_record, device,
+        output_root, preflight_design,
+    )
+    write_json_atomic(output_root / "tail_audit.json", tail_result)
+    manual_tail = json.loads(
+        (output_root / "manual_tail_equivalence_v136.json").read_text(
+            encoding="utf-8"
+        )
+    )
+    write_json_atomic(output_root / "manual_tail_equivalence.json", manual_tail)
+    hardware_plan = json.loads(
+        (output_root / "hardware_batch_plan.json").read_text(encoding="utf-8")
+    )
+    hardware_plan["schema_version"] = "green-bridge-hardware-plan-v2.0.0"
+    hardware_plan["worker_physical_gpus"] = list(range(8))
+    write_json_atomic(output_root / "hardware_plan.json", hardware_plan)
+    throughput = json.loads(
+        (output_root / "manual_tail_throughput_v136.json").read_text(
+            encoding="utf-8"
+        )
+    )
+    throughput["schema_version"] = "green-bridge-throughput-preflight-v2.0.0"
+    throughput["development_effective_units"] = FORWARD_COUNTS[
+        "development_effective_units"
+    ]
+    write_json_atomic(output_root / "throughput_preflight.json", throughput)
+
+    _response_ad_preflight_v200(
+        model, tokenizer, suffix_ids, device, output_root
+    )
+    for name in (
+        "preflight_anchor_cache.pt", "preflight_structural_inputs.npz",
+        "preflight_structural_input_hashes.json", "preflight_frames.npz",
+        "preflight_frame_audit.json", "preflight_radii.json",
+        "preflight_target_vectors.npz",
+    ):
+        (output_root / name).unlink(missing_ok=True)
+
+    forbidden = (
+        "dev_tensor_scores.parquet", "dev_energy_targets.parquet",
+        "dev_cells.json", "dev_result.json", "frozen_analysis.json",
+        "confirm_tensor_scores.parquet", "confirm_energy_targets.parquet",
+        "confirm_cells.json", "confirm_result.json",
+    )
+    if any((output_root / name).exists() for name in forbidden):
+        raise GreenStop("09_PREPARE_FIREWALL", "inferential artifact exists")
+    prepare_result = {
+        "schema_version": "green-bridge-prepare-v2.0.0",
+        "verdict": "PREPARE_PASS", "attempt_index": 1,
+        "retry_allowed": False, "development_started": False,
+        "confirmation_started": False, "first_failed_gate": None,
+    }
+    write_json_atomic(output_root / "prepare_result.json", prepare_result)
+    required = (
+        "run_ledger.json", "predecessor_v136_manifest.json",
+        "model_fingerprint.json", "v200_split.json",
+        "scientific_delta_v200.json", "gate04_legacy_panel.json",
+        "hook_audit.json", "manual_tail_equivalence.json",
+        "structural_frame_preflight.json",
+        "response_ad_enclosure_audit_v200.json",
+        "three_scale_numerical_preflight_v200.json", "hardware_plan.json",
+        "throughput_preflight.json", "prepare_result.json",
+        "splits.json", "development_splits.json",
+        "first_order_coefficients.npy",
+    )
+    manifest = {
+        "schema_version": "green-bridge-manifest-v2.0.0",
+        "protocol_id": PROTOCOL_ID,
+        "parent_protocol_id": PARENT_PROTOCOL_ID,
+        "protocol_run_id": PROTOCOL_RUN_ID,
+        "attempt_index": 1, "retry_allowed": False,
+        "phase_all_allowed": False,
+        "execution_commit": repository["commit"],
+        "review_commit": REVIEW_COMMIT,
+        "repository": repository,
+        "frozen_spec": FROZEN_SPEC,
+        "frozen_spec_sha256": frozen_spec_hash(),
+        "v200_split_sha256": V200_SPLIT_SHA256,
+        "source_sha256": source_hashes(),
+        "protocol_sha256": {
+            name: sha256_file(PROJECT_ROOT / name) for name in PROTOCOL_FILES
+        },
+        "requirements_sha256": sha256_file(
+            PROJECT_ROOT / "requirements-green-bridge.lock"
+        ),
+        "environment": environment,
+        "cpu_contract": cpu_contract,
+        "model_config": cfg,
+        "forward_counts": FORWARD_COUNTS,
+        "artifact_sha256": {
+            name: sha256_file(output_root / name) for name in required
+        },
+        "prepare_complete": True,
+        "development_complete": False,
+        "confirmation_open": False,
+        "confirmation_complete": False,
+    }
+    write_json_atomic(output_root / "manifest.json", manifest)
+    finalize_hashes(output_root)
+
+
+def verify_freeze_v200(
+    output_root: Path, *, require_confirmation: bool = False,
+) -> dict:
+    path = output_root / "manifest.json"
+    if not path.is_file():
+        raise GreenStop("17_MANIFEST_FREEZE", "manifest.json missing")
+    manifest = json.loads(path.read_text(encoding="utf-8"))
+    identity = (
+        manifest.get("schema_version") == "green-bridge-manifest-v2.0.0"
+        and manifest.get("protocol_id") == PROTOCOL_ID
+        and manifest.get("parent_protocol_id") == PARENT_PROTOCOL_ID
+        and manifest.get("protocol_run_id") == PROTOCOL_RUN_ID
+        and manifest.get("attempt_index") == 1
+        and manifest.get("retry_allowed") is False
+    )
+    if not identity or manifest.get("prepare_complete") is not True:
+        raise GreenStop("17_MANIFEST_FREEZE", "v2.0.0 identity changed")
+    if manifest.get("frozen_spec_sha256") != frozen_spec_hash():
+        raise GreenStop("17_MANIFEST_FREEZE", "frozen spec changed")
+    if manifest.get("v200_split_sha256") != V200_SPLIT_SHA256:
+        raise GreenStop("17_MANIFEST_FREEZE", "split hash changed")
+    if manifest.get("source_sha256") != source_hashes():
+        raise GreenStop("17_MANIFEST_FREEZE", "source hash changed")
+    if manifest.get("protocol_sha256") != {
+        name: sha256_file(PROJECT_ROOT / name) for name in PROTOCOL_FILES
+    }:
+        raise GreenStop("17_MANIFEST_FREEZE", "protocol hash changed")
+    if manifest.get("requirements_sha256") != sha256_file(
+        PROJECT_ROOT / "requirements-green-bridge.lock"
+    ):
+        raise GreenStop("17_MANIFEST_FREEZE", "requirements hash changed")
+    verify_v136_terminal_predecessor()
+    for name, expected in manifest.get("artifact_sha256", {}).items():
+        artifact = output_root / name
+        if not artifact.is_file() or sha256_file(artifact) != expected:
+            raise GreenStop("17_MANIFEST_FREEZE", f"artifact mismatch: {name}")
+    result_path = output_root / "result.json"
+    if result_path.is_file() and not require_confirmation:
+        result = json.loads(result_path.read_text(encoding="utf-8"))
+        if result.get("verdict") in {"STOP", "STOP_ORAL", "POSTER_ONLY"}:
+            raise GreenStop("17_MANIFEST_FREEZE", "terminal run cannot continue")
+    if require_confirmation:
+        frozen_path = output_root / "frozen_analysis.json"
+        dev_path = output_root / "dev_result.json"
+        if (
+            not manifest.get("confirmation_open", False)
+            or not frozen_path.is_file() or not dev_path.is_file()
+            or json.loads(dev_path.read_text(encoding="utf-8")).get("verdict")
+            != "OPEN_CONFIRMATION"
+            or sha256_file(frozen_path) != manifest.get("frozen_analysis_sha256")
+        ):
+            raise GreenStop("17_MANIFEST_FREEZE", "confirmation lock is closed")
+    return manifest
+
+
+def _update_phase_artifacts_v200(
+    output_root: Path, manifest: dict, names: Sequence[str],
+) -> None:
+    for name in names:
+        manifest["artifact_sha256"][name] = sha256_file(output_root / name)
+    manifest["artifact_sha256"]["run_ledger.json"] = sha256_file(
+        output_root / "run_ledger.json"
+    )
+    write_json_atomic(output_root / "manifest.json", manifest)
+    finalize_hashes(output_root)
+
+
+def development_phase_v200(output_root: Path, device: str) -> None:
+    manifest = verify_freeze_v200(output_root)
+    activate_hardware_batch_plan(output_root)
+    _assert_no_uncommitted_endpoint(output_root)
+    claim_phase(output_root, "development")
+    development = split_records(
+        load_split_file(output_root, "development_splits.json"), "development"
+    )
+    if (
+        len(development) != 128
+        or Counter(row.role for row in development) != {"tensor": 64, "energy": 64}
+    ):
+        raise GreenStop("07_SPLIT_FIREWALL", "development coverage changed")
+    tokenizer, model, suffix_ids = _load_active_models_and_suffixes(
+        output_root, device, development
+    )
+    plain = _capture_structural_inputs(
+        model, tokenizer, suffix_ids, development, device, output_root,
+        "development",
+    )
+    _construct_structural_design(
+        model, development, plain, output_root, "development"
+    )
+    noise = _duplicate_noise_v13(
+        model, tokenizer, suffix_ids, development, device
+    )
+    epsilon_y = max(1e-7, float(noise["max_abs"]))
+    noise["epsilon_y_dev"] = epsilon_y
+    write_json_atomic(output_root / "noise_audit_dev.json", noise)
+    del tokenizer, model, plain
+    gc.collect(); torch_module().cuda.empty_cache()
+    payload, dev_sd = _run_split_v200_multigpu(
+        development, "development", output_root, epsilon_y
+    )
+    write_json_atomic(output_root / "dev_cells.json", payload)
+    decision = development_decision_v200(payload)
+    if decision["n_surviving_cells"] < THRESHOLDS.development_cells_min:
+        decision["first_failed_gate"] = "12_DEVELOPMENT_SURVIVAL"
+    elif decision["n_conditioned_cells"] < THRESHOLDS.development_cells_min:
+        decision["first_failed_gate"] = "13_DEVELOPMENT_CONDITIONING"
+    elif decision["n_snr_cells"] < THRESHOLDS.development_snr_cells_min:
+        decision["first_failed_gate"] = "14_DEVELOPMENT_SNR"
+    elif decision["verdict"] != "OPEN_CONFIRMATION":
+        decision["first_failed_gate"] = "16_DEVELOPMENT_GAIN"
+    else:
+        decision["first_failed_gate"] = None
+    write_json_atomic(output_root / "dev_result.json", decision)
+    phase_names = (
+        "development_structural_inputs.npz",
+        "development_structural_input_hashes.json", "development_frames.npz",
+        "development_frame_audit.json", "development_radii.json",
+        "development_target_vectors.npz", "noise_audit_dev.json",
+        "development_multigpu_merge.json", "dev_tensor_scores.parquet",
+        "dev_energy_targets.parquet", "endpoint_ledger.jsonl",
+        "dev_cells.json", "dev_result.json",
+    )
+    manifest["development_complete"] = True
+    if decision["verdict"] != "OPEN_CONFIRMATION":
+        terminal = dict(decision)
+        terminal["schema_version"] = "green-bridge-terminal-v2.0.0"
+        write_json_atomic(output_root / "result.json", terminal)
+        _update_phase_artifacts_v200(
+            output_root, manifest, (*phase_names, "result.json")
+        )
+        return
+    frozen = freeze_confirmation_v200(
+        payload, output_root / "frozen_analysis.json",
+        split_sha256=V200_SPLIT_SHA256,
+    )
+    frozen["source_sha256"] = source_hashes()
+    frozen["protocol_sha256"] = manifest["protocol_sha256"]
+    frozen["conditioning_dev_sd"] = dev_sd
+    frozen["confirmation_cell_ids"] = sorted({
+        row.cell_id for row in load_split_file(output_root)
+        if row.split == "confirmation"
+    })
+    write_json_atomic(output_root / "frozen_analysis.json", frozen)
+    manifest["confirmation_open"] = True
+    manifest["frozen_analysis_sha256"] = sha256_file(
+        output_root / "frozen_analysis.json"
+    )
+    _update_phase_artifacts_v200(
+        output_root, manifest, (*phase_names, "frozen_analysis.json")
+    )
+
+
+def confirmation_phase_v200(output_root: Path, device: str) -> None:
+    manifest = verify_freeze_v200(output_root, require_confirmation=True)
+    activate_hardware_batch_plan(output_root)
+    _assert_no_uncommitted_endpoint(output_root)
+    claim_phase(output_root, "confirmation")
+    frozen = json.loads(
+        (output_root / "frozen_analysis.json").read_text(encoding="utf-8")
+    )
+    if (
+        frozen.get("source_sha256") != source_hashes()
+        or frozen.get("protocol_sha256") != manifest["protocol_sha256"]
+        or frozen.get("split_sha256") != V200_SPLIT_SHA256
+    ):
+        raise GreenStop("17_MANIFEST_FREEZE", "frozen analysis changed")
+    records = load_split_file(output_root)
+    confirmation = split_records(
+        records, "confirmation",
+        confirmation_lock=ConfirmationLock(output_root / "frozen_analysis.json"),
+    )
+    if (
+        len(confirmation) != 384
+        or Counter(row.role for row in confirmation)
+        != {"tensor": 192, "energy": 192}
+    ):
+        raise GreenStop("07_SPLIT_FIREWALL", "confirmation coverage changed")
+    tokenizer, model, suffix_ids = _load_active_models_and_suffixes(
+        output_root, device, confirmation
+    )
+    plain = _capture_structural_inputs(
+        model, tokenizer, suffix_ids, confirmation, device, output_root,
+        "confirmation",
+    )
+    _construct_structural_design(
+        model, confirmation, plain, output_root, "confirmation"
+    )
+    noise = _duplicate_noise_v13(
+        model, tokenizer, suffix_ids, confirmation, device
+    )
+    dev_noise = float(json.loads(
+        (output_root / "noise_audit_dev.json").read_text(encoding="utf-8")
+    )["epsilon_y_dev"])
+    permitted = max(2.0 * dev_noise, 2e-6)
+    noise["permitted_max_abs"] = permitted
+    write_json_atomic(output_root / "noise_audit_confirm.json", noise)
+    if noise["max_abs"] > permitted:
+        raise GreenStop("18_CONFIRMATION_NOISE", f"{noise['max_abs']} > {permitted}")
+    del tokenizer, model, plain
+    gc.collect(); torch_module().cuda.empty_cache()
+    payload, _ = _run_split_v200_multigpu(
+        confirmation, "confirmation", output_root, dev_noise,
+        dev_sd=float(frozen["conditioning_dev_sd"]),
+    )
+    write_json_atomic(output_root / "confirm_cells.json", payload)
+    result = confirmation_decision_v200(payload, frozen)
+    dev_cells = json.loads(
+        (output_root / "dev_cells.json").read_text(encoding="utf-8")
+    )["cells"]
+    total = sum(
+        row.get("survived", False) for row in dev_cells + payload["cells"]
+    )
+    result["total_surviving_cells"] = total
+    if total < THRESHOLDS.total_cells_technical_min:
+        result["verdict"] = "ORAL_RESULT_FAIL"
+        result["first_failed_gate"] = "19_TOTAL_SURVIVAL"
+    elif result["verdict"] != "ORAL_RESULT_PASS":
+        result["first_failed_gate"] = "20_CONFIRMATORY_THRESHOLD"
+    else:
+        result["first_failed_gate"] = None
+    result["schema_version"] = "green-bridge-terminal-v2.0.0"
+    write_json_atomic(output_root / "result.json", result)
+    manifest["confirmation_complete"] = True
+    _update_phase_artifacts_v200(output_root, manifest, (
+        "confirmation_structural_inputs.npz",
+        "confirmation_structural_input_hashes.json", "confirmation_frames.npz",
+        "confirmation_frame_audit.json", "confirmation_radii.json",
+        "confirmation_target_vectors.npz", "noise_audit_confirm.json",
+        "confirmation_multigpu_merge.json", "confirm_tensor_scores.parquet",
+        "confirm_energy_targets.parquet", "endpoint_ledger.jsonl",
+        "confirm_cells.json", "result.json",
+    ))
+
+
 def finalize_hashes(output_root: Path) -> None:
     paths = sorted(path for path in output_root.iterdir() if path.is_file() and path.name != "sha256sums.txt")
     lines = [f"{sha256_file(path)}  {path.name}" for path in paths]
@@ -4567,11 +5945,11 @@ def main() -> None:
     args = parser.parse_args()
     try:
         if args.phase == "prepare":
-            prepare(args.output_root, args.device)
+            prepare_v200(args.output_root, args.device)
         if args.phase == "development":
-            development_phase(args.output_root, args.device)
+            development_phase_v200(args.output_root, args.device)
         if args.phase == "confirmation":
-            confirmation_phase(args.output_root, args.device)
+            confirmation_phase_v200(args.output_root, args.device)
     except GreenStop as exc:
         if exc.gate in {"00_REPOSITORY_CLEAN", "00_OUTPUT_ROOT_NOT_EMPTY"}:
             raise

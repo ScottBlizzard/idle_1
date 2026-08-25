@@ -15,15 +15,29 @@ import numpy as np
 import exp_green_bridge_gpt2 as runner
 import green_bridge_path_target as target_module
 import green_bridge_tail as tail_module
-from analyze_green_bridge import development_decision
-from green_bridge_dataset import build_evaluation_records, plan_payload
-from green_bridge_numerics import active_envelope_contraction_bound
+from analyze_green_bridge import development_decision, development_decision_v200
+from green_bridge_dataset import (
+    build_evaluation_records, build_green_bridge_v200_splits, plan_payload,
+    v200_split_payload,
+)
+from green_bridge_numerics import (
+    ScaleNumericalBoundsV200, active_envelope_contraction_bound,
+    absolute_value_interval, dyadic_enclosure_v200,
+    factorization_compatibility_v200, minkowski_sum_interval,
+    richardson_pair_bounds_v200, robust_interval_auc_lower_bound,
+    shift_null_compatibility_v200, subtract_intervals,
+    whitebox_compatibility_v200, whitebox_factorization_compatibility_v200,
+    worst_case_interval_rmse,
+)
 from green_bridge_spec import (
     ALL_GATE_FRAME_DIM, COMMON_FRAME_DIM, DIMENSIONS,
     FIRST_ORDER_COEFFICIENT_SEED, FIRST_ORDER_COEFFICIENT_SHA256,
     FIRST_ORDER_RESIDUAL_DIRECTIONS, FROZEN_SPEC, GATE_RADIUS,
-    HALF_RADIUS_MULTIPLIER, HISTORICAL_V12_BASIS_SPEC, PROBE_FRAME_DIM,
-    PROTOCOL_ID, RESIDUAL_RADIUS_MULTIPLIER, SCHEMA_VERSION,
+    HALF_RADIUS_MULTIPLIER, HISTORICAL_V12_BASIS_SPEC,
+    HISTORICAL_V136_THRESHOLDS, PROBE_FRAME_DIM,
+    PROTOCOL_ID, QUARTER_RADIUS_MULTIPLIER, RESIDUAL_RADIUS_MULTIPLIER,
+    SCHEMA_VERSION, V200_CONFIRMATION_GROUPS, V200_DEVELOPMENT_GROUPS,
+    V200_SPLIT_SHA256, canonical_json, sha256_text,
     TAIL_FIXED_BATCH_SIZE,
     STRUCTURAL_ATOM_RESIDUAL_MAX, STRUCTURAL_FRAME_ORTHOGONAL_MAX,
 )
@@ -41,6 +55,9 @@ from matched_bypass_gate import (
     GateJet, direct_bypass_in_common_frame, expected_tensor_calls,
     identify_gate, operator_action, operator_frobenius_norm,
     operator_inner_product, reconstruct_cotangent,
+)
+from green_bridge_response_ad import (
+    audit_richardson_enclosure_v200, select_ad_audit_panel_v200,
 )
 
 
@@ -103,9 +120,9 @@ class HistoricalAndTerminationTests(unittest.TestCase):
     def test_active_protocol_has_no_rank6_fallback(self): self.assertNotIn("rank6_fallback", json.dumps(FROZEN_SPEC))
     def test_active_runner_does_not_call_build_basis_v2_donor_records(self): self.assertNotIn("build_basis_v2_donor_records", RUNNER_SOURCE)
     def test_active_runner_does_not_import_green_bridge_basis(self): self.assertNotIn("from green_bridge_basis import", RUNNER_SOURCE)
-    def test_active_protocol_creates_no_donor_basis_artifact(self): self.assertNotIn("donor_basis.npz", inspect.getsource(runner.prepare))
-    def test_active_protocol_creates_no_basis_audit_artifact(self): self.assertNotIn("basis_audit", inspect.getsource(runner.prepare))
-    def test_active_protocol_creates_no_radius_donor_artifact(self): self.assertNotIn("radius_donor", inspect.getsource(runner.prepare))
+    def test_active_protocol_creates_no_donor_basis_artifact(self): self.assertNotIn("donor_basis.npz", inspect.getsource(runner.prepare_v200))
+    def test_active_protocol_creates_no_basis_audit_artifact(self): self.assertNotIn("basis_audit", inspect.getsource(runner.prepare_v200))
+    def test_active_protocol_creates_no_radius_donor_artifact(self): self.assertNotIn("radius_donor", inspect.getsource(runner.prepare_v200))
 
 
 class LayerNormTheoremTests(unittest.TestCase):
@@ -284,29 +301,29 @@ class BaselineComputeTests(unittest.TestCase):
     def test_first_order_physical_directions_use_all_gate_frame(self): self.assertIn('coefficients @ design["all_gate"].T',inspect.getsource(runner._first_order_system_v13))
     def test_first_order_budget_is_2082(self): self.assertEqual(expected_tensor_calls(),2082)
     def test_mixed_calls_per_gate_system_radius_is_52(self): self.assertEqual(2+10*5,52)
-    def test_mixed_calls_per_system_is_1041(self): self.assertEqual(10*2*52+1,1041)
-    def test_mixed_calls_per_item_is_2082(self): self.assertEqual(expected_tensor_calls(),2082)
-    def test_tensor_item_unique_calls_are_4180(self): self.assertEqual(runner.FORWARD_COUNTS["tensor_item_unique_calls"],4180)
-    def test_tensor_tail_total_is_1605120(self): self.assertEqual(runner.FORWARD_COUNTS["tensor_tail_total"],1605120)
-    def test_energy_tail_total_is_4608(self): self.assertEqual(runner.FORWARD_COUNTS["energy_tail_total"],4608)
-    def test_tail_total_is_1609824(self): self.assertEqual(runner.FORWARD_COUNTS["tail_evaluations_total"],1609824)
-    def test_jvp_total_is_1152(self): self.assertEqual(runner.FORWARD_COUNTS["jvp_invocations_total"],1152)
-    def test_full_model_total_is_2496(self): self.assertEqual(runner.FORWARD_COUNTS["full_model_evaluations_total"],2496)
-    def test_raw_invocation_total_is_1613472(self): self.assertEqual(runner.FORWARD_COUNTS["raw_invocations_total"],1613472)
-    def test_effective_unit_total_is_1614624(self): self.assertEqual(runner.FORWARD_COUNTS["effective_units_total"],1614624)
-    def test_conservative_unit_total_is_1627104(self): self.assertEqual(runner.FORWARD_COUNTS["conservative_units_total"],1627104)
-    def test_preconfirmation_effective_units_are_538336(self): self.assertEqual(runner.FORWARD_COUNTS["development_effective_units"],538336)
-    def test_confirmation_effective_units_are_1076288(self): self.assertEqual(runner.FORWARD_COUNTS["confirmation_effective_units"],1076288)
+    def test_mixed_calls_per_system_is_1041(self): self.assertEqual(10*3*52+1,1561)
+    def test_mixed_calls_per_item_is_2082(self): self.assertEqual(runner.FORWARD_COUNTS["mixed_per_tensor_item"],3122)
+    def test_tensor_item_unique_calls_are_4180(self): self.assertEqual(runner.FORWARD_COUNTS["tensor_item_unique_calls"],5220);self.assertEqual(runner.HISTORICAL_V136_FORWARD_COUNTS["tensor_item_unique_calls"],4180)
+    def test_tensor_tail_total_is_1605120(self): self.assertEqual(runner.FORWARD_COUNTS["tensor_tail_total"],1336320);self.assertEqual(runner.HISTORICAL_V136_FORWARD_COUNTS["tensor_tail_total"],1605120)
+    def test_energy_tail_total_is_4608(self): self.assertEqual(runner.FORWARD_COUNTS["energy_tail_total"],3840);self.assertEqual(runner.HISTORICAL_V136_FORWARD_COUNTS["energy_tail_total"],4608)
+    def test_tail_total_is_1609824(self): self.assertEqual(runner.FORWARD_COUNTS["tail_evaluations_total"],1340160);self.assertEqual(runner.HISTORICAL_V136_FORWARD_COUNTS["tail_evaluations_total"],1609824)
+    def test_jvp_total_is_1152(self): self.assertEqual(runner.FORWARD_COUNTS["jvp_invocations_total"],768);self.assertEqual(runner.HISTORICAL_V136_FORWARD_COUNTS["jvp_invocations_total"],1152)
+    def test_full_model_total_is_2496(self): self.assertEqual(runner.FORWARD_COUNTS["full_model_evaluations_total"],1664);self.assertEqual(runner.HISTORICAL_V136_FORWARD_COUNTS["full_model_evaluations_total"],2496)
+    def test_raw_invocation_total_is_1613472(self): self.assertEqual(runner.FORWARD_COUNTS["raw_invocations_total"],1342592);self.assertEqual(runner.HISTORICAL_V136_FORWARD_COUNTS["raw_invocations_total"],1613472)
+    def test_effective_unit_total_is_1614624(self): self.assertEqual(runner.FORWARD_COUNTS["effective_units_total"],1343360);self.assertEqual(runner.HISTORICAL_V136_FORWARD_COUNTS["effective_units_total"],1614624)
+    def test_conservative_unit_total_is_1627104(self): self.assertEqual(runner.FORWARD_COUNTS["conservative_units_total"],1351680);self.assertEqual(runner.HISTORICAL_V136_FORWARD_COUNTS["conservative_units_total"],1627104)
+    def test_preconfirmation_effective_units_are_538336(self): self.assertEqual(runner.FORWARD_COUNTS["development_effective_units"],335840);self.assertEqual(runner.HISTORICAL_V136_FORWARD_COUNTS["development_effective_units"],538336)
+    def test_confirmation_effective_units_are_1076288(self): self.assertEqual(runner.FORWARD_COUNTS["confirmation_effective_units"],1007520);self.assertEqual(runner.HISTORICAL_V136_FORWARD_COUNTS["confirmation_effective_units"],1076288)
 
 
 class SerializationAndOneRunTests(unittest.TestCase):
-    def test_development_inputs_written_before_frame_construction(self): self.assertLess(inspect.getsource(runner.development_phase).index("_capture_structural_inputs"),inspect.getsource(runner.development_phase).index("_construct_structural_design"))
+    def test_development_inputs_written_before_frame_construction(self): self.assertLess(inspect.getsource(runner.development_phase_v200).index("_capture_structural_inputs"),inspect.getsource(runner.development_phase_v200).index("_construct_structural_design"))
     def test_development_hashes_written_before_frame_construction(self): self.assertLess(inspect.getsource(runner._capture_structural_inputs).index("hashes.json"),len(inspect.getsource(runner._capture_structural_inputs)))
-    def test_development_frames_written_before_first_endpoint(self): self.assertLess(inspect.getsource(runner.development_phase).index("_construct_structural_design"),inspect.getsource(runner.development_phase).index("_run_split_v13"))
+    def test_development_frames_written_before_first_endpoint(self): self.assertLess(inspect.getsource(runner.development_phase_v200).index("_construct_structural_design"),inspect.getsource(runner.development_phase_v200).index("_run_split_v200"))
     def test_development_radii_written_before_first_endpoint(self): self.test_development_frames_written_before_first_endpoint()
     def test_development_target_vectors_written_before_first_endpoint(self): self.test_development_frames_written_before_first_endpoint()
-    def test_confirmation_inputs_cannot_exist_before_open(self): self.assertTrue(inspect.getsource(runner.confirmation_phase).index("verify_freeze")<inspect.getsource(runner.confirmation_phase).index("_capture_structural_inputs"))
-    def test_confirmation_frames_cannot_exist_before_open(self): self.assertTrue(inspect.getsource(runner.confirmation_phase).index("verify_freeze")<inspect.getsource(runner.confirmation_phase).index("_construct_structural_design"))
+    def test_confirmation_inputs_cannot_exist_before_open(self): self.assertTrue(inspect.getsource(runner.confirmation_phase_v200).index("verify_freeze")<inspect.getsource(runner.confirmation_phase_v200).index("_capture_structural_inputs"))
+    def test_confirmation_frames_cannot_exist_before_open(self): self.assertTrue(inspect.getsource(runner.confirmation_phase_v200).index("verify_freeze")<inspect.getsource(runner.confirmation_phase_v200).index("_construct_structural_design"))
     def test_endpoint_batch_requires_started_ledger_record(self): self.assertIn("endpoint_batch_started",inspect.getsource(runner._run_endpoint_batch))
     def test_committed_endpoint_requires_durable_artifact(self): self.assertTrue(inspect.getsource(runner._run_endpoint_batch).index("write_json_atomic")<inspect.getsource(runner._run_endpoint_batch).index("endpoint_batch_committed"))
     def test_uncommitted_endpoint_prevents_restart(self): self.assertIn("started-but-uncommitted",inspect.getsource(runner._assert_no_uncommitted_endpoint))
@@ -325,9 +342,9 @@ class SerializationAndOneRunTests(unittest.TestCase):
 
 
 class FrozenCoreTests(unittest.TestCase):
-    def test_schema_and_protocol(self): self.assertEqual((SCHEMA_VERSION,PROTOCOL_ID),("green-bridge-v1.3.6","structural-envelope-matched-bypass-v1.3.6"))
+    def test_schema_and_protocol(self): self.assertEqual((SCHEMA_VERSION,PROTOCOL_ID),("green-bridge-v2.0.0","structural-envelope-matched-bypass-setid-v2.0.0"))
     def test_dimensions(self): self.assertEqual((DIMENSIONS.d_model,DIMENSIONS.probe_frame_dim),(768,5))
-    def test_expected_calls(self): self.assertEqual(expected_tensor_calls(),2082)
+    def test_expected_calls(self): self.assertEqual(expected_tensor_calls(n_radii=3),3122)
     def test_envelope_error_term_is_positive(self): self.assertEqual(active_envelope_contraction_bound(2,3,4,5,6,7,8),2*(3*5+(6+7)*4*8))
 
 
@@ -371,8 +388,8 @@ class TailAuditMetricContractTests(unittest.TestCase):
 
 
 class ProtocolIdentityV136Tests(unittest.TestCase):
-    def test_v136_identity_is_fresh(self): self.assertEqual(runner.PROTOCOL_RUN_ID,"green-bridge-v1.3.6-one-shot")
-    def test_v136_output_root_is_distinct(self): self.assertEqual(runner.OUTPUT_ROOT.name,"green_bridge_v136")
+    def test_v136_identity_is_fresh(self): self.assertEqual(runner.PROTOCOL_RUN_ID,"green-bridge-v2.0.0-one-shot")
+    def test_v136_output_root_is_distinct(self): self.assertEqual(runner.OUTPUT_ROOT.name,"green_bridge_v200")
     def test_v136_attempt_index_is_one(self): self.assertIn('"attempt_index": 1',inspect.getsource(runner.write_run_ledger))
     def test_v136_retry_is_false(self): self.assertIn('"retry_allowed": False',inspect.getsource(runner.write_run_ledger))
 
@@ -398,13 +415,13 @@ class ExactBatchOneOperationGraphTests(unittest.TestCase):
     def test_fixed_tail_batch_is_one(self): self.assertEqual(TAIL_FIXED_BATCH_SIZE,1)
     def test_tail_wrapper_pads_final_chunk(self): self.assertIn("if count < fixed",inspect.getsource(tail_module.GreenBridgeTail._evaluate_physical_fixed_batch))
     def test_tail_wrapper_slices_declared_rows(self): self.assertIn("logits[:count]",inspect.getsource(tail_module.GreenBridgeTail._evaluate_physical_fixed_batch))
-    def test_scientific_tail_activates_fixed_batch(self): self.assertIn("fixed_batch_size=ACTIVE_MANUAL_TAIL_BATCH_SIZE",inspect.getsource(runner._tensor_item_v13))
-    def test_scientific_tail_has_no_recentering(self): self.assertNotIn("recenter_fixed_batch_output",inspect.getsource(runner._tensor_item_v13))
+    def test_scientific_tail_activates_fixed_batch(self): self.assertIn("fixed_batch_size=TAIL_FIXED_BATCH_SIZE",inspect.getsource(runner._tensor_item_v200))
+    def test_scientific_tail_has_no_recentering(self): self.assertNotIn("recenter_fixed_batch_output",inspect.getsource(runner._tensor_item_v200))
     def test_prepare_requires_bitwise_full_hook_match(self): self.assertIn('if not metrics["bitwise_equal"]',inspect.getsource(runner._prepare_exact_batch_one_and_throughput_v136))
     def test_full_reference_remains_batch_one(self): self.assertIn('"full_model_jvp_batch_size": 1',inspect.getsource(runner._prepare_exact_batch_one_and_throughput_v136))
-    def test_eight_worker_gpus_are_frozen(self): self.assertIn('physical_gpus = tuple(range(8))',inspect.getsource(runner._run_split_v136_multigpu))
-    def test_worker_failure_is_terminal(self): self.assertIn('"11_MULTIGPU_WORKER"',inspect.getsource(runner._run_split_v136_multigpu))
-    def test_worker_records_are_deterministically_sorted(self): self.assertIn('sorted(records, key=lambda row: (row.role, row.pair_digest))',inspect.getsource(runner._run_split_v136_multigpu))
+    def test_eight_worker_gpus_are_frozen(self): self.assertIn('physical_gpus = tuple(range(8))',inspect.getsource(runner._run_split_v200_multigpu))
+    def test_worker_failure_is_terminal(self): self.assertIn('"11_MULTIGPU_WORKER"',inspect.getsource(runner._run_split_v200_multigpu))
+    def test_worker_records_are_deterministically_sorted(self): self.assertIn('green-v200-worker|{role}|{row.pair_digest}',inspect.getsource(runner._run_split_v200_multigpu))
 
     def test_identification_is_paired_with_same_scale_gatejet_response(self):
         source = inspect.getsource(runner._mixed_system_v13)
@@ -491,7 +508,7 @@ class ExactBatchOneOperationGraphTests(unittest.TestCase):
 
 class DevelopmentTerminalContractTests(unittest.TestCase):
     def test_insufficient_survival_returns_frozen_stop(self):
-        decision = development_decision({"cells": []})
+        decision = development_decision_v200({"cells": []})
         self.assertEqual(decision["verdict"], "STOP_ORAL")
         self.assertEqual(decision["n_surviving_cells"], 0)
         self.assertEqual(decision["baseline_calibration"], {})
@@ -499,7 +516,193 @@ class DevelopmentTerminalContractTests(unittest.TestCase):
 
 class TheoryPreservationContractTests(unittest.TestCase):
     def test_fixed_rank_donor_pca_remains_terminated(self):
-        self.assertNotIn("donor_pca",json.dumps(FROZEN_SPEC).lower());self.assertNotIn("green_bridge_basis",inspect.getsource(runner.prepare))
+        self.assertNotIn("donor_pca",json.dumps(FROZEN_SPEC).lower());self.assertNotIn("green_bridge_basis",inspect.getsource(runner.prepare_v200))
+
+
+def _v200_fixture():
+    rng = np.random.default_rng(200)
+    G = rng.normal(size=100)
+    C = rng.normal(size=100)
+    A = np.r_[0.0, rng.normal(size=4)]
+    delta = A[:, None] * C[None, :]
+    jet = GateJet(G, C, np.zeros((5, 100)), delta, np.zeros((5, 100)))
+    bounds = richardson_pair_bounds_v200(jet, jet, epsilon_y=1e-7, h1=0.2, h2=0.2)
+    enclosure = dyadic_enclosure_v200(jet, jet, bounds, bounds)
+    return rng, jet, identify_gate(jet), enclosure, A
+
+
+class V200FactorizationBoundsTests(unittest.TestCase):
+    def test_exact_rank_one_inside_derived_bound(self):
+        _, jet, identified, enclosure, _ = _v200_fixture()
+        self.assertTrue(factorization_compatibility_v200(identified, jet, enclosure)["passed"])
+
+    def test_residual_one_ulp_above_bound_fails(self):
+        jet = GateJet(np.ones(100), np.r_[1.0, np.zeros(99)], np.zeros((5,100)), np.zeros((5,100)), np.zeros((5,100)))
+        jet.H_path[0, 1] = np.nextafter(np.nextafter(1.0, np.inf), np.inf)
+        enclosure = SimpleNamespace(
+            final_epsilon_delta_H=np.r_[1.0, np.zeros(4)], final_epsilon_A=np.zeros(5),
+            final_A_max=np.zeros(5), final_epsilon_C=0.0,
+        )
+        identified = SimpleNamespace(A=np.zeros(5))
+        self.assertFalse(factorization_compatibility_v200(identified, jet, enclosure)["passed"])
+
+    def test_active_classifier_has_no_factorization_point_one_five(self):
+        source = inspect.getsource(runner._classify_gate_v200)
+        self.assertNotIn("factorization_residual_max", source); self.assertNotIn("0.15", source)
+
+
+class V200WhiteboxBoundsTests(unittest.TestCase):
+    def test_componentwise_whitebox_envelope_passes(self):
+        _, _, identified, enclosure, A = _v200_fixture()
+        self.assertTrue(whitebox_compatibility_v200(identified, A, enclosure)["passed"])
+
+    def test_componentwise_whitebox_excess_fails(self):
+        _, _, identified, enclosure, A = _v200_fixture()
+        altered = A.copy(); altered[1] += 2 * enclosure.final_epsilon_A[1] + 1e-6
+        self.assertFalse(whitebox_compatibility_v200(identified, altered, enclosure)["passed"])
+
+    def test_active_classifier_has_no_whitebox_point_zero_five(self):
+        source = inspect.getsource(runner._classify_gate_v200)
+        self.assertNotIn("whitebox_a_relative_max", source); self.assertNotIn("0.05", source)
+
+    def test_direct_whitebox_factorization_triangle_bound(self):
+        _, jet, _, enclosure, A = _v200_fixture()
+        self.assertTrue(whitebox_factorization_compatibility_v200(jet, A, enclosure)["passed"])
+
+    def test_shift_null_uses_epsilon_a_plus_epsilon_wb(self):
+        row = shift_null_compatibility_v200(1.1e-10, 1e-11, epsilon_wb=1e-10)
+        self.assertTrue(row["passed"]); self.assertAlmostEqual(row["bound"], 1.1e-10, places=20)
+
+
+class V200StencilTests(unittest.TestCase):
+    def test_radii_are_base_half_quarter(self):
+        self.assertEqual((1.0, HALF_RADIUS_MULTIPLIER, QUARTER_RADIUS_MULTIPLIER), (1.0, 0.5, 0.25))
+
+    def test_fine_richardson_is_always_primary(self):
+        source = inspect.getsource(runner._gate_jet_triplet_v200)
+        self.assertIn('"fine_richardson": fine', source)
+
+    def test_dyadic_overlap_uses_uncertainty_balls(self):
+        source = inspect.getsource(dyadic_enclosure_v200)
+        self.assertIn("fine.epsilon_G + coarse.epsilon_G", source)
+
+    def test_no_estimator_selection_uses_behavior_or_baseline(self):
+        source = inspect.getsource(runner._gate_jet_triplet_v200).lower()
+        self.assertNotIn("behavior", source); self.assertNotIn("baseline", source); self.assertNotIn("pie", source)
+
+
+class V200ADAuditTests(unittest.TestCase):
+    def test_audit_reader_has_no_behavioral_fields(self):
+        source = inspect.getsource(select_ad_audit_panel_v200).lower()
+        self.assertNotIn("behavioral", source); self.assertNotIn("pie", source); self.assertNotIn("admissib", source)
+
+    def test_panel_has_exactly_forty_strata(self):
+        records = [row for row in build_evaluation_records() if row.split == "development"]
+        self.assertEqual(len(select_ad_audit_panel_v200(records)), 40)
+
+    def test_ad_value_outside_enclosure_stops_prepare(self):
+        zero = GateJet(np.zeros(100), np.zeros(100), np.zeros((5,100)), np.zeros((5,100)), np.zeros((5,100)))
+        outside = GateJet(np.full(100, 2.0), np.zeros(100), np.zeros((5,100)), np.zeros((5,100)), np.zeros((5,100)))
+        bounds = ScaleNumericalBoundsV200(1.0,1.0,1.0,np.ones(5),np.ones(5),np.ones(5),np.ones(5),1.0,True)
+        self.assertFalse(audit_richardson_enclosure_v200(outside,outside,zero,zero,bounds,bounds)["passed"])
+
+
+class V200GateClassTests(unittest.TestCase):
+    @staticmethod
+    def _enclosure(inverse):
+        return SimpleNamespace(
+            overlap_G=True, overlap_C=True, overlap_J=True, overlap_delta_H=np.ones(5,dtype=bool),
+            final_epsilon_G=0.0, final_epsilon_C=0.0, final_epsilon_J=0.0,
+            final_epsilon_delta_H=np.zeros(5), final_inverse_admissible=inverse,
+            final_epsilon_A=np.zeros(5), final_A_max=np.zeros(5),
+            final_epsilon_P_F=0.0,
+        )
+
+    def test_noninvertible_gate_becomes_unresolved_bounded(self):
+        jet = GateJet(np.ones(100), np.zeros(100), np.zeros((5,100)), np.zeros((5,100)), np.zeros((5,100)))
+        triplet={"fine_richardson":jet,"coarse_richardson":jet,"dyadic_enclosure":self._enclosure(False)}
+        result=runner._classify_gate_v200(triplet,np.zeros(5),np.ones(768),np.ones(100),np.ones(768))
+        self.assertEqual(result["audit"]["label"],"unresolved-bounded")
+
+    def test_bound_exceedance_becomes_structural_contradiction(self):
+        C=np.r_[1.0,np.zeros(99)]; delta=np.zeros((5,100)); delta[0,1]=1.0
+        jet=GateJet(np.ones(100),C,np.zeros((5,100)),delta,np.zeros((5,100)))
+        triplet={"fine_richardson":jet,"coarse_richardson":jet,"dyadic_enclosure":self._enclosure(True)}
+        result=runner._classify_gate_v200(triplet,np.zeros(5),np.ones(768),np.ones(100),np.ones(768))
+        self.assertEqual(result["audit"]["label"],"structural-contradiction")
+
+    def test_unresolved_gate_point_center_is_zero(self):
+        source=inspect.getsource(runner._mixed_system_v200)
+        self.assertIn('label == "unresolved-bounded"',source);self.assertIn("contribution_center=0.0",source)
+
+    def test_unresolved_whitebox_use_is_absolute_bound_only(self):
+        source=inspect.getsource(runner._classify_gate_v200)
+        self.assertIn("unresolved_gate_contraction_bound_v200",source);self.assertNotIn("whitebox_gradient @",source)
+
+
+class V200SystemTests(unittest.TestCase):
+    def test_all_ten_gates_are_accounted(self):
+        source=inspect.getsource(runner._mixed_system_v200)
+        self.assertIn("len(gate_audits) == 10",source)
+
+    def test_invalid_gate_cannot_enter_interval_sum(self):
+        source=inspect.getsource(runner._mixed_system_v200)
+        self.assertIn("all(interval is not None",source)
+
+    def test_active_gate_minimum_remains_three(self):
+        self.assertEqual(runner.THRESHOLDS.active_gates_min,3)
+
+
+class V200IntervalTests(unittest.TestCase):
+    def test_system_interval_is_minkowski_sum(self):
+        self.assertEqual(minkowski_sum_interval((-1,2),(3,4)),(2.0,6.0))
+
+    def test_cell_interval_preserves_abs_of_mean_difference(self):
+        self.assertEqual(absolute_value_interval(subtract_intervals((2,3),(4,5))),(1.0,3.0))
+
+    def test_worst_case_rmse_uses_farthest_endpoint(self):
+        self.assertEqual(worst_case_interval_rmse([0],[[1,3]]),3.0)
+
+    def test_robust_auc_is_pairwise_lower_bound(self):
+        self.assertEqual(robust_interval_auc_lower_bound([True,False],[[2,3],[0,1]]),1.0)
+
+
+class V200BaselineTests(unittest.TestCase):
+    def test_pie_remains_baseline_only(self):
+        self.assertIn("pie",runner.BASELINES);self.assertNotIn('pie',inspect.getsource(runner._mixed_system_v200).lower())
+
+
+class V200FirewallTests(unittest.TestCase):
+    def test_v136_development_rows_are_forbidden_inputs(self):
+        source=inspect.getsource(build_green_bridge_v200_splits)
+        self.assertIn('row.split == "confirmation"',source);self.assertIn("exposed",source)
+
+    def test_v200_split_groups_and_sha256_are_exact(self):
+        self.assertEqual((len(V200_DEVELOPMENT_GROUPS),len(V200_CONFIRMATION_GROUPS)),(4,12))
+        payload=v200_split_payload()
+        self.assertEqual(
+            [(row["noun"],row["century"]) for row in payload["development_groups"]],
+            list(V200_DEVELOPMENT_GROUPS),
+        )
+        self.assertEqual(
+            [(row["noun"],row["century"]) for row in payload["confirmation_groups"]],
+            list(V200_CONFIRMATION_GROUPS),
+        )
+        self.assertEqual(sha256_text(canonical_json(payload)),V200_SPLIT_SHA256)
+
+    def test_confirmation_artifacts_forbidden_before_open(self):
+        self.assertIn("require_confirmation=True",inspect.getsource(runner.confirmation_phase_v200))
+
+
+class V200PredecessorTests(unittest.TestCase):
+    def test_v136_terminal_hashes_and_stop_are_immutable(self):
+        self.assertEqual(runner.V136_TERMINAL_HASHES["dev_tensor_scores.parquet"],"660788dde8bc5df1d057db31b4dc1065b222ac7777efc0e4c6220e09f1ed81ff")
+        self.assertIn('dev.get("verdict") == "STOP_ORAL"',inspect.getsource(runner.verify_v136_terminal_predecessor))
+
+
+class V200TheoryTests(unittest.TestCase):
+    def test_fixed_rank_donor_pca_remains_terminated(self):
+        self.assertNotIn("donor_pca",json.dumps(FROZEN_SPEC).lower());self.assertNotIn("pseudoinverse",inspect.getsource(runner._classify_gate_v200).lower())
 
 
 if __name__ == "__main__":

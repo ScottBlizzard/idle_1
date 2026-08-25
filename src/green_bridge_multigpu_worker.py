@@ -38,6 +38,7 @@ def main() -> None:
     parser.add_argument("--split", choices=("development", "confirmation"), required=True)
     parser.add_argument("--worker-index", type=int, required=True)
     parser.add_argument("--physical-gpu", type=int, required=True)
+    parser.add_argument("--protocol-version", choices=("v136", "v200"), default="v136")
     args = parser.parse_args()
     if args.worker_root.exists() and (args.worker_root / "worker_result.json").exists():
         raise RuntimeError("worker result already exists")
@@ -87,11 +88,15 @@ def main() -> None:
             "physical_gpu": args.physical_gpu,
         }
         if role == "tensor":
+            tensor_function = (
+                runner._tensor_item_v200 if args.protocol_version == "v200"
+                else runner._tensor_item_v13
+            )
             result = runner._run_endpoint_batch(
                 args.worker_root,
                 batch_id,
                 declaration,
-                lambda record=record: runner._tensor_item_v13(
+                lambda record=record: tensor_function(
                     model,
                     suffix_ids,
                     record,
@@ -103,11 +108,15 @@ def main() -> None:
                 ),
             )
         else:
+            energy_function = (
+                runner._energy_item_v200 if args.protocol_version == "v200"
+                else runner._energy_item_v13
+            )
             result = runner._run_endpoint_batch(
                 args.worker_root,
                 batch_id,
                 declaration,
-                lambda record=record: runner._energy_item_v13(
+                lambda record=record: energy_function(
                     model, suffix_ids, record, "cuda:0", plain, design
                 ),
             )
@@ -121,7 +130,10 @@ def main() -> None:
         })
     torch.cuda.synchronize("cuda:0")
     payload = {
-        "schema_version": "green-bridge-v1.3.6-worker-v1",
+        "schema_version": (
+            "green-bridge-v2.0.0-worker-v1" if args.protocol_version == "v200"
+            else "green-bridge-v1.3.6-worker-v1"
+        ),
         "worker_index": args.worker_index,
         "physical_gpu": args.physical_gpu,
         "split": args.split,

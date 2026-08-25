@@ -1,7 +1,7 @@
 """Deterministic finite-population construction for the green-bridge run."""
 from __future__ import annotations
 
-from dataclasses import asdict, dataclass
+from dataclasses import asdict, dataclass, replace
 import hashlib
 from pathlib import Path
 from typing import Callable, Iterable, Sequence
@@ -18,6 +18,10 @@ from green_bridge_spec import (
     SALT,
     SUFFIX_MAX,
     SUFFIX_MIN,
+    V200_CONFIRMATION_GROUPS,
+    V200_DEVELOPMENT_GROUPS,
+    V200_RESPLIT_SALT,
+    V200_SPLIT_SHA256,
     canonical_json,
     sha256_text,
     write_json_atomic,
@@ -180,6 +184,65 @@ def build_evaluation_records(
                     )
                 )
     return records
+
+
+def _v200_group_rank(noun: str, century: int) -> str:
+    return hashlib.sha256(
+        f"{V200_RESPLIT_SALT}|{noun}|{century:02d}".encode("utf-8")
+    ).hexdigest()
+
+
+def v200_split_payload() -> dict:
+    def rows(groups):
+        return [
+            {"noun": noun, "century": century, "rank_key": _v200_group_rank(noun, century)}
+            for noun, century in groups
+        ]
+    return {
+        "schema": "green-bridge-v2.0.0-resplit-v1",
+        "salt": V200_RESPLIT_SALT,
+        "source_split": "green-bridge-v1.3.6-confirmation",
+        "development_groups": rows(V200_DEVELOPMENT_GROUPS),
+        "confirmation_groups": rows(V200_CONFIRMATION_GROUPS),
+        "distance_bins": ["near", "far"],
+        "roles": ["tensor", "energy"],
+        "records_per_role_per_cell": 8,
+    }
+
+
+def build_green_bridge_v200_splits(
+    pair_allowed: Callable[[str, str], bool] | None = None,
+) -> tuple[list[PairRecord], dict]:
+    """Resplit only the unopened v1.3.6 confirmation population."""
+    original = build_evaluation_records(pair_allowed)
+    exposed = {
+        (row.noun, row.century) for row in original if row.split == "development"
+    }
+    source = [row for row in original if row.split == "confirmation"]
+    development = set(V200_DEVELOPMENT_GROUPS)
+    confirmation = set(V200_CONFIRMATION_GROUPS)
+    source_groups = {(row.noun, row.century) for row in source}
+    if development & confirmation or exposed & (development | confirmation):
+        raise AssertionError("v2.0.0 split crosses the contamination firewall")
+    if development | confirmation != source_groups:
+        raise AssertionError("v2.0.0 split does not cover the unopened population")
+    records = [
+        replace(
+            row,
+            split=("development" if (row.noun, row.century) in development else "confirmation"),
+        )
+        for row in source
+    ]
+    dev_cells = {row.cell_id for row in records if row.split == "development"}
+    confirm_cells = {row.cell_id for row in records if row.split == "confirmation"}
+    if len(dev_cells) != 8 or len(confirm_cells) != 24:
+        raise AssertionError("v2.0.0 cell counts are not 8 development and 24 confirmation")
+    payload = v200_split_payload()
+    actual = sha256_text(canonical_json(payload))
+    payload["sha256"] = actual
+    if actual != V200_SPLIT_SHA256:
+        raise AssertionError(f"v2.0.0 split hash mismatch: {actual}")
+    return records, payload
 
 
 def build_legacy_donor_records(

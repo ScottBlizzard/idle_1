@@ -16,11 +16,12 @@ from typing import Any
 
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
-OUTPUT_ROOT = PROJECT_ROOT / "outputs" / "green_bridge_v136"
-SCHEMA_VERSION = "green-bridge-v1.3.6"
-PROTOCOL_ID = "structural-envelope-matched-bypass-v1.3.6"
-PARENT_PROTOCOL_ID = "structural-envelope-matched-bypass-v1"
-AMENDMENT_ID = "CODEX-GREEN-V136-DIRECT-BYPASS-ORIENTATION-v1-20260825"
+OUTPUT_ROOT = PROJECT_ROOT / "outputs" / "green_bridge_v200"
+SCHEMA_VERSION = "green-bridge-v2.0.0"
+PROTOCOL_ID = "structural-envelope-matched-bypass-setid-v2.0.0"
+PARENT_PROTOCOL_ID = "structural-envelope-matched-bypass-v1.3.6"
+DECISION_ID = "GPTPRO-GREEN-V136-TERMINAL-SETID-v1-20260825"
+AMENDMENT_ID = DECISION_ID
 THEORY_BASE_COMMIT = "126556f"
 GATE04_AMENDMENT_ID = "GPTPRO-GREEN-GATE04-v2-20260805"
 GATE08_AMENDMENT_ID = "GPTPRO-GREEN-GATE08-v2-20260805"
@@ -32,7 +33,9 @@ SALT = LEGACY_SALT
 MODEL_ID = "openai-community/gpt2"
 MODEL_REVISION = "607a30d783dfa663caf39e06633721c8d4cfcd7e"
 TRANSFORMER_LENS_COMMIT = "4a4dc26c750475b29e6f54b362c2aab988702c9c"
-PROTOCOL_RUN_ID = "green-bridge-v1.3.6-one-shot"
+PROTOCOL_RUN_ID = "green-bridge-v2.0.0-one-shot"
+ATTEMPT_INDEX = 1
+RETRY_ALLOWED = False
 TAIL_DERIVATIVE_REFERENCE_NORM_FLOOR = 1.0e-5
 TAIL_EQUIVALENCE_OUTPUT_DIM = 100
 TAIL_FIXED_BATCH_SIZE = 1
@@ -68,6 +71,14 @@ FIRST_ORDER_RESIDUAL_DIRECTIONS = 250
 RESIDUAL_RADIUS_MULTIPLIER = 0.20
 GATE_RADIUS = 0.20
 HALF_RADIUS_MULTIPLIER = 0.50
+QUARTER_RADIUS_MULTIPLIER = 0.25
+FACTORIZATION_COMPATIBILITY_RATIO_MAX = 1.0
+WHITEBOX_COMPATIBILITY_RATIO_MAX = 1.0
+WHITEBOX_FACTORIZATION_RATIO_MAX = 1.0
+DYADIC_BALL_OVERLAP_RATIO_MAX = 1.0
+WHITEBOX_COORDINATE_ABS_ERROR_MAX = 1.0e-10
+AD_AUDIT_STRATA = 40
+AD_AUDIT_PERMITTED_MISSES = 0
 STRUCTURAL_FRAME_ORTHOGONAL_MAX = 5e-13
 STRUCTURAL_ATOM_RESIDUAL_MAX = 1e-12
 STRUCTURAL_GRADIENT_RESIDUAL_MAX = 1e-10
@@ -113,6 +124,38 @@ SUFFIX_MAX = 94
 SELECTED_GATES = (2326, 1138, 2287, 606, 2848, 2305, 46, 2659, 946, 1616)
 OUTPUT_SUFFIXES = tuple(range(100))
 
+V200_RESPLIT_SALT = "green-v200-resplit-20260825"
+V200_DEVELOPMENT_GROUPS = (
+    ("dynasty", 16),
+    ("dynasty", 12),
+    ("reign", 14),
+    ("warfare", 14),
+)
+V200_CONFIRMATION_GROUPS = (
+    ("treaty", 12),
+    ("warfare", 12),
+    ("expedition", 14),
+    ("kingdom", 12),
+    ("treaty", 16),
+    ("kingdom", 16),
+    ("campaign", 14),
+    ("siege", 16),
+    ("reign", 12),
+    ("siege", 14),
+    ("campaign", 16),
+    ("expedition", 16),
+)
+V200_SPLIT_SHA256 = "f012a286801bc3e3e937b390f0a62d7e92f8d5a21ba59d7e53478ae911e72cfc"
+
+HISTORICAL_V136_THRESHOLDS = {
+    "factorization_residual_max": 0.15,
+    "whitebox_a_relative_max": 0.05,
+    "whitebox_a_small_absolute_max": 1e-4,
+    "tensor_cosine_min": 0.95,
+    "tensor_symmetric_change_max": 0.25,
+    "richardson_change_max": 0.25,
+}
+
 
 @dataclass(frozen=True)
 class Dimensions:
@@ -149,25 +192,24 @@ class Thresholds:
     curvature_snr_min: float = 20.0
     gate_response_rms_min: float = 5e-4
     gate_response_snr_min: float = 20.0
-    factorization_residual_max: float = 0.15
-    whitebox_a_relative_max: float = 0.05
-    whitebox_a_small_absolute_max: float = 1e-4
-    tensor_cosine_min: float = 0.95
-    tensor_symmetric_change_max: float = 0.25
-    richardson_change_max: float = 0.25
+    factorization_compatibility_ratio_max: float = FACTORIZATION_COMPATIBILITY_RATIO_MAX
+    whitebox_compatibility_ratio_max: float = WHITEBOX_COMPATIBILITY_RATIO_MAX
+    whitebox_factorization_ratio_max: float = WHITEBOX_FACTORIZATION_RATIO_MAX
+    dyadic_ball_overlap_ratio_max: float = DYADIC_BALL_OVERLAP_RATIO_MAX
     tensor_snr_min: float = 20.0
     bypass_disagreement_max: float = 0.15
     active_gates_min: int = 3
+    certified_null_contribution_max: float = 0.005
     valid_items_per_cell_min: int = 6
     projected_chord_sigma_min: float = 0.10
-    development_cells_min: int = 15
-    confirmation_technical_min: int = 28
-    confirmation_oral_min: int = 29
-    total_cells_technical_min: int = 40
-    cells_per_bin_min: int = 14
+    development_cells_min: int = 8
+    confirmation_technical_min: int = 21
+    confirmation_oral_min: int = 22
+    total_cells_technical_min: int = 27
+    cells_per_bin_min: int = 11
     conditioning_absolute: float = 0.10
     conditioning_dev_sd: float = 0.25
-    development_snr_cells_min: int = 10
+    development_snr_cells_min: int = 5
     development_snr_min: float = 3.0
     development_stop_below: float = 0.05
     confirmation_open_gain_min: float = 0.10
@@ -222,6 +264,7 @@ FROZEN_SPEC: dict[str, Any] = {
     "radii": {
         "full": 1.0,
         "half": HALF_RADIUS_MULTIPLIER,
+        "quarter": QUARTER_RADIUS_MULTIPLIER,
         "residual_multiplier": RESIDUAL_RADIUS_MULTIPLIER,
         "gate": GATE_RADIUS,
     },
@@ -237,7 +280,7 @@ FROZEN_SPEC: dict[str, Any] = {
         "parameter_mapping_exact": True,
         "hf_tl_error_enters_epsilon_y": False,
     },
-    "numerical_error_contract": "frozen-richardson-propagation-v1",
+    "numerical_error_contract": "three-scale-bound-certified-setid-v2.0.0",
     "structural_envelope_amendment": {
         "id": AMENDMENT_ID,
         "basis_object": "ambient-rank-one-operator",

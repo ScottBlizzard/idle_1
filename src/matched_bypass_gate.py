@@ -44,6 +44,42 @@ class GateIdentification:
     gate_response_norm: float
 
 
+@dataclass(frozen=True)
+class GateScaleIdentificationV200:
+    base: GateJet
+    half: GateJet
+    quarter: GateJet
+    coarse_richardson: GateJet
+    fine_richardson: GateJet
+    identification: GateIdentification | None
+
+
+@dataclass(frozen=True)
+class GateCertificationV200:
+    label: str
+    reason: str
+    factorization_ratio: float | None
+    whitebox_ratio: float | None
+    whitebox_factorization_ratio: float | None
+    shift_ratio: float | None
+    point_identified: bool
+
+
+@dataclass(frozen=True)
+class GateContributionIntervalV200:
+    label: str
+    center: float
+    lower: float
+    upper: float
+    error_bound: float
+
+    def __post_init__(self):
+        if not np.isfinite([self.center, self.lower, self.upper, self.error_bound]).all():
+            raise ValueError("gate contribution interval must be finite")
+        if self.lower > self.center or self.center > self.upper or self.error_bound < 0:
+            raise ValueError("gate contribution interval is inconsistent")
+
+
 def identify_gate(jet: GateJet, *, curvature_floor: float = 0.0) -> GateIdentification:
     """Apply the exact matched-bypass inverse for one actual scalar gate.
 
