@@ -16,6 +16,7 @@ venv/
 # Local tool/vendor snapshots and scratch work
 _nature_skills/
 tmp/
+.scratch/
 
 # 实验产物（在服务器上生成，不回传）
 data/
