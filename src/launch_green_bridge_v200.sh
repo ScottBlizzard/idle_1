@@ -15,7 +15,7 @@ PROJECT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 ENV_NAME="green_bridge_20260805"
 RUNTIME_ROOT="/mnt/sdb/ccj/iclr_1_runs/green_bridge_v200_runtime"
 CACHE_ROOT="/mnt/sdb/ccj/iclr_1_runs/green_bridge_v136_runtime"
-mkdir -p "$RUNTIME_ROOT/pip" "$RUNTIME_ROOT/torch" "$RUNTIME_ROOT/tmp"
+mkdir -p "$RUNTIME_ROOT/pip" "$RUNTIME_ROOT/torch" "$RUNTIME_ROOT/tmp" "$RUNTIME_ROOT/logs"
 if [[ ! -d "$CACHE_ROOT/huggingface/hub" ]]; then
   echo "STOP 01_ENVIRONMENT: frozen Hugging Face cache missing" >&2
   exit 1
@@ -74,8 +74,8 @@ export PYTHONHASHSEED=20260805 TOKENIZERS_PARALLELISM=false
 export CUBLAS_WORKSPACE_CONFIG=:4096:8
 export OMP_NUM_THREADS=1 MKL_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1
 export BLIS_NUM_THREADS=1 VECLIB_MAXIMUM_THREADS=1 NUMEXPR_NUM_THREADS=1
-TEST_LOG="/tmp/green_bridge_v200_contract_${PHASE}.log"
-RUN_LOG="/tmp/green_bridge_v200_${PHASE}.log"
+TEST_LOG="$RUNTIME_ROOT/logs/green_bridge_v200_contract_${PHASE}.log"
+RUN_LOG="$RUNTIME_ROOT/logs/green_bridge_v200_${PHASE}.log"
 python src/test_green_bridge_contract.py 2>&1 | tee "$TEST_LOG"
 python src/exp_green_bridge_gpt2.py --phase "$PHASE" --device cuda:0 \
   --output-root outputs/green_bridge_v200 2>&1 | tee "$RUN_LOG"
