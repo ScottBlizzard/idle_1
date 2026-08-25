@@ -1,0 +1,21 @@
+Loading weights:   0%|          | 0/148 [00:00<?, ?it/s]Loading weights:  94%|█████████▍| 139/148 [00:00<00:00, 1050.45it/s]Loading weights: 100%|██████████| 148/148 [00:00<00:00, 1107.28it/s]
+Loaded pretrained model gpt2 into HookedTransformer
+Traceback (most recent call last):
+  File "/mnt/sdb/ccj/iclr_1_runs/idle_1_green_bridge_v134/src/green_bridge_multigpu_worker.py", line 139, in <module>
+    main()
+  File "/mnt/sdb/ccj/iclr_1_runs/idle_1_green_bridge_v134/src/green_bridge_multigpu_worker.py", line 90, in main
+    result = runner._run_endpoint_batch(
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/mnt/sdb/ccj/iclr_1_runs/idle_1_green_bridge_v134/src/exp_green_bridge_gpt2.py", line 2738, in _run_endpoint_batch
+    result = evaluate()
+             ^^^^^^^^^^
+  File "/mnt/sdb/ccj/iclr_1_runs/idle_1_green_bridge_v134/src/green_bridge_multigpu_worker.py", line 94, in <lambda>
+    lambda record=record: runner._tensor_item_v13(
+                          ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/mnt/sdb/ccj/iclr_1_runs/idle_1_green_bridge_v134/src/exp_green_bridge_gpt2.py", line 3152, in _tensor_item_v13
+    mixed[system] = _mixed_system_v13(
+                    ^^^^^^^^^^^^^^^^^^
+  File "/mnt/sdb/ccj/iclr_1_runs/idle_1_green_bridge_v134/src/exp_green_bridge_gpt2.py", line 3021, in _mixed_system_v13
+    contraction = float(contrast @ operator_action(estimate.G, cotangent, physical_v))
+                                                   ^^^^^^^^^^
+AttributeError: 'GateIdentification' object has no attribute 'G'
