@@ -37,6 +37,29 @@ def _batch_addmm(bias, weight, value):
     return batch_addmm(bias, weight, value)
 
 
+def _full_transformerlens_year_logits(
+    model,
+    normalized_final,
+    final_positions,
+    suffix_token_ids,
+):
+    """Apply the independent pinned full-vocabulary output endpoint."""
+    try:
+        from transformer_lens.utilities import apply_softcap
+    except ImportError as exc:  # pragma: no cover - server environment
+        raise RuntimeError("path target requires pinned TransformerLens") from exc
+
+    full_logits = model.unembed(normalized_final)
+    full_logits = apply_softcap(
+        full_logits,
+        model.cfg.output_logits_soft_cap,
+    )
+    torch = _torch()
+    rows = torch.arange(full_logits.shape[0], device=full_logits.device)
+    final = full_logits[rows, final_positions]
+    return final.index_select(-1, suffix_token_ids)
+
+
 def logit_contrast(clean_suffix: int, *, device=None, dtype=None):
     torch = _torch()
     if not 5 <= int(clean_suffix) <= 94:
@@ -86,12 +109,12 @@ def evaluate_joint_target(
 
     resid = model.blocks[11](resid_post)
     normalized_final = model.ln_final(resid)
-    final = normalized_final[rows, positions, :]
-    W_selected = model.W_U.index_select(1, suffix_token_ids)
-    logits = final @ W_selected
-    if getattr(model, "b_U", None) is not None:
-        logits = logits + model.b_U.index_select(0, suffix_token_ids)
-    return logits
+    return _full_transformerlens_year_logits(
+        model,
+        normalized_final,
+        positions,
+        suffix_token_ids,
+    )
 
 
 def finite_path_effect(

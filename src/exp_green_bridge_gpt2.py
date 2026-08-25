@@ -52,8 +52,11 @@ from green_bridge_spec import (
     MODEL_ID,
     MODEL_REVISION,
     OUTPUT_ROOT,
+    PARENT_PROTOCOL_ID,
+    PREDECESSOR_RUN,
     PROBE_FRAME_DIM,
     PROTOCOL_ID,
+    PROTOCOL_RUN_ID,
     PROJECT_ROOT,
     RESIDUAL_RADIUS_MULTIPLIER,
     SELECTED_GATES,
@@ -64,6 +67,8 @@ from green_bridge_spec import (
     STRUCTURAL_GRADIENT_AUTOGRAD_RELATIVE,
     STRUCTURAL_GRADIENT_RESIDUAL_MAX,
     THRESHOLDS,
+    TAIL_DERIVATIVE_REFERENCE_NORM_FLOOR,
+    TAIL_EQUIVALENCE_OUTPUT_DIM,
     TRANSFORMER_LENS_COMMIT,
     canonical_json,
     frozen_spec_hash,
@@ -98,7 +103,12 @@ from green_bridge_numerics import (
     sum_item_error_bounds,
 )
 from green_bridge_tail import GreenBridgeTail, TailAnchor, capture_tail_anchor, gather_year_logits
-from green_bridge_path_target import TargetAnchor, finite_path_effect, target_jvp
+from green_bridge_path_target import (
+    TargetAnchor,
+    evaluate_joint_target,
+    finite_path_effect,
+    target_jvp,
+)
 from matched_bypass_gate import (
     GateJet,
     cosine,
@@ -124,6 +134,7 @@ SOURCE_FILES = (
     "src/analyze_green_bridge.py",
     "src/test_green_bridge_contract.py",
     "src/launch_green_bridge.sh",
+    "src/launch_green_bridge_v131.sh",
 )
 PROTOCOL_FILES = (
     "analysis/GPTPRO_GREEN_BRIDGE_20260805.md",
@@ -134,6 +145,10 @@ PROTOCOL_FILES = (
     "analysis/GREEN_SERVER_GATE08_V12_20260805.md",
     "analysis/GPTPRO_GREEN_GATE08_V12_DECISION_20260805.md",
     "analysis/GREEN_V13_HASH_CORRIGENDUM_REQUEST_20260806.md",
+    "analysis/GREEN_SERVER_V13_PREPARE_STOP_20260825.md",
+    "analysis/GPTPRO_GREEN_V13_MANUAL_TAIL_DECISION_20260825.md",
+    "analysis/archive/green_v13_stop_20260825/archive_manifest.json",
+    "analysis/archive/green_v13_stop_20260825/green_bridge_v13_prepare.log",
     "requirements-green-bridge.lock",
 )
 EXPECTED_PACKAGES = {
@@ -151,6 +166,7 @@ TL_SOURCE_SHA256 = {
     "HookedRootModule.py": "e7144971a973ec2d63bf7400db6443caba5d03f22f310f6789d52fa4a56ad245",
     "components/mlps/mlp.py": "615cb178d3ce65d8784af18dec86fbfe2b3957ddc02d3b99bdd2d45aa6759b32",
     "utilities/addmm.py": "f9e72f6a3d6c508814fa8e69918c20e1cb72cbc9ae7bcb1a1abb2476e246bc38",
+    "components/unembed.py": "efde00edc62c521c4da216266ea698876b46df6aa8bc3b0632cfe929dbfdce6f",
 }
 FORWARD_COUNTS = {
     "mixed_per_tensor_item": 2082,
@@ -171,8 +187,9 @@ FORWARD_COUNTS = {
     "development_effective_units": 538_336,
     "confirmation_effective_units": 1_076_288,
 }
-REVIEW_COMMIT = "da5161ad2e87a9bfb7de8bf772af7969ff531f64"
+REVIEW_COMMIT = "b8b5f7b509abda310f3e2414e0552a644a12b4bf"
 GATE04_ORDERED_PROMPT_HASH = "619d21c10d4f30e6ce2597c3ba4df1de72cf0cb4f6cce322d82c2d3ec62803ce"
+ACTIVE_MANUAL_TAIL_BATCH_SIZE = 512
 
 
 class GreenStop(RuntimeError):
@@ -182,6 +199,106 @@ class GreenStop(RuntimeError):
         self.detail = detail
 
 
+V13_TERMINAL_HASHES = {
+    "outputs/green_bridge/result.json": "6f61c77b262eee821970dc19ff98f3baaf78e0aa9a65135bed343ed54ac7445d",
+    "outputs/green_bridge/run_ledger.json": "a4c21ea2bea3e42de13bd7789a17db849290556147250ba6f284b3aefa51172c",
+    "outputs/green_bridge/hook_audit.json": "49aa7a1818fb06d63b975938aea7285d3198fccc97723a96a37afa097abdbb99",
+    "outputs/green_bridge/structural_frame_preflight.json": "e0f65f22d29fb8db891094c407c25234f7f8f9f19738d4edaf3fb2ed5a19a05a",
+    "outputs/green_bridge/first_order_coefficients.npy": "d9305194f8d026ddde1a1d9084dd74409eae21e25b0b7600ca51f8887ff7b926",
+    "outputs/green_bridge/splits.json": "0490113fbfe66bcab1fba924896f832fac4668f2566402aa0107ed4fa43ed0ca",
+    "outputs/green_bridge/development_splits.json": "7fb05a1bf83d0083c622630694df09485dbaf18f4caaf6f5614200e0d8d2baf0",
+    "outputs/green_bridge/model_fingerprint.json": "fb9bd5a686d1bb09fa31c4cc308ff51f26c1d64075feb57d5a330db8fcaa6cb0",
+    "outputs/green_bridge/gate04_legacy_panel.json": "646d2ebcf1229645c83ebadea7f39d782e12152a8248dbd122f8c11e58c83df1",
+    "analysis/archive/green_v13_stop_20260825/green_bridge_v13_prepare.log": "28c2788da0477b5c95c4498d70a9a4183f2188419dbca6e5f4725b60d5dc8e52",
+}
+
+
+def _scientific_payload(spec: dict | None = None) -> dict:
+    """Return only the frozen scientific contract, excluding v1.3.1 identity."""
+    payload = json.loads(canonical_json(FROZEN_SPEC if spec is None else spec))
+    for key in ("schema_version", "protocol_id", "amendment_id"):
+        payload.pop(key, None)
+    amendment = payload.get("structural_envelope_amendment")
+    if isinstance(amendment, dict):
+        amendment.pop("id", None)
+    return payload
+
+
+def activate_hardware_batch_plan(output_root: Path) -> dict:
+    """Load the immutable prepare-selected hardware plan for this process."""
+    global ACTIVE_MANUAL_TAIL_BATCH_SIZE
+    path = output_root / "hardware_batch_plan.json"
+    if not path.is_file():
+        raise GreenStop("17_MANIFEST_FREEZE", "hardware batch plan missing")
+    plan = json.loads(path.read_text(encoding="utf-8"))
+    selected = plan.get("manual_tail_batch_size")
+    if selected not in (512, 256, 128, 64, 32, 16, 8, 4, 2, 1):
+        raise GreenStop("17_MANIFEST_FREEZE", f"invalid manual batch {selected}")
+    ACTIVE_MANUAL_TAIL_BATCH_SIZE = int(selected)
+    return plan
+
+
+def verify_v13_terminal_archive() -> dict:
+    """Verify the immutable v1.3 STOP and its copied external evidence."""
+    for relative, expected in V13_TERMINAL_HASHES.items():
+        path = PROJECT_ROOT / relative
+        if not path.is_file():
+            raise GreenStop("00A_PREDECESSOR_ARCHIVE", f"missing {relative}")
+        actual = sha256_file(path)
+        if actual != expected:
+            raise GreenStop(
+                "00A_PREDECESSOR_ARCHIVE",
+                f"hash mismatch {relative}: {actual} != {expected}",
+            )
+
+    old_root = PROJECT_ROOT / "outputs" / "green_bridge"
+    result = json.loads((old_root / "result.json").read_text(encoding="utf-8"))
+    ledger = json.loads((old_root / "run_ledger.json").read_text(encoding="utf-8"))
+    required = {
+        "result_verdict": result.get("verdict") == "STOP",
+        "result_gate": result.get("first_failed_gate") == "06_MANUAL_TAIL",
+        "attempt": ledger.get("attempt_index") == 1,
+        "retry": ledger.get("retry_allowed") is False,
+        "development": ledger.get("development_started") is False,
+        "confirmation": ledger.get("confirmation_started") is False,
+    }
+    if not all(required.values()):
+        raise GreenStop("00A_PREDECESSOR_ARCHIVE", str(required))
+    for name in (
+        "frozen_analysis.json",
+        "dev_tensor_scores.parquet",
+        "dev_energy_targets.parquet",
+        "dev_cells.json",
+        "dev_result.json",
+        "confirm_tensor_scores.parquet",
+        "confirm_energy_targets.parquet",
+        "confirm_cells.json",
+    ):
+        if (old_root / name).exists():
+            raise GreenStop("00A_PREDECESSOR_ARCHIVE", f"unexpected {name}")
+
+    archive_root = PROJECT_ROOT / "analysis" / "archive" / "green_v13_stop_20260825"
+    manifest_path = archive_root / "archive_manifest.json"
+    frozen_path = archive_root / "frozen_scientific_spec_v13.json"
+    if not manifest_path.is_file() or not frozen_path.is_file():
+        raise GreenStop("00A_PREDECESSOR_ARCHIVE", "archive metadata is incomplete")
+    archive = json.loads(manifest_path.read_text(encoding="utf-8"))
+    if archive.get("old_files_modified") is not False:
+        raise GreenStop("00A_PREDECESSOR_ARCHIVE", "archive modification declaration missing")
+    parent = json.loads(frozen_path.read_text(encoding="utf-8"))
+    parent_payload = parent.get("scientific_payload")
+    parent_hash = parent.get("scientific_sha256")
+    if not isinstance(parent_payload, dict) or sha256_text(canonical_json(parent_payload)) != parent_hash:
+        raise GreenStop("00A_PREDECESSOR_ARCHIVE", "invalid frozen scientific payload")
+    return {
+        "predecessor": PREDECESSOR_RUN,
+        "terminal_hashes": dict(V13_TERMINAL_HASHES),
+        "archive_manifest_sha256": sha256_file(manifest_path),
+        "frozen_scientific_sha256": parent_hash,
+        "frozen_scientific_path_sha256": sha256_file(frozen_path),
+    }
+
+
 def torch_module():
     import torch
     return torch
@@ -189,7 +306,7 @@ def torch_module():
 
 def terminal_stop(output_root: Path, gate: str, detail: str) -> None:
     payload = {
-        "schema_version": "green-bridge-terminal-v1.3",
+        "schema_version": "green-bridge-terminal-v1.3.1",
         "verdict": "STOP",
         "first_failed_gate": gate,
         "detail": detail,
@@ -234,13 +351,13 @@ def assert_clean_repository() -> dict:
 
 
 def assert_empty_prepare_root(output_root: Path) -> None:
-    if output_root.exists() and (not output_root.is_dir() or any(output_root.iterdir())):
+    if output_root.exists():
         raise GreenStop("00_OUTPUT_ROOT_NOT_EMPTY", str(output_root))
 
 
 def write_run_ledger(output_root: Path, repository: dict) -> None:
     write_json_atomic(output_root / "run_ledger.json", {
-        "protocol_run_id": "green-bridge-v1.3-one-shot",
+        "protocol_run_id": PROTOCOL_RUN_ID,
         "attempt_index": 1,
         "retry_allowed": False,
         "prepare_restart_allowed": False,
@@ -281,6 +398,11 @@ def first_order_directions() -> np.ndarray:
 
 
 def configure_runtime(device: str) -> dict:
+    if os.environ.get("CUDA_VISIBLE_DEVICES") != "4" or device != "cuda:0":
+        raise GreenStop(
+            "01_ENVIRONMENT",
+            "v1.3.1 requires physical GPU 4 exposed as cuda:0",
+        )
     if os.environ.get("CUBLAS_WORKSPACE_CONFIG") != ":4096:8":
         raise GreenStop(
             "01_ENVIRONMENT",
@@ -310,6 +432,11 @@ def configure_runtime(device: str) -> dict:
         raise GreenStop("01_ENVIRONMENT", f"Python={platform.python_version()}, expected 3.11.13")
     if not device.startswith("cuda") or not torch.cuda.is_available():
         raise GreenStop("01_ENVIRONMENT", "a CUDA device is required")
+    if torch.cuda.device_count() != 1 or "RTX 4090" not in torch.cuda.get_device_name(0):
+        raise GreenStop(
+            "01_ENVIRONMENT",
+            f"expected one visible RTX 4090, got {torch.cuda.device_count()} / {torch.cuda.get_device_name(0)}",
+        )
     if torch.version.cuda != "12.6" or not torch.__version__.startswith("2.7.1"):
         raise GreenStop("01_ENVIRONMENT", f"torch={torch.__version__}, CUDA={torch.version.cuda}")
     import transformer_lens
@@ -1294,18 +1421,32 @@ def target_basis_stability(model, tokenizer, suffix_ids, output_root: Path, radi
     return payload
 
 
-def full_hook_endpoint(
-    model, tokens, suffix_ids, anchor: TailAnchor, U, x, z, *, mode: str,
-    gate_slot: int | None = None, block8_patch=None, subtract_residual_bypass: bool = False,
+def full_hook_endpoint_physical(
+    model,
+    tokens,
+    suffix_ids,
+    anchor: TailAnchor,
+    residual_delta,
+    z,
+    *,
+    mode: str,
+    gate_slot: int | None = None,
+    block8_patch=None,
+    subtract_residual_bypass: bool = False,
+    return_trace: bool = False,
 ):
-    """Independent full-model implementation used only for tail equivalence audits."""
+    """Independent full-model physical-vector reference endpoint."""
     torch = torch_module()
     suffix_tensor = torch.as_tensor(suffix_ids, dtype=torch.long, device=tokens.device)
     rows = torch.arange(tokens.shape[0], device=tokens.device)
     positions = torch.full_like(rows, tokens.shape[1] - 1)
-    residual_delta = x @ U.T
     gate_ids = torch.as_tensor(SELECTED_GATES, dtype=torch.long, device=tokens.device)
     counts = {"x": 0, "z": 0, "post": 0, "subtract": 0, "patch": 0}
+    trace = {}
+
+    def remember(name, value):
+        if return_trace:
+            trace[name] = value.detach()
 
     def assert_untouched(before, after, zero_declared, label):
         difference = (after - before).clone()
@@ -1326,6 +1467,7 @@ def full_hook_endpoint(
         result = value.clone()
         result[rows, positions] += residual_delta.to(result.dtype)
         assert_untouched(value, result, lambda d: d.__setitem__((rows, positions), 0), "x")
+        remember("resid_mid_after_x", result)
         return result
 
     def z_hook(value, hook):
@@ -1345,6 +1487,7 @@ def full_hook_endpoint(
             assert_untouched(value, result, lambda d: d.__setitem__((rows, positions, gate), 0), "z-path")
         else:
             assert_untouched(value, result, lambda d: None, "z-control")
+        remember("pre_after_z", result)
         return result
 
     def post_hook(value, hook):
@@ -1364,14 +1507,34 @@ def full_hook_endpoint(
             controlled = anchor.pre[rows, anchor.final_positions, gate] + z.reshape(-1)
             result[rows, positions, gate] = model.blocks[10].mlp.act_fn(controlled)
         assert_untouched(value, result, lambda d: d.__setitem__((rows, positions), 0), "post")
+        remember("post_after_anchor", result)
         return result
 
     def subtract_hook(value, hook):
         counts["subtract"] += 1
+        remember("resid_post_before_subtraction", value)
         result = value.clone()
         result[rows, positions] -= residual_delta.to(result.dtype)
         assert_untouched(value, result, lambda d: d.__setitem__((rows, positions), 0), "subtract")
+        remember("resid_post_after_subtraction", result)
         return result
+
+    def capture_resid_post(value, hook):
+        remember("resid_post_before_subtraction", value)
+        remember("resid_post_after_subtraction", value)
+        return value
+
+    def capture_mlp_out(value, hook):
+        remember("mlp_out", value)
+        return value
+
+    def capture_block11(value, hook):
+        remember("block11_resid_post", value)
+        return value
+
+    def capture_unembed(value, hook):
+        remember("unembed_pre_softcap_full", value)
+        return value
 
     hooks = []
     if block8_patch is not None:
@@ -1380,17 +1543,72 @@ def full_hook_endpoint(
         ("blocks.10.hook_resid_mid", x_hook),
         ("blocks.10.mlp.hook_pre", z_hook),
         ("blocks.10.mlp.hook_post", post_hook),
+        ("blocks.10.hook_mlp_out", capture_mlp_out),
+        ("blocks.11.hook_resid_post", capture_block11),
+        ("unembed.hook_out", capture_unembed),
     ])
     if subtract_residual_bypass:
         hooks.append(("blocks.10.hook_resid_post", subtract_hook))
+    else:
+        hooks.append(("blocks.10.hook_resid_post", capture_resid_post))
+
+    module_handles = []
+    if return_trace:
+        module_handles.append(model.blocks[10].ln2.register_forward_hook(
+            lambda module, inputs, output: remember("ln2_output", output)
+        ))
+        module_handles.append(model.ln_final.register_forward_hook(
+            lambda module, inputs, output: remember("ln_final_output", output)
+        ))
     try:
         logits = model.run_with_hooks(tokens, fwd_hooks=hooks)
     finally:
+        for handle in module_handles:
+            handle.remove()
         model.reset_hooks()
     required = {"x": 1, "z": 1, "post": 1, "subtract": int(subtract_residual_bypass), "patch": int(block8_patch is not None)}
     if counts != required:
         raise GreenStop("05_HOOK_INVOCATION", f"hook counts {counts}, expected {required}")
-    return gather_year_logits(model, logits, positions, suffix_tensor)
+    year_logits = gather_year_logits(model, logits, positions, suffix_tensor)
+    if return_trace:
+        trace["unembed_post_softcap_full"] = logits.detach()
+        trace["year_logits"] = year_logits.detach()
+        required_trace = {
+            "resid_mid_after_x", "ln2_output", "pre_after_z",
+            "post_after_anchor", "mlp_out", "resid_post_before_subtraction",
+            "resid_post_after_subtraction", "block11_resid_post",
+            "ln_final_output", "unembed_pre_softcap_full",
+            "unembed_post_softcap_full", "year_logits",
+        }
+        if set(trace) != required_trace:
+            raise GreenStop(
+                "06B_MANUAL_TAIL_STAGE_TRACE",
+                f"full-hook trace keys {sorted(trace)}, expected {sorted(required_trace)}",
+            )
+        return year_logits, trace
+    return year_logits
+
+
+def full_hook_endpoint(
+    model, tokens, suffix_ids, anchor: TailAnchor, U, x, z, *, mode: str,
+    gate_slot: int | None = None, block8_patch=None,
+    subtract_residual_bypass: bool = False, return_trace: bool = False,
+):
+    """Coordinate wrapper around the independent physical-vector reference."""
+    residual_delta = x @ U.T
+    return full_hook_endpoint_physical(
+        model,
+        tokens,
+        suffix_ids,
+        anchor,
+        residual_delta,
+        z,
+        mode=mode,
+        gate_slot=gate_slot,
+        block8_patch=block8_patch,
+        subtract_residual_bypass=subtract_residual_bypass,
+        return_trace=return_trace,
+    )
 
 
 def tail_audit(model, tokenizer, suffix_ids, U_np, radii: dict, records, device: str, cached_anchors: dict) -> dict:
@@ -2141,8 +2359,15 @@ def verify_freeze(output_root: Path, require_confirmation: bool = False) -> dict
     if not manifest_path.is_file():
         raise GreenStop("17_MANIFEST_FREEZE", "manifest.json missing")
     manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
-    if manifest.get("schema_version") != "green-bridge-manifest-v1.3":
+    if manifest.get("schema_version") != "green-bridge-manifest-v1.3.1":
         raise GreenStop("17_MANIFEST_FREEZE", "manifest schema changed")
+    run = manifest.get("run", {})
+    if (
+        run.get("protocol_id") != PROTOCOL_ID
+        or run.get("parent_protocol_id") != PARENT_PROTOCOL_ID
+        or run.get("protocol_run_id") != PROTOCOL_RUN_ID
+    ):
+        raise GreenStop("17_MANIFEST_FREEZE", "v1.3.1 protocol identity changed")
     if manifest.get("prepare_complete") is not True:
         raise GreenStop("17_MANIFEST_FREEZE", "prepare did not complete")
     stopped = output_root / "result.json"
@@ -2160,6 +2385,26 @@ def verify_freeze(output_root: Path, require_confirmation: bool = False) -> dict
         raise GreenStop("17_MANIFEST_FREEZE", "frozen spec hash changed")
     if manifest["source_sha256"] != source_hashes():
         raise GreenStop("17_MANIFEST_FREEZE", "source hashes changed after launch")
+    actual_protocol = {
+        name: sha256_file(PROJECT_ROOT / name) for name in PROTOCOL_FILES
+    }
+    if manifest.get("protocol_sha256") != actual_protocol:
+        raise GreenStop("17_MANIFEST_FREEZE", "protocol hashes changed after launch")
+    if manifest.get("requirements_sha256") != sha256_file(
+        PROJECT_ROOT / "requirements-green-bridge.lock"
+    ):
+        raise GreenStop("17_MANIFEST_FREEZE", "requirements hash changed after launch")
+    verify_v13_terminal_archive()
+    invariance_path = output_root / "scientific_invariance_v131.json"
+    if not invariance_path.is_file():
+        raise GreenStop("17_MANIFEST_FREEZE", "scientific invariance record missing")
+    invariance = json.loads(invariance_path.read_text(encoding="utf-8"))
+    if (
+        invariance.get("scientific_payload_equal") is not True
+        or invariance.get("parent_scientific_sha256")
+        != invariance.get("current_scientific_sha256")
+    ):
+        raise GreenStop("17_MANIFEST_FREEZE", "scientific invariance changed")
     for name, expected in manifest.get("artifact_sha256", {}).items():
         path = output_root / name
         if not path.is_file() or sha256_file(path) != expected:
@@ -2666,8 +2911,8 @@ def _joint_margins_physical(tail, anchor, deltas, zs, contrast) -> np.ndarray:
     torch = torch_module()
     device = anchor.resid_mid.device
     outputs = []
-    for start in range(0, len(deltas), 512):
-        stop = min(start + 512, len(deltas))
+    for start in range(0, len(deltas), ACTIVE_MANUAL_TAIL_BATCH_SIZE):
+        stop = min(start + ACTIVE_MANUAL_TAIL_BATCH_SIZE, len(deltas))
         logits = tail.evaluate_physical(
             _repeat_anchor(anchor, stop - start),
             torch.as_tensor(deltas[start:stop], dtype=torch.float32, device=device),
@@ -2959,7 +3204,281 @@ def _development_throughput_preflight(
     return {"payload": payload, "results": results}
 
 
-def _tail_preflight_v13(model, tokenizer, suffix_ids, record, device: str) -> dict:
+def _legacy_selected_projection_year_logits(
+    model,
+    normalized_final,
+    final_positions,
+    suffix_ids,
+):
+    """Diagnostic-only reproduction of the archived v1.3 endpoint defect."""
+    torch = torch_module()
+    rows = torch.arange(normalized_final.shape[0], device=normalized_final.device)
+    final = normalized_final[rows, final_positions, :]
+    selected = model.W_U.index_select(1, suffix_ids)
+    logits = final @ selected
+    if getattr(model, "b_U", None) is not None:
+        logits = logits + model.b_U.index_select(0, suffix_ids)
+    return logits
+
+
+def _equivalence_metrics(actual, expected) -> dict:
+    torch = torch_module()
+    difference = actual.double() - expected.double()
+    return {
+        "bitwise_equal": bool(torch.equal(actual, expected)),
+        "max_abs": float(difference.abs().max().item()),
+        "rms": float(torch.sqrt(torch.mean(difference**2)).item()),
+        "shape": list(actual.shape),
+    }
+
+
+def derivative_equivalence_record(
+    manual_plus,
+    manual_minus,
+    full_plus,
+    full_minus,
+    *,
+    step: float,
+) -> dict:
+    torch = torch_module()
+    manual_derivative = (manual_plus.double() - manual_minus.double()) / (2.0 * step)
+    full_derivative = (full_plus.double() - full_minus.double()) / (2.0 * step)
+    difference = manual_derivative - full_derivative
+    absolute_l2 = float(torch.linalg.vector_norm(difference).item())
+    absolute_max = float(difference.abs().max().item())
+    reference_l2 = float(torch.linalg.vector_norm(full_derivative).item())
+    if reference_l2 > TAIL_DERIVATIVE_REFERENCE_NORM_FLOOR:
+        relative = absolute_l2 / reference_l2
+        passed = relative <= THRESHOLDS.tail_derivative_relative
+        status = "RELATIVE_APPLICABLE"
+        max_bound = None
+        l2_bound = None
+    else:
+        max_bound = THRESHOLDS.tail_max_abs / step
+        l2_bound = (
+            TAIL_EQUIVALENCE_OUTPUT_DIM ** 0.5
+            * THRESHOLDS.tail_max_abs
+            / step
+        )
+        relative = None
+        passed = absolute_max <= max_bound and absolute_l2 <= l2_bound
+        status = "NOT_APPLICABLE_NEAR_ZERO"
+    return {
+        "step": float(step),
+        "absolute_l2": absolute_l2,
+        "absolute_max": absolute_max,
+        "reference_l2": reference_l2,
+        "reference_norm_floor": TAIL_DERIVATIVE_REFERENCE_NORM_FLOOR,
+        "relative": relative,
+        "relative_threshold": THRESHOLDS.tail_derivative_relative,
+        "max_bound": max_bound,
+        "l2_bound": l2_bound,
+        "status": status,
+        "passed": bool(passed),
+    }
+
+
+def _prepare_batch_and_throughput_v131(
+    model,
+    tokens,
+    suffix_ids,
+    anchor,
+    frame_t,
+    tail,
+    device: str,
+    output_root: Path,
+) -> dict:
+    """Freeze memory-safe batch sizes and project the faithful endpoint cost."""
+    torch = torch_module()
+    memory_limit = 20 * 1024**3
+
+    def synchronize():
+        if torch.cuda.is_available():
+            torch.cuda.synchronize(device)
+
+    def reset_peak():
+        if torch.cuda.is_available():
+            torch.cuda.empty_cache()
+            torch.cuda.reset_peak_memory_stats(device)
+
+    def peak_bytes():
+        return int(torch.cuda.max_memory_allocated(device)) if torch.cuda.is_available() else 0
+
+    def manual_batch(count: int):
+        repeated = _repeat_anchor(anchor, count)
+        delta = torch.zeros((count, model.cfg.d_model), dtype=torch.float32, device=device)
+        z = torch.zeros(count, dtype=torch.float32, device=device)
+        return tail.evaluate_physical(repeated, delta, z, mode="path", gate_slot=0)
+
+    manual_trials = []
+    manual_choice = None
+    manual_elapsed = None
+    manual_reference = None
+    for candidate in (512, 256, 128, 64, 32, 16, 8, 4, 2, 1):
+        reset_peak()
+        started = time.perf_counter()
+        try:
+            with torch.inference_mode():
+                batched = manual_batch(candidate)
+            synchronize()
+            elapsed = time.perf_counter() - started
+            peak = peak_bytes()
+            fits = peak <= memory_limit
+            manual_trials.append({
+                "candidate": candidate, "peak_allocated_bytes": peak,
+                "elapsed_seconds": elapsed, "fits": fits,
+            })
+            if fits:
+                manual_choice = candidate
+                manual_elapsed = elapsed
+                manual_reference = batched.detach()
+                break
+        except (torch.cuda.OutOfMemoryError, RuntimeError) as exc:
+            if "out of memory" not in str(exc).lower() and not isinstance(exc, torch.cuda.OutOfMemoryError):
+                raise
+            manual_trials.append({
+                "candidate": candidate, "fits": False,
+                "error": "CUDA_OUT_OF_MEMORY",
+            })
+            if torch.cuda.is_available():
+                torch.cuda.empty_cache()
+    if manual_choice is None:
+        raise GreenStop("06E_BATCH_SHAPE_EQUIVALENCE", "no manual-tail batch fits")
+
+    with torch.inference_mode():
+        concatenated = torch.cat([manual_batch(1) for _ in range(manual_choice)], dim=0)
+    manual_concat_metrics = _equivalence_metrics(manual_reference, concatenated)
+    if manual_concat_metrics["max_abs"] > THRESHOLDS.tail_max_abs:
+        raise GreenStop("06E_BATCH_SHAPE_EQUIVALENCE", str(manual_concat_metrics))
+
+    full_trials = []
+    full_choice = None
+    full_elapsed = None
+    full_metrics = None
+    full_concat_metrics = None
+    for candidate in (64, 32, 16, 8, 4, 2, 1):
+        reset_peak()
+        repeated_tokens = tokens.repeat(candidate, 1)
+        repeated_anchor = _repeat_anchor(anchor, candidate)
+        coordinates = torch.zeros(
+            (candidate, PROBE_FRAME_DIM), dtype=torch.float32, device=device
+        )
+        z = torch.zeros(candidate, dtype=torch.float32, device=device)
+        started = time.perf_counter()
+        try:
+            with torch.inference_mode():
+                manual = tail.evaluate_physical(
+                    repeated_anchor,
+                    coordinates @ frame_t.T,
+                    z,
+                    mode="path",
+                    gate_slot=0,
+                )
+                full = full_hook_endpoint(
+                    model, repeated_tokens, suffix_ids, repeated_anchor,
+                    frame_t, coordinates, z, mode="path", gate_slot=0,
+                )
+            synchronize()
+            elapsed = time.perf_counter() - started
+            peak = peak_bytes()
+            fits = peak <= memory_limit
+            metrics = _equivalence_metrics(manual, full)
+            full_trials.append({
+                "candidate": candidate, "peak_allocated_bytes": peak,
+                "elapsed_seconds": elapsed, "fits": fits,
+                "manual_full": metrics,
+            })
+            if fits:
+                if metrics["max_abs"] > THRESHOLDS.tail_max_abs:
+                    raise GreenStop("06E_BATCH_SHAPE_EQUIVALENCE", str(metrics))
+                with torch.inference_mode():
+                    concat = torch.cat([manual_batch(1) for _ in range(candidate)], dim=0)
+                concat_metrics = _equivalence_metrics(manual, concat)
+                if concat_metrics["max_abs"] > THRESHOLDS.tail_max_abs:
+                    raise GreenStop("06E_BATCH_SHAPE_EQUIVALENCE", str(concat_metrics))
+                full_choice = candidate
+                full_elapsed = elapsed
+                full_metrics = metrics
+                full_concat_metrics = concat_metrics
+                break
+        except (torch.cuda.OutOfMemoryError, RuntimeError) as exc:
+            if isinstance(exc, GreenStop):
+                raise
+            if "out of memory" not in str(exc).lower() and not isinstance(exc, torch.cuda.OutOfMemoryError):
+                raise
+            full_trials.append({
+                "candidate": candidate, "fits": False,
+                "error": "CUDA_OUT_OF_MEMORY",
+            })
+            if torch.cuda.is_available():
+                torch.cuda.empty_cache()
+    if full_choice is None:
+        raise GreenStop("06E_BATCH_SHAPE_EQUIVALENCE", "no full-model batch fits")
+
+    plan = {
+        "schema_version": "green-bridge-hardware-batch-plan-v1.3.1",
+        "physical_gpu": 4,
+        "visible_device": "cuda:0",
+        "manual_tail_batch_size": manual_choice,
+        "full_model_jvp_batch_size": full_choice,
+        "memory_limit_bytes": memory_limit,
+        "manual_candidates": manual_trials,
+        "full_candidates": full_trials,
+        "frozen_before_development": True,
+    }
+    write_json_atomic(output_root / "hardware_batch_plan.json", plan)
+    batch_payload = {
+        "schema_version": "green-bridge-tail-batch-equivalence-v1.3.1",
+        "manual_batch_vs_concatenated_batch_one": manual_concat_metrics,
+        "selected_full_shape_manual_vs_full": full_metrics,
+        "selected_full_shape_manual_vs_concatenated_batch_one": full_concat_metrics,
+        "condition_order_preserved": True,
+        "repeated_anchor_values": True,
+        "passed": True,
+    }
+    write_json_atomic(
+        output_root / "manual_tail_batch_equivalence_v131.json",
+        batch_payload,
+    )
+
+    tail_seconds = (
+        math.ceil(FORWARD_COUNTS["tail_evaluations_total"] / manual_choice)
+        * float(manual_elapsed)
+    )
+    full_seconds = (
+        math.ceil(FORWARD_COUNTS["full_model_evaluations_total"] / full_choice)
+        * float(full_elapsed)
+    )
+    projected = tail_seconds + full_seconds
+    throughput = {
+        "schema_version": "green-bridge-tail-throughput-v1.3.1",
+        "preflight_record_only": True,
+        "manual_batch_seconds": manual_elapsed,
+        "full_batch_seconds": full_elapsed,
+        "manual_tail_projected_seconds": tail_seconds,
+        "full_model_projected_seconds": full_seconds,
+        "projected_total_seconds": projected,
+        "hard_cap_seconds": 24.0 * 3600.0,
+        "operation_counts": FORWARD_COUNTS,
+        "selected_projection_fallback": False,
+        "peak_limit_bytes": memory_limit,
+        "passed": projected <= 24.0 * 3600.0,
+    }
+    write_json_atomic(output_root / "manual_tail_throughput_v131.json", throughput)
+    if not throughput["passed"]:
+        raise GreenStop("06G_PREPARE_THROUGHPUT", str(throughput))
+    return {"plan": plan, "batch": batch_payload, "throughput": throughput}
+
+
+def _tail_preflight_v131(
+    model,
+    tokenizer,
+    suffix_ids,
+    record,
+    device: str,
+    output_root: Path,
+    preflight_design: dict,
+) -> dict:
     torch = torch_module()
     anchors, clean_tokens, _ = capture_item_systems(
         model, tokenizer, suffix_ids, record, device
@@ -2975,44 +3494,242 @@ def _tail_preflight_v13(model, tokenizer, suffix_ids, record, device: str) -> di
     frame_t = torch.as_tensor(frame, dtype=torch.float32, device=device)
     suffix_t = torch.as_tensor(suffix_ids, dtype=torch.long, device=device)
     tail = GreenBridgeTail(model, frame_t, suffix_t)
-    errors, derivative_errors = [], []
     anchor = anchors["tar"]
     conditions = [
-        ("path", np.zeros(5), 0.0),
-        ("path", np.eye(5)[0] * float(radius["h_x"]), 0.0),
-        ("path", np.zeros(5), GATE_RADIUS),
-        ("path", np.eye(5)[1] * float(radius["h_x"]), GATE_RADIUS),
-        ("control", np.eye(5)[2] * float(radius["h_x"]), GATE_RADIUS),
+        ("center", "path", np.zeros(5), 0.0),
+        ("x_only", "path", np.eye(5)[0] * float(radius["h_x"]), 0.0),
+        ("z_only", "path", np.zeros(5), GATE_RADIUS),
+        ("path_x_plus_z", "path", np.eye(5)[1] * float(radius["h_x"]), GATE_RADIUS),
+        ("control_x_plus_z", "control", np.eye(5)[2] * float(radius["h_x"]), GATE_RADIUS),
     ]
+    expected_legacy = [
+        7.62939453125e-05,
+        6.103515625e-05,
+        6.103515625e-05,
+        7.62939453125e-05,
+        6.103515625e-05,
+    ]
+    legacy_errors = []
+    stage_records = []
+    raw_records = []
+    corrected_endpoints = {}
     with torch.inference_mode():
-        for mode, coordinate, z_value in conditions:
+        for name, mode, coordinate, z_value in conditions:
             coordinate_t = torch.as_tensor(coordinate[None], dtype=torch.float32, device=device)
             delta_t = coordinate_t @ frame_t.T
             z_t = torch.tensor([z_value], dtype=torch.float32, device=device)
-            manual = tail.evaluate_physical(anchor, delta_t, z_t, mode=mode, gate_slot=0)
-            full = full_hook_endpoint(
-                model, clean_tokens, suffix_ids, anchor, frame_t, coordinate_t, z_t,
-                mode=mode, gate_slot=0,
+            manual, manual_trace = tail.evaluate_physical_with_trace(
+                anchor, delta_t, z_t, mode=mode, gate_slot=0
             )
-            difference = manual.double() - full.double()
-            errors.append(float(difference.abs().max().item()))
-            manual_delta = manual.double() - anchor.year_logits.double()
-            full_delta = full.double() - anchor.year_logits.double()
-            derivative_errors.append(float(
-                torch.linalg.vector_norm(manual_delta - full_delta).item()
-                / max(float(torch.linalg.vector_norm(full_delta).item()), 1e-5)
-            ))
-    result = {
-        "conditions": [row[0] for row in conditions],
-        "max_abs": max(errors), "errors": errors,
-        "max_derivative_relative": max(derivative_errors),
-        "derivative_relative_errors": derivative_errors,
+            full, full_trace = full_hook_endpoint(
+                model, clean_tokens, suffix_ids, anchor, frame_t, coordinate_t, z_t,
+                mode=mode, gate_slot=0, return_trace=True,
+            )
+            legacy = _legacy_selected_projection_year_logits(
+                model, manual_trace["ln_final_output"], anchor.final_positions, suffix_t
+            )
+            legacy_error = float((legacy.double() - full.double()).abs().max().item())
+            legacy_errors.append(legacy_error)
+
+            stage_mapping = (
+                ("resid_mid_after_x", "resid_mid_after_x"),
+                ("ln2_output", "ln2_output"),
+                ("pre_after_z", "pre_after_z"),
+                ("anchored_post", "post_after_anchor"),
+                ("mlp_out", "mlp_out"),
+                ("resid_post_after_subtraction", "resid_post_after_subtraction"),
+                ("block11_resid_post", "block11_resid_post"),
+                ("ln_final_output", "ln_final_output"),
+                ("unembed_pre_softcap_full", "unembed_pre_softcap_full"),
+                ("unembed_post_softcap_full", "unembed_post_softcap_full"),
+            )
+            comparisons = []
+            for manual_name, full_name in stage_mapping:
+                metrics = _equivalence_metrics(
+                    manual_trace[manual_name], full_trace[full_name]
+                )
+                comparisons.append({
+                    "stage": manual_name,
+                    "manual_key": manual_name,
+                    "full_key": full_name,
+                    **metrics,
+                })
+            first_divergent = next(
+                (row["stage"] for row in comparisons if not row["bitwise_equal"]),
+                None,
+            )
+            stage_records.append({
+                "condition": name,
+                "comparisons": comparisons,
+                "first_divergent_stage": first_divergent,
+            })
+            raw = _equivalence_metrics(manual, full)
+            raw_records.append({"condition": name, **raw})
+            corrected_endpoints[name] = (manual, full)
+
+    legacy_payload = {
+        "schema_version": "green-bridge-tail-root-cause-v1.3.1",
+        "diagnostic_only": True,
+        "condition_order": [row[0] for row in conditions],
+        "expected_errors": expected_legacy,
+        "observed_errors": legacy_errors,
+        "exact_reproduction": legacy_errors == expected_legacy,
+        "max_abs": max(legacy_errors),
+        "active_scientific_endpoint": False,
     }
-    if result["max_abs"] > THRESHOLDS.tail_max_abs:
-        raise GreenStop("06_MANUAL_TAIL", str(result))
-    if result["max_derivative_relative"] > THRESHOLDS.tail_derivative_relative:
-        raise GreenStop("06_MANUAL_TAIL_DERIVATIVE", str(result))
-    return result
+    write_json_atomic(
+        output_root / "manual_tail_root_cause_reproduction_v131.json",
+        legacy_payload,
+    )
+    if legacy_errors != expected_legacy or max(legacy_errors) <= THRESHOLDS.tail_max_abs:
+        raise GreenStop("06A_LEGACY_ROOT_CAUSE_REPRODUCTION", str(legacy_payload))
+
+    stage_payload = {
+        "schema_version": "green-bridge-tail-stage-trace-v1.3.1",
+        "records": stage_records,
+        "first_divergent_legacy_stage": "unembedding_endpoint",
+        "passed": all(
+            row["first_divergent_stage"] is None for row in stage_records
+        ),
+    }
+    write_json_atomic(output_root / "manual_tail_stage_trace_v131.json", stage_payload)
+    if not stage_payload["passed"]:
+        raise GreenStop("06B_MANUAL_TAIL_STAGE_TRACE", str(stage_payload))
+
+    if any(row["max_abs"] > THRESHOLDS.tail_max_abs for row in raw_records):
+        raise GreenStop("06C_MANUAL_TAIL_RAW", str(raw_records))
+
+    stencil_specs = [
+        ("path_dx_e0_at_z0", "path", "x", 0),
+        ("path_dx_e1_at_z0", "path", "x", 1),
+        ("path_dx_e2_at_z0", "path", "x", 2),
+        ("path_dz_at_x0", "path", "z", 0),
+        ("control_dx_e2_at_z0", "control", "x", 2),
+        ("control_dz_at_x0", "control", "z", 0),
+    ]
+    signed_raw = []
+    derivative_records = []
+    with torch.inference_mode():
+        for stencil_name, mode, direction_kind, axis in stencil_specs:
+            step = float(radius["h_x"] if direction_kind == "x" else GATE_RADIUS)
+            endpoints = {}
+            for sign_name, sign in (("plus", 1.0), ("minus", -1.0)):
+                coordinate = np.zeros(PROBE_FRAME_DIM)
+                z_value = 0.0
+                if direction_kind == "x":
+                    coordinate[axis] = sign * step
+                else:
+                    z_value = sign * step
+                coordinate_t = torch.as_tensor(
+                    coordinate[None], dtype=torch.float32, device=device
+                )
+                delta_t = coordinate_t @ frame_t.T
+                z_t = torch.tensor([z_value], dtype=torch.float32, device=device)
+                manual = tail.evaluate_physical(
+                    anchor, delta_t, z_t, mode=mode, gate_slot=0
+                )
+                full = full_hook_endpoint(
+                    model, clean_tokens, suffix_ids, anchor, frame_t,
+                    coordinate_t, z_t, mode=mode, gate_slot=0,
+                )
+                metrics = _equivalence_metrics(manual, full)
+                signed_raw.append({
+                    "stencil": stencil_name,
+                    "sign": sign_name,
+                    **metrics,
+                })
+                if metrics["max_abs"] > THRESHOLDS.tail_max_abs:
+                    raise GreenStop("06C_MANUAL_TAIL_RAW", str(signed_raw[-1]))
+                endpoints[f"manual_{sign_name}"] = manual
+                endpoints[f"full_{sign_name}"] = full
+            derivative = derivative_equivalence_record(
+                endpoints["manual_plus"], endpoints["manual_minus"],
+                endpoints["full_plus"], endpoints["full_minus"],
+                step=step,
+            )
+            derivative_records.append({"stencil": stencil_name, **derivative})
+            if not derivative["passed"]:
+                raise GreenStop("06D_MANUAL_TAIL_DERIVATIVE", str(derivative_records[-1]))
+
+    equivalence_payload = {
+        "schema_version": "green-bridge-tail-equivalence-v1.3.1",
+        "quantity": "raw_100_dimensional_year_logits",
+        "threshold": THRESHOLDS.tail_max_abs,
+        "original_conditions": raw_records,
+        "signed_endpoints": signed_raw,
+        "center_retained": True,
+        "passed": True,
+    }
+    write_json_atomic(output_root / "manual_tail_equivalence_v131.json", equivalence_payload)
+    derivative_payload = {
+        "schema_version": "green-bridge-tail-derivative-v1.3.1",
+        "estimator": "central_finite_difference",
+        "records": derivative_records,
+        "near_zero_not_silently_dropped": True,
+        "passed": True,
+    }
+    write_json_atomic(output_root / "manual_tail_derivative_v131.json", derivative_payload)
+
+    target_anchor = TargetAnchor(
+        resid_mid=anchor.resid_mid,
+        pre=anchor.pre,
+        post=anchor.post,
+        final_positions=anchor.final_positions,
+        system=anchor.system,
+    )
+    target_vector = torch.as_tensor(
+        preflight_design[record.pair_digest]["target"][None],
+        dtype=torch.float32,
+        device=device,
+    )
+    target_records = []
+    with torch.inference_mode():
+        for scale in (0.0, 1.0, -1.0, 0.5, -0.5):
+            physical_delta = scale * target_vector
+            target = evaluate_joint_target(
+                model, target_anchor, suffix_t, physical_delta
+            )
+            full = full_hook_endpoint_physical(
+                model,
+                clean_tokens,
+                suffix_ids,
+                anchor,
+                physical_delta,
+                torch.zeros((1, 10), dtype=torch.float32, device=device),
+                mode="joint",
+                subtract_residual_bypass=True,
+            )
+            metrics = _equivalence_metrics(target, full)
+            target_records.append({"scale": scale, **metrics})
+            if metrics["max_abs"] > THRESHOLDS.tail_max_abs:
+                raise GreenStop("06F_PATH_TARGET_RAW", str(target_records[-1]))
+    target_payload = {
+        "schema_version": "green-bridge-path-target-equivalence-v1.3.1",
+        "mode": "joint",
+        "subtract_residual_bypass": True,
+        "code_isolated": True,
+        "records": target_records,
+        "passed": True,
+    }
+    write_json_atomic(output_root / "path_target_equivalence_v131.json", target_payload)
+    hardware = _prepare_batch_and_throughput_v131(
+        model,
+        clean_tokens,
+        suffix_ids,
+        anchor,
+        frame_t,
+        tail,
+        device,
+        output_root,
+    )
+    return {
+        "legacy": legacy_payload,
+        "stage_trace": stage_payload,
+        "raw": equivalence_payload,
+        "derivative": derivative_payload,
+        "path_target": target_payload,
+        "hardware": hardware,
+    }
 
 
 def _duplicate_noise_v13(model, tokenizer, suffix_ids, records, device: str) -> dict:
@@ -3031,6 +3748,7 @@ def _duplicate_noise_v13(model, tokenizer, suffix_ids, records, device: str) -> 
 def prepare(output_root: Path, device: str) -> None:
     repository = assert_clean_repository()
     assert_empty_prepare_root(output_root)
+    predecessor_archive = verify_v13_terminal_archive()
     environment = configure_runtime(device)
     from transformers import AutoTokenizer
     tokenizer = AutoTokenizer.from_pretrained(MODEL_ID, revision=MODEL_REVISION)
@@ -3044,6 +3762,38 @@ def prepare(output_root: Path, device: str) -> None:
         raise GreenStop("04_HF_TL_FIDELITY", "legacy Gate-04 prompt hash changed")
     output_root.mkdir(parents=True, exist_ok=True)
     write_run_ledger(output_root, repository)
+    parent_scientific_path = (
+        PROJECT_ROOT / "analysis" / "archive" / "green_v13_stop_20260825"
+        / "frozen_scientific_spec_v13.json"
+    )
+    parent_scientific = json.loads(
+        parent_scientific_path.read_text(encoding="utf-8")
+    )
+    current_scientific_payload = _scientific_payload()
+    current_scientific_hash = sha256_text(canonical_json(current_scientific_payload))
+    parent_scientific_hash = parent_scientific["scientific_sha256"]
+    invariance = {
+        "parent_schema": "green-bridge-v1.3",
+        "current_schema": "green-bridge-v1.3.1",
+        "scientific_payload_equal": (
+            parent_scientific.get("scientific_payload") == current_scientific_payload
+            and parent_scientific_hash == current_scientific_hash
+        ),
+        "parent_scientific_sha256": parent_scientific_hash,
+        "current_scientific_sha256": current_scientific_hash,
+        "allowed_differences": [
+            "protocol identity",
+            "output root",
+            "manual-tail executable endpoint",
+            "target executable endpoint",
+            "equivalence-audit metric implementation",
+            "equivalence-audit artifacts",
+            "predecessor archival metadata",
+        ],
+    }
+    write_json_atomic(output_root / "scientific_invariance_v131.json", invariance)
+    if not invariance["scientific_payload_equal"]:
+        raise GreenStop("00B_V131_IDENTITY", str(invariance))
     evaluation_payload = plan_payload(evaluation)
     write_json_atomic(output_root / "splits.json", evaluation_payload)
     write_json_atomic(
@@ -3135,8 +3885,9 @@ def prepare(output_root: Path, device: str) -> None:
             f"coefficient hash {coefficient_hash} != {FIRST_ORDER_COEFFICIENT_SHA256}",
         )
     _atomic_np_save(output_root / "first_order_coefficients.npy", coefficients)
-    tail_result = _tail_preflight_v13(
-        model, tokenizer, suffix_ids, preflight_record, device
+    tail_result = _tail_preflight_v131(
+        model, tokenizer, suffix_ids, preflight_record, device,
+        output_root, preflight_design,
     )
     write_json_atomic(output_root / "tail_audit.json", tail_result)
     # Preflight scratch inputs are deliberately removed before prepare commits;
@@ -3149,13 +3900,31 @@ def prepare(output_root: Path, device: str) -> None:
     ):
         (output_root / name).unlink()
     required = (
-        "model_fingerprint.json", "splits.json", "development_splits.json",
-        "gate04_legacy_panel.json", "hook_audit.json",
-        "structural_frame_preflight.json", "first_order_coefficients.npy",
-        "tail_audit.json", "run_ledger.json",
+        "run_ledger.json", "model_fingerprint.json", "splits.json",
+        "development_splits.json", "gate04_legacy_panel.json",
+        "hook_audit.json", "structural_frame_preflight.json",
+        "first_order_coefficients.npy", "scientific_invariance_v131.json",
+        "manual_tail_root_cause_reproduction_v131.json",
+        "manual_tail_stage_trace_v131.json",
+        "manual_tail_equivalence_v131.json",
+        "manual_tail_derivative_v131.json",
+        "manual_tail_batch_equivalence_v131.json",
+        "path_target_equivalence_v131.json", "hardware_batch_plan.json",
+        "manual_tail_throughput_v131.json", "tail_audit.json",
+        "prepare_result.json",
     )
+    prepare_result = {
+        "schema_version": "green-bridge-prepare-v1.3.1",
+        "verdict": "PREPARE_PASS",
+        "first_failed_gate": None,
+        "development_started": False,
+        "confirmation_started": False,
+    }
+    write_json_atomic(output_root / "prepare_result.json", prepare_result)
     manifest = {
-        "schema_version": "green-bridge-manifest-v1.3",
+        "schema_version": "green-bridge-manifest-v1.3.1",
+        "execution_commit": repository["commit"],
+        "review_commit": REVIEW_COMMIT,
         "repository": {
             "url": "https://github.com/ScottBlizzard/idle_1",
             "branch": repository["branch"], "review_commit": REVIEW_COMMIT,
@@ -3164,7 +3933,10 @@ def prepare(output_root: Path, device: str) -> None:
             "repository_dirty_at_launch": False, "status_porcelain": "",
         },
         "run": {
-            "protocol_id": PROTOCOL_ID, "amendment_id": AMENDMENT_ID,
+            "protocol_id": PROTOCOL_ID,
+            "parent_protocol_id": PARENT_PROTOCOL_ID,
+            "protocol_run_id": PROTOCOL_RUN_ID,
+            "amendment_id": AMENDMENT_ID,
             "attempt_index": 1, "retry_allowed": False,
             "prepare_restart_allowed": False,
             "development_restart_allowed": False,
@@ -3172,7 +3944,7 @@ def prepare(output_root: Path, device: str) -> None:
             "phase_all_allowed": False,
         },
         "binding_decision": {
-            "document": "analysis/GPTPRO_GREEN_GATE08_V12_DECISION_20260805.md",
+            "document": "analysis/GPTPRO_GREEN_V13_MANUAL_TAIL_DECISION_20260825.md",
             "fixed_rank_donor_pca_terminated": True,
             "rank_search_allowed": False, "donor_basis_allowed": False,
             "spectral_filter_allowed": False, "learned_alignment_allowed": False,
@@ -3212,6 +3984,9 @@ def prepare(output_root: Path, device: str) -> None:
             "repeated_frame_bitwise_equal": True,
         },
         "frozen_spec": FROZEN_SPEC, "frozen_spec_sha256": frozen_spec_hash(),
+        "scientific_spec_sha256": current_scientific_hash,
+        "predecessor_archive_sha256": predecessor_archive["archive_manifest_sha256"],
+        "predecessor_archive": predecessor_archive,
         "source_sha256": source_hashes(),
         "requirements_sha256": sha256_file(PROJECT_ROOT / "requirements-green-bridge.lock"),
         "protocol_sha256": {name: sha256_file(PROJECT_ROOT / name) for name in PROTOCOL_FILES},
@@ -3228,6 +4003,7 @@ def prepare(output_root: Path, device: str) -> None:
         "prepare_complete": True, "confirmation_open": False,
     }
     write_json_atomic(output_root / "manifest.json", manifest)
+    finalize_hashes(output_root)
 
 
 def _load_active_models_and_suffixes(output_root: Path, device: str, records):
@@ -3245,6 +4021,7 @@ def _load_active_models_and_suffixes(output_root: Path, device: str, records):
 
 def development_phase(output_root: Path, device: str) -> None:
     manifest = verify_freeze(output_root)
+    activate_hardware_batch_plan(output_root)
     _assert_no_uncommitted_endpoint(output_root)
     claim_phase(output_root, "development")
     records = load_split_file(output_root, "development_splits.json")
@@ -3304,10 +4081,12 @@ def development_phase(output_root: Path, device: str) -> None:
         output_root / "run_ledger.json"
     )
     write_json_atomic(output_root / "manifest.json", manifest)
+    finalize_hashes(output_root)
 
 
 def confirmation_phase(output_root: Path, device: str) -> None:
     manifest = verify_freeze(output_root, require_confirmation=True)
+    activate_hardware_batch_plan(output_root)
     _assert_no_uncommitted_endpoint(output_root)
     claim_phase(output_root, "confirmation")
     frozen = json.loads((output_root / "frozen_analysis.json").read_text(encoding="utf-8"))
@@ -3363,9 +4142,12 @@ def confirmation_phase(output_root: Path, device: str) -> None:
         )
     else:
         result["first_failed_gate"] = None
-    result["schema_version"] = "green-bridge-terminal-v1.3"
+    result["schema_version"] = "green-bridge-terminal-v1.3.1"
     write_json_atomic(output_root / "result.json", result)
     manifest["confirmation_complete"] = True
+    manifest["artifact_sha256"]["run_ledger.json"] = sha256_file(
+        output_root / "run_ledger.json"
+    )
     write_json_atomic(output_root / "manifest.json", manifest)
     finalize_hashes(output_root)
 

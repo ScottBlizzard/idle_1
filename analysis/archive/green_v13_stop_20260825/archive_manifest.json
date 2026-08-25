@@ -1,0 +1,40 @@
+{
+  "schema_version": "green-bridge-v1.3-stop-archive-v1",
+  "reviewed_commit": "b8b5f7b509abda310f3e2414e0552a644a12b4bf",
+  "server_execution_commit": "ed4b3b4c55ba2c7acfda1291b4814957ce90c845",
+  "branch": "main",
+  "clean_launch": true,
+  "gpu_mapping": {
+    "physical_gpu": 4,
+    "cuda_visible_devices": "4",
+    "process_device": "cuda:0",
+    "model": "NVIDIA GeForce RTX 4090"
+  },
+  "attempt_index": 1,
+  "retry_allowed": false,
+  "first_failed_gate": "06_MANUAL_TAIL",
+  "development_started": false,
+  "confirmation_started": false,
+  "copy_timestamp_utc": "2026-08-25T05:21:27Z",
+  "old_files_modified": false,
+  "old_root_preserved_in_place": true,
+  "external_log_copied_not_moved": true,
+  "files": {
+    "outputs/green_bridge/result.json": "6f61c77b262eee821970dc19ff98f3baaf78e0aa9a65135bed343ed54ac7445d",
+    "outputs/green_bridge/run_ledger.json": "a4c21ea2bea3e42de13bd7789a17db849290556147250ba6f284b3aefa51172c",
+    "outputs/green_bridge/hook_audit.json": "49aa7a1818fb06d63b975938aea7285d3198fccc97723a96a37afa097abdbb99",
+    "outputs/green_bridge/structural_frame_preflight.json": "e0f65f22d29fb8db891094c407c25234f7f8f9f19738d4edaf3fb2ed5a19a05a",
+    "outputs/green_bridge/first_order_coefficients.npy": "d9305194f8d026ddde1a1d9084dd74409eae21e25b0b7600ca51f8887ff7b926",
+    "outputs/green_bridge/splits.json": "0490113fbfe66bcab1fba924896f832fac4668f2566402aa0107ed4fa43ed0ca",
+    "outputs/green_bridge/development_splits.json": "7fb05a1bf83d0083c622630694df09485dbaf18f4caaf6f5614200e0d8d2baf0",
+    "outputs/green_bridge/model_fingerprint.json": "fb9bd5a686d1bb09fa31c4cc308ff51f26c1d64075feb57d5a330db8fcaa6cb0",
+    "outputs/green_bridge/gate04_legacy_panel.json": "646d2ebcf1229645c83ebadea7f39d782e12152a8248dbd122f8c11e58c83df1",
+    "analysis/archive/green_v13_stop_20260825/green_bridge_v13_prepare.log": "28c2788da0477b5c95c4498d70a9a4183f2188419dbca6e5f4725b60d5dc8e52"
+  },
+  "frozen_scientific_spec": {
+    "path": "analysis/archive/green_v13_stop_20260825/frozen_scientific_spec_v13.json",
+    "file_sha256": "1a821b00ef30091d863e4edeca4b6dbeffad3e89f8bcc42b7b256c2f53318170",
+    "scientific_sha256": "60ca5e9e221064f288a1993ee3cbf42e99330bbf6f9008946a25556438cbc3d3"
+  },
+  "statement": "The v1.3 root and external log were not modified; the log was copied into this archive."
+}

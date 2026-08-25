@@ -16,10 +16,11 @@ from typing import Any
 
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
-OUTPUT_ROOT = PROJECT_ROOT / "outputs" / "green_bridge"
-SCHEMA_VERSION = "green-bridge-v1.3"
-PROTOCOL_ID = "structural-envelope-matched-bypass-v1"
-AMENDMENT_ID = "GPTPRO-GREEN-STRUCTURAL-ENVELOPE-v1-20260805"
+OUTPUT_ROOT = PROJECT_ROOT / "outputs" / "green_bridge_v131"
+SCHEMA_VERSION = "green-bridge-v1.3.1"
+PROTOCOL_ID = "structural-envelope-matched-bypass-v1.3.1"
+PARENT_PROTOCOL_ID = "structural-envelope-matched-bypass-v1"
+AMENDMENT_ID = "GPTPRO-GREEN-V13-MANUAL-TAIL-EQUIVALENCE-v1-20260825"
 THEORY_BASE_COMMIT = "126556f"
 GATE04_AMENDMENT_ID = "GPTPRO-GREEN-GATE04-v2-20260805"
 GATE08_AMENDMENT_ID = "GPTPRO-GREEN-GATE08-v2-20260805"
@@ -31,6 +32,19 @@ SALT = LEGACY_SALT
 MODEL_ID = "openai-community/gpt2"
 MODEL_REVISION = "607a30d783dfa663caf39e06633721c8d4cfcd7e"
 TRANSFORMER_LENS_COMMIT = "4a4dc26c750475b29e6f54b362c2aab988702c9c"
+PROTOCOL_RUN_ID = "green-bridge-v1.3.1-one-shot"
+TAIL_DERIVATIVE_REFERENCE_NORM_FLOOR = 1.0e-5
+TAIL_EQUIVALENCE_OUTPUT_DIM = 100
+PREDECESSOR_RUN = {
+    "schema_version": "green-bridge-v1.3",
+    "protocol_id": "structural-envelope-matched-bypass-v1",
+    "protocol_run_id": "green-bridge-v1.3-one-shot",
+    "attempt_index": 1,
+    "retry_allowed": False,
+    "execution_commit": "ed4b3b4c55ba2c7acfda1291b4814957ce90c845",
+    "first_failed_gate": "06_MANUAL_TAIL",
+    "result_sha256": "6f61c77b262eee821970dc19ff98f3baaf78e0aa9a65135bed343ed54ac7445d",
+}
 
 PROMPT = "<|endoftext|> The {noun} lasted from the year {cc:02d}{y:02d} to the year {cc:02d}"
 EVALUATION_NOUNS = (

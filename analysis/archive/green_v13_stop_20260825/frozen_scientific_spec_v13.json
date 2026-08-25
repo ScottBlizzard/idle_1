@@ -1,0 +1,176 @@
+{
+  "schema_version": "green-bridge-scientific-spec-v1.3",
+  "scientific_payload": {
+    "bootstrap": {
+      "replicates": 100000,
+      "seed": 20260805
+    },
+    "dimensions": {
+      "d_mlp": 3072,
+      "d_model": 768,
+      "n_heads": 12,
+      "n_layers": 12,
+      "output_dimension": 100,
+      "probe_frame_dim": 5,
+      "selected_gates": 10
+    },
+    "distance_bins": {
+      "far": [
+        40,
+        56
+      ],
+      "near": [
+        8,
+        16
+      ]
+    },
+    "evaluation_centuries": [
+      12,
+      14,
+      16
+    ],
+    "evaluation_nouns": [
+      "campaign",
+      "dynasty",
+      "reign",
+      "siege",
+      "treaty",
+      "warfare",
+      "expedition",
+      "kingdom"
+    ],
+    "gate04_amendment": {
+      "batch_size": 1,
+      "hf_attention_implementation": "eager",
+      "hf_tl_error_enters_epsilon_y": false,
+      "holdout_pair_slice": [
+        16,
+        32
+      ],
+      "id": "GPTPRO-GREEN-GATE04-v2-20260805",
+      "legacy_pair_slice": [
+        0,
+        16
+      ],
+      "parameter_mapping_exact": true,
+      "prompt_count": 32,
+      "prompts_per_pair": [
+        "clean",
+        "corrupt"
+      ]
+    },
+    "model": {
+      "id": "openai-community/gpt2",
+      "revision": "607a30d783dfa663caf39e06633721c8d4cfcd7e"
+    },
+    "numerical_error_contract": "frozen-richardson-propagation-v1",
+    "probe_frames": {
+      "all_gate_frame_dim": 14,
+      "common_frame_dim": 4,
+      "construction": "exact-layernorm-structural-envelope",
+      "probe_frame_dim": 5
+    },
+    "prompt": "<|endoftext|> The {noun} lasted from the year {cc:02d}{y:02d} to the year {cc:02d}",
+    "radii": {
+      "full": 1.0,
+      "gate": 0.2,
+      "half": 0.5,
+      "residual_multiplier": 0.2
+    },
+    "selected_gates": [
+      2326,
+      1138,
+      2287,
+      606,
+      2848,
+      2305,
+      46,
+      2659,
+      946,
+      1616
+    ],
+    "sites": {
+      "gate": "blocks.10.mlp.hook_post",
+      "patch": "blocks.8.hook_mlp_out",
+      "target_bypass_subtraction": "blocks.10.hook_resid_post",
+      "x": "blocks.10.hook_resid_mid",
+      "z": "blocks.10.mlp.hook_pre"
+    },
+    "structural_envelope_amendment": {
+      "attempt_index": 1,
+      "basis_object": "ambient-rank-one-operator",
+      "first_order_coefficient_seed": 8998478401382166109,
+      "first_order_coefficient_sha256": "b39a9a0bdda54bf63d1496f690bd4c89c6fa618ba7beb152364cb9f2b3f18a1a",
+      "first_order_residual_directions": 250,
+      "probe_completeness": "exact-layernorm-envelope",
+      "retry_allowed": false
+    },
+    "suffix_range": [
+      5,
+      94
+    ],
+    "theory_base_commit": "126556f",
+    "thresholds": {
+      "active_gates_min": 3,
+      "bypass_disagreement_max": 0.15,
+      "cancellation_auroc_lcb_min": 0.7,
+      "cancellation_auroc_min": 0.8,
+      "cancellation_bin_min": 3,
+      "cancellation_class_min": 3,
+      "cancellation_main_effect_min": 0.05,
+      "cancellation_size_min": 8,
+      "cancellation_target_threshold": 0.1,
+      "cells_per_bin_min": 14,
+      "center_max_abs": 2e-05,
+      "center_rms": 2e-06,
+      "conditioning_absolute": 0.1,
+      "conditioning_dev_sd": 0.25,
+      "confirmation_absolute_gain_min": 0.01,
+      "confirmation_open_gain_min": 0.1,
+      "confirmation_oral_min": 29,
+      "confirmation_relative_gain_min": 0.2,
+      "confirmation_relative_lcb_min": 0.1,
+      "confirmation_technical_min": 28,
+      "curvature_rms_min": 0.0005,
+      "curvature_snr_min": 20.0,
+      "development_cells_min": 15,
+      "development_snr_cells_min": 10,
+      "development_snr_min": 3.0,
+      "development_stop_below": 0.05,
+      "factorization_residual_max": 0.15,
+      "gate_response_rms_min": 0.0005,
+      "gate_response_snr_min": 20.0,
+      "half_radius_change_max": 0.2,
+      "half_radius_spearman_min": 0.9,
+      "hf_tl_centered_year_max_abs": 0.00025,
+      "hf_tl_centered_year_pooled_rms": 6e-05,
+      "hf_tl_margin_max_abs": 0.0002,
+      "hf_tl_margin_rms": 5e-05,
+      "hf_tl_raw_year_max_abs": 0.0003,
+      "hf_tl_raw_year_pooled_rms": 7.5e-05,
+      "hf_tl_resid_mid_max_abs": 0.0001,
+      "hf_tl_resid_mid_pooled_rms": 2e-05,
+      "hf_tl_selected_post_max_abs": 0.0005,
+      "hf_tl_selected_post_pooled_rms": 0.0001,
+      "hf_tl_selected_pre_max_abs": 0.0005,
+      "hf_tl_selected_pre_pooled_rms": 0.0001,
+      "hook_untouched_max": 1e-07,
+      "no_op_max_abs": 2e-05,
+      "per_bin_absolute_gain_min": 0.005,
+      "per_bin_relative_gain_min": 0.1,
+      "projected_chord_sigma_min": 0.1,
+      "richardson_change_max": 0.25,
+      "tail_derivative_relative": 0.0001,
+      "tail_max_abs": 2e-05,
+      "tensor_cosine_min": 0.95,
+      "tensor_snr_min": 20.0,
+      "tensor_symmetric_change_max": 0.25,
+      "total_cells_technical_min": 40,
+      "valid_items_per_cell_min": 6,
+      "whitebox_a_relative_max": 0.05,
+      "whitebox_a_small_absolute_max": 0.0001
+    },
+    "transformer_lens_commit": "4a4dc26c750475b29e6f54b362c2aab988702c9c"
+  },
+  "scientific_sha256": "60ca5e9e221064f288a1993ee3cbf42e99330bbf6f9008946a25556438cbc3d3"
+}

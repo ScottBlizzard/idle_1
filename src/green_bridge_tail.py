@@ -50,6 +50,31 @@ def gather_year_logits(model, logits, final_positions, suffix_token_ids):
     return final.index_select(-1, suffix_token_ids)
 
 
+def full_transformerlens_year_logits(
+    model,
+    normalized_final,
+    final_positions,
+    suffix_token_ids,
+):
+    """Apply the pinned TransformerLens output endpoint before any slicing."""
+    try:
+        from transformer_lens.utilities import apply_softcap
+    except ImportError as exc:  # pragma: no cover - server environment
+        raise RuntimeError("pinned TransformerLens is required") from exc
+
+    full_logits = model.unembed(normalized_final)
+    full_logits = apply_softcap(
+        full_logits,
+        model.cfg.output_logits_soft_cap,
+    )
+    return gather_year_logits(
+        model,
+        full_logits,
+        final_positions,
+        suffix_token_ids,
+    )
+
+
 def capture_tail_anchor(
     model,
     tokens,
@@ -167,6 +192,49 @@ class GreenBridgeTail:
         subtract_residual_bypass: bool = False,
     ):
         """Evaluate an intervention expressed directly in residual coordinates."""
+        logits, _ = self._evaluate_physical_core(
+            anchor,
+            residual_delta,
+            z,
+            mode=mode,
+            gate_slot=gate_slot,
+            subtract_residual_bypass=subtract_residual_bypass,
+            return_trace=False,
+        )
+        return logits
+
+    def evaluate_physical_with_trace(
+        self,
+        anchor: TailAnchor,
+        residual_delta,
+        z,
+        *,
+        mode: TailMode,
+        gate_slot: int | None = None,
+        subtract_residual_bypass: bool = False,
+    ):
+        """Prepare-only physical endpoint with detached stage tensors."""
+        return self._evaluate_physical_core(
+            anchor,
+            residual_delta,
+            z,
+            mode=mode,
+            gate_slot=gate_slot,
+            subtract_residual_bypass=subtract_residual_bypass,
+            return_trace=True,
+        )
+
+    def _evaluate_physical_core(
+        self,
+        anchor: TailAnchor,
+        residual_delta,
+        z,
+        *,
+        mode: TailMode,
+        gate_slot: int | None,
+        subtract_residual_bypass: bool,
+        return_trace: bool,
+    ):
         torch = _torch()
         if mode not in {"path", "control", "joint"}:
             raise ValueError(f"unknown tail mode {mode}")
@@ -216,18 +284,53 @@ class GreenBridgeTail:
 
         mlp_out = _batch_addmm(block10.mlp.b_out, block10.mlp.W_out, post)
         resid_post = resid_mid + mlp_out
+        resid_post_before_subtraction = resid_post.clone() if return_trace else None
         if subtract_residual_bypass:
             resid_post[rows, positions, :] -= residual_delta
 
         # Block 11 is the complete arbitrary downstream transformer tail.
         resid = self.model.blocks[11](resid_post)
         normalized_final = self.model.ln_final(resid)
-        final = normalized_final[rows, positions, :]
-        W_selected = self.model.W_U.index_select(1, self.suffix_ids)
-        logits = final @ W_selected
-        if getattr(self.model, "b_U", None) is not None:
-            logits = logits + self.model.b_U.index_select(0, self.suffix_ids)
-        return logits
+        if not return_trace:
+            logits = full_transformerlens_year_logits(
+                self.model,
+                normalized_final,
+                positions,
+                self.suffix_ids,
+            )
+            return logits, None
+
+        try:
+            from transformer_lens.utilities import apply_softcap
+        except ImportError as exc:  # pragma: no cover - server environment
+            raise RuntimeError("pinned TransformerLens is required") from exc
+        pre_softcap = self.model.unembed(normalized_final)
+        post_softcap = apply_softcap(
+            pre_softcap,
+            self.model.cfg.output_logits_soft_cap,
+        )
+        logits = gather_year_logits(
+            self.model,
+            post_softcap,
+            positions,
+            self.suffix_ids,
+        )
+        trace = {
+            "resid_mid_after_x": resid_mid.detach(),
+            "ln2_output": normalized.detach(),
+            "pre_after_z": pre.detach(),
+            "live_post": live_post.detach(),
+            "anchored_post": post.detach(),
+            "mlp_out": mlp_out.detach(),
+            "resid_post_before_subtraction": resid_post_before_subtraction.detach(),
+            "resid_post_after_subtraction": resid_post.detach(),
+            "block11_resid_post": resid.detach(),
+            "ln_final_output": normalized_final.detach(),
+            "unembed_pre_softcap_full": pre_softcap.detach(),
+            "unembed_post_softcap_full": post_softcap.detach(),
+            "year_logits": logits.detach(),
+        }
+        return logits, trace
 
 
 def max_abs_and_rms(actual, expected) -> dict[str, float]:

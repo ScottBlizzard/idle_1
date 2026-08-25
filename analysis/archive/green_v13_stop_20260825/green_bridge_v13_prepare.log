@@ -1,0 +1,22 @@
+Loading weights:   0%|          | 0/148 [00:00<?, ?it/s]Loading weights:  53%|█████▎    | 78/148 [00:00<00:00, 767.12it/s]Loading weights: 100%|██████████| 148/148 [00:00<00:00, 971.98it/s]
+Loaded pretrained model gpt2 into HookedTransformer
+Traceback (most recent call last):
+  File "/home/ccj/workspace_1/idle_1_green_bridge/src/exp_green_bridge_gpt2.py", line 3394, in main
+    prepare(args.output_root, args.device)
+  File "/home/ccj/workspace_1/idle_1_green_bridge/src/exp_green_bridge_gpt2.py", line 3138, in prepare
+    tail_result = _tail_preflight_v13(
+                  ^^^^^^^^^^^^^^^^^^^^
+  File "/home/ccj/workspace_1/idle_1_green_bridge/src/exp_green_bridge_gpt2.py", line 3012, in _tail_preflight_v13
+    raise GreenStop("06_MANUAL_TAIL", str(result))
+GreenStop: 06_MANUAL_TAIL: {'conditions': ['path', 'path', 'path', 'path', 'control'], 'max_abs': 7.62939453125e-05, 'errors': [7.62939453125e-05, 6.103515625e-05, 6.103515625e-05, 7.62939453125e-05, 6.103515625e-05], 'max_derivative_relative': 25.89502372509329, 'derivative_relative_errors': [25.89502372509329, 1.3051775251256144, 0.00038560278974042017, 0.00030073659422462503, 0.00032303475823304003]}
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/home/ccj/workspace_1/idle_1_green_bridge/src/exp_green_bridge_gpt2.py", line 3406, in <module>
+    main()
+  File "/home/ccj/workspace_1/idle_1_green_bridge/src/exp_green_bridge_gpt2.py", line 3402, in main
+    terminal_stop(args.output_root, exc.gate, exc.detail)
+  File "/home/ccj/workspace_1/idle_1_green_bridge/src/exp_green_bridge_gpt2.py", line 199, in terminal_stop
+    raise GreenStop(gate, detail)
+GreenStop: 06_MANUAL_TAIL: {'conditions': ['path', 'path', 'path', 'path', 'control'], 'max_abs': 7.62939453125e-05, 'errors': [7.62939453125e-05, 6.103515625e-05, 6.103515625e-05, 7.62939453125e-05, 6.103515625e-05], 'max_derivative_relative': 25.89502372509329, 'derivative_relative_errors': [25.89502372509329, 1.3051775251256144, 0.00038560278974042017, 0.00030073659422462503, 0.00032303475823304003]}
