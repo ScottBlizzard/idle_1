@@ -334,104 +334,285 @@ def set_snr_geometry(archive: Path, output: Path, script: Path) -> dict:
 
 
 def aggregation_functionals(archive: Path, output: Path, script: Path, gpu_rows: pd.DataFrame | None) -> dict:
-    tensor = pd.read_parquet(archive / "dev_tensor_scores.parquet")
+    tensor = pd.read_parquet(archive / "dev_tensor_scores.parquet")[
+        ["pair_digest", "cell_id", "distance_bin", "orientation"]
+    ]
     energy = pd.read_parquet(archive / "dev_energy_targets.parquet")
     rows = []
-    for _, row in tensor.iterrows():
-        rows.append({"pair_digest": row["pair_digest"], "cell_id": row["cell_id"],
-                     "source": "matched_bypass", "signed": float(row["theta_pat_center"] - row["theta_tar_center"]),
-                     "magnitude_only": False})
-        rows.append({"pair_digest": row["pair_digest"], "cell_id": row["cell_id"],
-                     "source": "behavioral", "signed": None, "absolute": float(row["behavioral"]),
-                     "magnitude_only": True})
-        rows.append({"pair_digest": row["pair_digest"], "cell_id": row["cell_id"],
-                     "source": "pie", "signed": None, "absolute": float(row["pie"]),
-                     "magnitude_only": True})
     for _, row in energy.iterrows():
         systems = _decode(row["systems"])
         rows.append({"pair_digest": row["pair_digest"], "cell_id": row["cell_id"],
-                     "source": "independent_joint_target",
+                     "distance_bin": row["distance_bin"], "orientation": row["orientation"],
+                     "role": "energy", "source": "independent_finite_energy",
                      "signed": float(systems["pat"]["full"] - systems["tar"]["full"]),
                      "magnitude_only": False})
     if gpu_rows is not None and len(gpu_rows):
-        for _, row in gpu_rows.iterrows():
-            for source in ("behavioral", "pie", "single", "matched_bypass", "independent_joint_target"):
-                name = f"signed_{source}"
-                if name in row and pd.notna(row[name]):
-                    rows.append({"pair_digest": row["pair_digest"], "cell_id": row["cell_id"],
-                                 "source": source + "_recomputed", "signed": float(row[name]),
-                                 "magnitude_only": False})
+        source_columns = {
+            "behavioral": "signed_behavioral", "pie": "signed_pie",
+            "single": "signed_single", "matched_bypass": "signed_matched_bypass",
+            "independent_joint_ad": "signed_independent_joint_target",
+        }
+        for row in gpu_rows.itertuples(index=False):
+            for source, name in source_columns.items():
+                value = getattr(row, name)
+                rows.append({
+                    "pair_digest": row.pair_digest, "cell_id": row.cell_id,
+                    "distance_bin": row.distance_bin, "orientation": row.orientation,
+                    "role": "tensor", "source": source, "signed": float(value),
+                    "magnitude_only": False,
+                })
     frame = pd.DataFrame(rows)
     summaries = []
     for (cell, source), group in frame.groupby(["cell_id", "source"]):
-        signed = group["signed"].dropna().astype(float).to_numpy()
-        absolute = group.get("absolute", pd.Series(dtype=float)).dropna().astype(float).to_numpy()
-        if len(signed):
-            A = abs(float(np.mean(signed))); M = float(np.mean(np.abs(signed))); R = float(np.sqrt(np.mean(signed**2)))
-            sign_stability = max(float(np.mean(signed >= 0)), float(np.mean(signed <= 0)))
-        else:
-            A = None; M = float(np.mean(absolute)) if len(absolute) else None
-            R = float(np.sqrt(np.mean(absolute**2))) if len(absolute) else None; sign_stability = None
-        summaries.append({"cell_id": cell, "source": source, "n": len(group),
-                          "A_abs_signed_mean": A, "M_mean_absolute": M, "R_rms": R,
-                          "cancellation_ratio": None if A is None or M is None else A / max(M, 1e-12),
-                          "sign_stability_fraction": sign_stability})
+        signed = group["signed"].astype(float).to_numpy()
+        A = abs(float(np.mean(signed)))
+        M = float(np.mean(np.abs(signed)))
+        R = float(np.sqrt(np.mean(signed**2)))
+        summaries.append({
+            "cell_id": cell, "source": source, "n": len(group),
+            "distance_bin": group["distance_bin"].iloc[0],
+            "A_abs_signed_mean": A, "M_mean_absolute": M, "R_rms": R,
+            "cancellation_ratio": A / max(M, 1e-12),
+            "sign_stability_fraction": max(
+                float(np.mean(signed >= 0)), float(np.mean(signed <= 0))
+            ),
+        })
+    cell_frame = pd.DataFrame(summaries)
+
+    def grouped_functionals(columns: list[str]) -> list[dict]:
+        result = []
+        for keys, group in frame.groupby(columns, sort=True):
+            values = group["signed"].astype(float).to_numpy()
+            A = abs(float(np.mean(values))); M = float(np.mean(np.abs(values)))
+            result.append(dict(zip(columns, keys if isinstance(keys, tuple) else (keys,))) | {
+                "n": len(values), "A_abs_signed_mean": A, "M_mean_absolute": M,
+                "R_rms": float(np.sqrt(np.mean(values**2))),
+                "cancellation_ratio": A / max(M, 1e-12),
+                "sign_stability_fraction": max(
+                    float(np.mean(values >= 0)), float(np.mean(values <= 0))
+                ),
+            })
+        return result
+
+    comparisons = []
+    sources = sorted(cell_frame["source"].unique())
+    for functional in ("A_abs_signed_mean", "M_mean_absolute", "R_rms"):
+        pivot = cell_frame.pivot(index="cell_id", columns="source", values=functional)
+        for left_index, left in enumerate(sources):
+            for right in sources[left_index + 1:]:
+                pair = pivot[[left, right]].dropna()
+                x = pair[left].to_numpy(dtype=float); y = pair[right].to_numpy(dtype=float)
+                pearson = float(np.corrcoef(x, y)[0, 1]) if len(pair) >= 2 and np.std(x) and np.std(y) else None
+                spearman = float(pair[left].corr(pair[right], method="spearman")) if len(pair) >= 2 else None
+                comparisons.append({
+                    "left": left, "right": right, "functional": functional, "cells": len(pair),
+                    "pearson": pearson, "spearman": spearman,
+                    "rmse": float(np.sqrt(np.mean((x - y) ** 2))) if len(pair) else None,
+                })
     frame.to_parquet(output / "08_aggregation_functionals.parquet", index=False)
     payload = common("green-v21-aggregation-functionals-v1", script, {
         "dev_tensor_scores.parquet": sha256_file(archive / "dev_tensor_scores.parquet"),
         "dev_energy_targets.parquet": sha256_file(archive / "dev_energy_targets.parquet"),
-    }) | {"cells": summaries, "signed_behavioral_and_pie_complete": bool(gpu_rows is not None and len(gpu_rows))}
+    }) | {
+        "items": len(frame), "cells": summaries, "pairwise_cell_metrics": comparisons,
+        "near_far_summaries": grouped_functionals(["source", "distance_bin"]),
+        "orientation_summaries": grouped_functionals(["source", "orientation"]),
+        "signed_sources": sources,
+        "signed_behavioral_pie_single_complete": bool(
+            gpu_rows is not None and len(gpu_rows)
+            and gpu_rows[["signed_behavioral", "signed_pie", "signed_single"]].notna().all().all()
+        ),
+        "complete": set(sources) == {
+            "behavioral", "pie", "single", "matched_bypass",
+            "independent_joint_ad", "independent_finite_energy",
+        },
+    }
     write_json(output / "08_aggregation_functionals.json", payload)
     return payload
 
 
 def role_sampling_audit(archive: Path, output: Path, script: Path, gpu_rows: pd.DataFrame | None) -> dict:
     energy = pd.read_parquet(archive / "dev_energy_targets.parquet")
-    official = defaultdict(list)
-    for _, row in energy.iterrows():
-        systems = _decode(row["systems"])
-        official[row["cell_id"]].append(float(systems["pat"]["full"] - systems["tar"]["full"]))
+    energy = energy.copy()
+    energy["signed"] = energy["systems"].map(
+        lambda value: float(_decode(value)["pat"]["full"] - _decode(value)["tar"]["full"])
+    )
+    replicates, seed = 100_000, 20260825
+    rng = np.random.default_rng(seed)
     cells = []
-    for cell, values in sorted(official.items()):
-        cells.append({"cell_id": cell, "official_disjoint_signed_mean": float(np.mean(values)),
-                      "official_disjoint_standard_error": float(np.std(values, ddof=1) / math.sqrt(len(values))),
-                      "n": len(values), "same_role_signed_mean": None, "pooled_signed_mean": None})
     if gpu_rows is not None and "signed_independent_joint_target" in gpu_rows:
-        for entry in cells:
-            selected = gpu_rows[gpu_rows["cell_id"] == entry["cell_id"]]["signed_independent_joint_target"].dropna()
-            if len(selected):
-                entry["same_role_signed_mean"] = float(selected.mean())
-                entry["role_shift"] = entry["same_role_signed_mean"] - entry["official_disjoint_signed_mean"]
+        for cell in sorted(energy["cell_id"].unique()):
+            official_rows = energy[energy["cell_id"] == cell]
+            same_rows = gpu_rows[gpu_rows["cell_id"] == cell]
+            official = official_rows["signed"].to_numpy(dtype=float)
+            same = same_rows["signed_independent_joint_target"].to_numpy(dtype=float)
+            official_boot = official[rng.integers(0, len(official), size=(replicates, len(official)))].mean(axis=1)
+            same_boot = same[rng.integers(0, len(same), size=(replicates, len(same)))].mean(axis=1)
+            shifts = same_boot - official_boot
+
+            def orientation_balanced(frame: pd.DataFrame, value: str) -> float:
+                return float(frame.groupby("orientation")[value].mean().mean())
+
+            official_mean = float(np.mean(official)); same_mean = float(np.mean(same))
+            cells.append({
+                "cell_id": cell, "noun_century_cluster": "|".join(cell.split("|")[:2]),
+                "distance_bin": cell.split("|")[-1],
+                "n_official": len(official), "n_same_role": len(same),
+                "official_disjoint_signed_mean": official_mean,
+                "same_role_signed_mean": same_mean,
+                "pooled_role_signed_mean": float(np.mean(np.concatenate((official, same)))),
+                "official_orientation_balanced_mean": orientation_balanced(official_rows, "signed"),
+                "same_role_orientation_balanced_mean": orientation_balanced(
+                    same_rows, "signed_independent_joint_target"
+                ),
+                "role_shift": same_mean - official_mean,
+                "role_shift_item_bootstrap_interval": [
+                    float(np.quantile(shifts, 0.025)), float(np.quantile(shifts, 0.975))
+                ],
+                "official_disjoint_standard_error": float(np.std(official, ddof=1) / math.sqrt(len(official))),
+                "same_role_standard_error": float(np.std(same, ddof=1) / math.sqrt(len(same))),
+            })
+    cluster_rows = []
+    for cluster in sorted({row["noun_century_cluster"] for row in cells}):
+        selected = [row for row in cells if row["noun_century_cluster"] == cluster]
+        cluster_rows.append({
+            "noun_century_cluster": cluster, "cells": len(selected),
+            "official_disjoint_signed_mean": float(np.mean([row["official_disjoint_signed_mean"] for row in selected])),
+            "same_role_signed_mean": float(np.mean([row["same_role_signed_mean"] for row in selected])),
+            "role_shift": float(np.mean([row["role_shift"] for row in selected])),
+        })
+    cluster_shifts = np.asarray([row["role_shift"] for row in cluster_rows], dtype=float)
+    if len(cluster_shifts):
+        cluster_boot = cluster_shifts[
+            rng.integers(0, len(cluster_shifts), size=(replicates, len(cluster_shifts)))
+        ].mean(axis=1)
+        overall_cluster_interval = [
+            float(np.quantile(cluster_boot, 0.025)), float(np.quantile(cluster_boot, 0.975))
+        ]
+    else:
+        overall_cluster_interval = [None, None]
+    distance_rows = []
+    for distance in sorted({row["distance_bin"] for row in cells}):
+        selected = [row for row in cells if row["distance_bin"] == distance]
+        distance_rows.append({
+            "distance_bin": distance,
+            "official_disjoint_signed_mean": float(np.mean([row["official_disjoint_signed_mean"] for row in selected])),
+            "same_role_signed_mean": float(np.mean([row["same_role_signed_mean"] for row in selected])),
+            "pooled_role_signed_mean": float(np.mean([row["pooled_role_signed_mean"] for row in selected])),
+            "role_shift": float(np.mean([row["role_shift"] for row in selected])),
+        })
     payload = common("green-v21-role-sampling-audit-v1", script, {
         "dev_energy_targets.parquet": sha256_file(archive / "dev_energy_targets.parquet")
-    }) | {"bootstrap_replicates": 100_000, "bootstrap_seed": 20260825,
-          "cluster": "noun-century group", "cells": cells,
-          "same_role_reconstruction_complete": bool(gpu_rows is not None and len(gpu_rows))}
+    }) | {
+        "bootstrap_replicates": replicates, "bootstrap_seed": seed,
+        "cluster": "noun-century group", "cells": cells,
+        "noun_century_cluster_summaries": cluster_rows,
+        "overall_role_shift_cluster_bootstrap_interval": overall_cluster_interval,
+        "distance_stratified_summaries": distance_rows,
+        "same_role_reconstruction_complete": bool(gpu_rows is not None and len(gpu_rows)),
+        "pooled_role_complete": bool(cells), "orientation_balanced_complete": bool(cells),
+        "distance_stratified_complete": bool(distance_rows),
+        "complete": len(cells) == 8 and len(cluster_rows) == 4 and len(distance_rows) == 2,
+    }
     write_json(output / "09_role_sampling_audit.json", payload)
     return payload
 
 
 def regime_bridge(archive: Path, v136: Path, output: Path, script: Path) -> dict:
     rows = []
+    version_details = {}
     for version, root in (("v136", v136), ("v200", archive)):
         tensor = pd.read_parquet(root / "dev_tensor_scores.parquet")
+        energy = pd.read_parquet(root / "dev_energy_targets.parquet")
+        energy = energy.copy()
+        energy["signed_target"] = energy["systems"].map(
+            lambda value: float(_decode(value)["pat"]["full"] - _decode(value)["tar"]["full"])
+        )
+        energy_by_cell = energy.groupby("cell_id")["signed_target"].mean().to_dict()
+        global_labels, curvature, response, factorization = Counter(), [], [], []
         for _, item in tensor.iterrows():
-            rows.append({"version": version, "pair_digest": item["pair_digest"],
-                         "cell_id": item["cell_id"], "distance_bin": item["distance_bin"],
-                         "orientation": item["orientation"], "behavioral": float(item["behavioral"]),
-                         "pie": float(item["pie"]), "single": float(item["single"]),
-                         "residual_radius": float(item["residual_radius"]),
-                         "admissible": bool(item["admissible"])})
+            audit = _decode(item["mixed_audit"])
+            gates = [gate for system in audit.values() for gate in system["gates"]]
+            labels = Counter(gate["label"] for gate in gates); global_labels.update(labels)
+            curvature.extend(float(gate["curvature_norm"]) for gate in gates if gate.get("curvature_norm") is not None)
+            response.extend(float(gate["gate_response_norm"]) for gate in gates if gate.get("gate_response_norm") is not None)
+            for gate in gates:
+                if version == "v136" and gate.get("factorization_residual") is not None:
+                    factorization.append(float(gate["factorization_residual"]))
+                elif gate.get("factorization"):
+                    factorization.append(float(gate["factorization"]["max_ratio"]))
+            if version == "v136":
+                signed_matched = float(item["theta_pat"] - item["theta_tar"])
+            else:
+                signed_matched = float(item["theta_pat_center"] - item["theta_tar_center"])
+            rows.append({
+                "version": version, "pair_digest": item["pair_digest"],
+                "cell_id": item["cell_id"], "distance_bin": item["distance_bin"],
+                "orientation": item["orientation"], "role": "tensor",
+                "behavioral": float(item["behavioral"]), "pie": float(item["pie"]),
+                "single": float(item["single"]), "signed_matched_bypass": signed_matched,
+                "independent_energy_cell_target": float(energy_by_cell[item["cell_id"]]),
+                "residual_radius": float(item["residual_radius"]),
+                "admissible": bool(item["admissible"]),
+                "gate_label_counts": canonical_json(dict(sorted(labels.items()))),
+                "curvature_median": float(np.median([
+                    gate["curvature_norm"] for gate in gates if gate.get("curvature_norm") is not None
+                ])),
+                "gate_response_median": float(np.median([
+                    gate["gate_response_norm"] for gate in gates if gate.get("gate_response_norm") is not None
+                ])),
+            })
+        functionals = []
+        for cell, group in tensor.groupby("cell_id", sort=True):
+            for source in ("behavioral", "pie", "single"):
+                values = group[source].astype(float).to_numpy()
+                functionals.append({
+                    "cell_id": cell, "source": source, "signed_available": False,
+                    "A_abs_signed_mean": None, "M_mean_absolute": float(np.mean(values)),
+                    "R_rms": float(np.sqrt(np.mean(values**2))),
+                })
+            matched_name = ("theta_pat", "theta_tar") if version == "v136" else (
+                "theta_pat_center", "theta_tar_center"
+            )
+            signed = (group[matched_name[0]] - group[matched_name[1]]).astype(float).to_numpy()
+            functionals.append({
+                "cell_id": cell, "source": "matched_bypass", "signed_available": True,
+                "A_abs_signed_mean": abs(float(np.mean(signed))),
+                "M_mean_absolute": float(np.mean(np.abs(signed))),
+                "R_rms": float(np.sqrt(np.mean(signed**2))),
+            })
+        version_details[version] = {
+            "tensor_role_items": len(tensor), "energy_role_items": len(energy),
+            "systems_per_tensor_item": 2,
+            "cell_definitions": sorted(tensor["cell_id"].unique().tolist()),
+            "orientation_values": sorted(tensor["orientation"].unique().tolist()),
+            "distance_values": sorted(tensor["distance_bin"].unique().tolist()),
+            "gate_label_counts": dict(sorted(global_labels.items())),
+            "curvature_norm": quantiles(curvature),
+            "gate_response_norm": quantiles(response),
+            "factorization_metric": quantiles(factorization),
+            "cell_functionals": functionals,
+            "independent_energy_target": quantiles(energy["signed_target"].abs()),
+        }
     frame = pd.DataFrame(rows)
     frame.to_parquet(output / "11_regime_bridge_rows.parquet", index=False)
     payload = common("green-v21-regime-bridge-v1", script, {
         "v136_dev_tensor_scores.parquet": sha256_file(v136 / "dev_tensor_scores.parquet"),
         "v200_dev_tensor_scores.parquet": sha256_file(archive / "dev_tensor_scores.parquet"),
-    }) | {"versions": {version: {"rows": len(group), "admissible": int(group["admissible"].sum()),
-                                  "behavioral": quantiles(group["behavioral"]),
-                                  "pie": quantiles(group["pie"]),
-                                  "residual_radius": quantiles(group["residual_radius"])}
-                              for version, group in frame.groupby("version")}}
+        "v136_dev_energy_targets.parquet": sha256_file(v136 / "dev_energy_targets.parquet"),
+        "v200_dev_energy_targets.parquet": sha256_file(archive / "dev_energy_targets.parquet"),
+    }) | {
+        "versions": {
+            version: version_details[version] | {
+                "rows": len(group), "admissible": int(group["admissible"].sum()),
+                "behavioral": quantiles(group["behavioral"]),
+                "pie": quantiles(group["pie"]), "single": quantiles(group["single"]),
+                "residual_radius": quantiles(group["residual_radius"]),
+            }
+            for version, group in frame.groupby("version")
+        },
+        "complete": set(frame["version"]) == {"v136", "v200"},
+    }
     write_json(output / "11_regime_bridge.json", payload)
     return payload
 
@@ -439,27 +620,56 @@ def regime_bridge(archive: Path, v136: Path, output: Path, script: Path) -> dict
 def reporting_consistency(archive: Path, output: Path, script: Path) -> dict:
     operation = json.loads((archive / "operation_counts_v200.json").read_text(encoding="utf-8"))
     throughput = json.loads((archive / "throughput_preflight.json").read_text(encoding="utf-8"))
+    counts = operation["counts"]
     checks = {
-        "prepare_panel_certificates_40": operation.get("prepare_ad_gate_system_certificates") == 40,
-        "prepare_panel_routes_80": operation.get("prepare_ad_gatejet_routes") == 80,
+        "prepare_panel_certificates_40": counts.get("prepare_ad_gate_system_certificates") == 40,
+        "prepare_panel_routes_80": counts.get("prepare_ad_gatejet_routes") == 80,
         "throughput_certificates_160": throughput.get("ad_gate_system_certificates_executed") == 160,
         "throughput_routes_320": throughput.get("ad_gatejet_routes_executed") == 320,
-        "development_certificates_1280": operation.get("development_ad_gate_system_certificates") == 1280,
-        "development_routes_2560": operation.get("development_ad_gatejet_routes") == 2560,
+        "development_certificates_1280": counts.get("development_ad_gate_system_certificates") == 1280,
+        "development_routes_2560": counts.get("development_ad_gatejet_routes") == 2560,
+        "throughput_embedded_counts_match": throughput.get("operation_counts") == counts,
+        "throughput_preflight_passed": throughput.get("passed") is True,
+        "timing_artifacts_positive": all(
+            float(throughput.get(name, 0)) > 0 for name in (
+                "prepare_seconds", "development_seconds", "confirmation_seconds",
+                "finite_difference_seconds", "ad_certification_seconds", "total_seconds",
+            )
+        ),
     }
     payload = common("green-v21-reporting-consistency-v1", script, {
         "operation_counts_v200.json": sha256_file(archive / "operation_counts_v200.json"),
         "throughput_preflight.json": sha256_file(archive / "throughput_preflight.json"),
-    }) | {"checks": checks, "passed": all(checks.values()),
-          "clarification": "40/80 is the frozen theorem panel; 160/320 is the eight-record throughput workload."}
+    }) | {
+        "checks": checks, "passed": all(checks.values()), "complete": all(checks.values()),
+        "counts": {
+            "frozen_prepare_panel": {"certificates": 40, "routes": 80},
+            "throughput_preflight": {"certificates": 160, "routes": 320},
+            "development": {"certificates": 1280, "routes": 2560},
+        },
+        "timing_seconds": {
+            name: throughput[name] for name in (
+                "prepare_seconds", "development_seconds", "confirmation_seconds",
+                "finite_difference_seconds", "ad_certification_seconds", "total_seconds",
+            )
+        },
+        "clarification": (
+            "40/80 is the frozen theorem panel; 160/320 is the eight-record throughput "
+            "workload; 1280/2560 is full development."
+        ),
+    }
     write_json(output / "12_reporting_consistency.json", payload)
     return payload
 
 
 def load_gpu_rows(gpu_shards: Path | None) -> pd.DataFrame | None:
+    return load_gpu_table(gpu_shards, "postmortem_rows.parquet")
+
+
+def load_gpu_table(gpu_shards: Path | None, name: str) -> pd.DataFrame | None:
     if gpu_shards is None or not gpu_shards.exists():
         return None
-    paths = sorted(gpu_shards.glob("worker_*/postmortem_rows.parquet"))
+    paths = sorted(gpu_shards.glob(f"worker_*/{name}"))
     if not paths:
         return None
     return pd.concat([pd.read_parquet(path) for path in paths], ignore_index=True)
@@ -469,39 +679,183 @@ def merge_exact_gpu(gpu_shards: Path | None, output: Path, script: Path) -> tupl
     rows = load_gpu_rows(gpu_shards)
     if rows is None:
         return None, None, None
-    rows.to_parquet(output / "04_exact_transport_identity.parquet", index=False)
-    route_failures = int((~rows["route_passed"].astype(bool)).sum())
-    theorem_failures = int((~rows["transport_theorem_passed"].astype(bool)).sum())
-    composition_failures = int((~rows["joint_composition_passed"].astype(bool)).sum())
-    source = {path.name: sha256_file(path) for path in sorted(gpu_shards.glob("worker_*/postmortem_rows.parquet"))}
+    transport_rows = load_gpu_table(gpu_shards, "transport_rows.parquet")
+    joint_rows = load_gpu_table(gpu_shards, "joint_rows.parquet")
+    if transport_rows is None or joint_rows is None:
+        raise RuntimeError("STOP: detailed exact transport/joint GPU evidence missing")
+    transport_rows.to_parquet(output / "04_exact_transport_identity.parquet", index=False)
+    joint_rows.to_parquet(output / "05_exact_joint_composition.parquet", index=False)
+    route_failures = int((~transport_rows["route_passed"].astype(bool)).sum())
+    theorem_failures = int((~transport_rows["theorem_passed"].astype(bool)).sum())
+    joint_route_failures = int((~joint_rows["route_passed"].astype(bool)).sum())
+    composition_failures = int((~joint_rows["composition_passed"].astype(bool)).sum())
+    source = {
+        str(path.relative_to(gpu_shards)): sha256_file(path)
+        for pattern in ("postmortem_rows.parquet", "transport_rows.parquet", "joint_rows.parquet")
+        for path in sorted(gpu_shards.glob(f"worker_*/{pattern}"))
+    }
+    expected_transport_rows = len(rows) * 2 * 10 * 15
+    expected_joint_rows = len(rows) * 3
     transport = common("green-v21-exact-transport-identity-v1", script, source) | {
-        "rows": len(rows), "route_failures": route_failures,
+        "rows": len(transport_rows), "expected_rows": expected_transport_rows,
+        "aggregation_unit": "gate-system-item-direction",
+        "direction_class_counts": transport_rows["direction_class"].value_counts().sort_index().to_dict(),
+        "route_failures": route_failures,
         "theorem_failures": theorem_failures,
-        "max_residual_to_bound_ratio": float(rows["transport_residual_to_bound"].max()),
-        "active_model_unchanged": bool(rows["active_model_unchanged"].all()),
+        "max_residual_to_bound_ratio": float(transport_rows["residual_to_bound"].max()),
+        "active_model_unchanged": bool(transport_rows["active_model_unchanged"].all()),
+        "complete": len(transport_rows) == expected_transport_rows,
     }
     joint = common("green-v21-exact-joint-composition-v1", script, source) | {
-        "rows": len(rows), "route_failures": route_failures,
+        "rows": len(joint_rows), "expected_rows": expected_joint_rows,
+        "aggregation_units": ["item-system", "item-level pat-minus-tar"],
+        "system_counts": joint_rows["system"].value_counts().sort_index().to_dict(),
+        "route_failures": joint_route_failures,
         "composition_failures": composition_failures,
-        "max_residual_to_bound_ratio": float(rows["joint_residual_to_bound"].max()),
-        "active_model_unchanged": bool(rows["active_model_unchanged"].all()),
+        "max_residual_to_bound_ratio": float(joint_rows["residual_to_bound"].max()),
+        "active_model_unchanged": bool(joint_rows["active_model_unchanged"].all()),
+        "complete": len(joint_rows) == expected_joint_rows,
     }
     write_json(output / "04_exact_transport_identity.json", transport)
     write_json(output / "05_exact_joint_composition.json", joint)
-    if route_failures or theorem_failures or composition_failures or not rows["active_model_unchanged"].all():
+    if (route_failures or theorem_failures or joint_route_failures or composition_failures
+            or not transport["complete"] or not joint["complete"]
+            or not rows["active_model_unchanged"].all()):
         raise RuntimeError("STOP: exact transport or joint theorem postmortem failed")
     return transport, joint, rows
 
 
-def estimator_ladder(output: Path, script: Path, gpu_rows: pd.DataFrame | None) -> dict | None:
-    if gpu_rows is None:
+def estimator_ladder(
+    archive: Path, output: Path, script: Path, gpu_shards: Path | None
+) -> dict | None:
+    gates = load_gpu_table(gpu_shards, "ladder_gate_rows.parquet")
+    joint = load_gpu_table(gpu_shards, "joint_rows.parquet")
+    if gates is None or joint is None:
         return None
-    columns = [name for name in gpu_rows.columns if name.startswith("error_")]
-    payload = common("green-v21-estimator-ladder-summary-v1", script, {}) | {
-        "rows": len(gpu_rows), "estimators": {name.removeprefix("error_"): quantiles(gpu_rows[name]) for name in columns},
+    estimators = (
+        "fine_response", "coarse_response", "ad_response_whitebox",
+        "fine_G_whitebox_g", "active_only_v2",
+        "all_gate_response_where_invertible", "zero_centered_v2",
+    )
+    rows = []
+
+    def add_row(*, unit: str, estimator: str, target: str, estimate: float,
+                target_value: float, **identity: Any) -> None:
+        error = abs(float(estimate) - float(target_value))
+        rows.append(identity | {
+            "aggregation_unit": unit, "estimator": estimator, "target": target,
+            "estimate": float(estimate), "target_value": float(target_value),
+            "absolute_error": error,
+            "relative_error": error / max(abs(float(target_value)), 1e-12),
+        })
+
+    for row in gates.itertuples(index=False):
+        identity = {
+            "pair_digest": row.pair_digest, "cell_id": row.cell_id,
+            "distance_bin": row.distance_bin, "orientation": row.orientation,
+            "system": row.system, "gate_slot": int(row.gate_slot),
+        }
+        for estimator in estimators:
+            value = getattr(row, estimator)
+            if pd.notna(value):
+                add_row(unit="gate-system-item", estimator=estimator,
+                        target="exact_direct_transport", estimate=value,
+                        target_value=row.exact_direct, **identity)
+
+    item_values = []
+    item_keys = ["pair_digest", "cell_id", "distance_bin", "orientation", "system"]
+    for keys, group in gates.groupby(item_keys, sort=True):
+        entry = dict(zip(item_keys, keys))
+        for estimator in estimators:
+            values = group[estimator].dropna().astype(float)
+            entry[estimator] = float(values.sum()) if len(values) else math.nan
+            entry[f"{estimator}_gate_count"] = int(len(values))
+        entry["exact_direct_transport"] = float(group["exact_direct"].sum())
+        item_values.append(entry)
+    items = pd.DataFrame(item_values)
+    joint_system = joint[joint["system"].isin(("tar", "pat"))].set_index(["pair_digest", "system"])
+    for row in items.itertuples(index=False):
+        target = float(joint_system.loc[(row.pair_digest, row.system), "independent_target"])
+        for estimator in estimators:
+            value = getattr(row, estimator)
+            if pd.notna(value):
+                add_row(
+                    unit="item-system", estimator=estimator,
+                    target="independent_joint_ad", estimate=value, target_value=target,
+                    pair_digest=row.pair_digest, cell_id=row.cell_id,
+                    distance_bin=row.distance_bin, orientation=row.orientation,
+                    system=row.system, gate_slot=None,
+                )
+
+    contrast_rows = []
+    for (digest, cell, distance, orientation), group in items.groupby(
+        ["pair_digest", "cell_id", "distance_bin", "orientation"], sort=True
+    ):
+        systems = group.set_index("system")
+        entry = {"pair_digest": digest, "cell_id": cell,
+                 "distance_bin": distance, "orientation": orientation}
+        for estimator in estimators:
+            entry[estimator] = float(systems.loc["pat", estimator] - systems.loc["tar", estimator])
+        contrast_rows.append(entry)
+    contrasts = pd.DataFrame(contrast_rows)
+    joint_contrast = joint[joint["system"] == "pat_minus_tar"].set_index("pair_digest")
+    for row in contrasts.itertuples(index=False):
+        target = float(joint_contrast.loc[row.pair_digest, "independent_target"])
+        for estimator in estimators:
+            add_row(
+                unit="item-pat-minus-tar", estimator=estimator,
+                target="independent_joint_ad", estimate=getattr(row, estimator),
+                target_value=target, pair_digest=row.pair_digest, cell_id=row.cell_id,
+                distance_bin=row.distance_bin, orientation=row.orientation,
+                system="pat_minus_tar", gate_slot=None,
+            )
+
+    energy = pd.read_parquet(archive / "dev_energy_targets.parquet")
+    energy["signed_target"] = energy["systems"].map(
+        lambda value: float(_decode(value)["pat"]["full"] - _decode(value)["tar"]["full"])
+    )
+    energy_cell = energy.groupby("cell_id")["signed_target"].mean().to_dict()
+    for (cell, distance), group in contrasts.groupby(["cell_id", "distance_bin"], sort=True):
+        for estimator in estimators:
+            add_row(
+                unit="cell", estimator=estimator, target="independent_finite_energy",
+                estimate=float(group[estimator].mean()), target_value=float(energy_cell[cell]),
+                pair_digest=None, cell_id=cell, distance_bin=distance,
+                orientation="aggregated", system="pat_minus_tar", gate_slot=None,
+            )
+
+    frame = pd.DataFrame(rows)
+    frame.to_parquet(output / "06_estimator_ladder_rows.parquet", index=False)
+    metrics = {}
+    for (estimator, target, unit), group in frame.groupby(
+        ["estimator", "target", "aggregation_unit"], sort=True
+    ):
+        metrics[f"{estimator}|{target}|{unit}"] = {
+            "rows": len(group), "absolute_error": quantiles(group["absolute_error"]),
+            "relative_error": quantiles(group["relative_error"]),
+        }
+    source = {
+        str(path.relative_to(gpu_shards)): sha256_file(path)
+        for path in sorted(gpu_shards.glob("worker_*/ladder_gate_rows.parquet"))
+    } | {
+        "dev_energy_targets.parquet": sha256_file(archive / "dev_energy_targets.parquet"),
+        "dev_cells.json": sha256_file(archive / "dev_cells.json"),
+    }
+    formal_cells = json.loads((archive / "dev_cells.json").read_text(encoding="utf-8"))["cells"]
+    available_formal_targets = sum("target" in cell for cell in formal_cells)
+    payload = common("green-v21-estimator-ladder-summary-v1", script, source) | {
+        "rows": len(frame), "estimators": list(estimators), "metrics": metrics,
+        "fine_invertible_gate_system_items": int(gates["fine_invertible"].sum()),
+        "coarse_invertible_gate_system_items": int(gates["coarse_invertible"].sum()),
+        "formal_v2_cell_targets_available": available_formal_targets,
+        "formal_v2_cell_target_note": (
+            "No formal v2 cell target was emitted because development survival failed; "
+            "the independent finite-energy cell target is reported without altering that STOP."
+        ),
+        "complete": set(frame["estimator"]) == set(estimators)
+                    and set(frame["target"]) == {"exact_direct_transport", "independent_joint_ad", "independent_finite_energy"},
         "selection_for_v3_forbidden": True,
     }
-    gpu_rows.to_parquet(output / "06_estimator_ladder_rows.parquet", index=False)
     write_json(output / "06_estimator_ladder_summary.json", payload)
     return payload
 
@@ -514,10 +868,11 @@ def null_unresolved_mass(archive: Path, output: Path, script: Path, gpu_rows: pd
     for _, item in tensor.iterrows():
         audit = _decode(item["mixed_audit"])
         exact = gpu_rows[gpu_rows["pair_digest"] == item["pair_digest"]]
-        target = float(exact["joint_target_norm"].max()) if len(exact) else 0.0
-        bound = float(exact["joint_bound"].max()) if len(exact) else 0.0
-        denominator = max(target, bound)
+        exact_systems = _decode(exact.iloc[0]["system_audit"]) if len(exact) else {}
         for system_name, system in audit.items():
+            target = abs(float(exact_systems.get(system_name, {}).get("joint_target", 0.0)))
+            bound = float(exact_systems.get(system_name, {}).get("joint_bound", 0.0))
+            denominator = max(target, bound)
             null = sum(float(gate.get("null_bound", 0)) for gate in system["gates"] if gate["label"] == "certified-target-null")
             unresolved = sum(float(gate.get("unresolved_bound", 0)) for gate in system["gates"] if gate["label"] == "unresolved-bounded")
             active = abs(sum(float(gate.get("contribution_center", 0)) for gate in system["gates"] if gate["label"] == "active-identified"))
@@ -530,7 +885,8 @@ def null_unresolved_mass(archive: Path, output: Path, script: Path, gpu_rows: pd
     payload = common("green-v21-null-unresolved-mass-v1", script, {
         "dev_tensor_scores.parquet": sha256_file(archive / "dev_tensor_scores.parquet")
     }) | {"rows": len(frame), "R_null": quantiles(frame["R_null"]),
-          "R_unresolved": quantiles(frame["R_unresolved"])}
+          "R_unresolved": quantiles(frame["R_unresolved"]),
+          "complete": len(frame) == len(tensor) * 2}
     write_json(output / "07_null_unresolved_mass.json", payload)
     return payload
 
@@ -539,8 +895,32 @@ def postmortem_manifest(output: Path, script: Path) -> dict:
     names = [f"{index:02d}_" for index in range(1, 13)]
     files = [path for path in output.iterdir() if path.is_file() and path.name != "postmortem_manifest.json"]
     coverage = {prefix: any(path.name.startswith(prefix) for path in files) for prefix in names}
+    semantic = {}
+    if all(coverage.values()):
+        documents = {
+            index: json.loads(next(output.glob(f"{index:02d}_*.json")).read_text(encoding="utf-8"))
+            for index in range(1, 13)
+        }
+        semantic = {
+            "01_integrity": documents[1].get("integrity_reconstruction_passed") is True,
+            "02_gate_rows": documents[2].get("rows") == 1280,
+            "03_uncertainty_rows": documents[3].get("rows", 0) > 0,
+            "04_exact_transport": documents[4].get("complete") is True
+                                  and documents[4].get("theorem_failures") == 0,
+            "05_exact_joint": documents[5].get("complete") is True
+                              and documents[5].get("composition_failures") == 0,
+            "06_estimator_ladder": documents[6].get("complete") is True,
+            "07_null_mass": documents[7].get("complete") is True,
+            "08_functionals": documents[8].get("complete") is True,
+            "09_role_sampling": documents[9].get("complete") is True,
+            "10_snr_geometry": documents[10].get("all_nonempty_zero_crossings_have_snr_one") is True,
+            "11_regime_bridge": documents[11].get("complete") is True,
+            "12_reporting": documents[12].get("passed") is True,
+        }
+    all_complete = all(coverage.values()) and bool(semantic) and all(semantic.values())
     payload = common("green-v21-postmortem-manifest-v1", script, {}) | {
-        "analysis_coverage": coverage, "all_twelve_complete": all(coverage.values()),
+        "analysis_coverage": coverage, "semantic_completion_checks": semantic,
+        "all_twelve_complete": all_complete,
         "artifact_sha256": {path.name: sha256_file(path) for path in sorted(files)},
     }
     write_json(output / "postmortem_manifest.json", payload)
@@ -571,7 +951,7 @@ def main() -> None:
     gates, _ = gate_certificate_decomposition(args.archive, args.output, script)
     uncertainty_decomposition(gates, args.archive, args.output, script)
     transport, joint, gpu_rows = merge_exact_gpu(args.gpu_shards, args.output, script)
-    estimator_ladder(args.output, script, gpu_rows)
+    estimator_ladder(args.archive, args.output, script, args.gpu_shards)
     null_unresolved_mass(args.archive, args.output, script, gpu_rows)
     aggregation_functionals(args.archive, args.output, script, gpu_rows)
     role_sampling_audit(args.archive, args.output, script, gpu_rows)
@@ -581,7 +961,9 @@ def main() -> None:
     manifest = postmortem_manifest(args.output, script)
     if not manifest["all_twelve_complete"]:
         missing = [name for name, passed in manifest["analysis_coverage"].items() if not passed]
-        print(json.dumps({"status": "GPU_POSTMORTEM_REQUIRED", "missing": missing}, sort_keys=True))
+        failed = [name for name, passed in manifest["semantic_completion_checks"].items() if not passed]
+        print(json.dumps({"status": "POSTMORTEM_INCOMPLETE", "missing": missing,
+                          "failed_semantic_checks": failed}, sort_keys=True))
         raise SystemExit(3)
     print(json.dumps({"status": "POSTMORTEM_PASS", "output": str(args.output)}, sort_keys=True))
 
