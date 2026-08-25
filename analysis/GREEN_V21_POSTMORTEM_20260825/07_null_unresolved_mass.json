@@ -1,0 +1,35 @@
+{
+  "R_null": {
+    "max": 34.29914687322678,
+    "median": 1.34823090724041,
+    "min": 0.3725831389725605,
+    "p25": 1.1307959020433713,
+    "p75": 2.15471614250468,
+    "p90": 4.3880688516885415,
+    "p95": 10.241420113118087,
+    "p99": 14.6538720119876
+  },
+  "R_unresolved": {
+    "max": 0.6862579650154834,
+    "median": 0.0,
+    "min": 0.0,
+    "p25": 0.0,
+    "p75": 0.0,
+    "p90": 0.0,
+    "p95": 0.5726912657308117,
+    "p99": 0.6691074962181948
+  },
+  "analysis_script_sha256": "f2b8f6b919cff3e22638b2f52277af7938cbebeb77fe9d6c9257d49ae4076ef0",
+  "complete": true,
+  "confirmation_data_accessed": false,
+  "official_execution_commit": "e52e082296c33a10557636706e572147136fce34",
+  "official_verdict": "STOP_ORAL",
+  "official_verdict_unchanged": true,
+  "postmortem_commit": "ef09fce529553d5a3d236852a288cde02b88418a",
+  "postmortem_schema": "green-v21-null-unresolved-mass-v1",
+  "rows": 128,
+  "source_artifact_sha256": {
+    "dev_tensor_scores.parquet": "26682eacb9d19ceab065f319b5a4a1b54de2728a681637392da5180d0e95f6ca"
+  },
+  "usable_for_threshold_selection": false
+}

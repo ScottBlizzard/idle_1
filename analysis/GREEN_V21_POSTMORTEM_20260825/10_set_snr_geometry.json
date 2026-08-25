@@ -1,0 +1,208 @@
+{
+  "all_nonempty_zero_crossings_have_snr_one": true,
+  "analysis_script_sha256": "f2b8f6b919cff3e22638b2f52277af7938cbebeb77fe9d6c9257d49ae4076ef0",
+  "cells": [
+    {
+      "absolute_interval": [
+        0.0,
+        0.008011657967397987
+      ],
+      "cell_id": "dynasty|12|far",
+      "crosses_zero": true,
+      "half_width": 0.004005828983698993,
+      "midpoint": 0.004005828983698993,
+      "n": 4,
+      "pat_interval": [
+        -0.005153272620919796,
+        0.005153272620919796
+      ],
+      "signed_interval": [
+        -0.008011657967397987,
+        0.008011657967397987
+      ],
+      "snr": 1.0,
+      "tar_interval": [
+        -0.0028583853464781905,
+        0.0028583853464781905
+      ]
+    },
+    {
+      "absolute_interval": [
+        0.0,
+        0.0057615790660648265
+      ],
+      "cell_id": "dynasty|12|near",
+      "crosses_zero": true,
+      "half_width": 0.0028807895330324133,
+      "midpoint": 0.0028807895330324133,
+      "n": 8,
+      "pat_interval": [
+        -0.002765353746736877,
+        0.002765353746736877
+      ],
+      "signed_interval": [
+        -0.0057615790660648265,
+        0.0057615790660648265
+      ],
+      "snr": 1.0,
+      "tar_interval": [
+        -0.0029962253193279494,
+        0.0029962253193279494
+      ]
+    },
+    {
+      "absolute_interval": [
+        0.0,
+        0.010031309096880797
+      ],
+      "cell_id": "dynasty|16|far",
+      "crosses_zero": true,
+      "half_width": 0.005015654548440399,
+      "midpoint": 0.005015654548440399,
+      "n": 5,
+      "pat_interval": [
+        -0.005905695494077235,
+        0.005847318903787306
+      ],
+      "signed_interval": [
+        -0.010031309096880797,
+        0.009972932506590869
+      ],
+      "snr": 1.0,
+      "tar_interval": [
+        -0.0041256136028035625,
+        0.0041256136028035625
+      ]
+    },
+    {
+      "absolute_interval": [
+        0.0,
+        0.007183217961815128
+      ],
+      "cell_id": "dynasty|16|near",
+      "crosses_zero": true,
+      "half_width": 0.003591608980907564,
+      "midpoint": 0.003591608980907564,
+      "n": 8,
+      "pat_interval": [
+        -0.0029340138098928386,
+        0.0029340138098928386
+      ],
+      "signed_interval": [
+        -0.007183217961815128,
+        0.00718288684015039
+      ],
+      "snr": 1.0,
+      "tar_interval": [
+        -0.004248873030257551,
+        0.004249204151922289
+      ]
+    },
+    {
+      "absolute_interval": [
+        0.0,
+        0.015054340040993201
+      ],
+      "cell_id": "reign|14|far",
+      "crosses_zero": true,
+      "half_width": 0.007527170020496601,
+      "midpoint": 0.007527170020496601,
+      "n": 8,
+      "pat_interval": [
+        -0.008711434752697006,
+        0.008711434752697006
+      ],
+      "signed_interval": [
+        -0.015054340040993201,
+        0.015054340040993201
+      ],
+      "snr": 1.0,
+      "tar_interval": [
+        -0.0063429052882961945,
+        0.0063429052882961945
+      ]
+    },
+    {
+      "absolute_interval": [
+        0.0,
+        0.006640865361025755
+      ],
+      "cell_id": "reign|14|near",
+      "crosses_zero": true,
+      "half_width": 0.0033204326805128773,
+      "midpoint": 0.0033204326805128773,
+      "n": 8,
+      "pat_interval": [
+        -0.003223799128718767,
+        0.003223799128718767
+      ],
+      "signed_interval": [
+        -0.006640865361025755,
+        0.006640865361025755
+      ],
+      "snr": 1.0,
+      "tar_interval": [
+        -0.0034170662323069877,
+        0.0034170662323069877
+      ]
+    },
+    {
+      "absolute_interval": [
+        0.0,
+        0.015571377839227157
+      ],
+      "cell_id": "warfare|14|far",
+      "crosses_zero": true,
+      "half_width": 0.007785688919613579,
+      "midpoint": 0.007785688919613579,
+      "n": 6,
+      "pat_interval": [
+        -0.006782995602651058,
+        0.006765029565223536
+      ],
+      "signed_interval": [
+        -0.015400139172771096,
+        0.015571377839227157
+      ],
+      "snr": 1.0,
+      "tar_interval": [
+        -0.008806348274003622,
+        0.008617143570120039
+      ]
+    },
+    {
+      "absolute_interval": [
+        0.0,
+        0.008795489608781175
+      ],
+      "cell_id": "warfare|14|near",
+      "crosses_zero": true,
+      "half_width": 0.004397744804390587,
+      "midpoint": 0.004397744804390587,
+      "n": 8,
+      "pat_interval": [
+        -0.003230311397439742,
+        0.003230311397439742
+      ],
+      "signed_interval": [
+        -0.008673415675417732,
+        0.008795489608781175
+      ],
+      "snr": 1.0,
+      "tar_interval": [
+        -0.005565178211341433,
+        0.00544310427797799
+      ]
+    }
+  ],
+  "confirmation_data_accessed": false,
+  "official_execution_commit": "e52e082296c33a10557636706e572147136fce34",
+  "official_verdict": "STOP_ORAL",
+  "official_verdict_unchanged": true,
+  "postmortem_commit": "ef09fce529553d5a3d236852a288cde02b88418a",
+  "postmortem_schema": "green-v21-set-snr-geometry-v1",
+  "source_artifact_sha256": {
+    "dev_tensor_scores.parquet": "26682eacb9d19ceab065f319b5a4a1b54de2728a681637392da5180d0e95f6ca"
+  },
+  "usable_for_threshold_selection": false
+}

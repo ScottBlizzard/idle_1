@@ -1,0 +1,225 @@
+{
+  "analysis_script_sha256": "f2b8f6b919cff3e22638b2f52277af7938cbebeb77fe9d6c9257d49ae4076ef0",
+  "bootstrap_replicates": 100000,
+  "bootstrap_seed": 20260825,
+  "cells": [
+    {
+      "cell_id": "dynasty|12|far",
+      "distance_bin": "far",
+      "n_official": 8,
+      "n_same_role": 8,
+      "noun_century_cluster": "dynasty|12",
+      "official_disjoint_signed_mean": -0.0009500198579145701,
+      "official_disjoint_standard_error": 0.0005489871055611072,
+      "official_orientation_balanced_mean": -0.0009500198579145701,
+      "pooled_role_signed_mean": -0.0011352075576992566,
+      "role_shift": -0.00037037539956937297,
+      "role_shift_item_bootstrap_interval": [
+        -0.0019076911782166214,
+        0.0011540738234517857
+      ],
+      "same_role_orientation_balanced_mean": -0.001320395257483943,
+      "same_role_signed_mean": -0.001320395257483943,
+      "same_role_standard_error": 0.0006326765117366621
+    },
+    {
+      "cell_id": "dynasty|12|near",
+      "distance_bin": "near",
+      "n_official": 8,
+      "n_same_role": 8,
+      "noun_century_cluster": "dynasty|12",
+      "official_disjoint_signed_mean": 0.0013982798055415223,
+      "official_disjoint_standard_error": 0.0003846069530726016,
+      "official_orientation_balanced_mean": 0.0013982798055415225,
+      "pooled_role_signed_mean": 0.001272837754512794,
+      "role_shift": -0.0002508841020574567,
+      "role_shift_item_bootstrap_interval": [
+        -0.0011934081362381262,
+        0.0006976668566285096
+      ],
+      "same_role_orientation_balanced_mean": 0.0011473957034840655,
+      "same_role_signed_mean": 0.0011473957034840655,
+      "same_role_standard_error": 0.00033927125809665937
+    },
+    {
+      "cell_id": "dynasty|16|far",
+      "distance_bin": "far",
+      "n_official": 8,
+      "n_same_role": 8,
+      "noun_century_cluster": "dynasty|16",
+      "official_disjoint_signed_mean": 0.0006053107588233132,
+      "official_disjoint_standard_error": 0.0003714765633016296,
+      "official_orientation_balanced_mean": 0.0006053107588233132,
+      "pooled_role_signed_mean": 0.0005153369924616267,
+      "role_shift": -0.00017994753272337308,
+      "role_shift_item_bootstrap_interval": [
+        -0.0015594937284198953,
+        0.0012254967659253073
+      ],
+      "same_role_orientation_balanced_mean": 0.0004253632260999401,
+      "same_role_signed_mean": 0.0004253632260999401,
+      "same_role_standard_error": 0.0006663339001708502
+    },
+    {
+      "cell_id": "dynasty|16|near",
+      "distance_bin": "near",
+      "n_official": 8,
+      "n_same_role": 8,
+      "noun_century_cluster": "dynasty|16",
+      "official_disjoint_signed_mean": 0.001602876155971611,
+      "official_disjoint_standard_error": 0.0005333060280040151,
+      "official_orientation_balanced_mean": 0.001602876155971611,
+      "pooled_role_signed_mean": 0.0016318225289818303,
+      "role_shift": 5.789274602043871e-05,
+      "role_shift_item_bootstrap_interval": [
+        -0.0011136121180901027,
+        0.0012812061426164848
+      ],
+      "same_role_orientation_balanced_mean": 0.0016607689019920498,
+      "same_role_signed_mean": 0.0016607689019920498,
+      "same_role_standard_error": 0.00037973237050470876
+    },
+    {
+      "cell_id": "reign|14|far",
+      "distance_bin": "far",
+      "n_official": 8,
+      "n_same_role": 8,
+      "noun_century_cluster": "reign|14",
+      "official_disjoint_signed_mean": 0.000574883404141211,
+      "official_disjoint_standard_error": 0.0006520410404225849,
+      "official_orientation_balanced_mean": 0.000574883404141211,
+      "pooled_role_signed_mean": 0.0013208445803026263,
+      "role_shift": 0.0014919223523228308,
+      "role_shift_item_bootstrap_interval": [
+        -0.00037415710019248605,
+        0.0033250990814127214
+      ],
+      "same_role_orientation_balanced_mean": 0.0020668057564640417,
+      "same_role_signed_mean": 0.0020668057564640417,
+      "same_role_standard_error": 0.0007695480122060268
+    },
+    {
+      "cell_id": "reign|14|near",
+      "distance_bin": "near",
+      "n_official": 8,
+      "n_same_role": 8,
+      "noun_century_cluster": "reign|14",
+      "official_disjoint_signed_mean": 0.002326544416725464,
+      "official_disjoint_standard_error": 0.0006419376385932562,
+      "official_orientation_balanced_mean": 0.002326544416725464,
+      "pooled_role_signed_mean": 0.0019149462701815133,
+      "role_shift": -0.0008231962930879016,
+      "role_shift_item_bootstrap_interval": [
+        -0.0021892770734296472,
+        0.0005548989869751399
+      ],
+      "same_role_orientation_balanced_mean": 0.0015033481236375623,
+      "same_role_signed_mean": 0.0015033481236375623,
+      "same_role_standard_error": 0.0003938637797989976
+    },
+    {
+      "cell_id": "warfare|14|far",
+      "distance_bin": "far",
+      "n_official": 8,
+      "n_same_role": 8,
+      "noun_century_cluster": "warfare|14",
+      "official_disjoint_signed_mean": 0.002417858410944792,
+      "official_disjoint_standard_error": 0.0008143376201010351,
+      "official_orientation_balanced_mean": 0.002417858410944792,
+      "pooled_role_signed_mean": 0.0023593838434896285,
+      "role_shift": -0.00011694913491032714,
+      "role_shift_item_bootstrap_interval": [
+        -0.001945791853380534,
+        0.0013194141891756234
+      ],
+      "same_role_orientation_balanced_mean": 0.0023009092760344647,
+      "same_role_signed_mean": 0.0023009092760344647,
+      "same_role_standard_error": 0.00038530561311765843
+    },
+    {
+      "cell_id": "warfare|14|near",
+      "distance_bin": "near",
+      "n_official": 8,
+      "n_same_role": 8,
+      "noun_century_cluster": "warfare|14",
+      "official_disjoint_signed_mean": 0.0022249153586299895,
+      "official_disjoint_standard_error": 0.0005310567246080945,
+      "official_orientation_balanced_mean": 0.0022249153586299895,
+      "pooled_role_signed_mean": 0.001991346221728322,
+      "role_shift": -0.0004671382738033339,
+      "role_shift_item_bootstrap_interval": [
+        -0.0017284675809075762,
+        0.0007270469975048419
+      ],
+      "same_role_orientation_balanced_mean": 0.0017577770848266555,
+      "same_role_signed_mean": 0.0017577770848266555,
+      "same_role_standard_error": 0.0004119735034422321
+    }
+  ],
+  "cluster": "noun-century group",
+  "complete": true,
+  "confirmation_data_accessed": false,
+  "distance_stratified_complete": true,
+  "distance_stratified_summaries": [
+    {
+      "distance_bin": "far",
+      "official_disjoint_signed_mean": 0.0006620081789986865,
+      "pooled_role_signed_mean": 0.0007650894646386562,
+      "role_shift": 0.0002061625712799394,
+      "same_role_signed_mean": 0.0008681707502786258
+    },
+    {
+      "distance_bin": "near",
+      "official_disjoint_signed_mean": 0.0018881539342171466,
+      "pooled_role_signed_mean": 0.001702738193851115,
+      "role_shift": -0.0003708314807320634,
+      "same_role_signed_mean": 0.0015173224534850832
+    }
+  ],
+  "noun_century_cluster_summaries": [
+    {
+      "cells": 2,
+      "noun_century_cluster": "dynasty|12",
+      "official_disjoint_signed_mean": 0.0002241299738134761,
+      "role_shift": -0.00031062975081341484,
+      "same_role_signed_mean": -8.649977699993875e-05
+    },
+    {
+      "cells": 2,
+      "noun_century_cluster": "dynasty|16",
+      "official_disjoint_signed_mean": 0.0011040934573974621,
+      "role_shift": -6.1027393351467186e-05,
+      "same_role_signed_mean": 0.001043066064045995
+    },
+    {
+      "cells": 2,
+      "noun_century_cluster": "reign|14",
+      "official_disjoint_signed_mean": 0.0014507139104333374,
+      "role_shift": 0.0003343630296174646,
+      "same_role_signed_mean": 0.001785076940050802
+    },
+    {
+      "cells": 2,
+      "noun_century_cluster": "warfare|14",
+      "official_disjoint_signed_mean": 0.002321386884787391,
+      "role_shift": -0.00029204370435683053,
+      "same_role_signed_mean": 0.00202934318043056
+    }
+  ],
+  "official_execution_commit": "e52e082296c33a10557636706e572147136fce34",
+  "official_verdict": "STOP_ORAL",
+  "official_verdict_unchanged": true,
+  "orientation_balanced_complete": true,
+  "overall_role_shift_cluster_bootstrap_interval": [
+    -0.0003013367275851227,
+    0.0001777613461238908
+  ],
+  "pooled_role_complete": true,
+  "postmortem_commit": "ef09fce529553d5a3d236852a288cde02b88418a",
+  "postmortem_schema": "green-v21-role-sampling-audit-v1",
+  "same_role_reconstruction_complete": true,
+  "source_artifact_sha256": {
+    "dev_energy_targets.parquet": "fbc0d69a0d1fe21f2bbcaf0cceea5af3ab76fb417beff685c1cf710af16860f1"
+  },
+  "usable_for_threshold_selection": false
+}

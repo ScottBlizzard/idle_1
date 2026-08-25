@@ -1,0 +1,50 @@
+{
+  "analysis_script_sha256": "f2b8f6b919cff3e22638b2f52277af7938cbebeb77fe9d6c9257d49ae4076ef0",
+  "checks": {
+    "development_certificates_1280": true,
+    "development_routes_2560": true,
+    "prepare_panel_certificates_40": true,
+    "prepare_panel_routes_80": true,
+    "throughput_certificates_160": true,
+    "throughput_embedded_counts_match": true,
+    "throughput_preflight_passed": true,
+    "throughput_routes_320": true,
+    "timing_artifacts_positive": true
+  },
+  "clarification": "40/80 is the frozen theorem panel; 160/320 is the eight-record throughput workload; 1280/2560 is full development.",
+  "complete": true,
+  "confirmation_data_accessed": false,
+  "counts": {
+    "development": {
+      "certificates": 1280,
+      "routes": 2560
+    },
+    "frozen_prepare_panel": {
+      "certificates": 40,
+      "routes": 80
+    },
+    "throughput_preflight": {
+      "certificates": 160,
+      "routes": 320
+    }
+  },
+  "official_execution_commit": "e52e082296c33a10557636706e572147136fce34",
+  "official_verdict": "STOP_ORAL",
+  "official_verdict_unchanged": true,
+  "passed": true,
+  "postmortem_commit": "ef09fce529553d5a3d236852a288cde02b88418a",
+  "postmortem_schema": "green-v21-reporting-consistency-v1",
+  "source_artifact_sha256": {
+    "operation_counts_v200.json": "406fb478460247fe9b7efa15e12e8bae0cefca9c500f29586cd84d4f5d7a6605",
+    "throughput_preflight.json": "941bdeb0936264851f62af1eb43342d28173b422d6e033cec21b431e978e9ab6"
+  },
+  "timing_seconds": {
+    "ad_certification_seconds": 196.4725738499692,
+    "confirmation_seconds": 986.5654824869998,
+    "development_seconds": 328.85516082899994,
+    "finite_difference_seconds": 128.97088485617132,
+    "prepare_seconds": 52.52984558535172,
+    "total_seconds": 1367.9504889013515
+  },
+  "usable_for_threshold_selection": false
+}
