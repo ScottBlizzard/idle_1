@@ -2,34 +2,47 @@
 from __future__ import annotations
 
 import hashlib
+import contextlib
+import io
 import inspect
 import json
+import math
 from pathlib import Path
 import tempfile
 from types import SimpleNamespace
 import unittest
+import sys
 from unittest import mock
 
 import numpy as np
 
 import exp_green_bridge_gpt2 as runner
+import analyze_green_bridge as analysis_module
 import green_bridge_path_target as target_module
 import green_bridge_tail as tail_module
-from analyze_green_bridge import development_decision, development_decision_v200
+from analyze_green_bridge import (
+    confirmation_decision_v200, development_decision, development_decision_v200,
+    freeze_confirmation_v200,
+)
 from green_bridge_dataset import (
     build_evaluation_records, build_green_bridge_v200_splits, plan_payload,
-    v200_split_payload,
+    v200_split_payload, V200_LITERAL_SPLIT_PAYLOAD,
 )
 from green_bridge_numerics import (
+    ADCertifiedEnclosureV200, ADRouteCertificateV200,
     ScaleNumericalBoundsV200, active_envelope_contraction_bound,
+    ad_certified_enclosure_v200, ad_matched_bypass_compatibility_v200,
+    ad_route_certificate_v200, compatibility_ratio,
     absolute_value_interval, dyadic_enclosure_v200,
     factorization_compatibility_v200, minkowski_sum_interval,
     richardson_pair_bounds_v200, robust_interval_auc_lower_bound,
     shift_null_compatibility_v200, subtract_intervals,
     whitebox_compatibility_v200, whitebox_factorization_compatibility_v200,
     worst_case_interval_rmse,
+    round_up,
 )
 from green_bridge_spec import (
+    AD_ROUTE_GAMMA, AD_ROUTE_OPERATION_BUDGET, CORRIGENDUM_ID,
     ALL_GATE_FRAME_DIM, COMMON_FRAME_DIM, DIMENSIONS,
     FIRST_ORDER_COEFFICIENT_SEED, FIRST_ORDER_COEFFICIENT_SHA256,
     FIRST_ORDER_RESIDUAL_DIRECTIONS, FROZEN_SPEC, GATE_RADIUS,
@@ -57,6 +70,7 @@ from matched_bypass_gate import (
     operator_inner_product, reconstruct_cotangent,
 )
 from green_bridge_response_ad import (
+    active_model_integrity_hash_v200, isolated_ad_tail_v200,
     audit_richardson_enclosure_v200, select_ad_audit_panel_v200,
 )
 
@@ -112,6 +126,8 @@ class HistoricalAndTerminationTests(unittest.TestCase):
             "analysis/CODEX_GREEN_V134_EXACT_BATCH1_MULTIGPU_DECISION_20260825.md",
             "analysis/CODEX_GREEN_V135_GATEJET_RESPONSE_PAIRING_DECISION_20260825.md",
             "analysis/CODEX_GREEN_V136_DIRECT_BYPASS_ORIENTATION_DECISION_20260825.md",
+            "analysis/GREEN_V200_IMPLEMENTATION_BLOCKERS_20260825.md",
+            "analysis/GPTPRO_GREEN_V200_CORRIGENDUM_DECISION_20260825.md",
         ):
             self.assertIn(name, runner.PROTOCOL_FILES)
     def test_active_protocol_has_no_pca_rank(self): self.assertNotIn("residual_rank", json.dumps(FROZEN_SPEC))
@@ -345,7 +361,7 @@ class FrozenCoreTests(unittest.TestCase):
     def test_schema_and_protocol(self): self.assertEqual((SCHEMA_VERSION,PROTOCOL_ID),("green-bridge-v2.0.0","structural-envelope-matched-bypass-setid-v2.0.0"))
     def test_dimensions(self): self.assertEqual((DIMENSIONS.d_model,DIMENSIONS.probe_frame_dim),(768,5))
     def test_expected_calls(self): self.assertEqual(expected_tensor_calls(n_radii=3),3122)
-    def test_envelope_error_term_is_positive(self): self.assertEqual(active_envelope_contraction_bound(2,3,4,5,6,7,8),2*(3*5+(6+7)*4*8))
+    def test_envelope_error_term_is_positive(self): self.assertGreaterEqual(active_envelope_contraction_bound(2,3,4,5,6,7,8),2*(3*5+(6+7)*4*8))
 
 
 class ManualTailEndpointContractTests(unittest.TestCase):
@@ -400,7 +416,7 @@ class PredecessorArchiveContractTests(unittest.TestCase):
     def test_v132_development_hash_is_frozen(self): self.assertEqual(runner.V132_TERMINAL_HASHES["outputs/green_bridge_v132/dev_cells.json"],"1294a76d6d79c81f240c20c4257aa6b0fe76457d46b30cfc5d5699e27759ae1f")
     def test_v133_prepare_stop_hash_is_frozen(self): self.assertEqual(runner.V133_TERMINAL_HASHES["outputs/green_bridge_v133/result.json"],"e1084e999ff3c94c7d7cec343f22b6d7462f142440955edcde561b860d36a1d8")
     def test_v134_development_stop_hash_is_self_contained(self): self.assertIn("e340700ec23616cd2c8dd4c02f341896ee616f3aeffdf574dbcdc67075196cb2",inspect.getsource(runner.verify_v134_terminal_archive))
-    def test_v135_development_stop_hash_is_frozen(self): self.assertEqual(runner.PREDECESSOR_RUN["result_sha256"],"c1c53e6b7fcf062a3c258a79f3ef4b87a0b33724e7087c2182f6f7e14fb81b20")
+    def test_v135_development_stop_hash_is_frozen(self): self.assertEqual(runner.PREDECESSOR_RUN["schema_version"],"green-bridge-v1.3.6");self.assertEqual(runner.PREDECESSOR_RUN["artifact_sha256"]["dev_result.json"],"2e15531d62bd5cc1162980fdaa2643a7300b362eb6b11ff5b94bb3d623c37277")
 
 
 class PrepareArtifactContractTests(unittest.TestCase):
@@ -416,11 +432,17 @@ class ExactBatchOneOperationGraphTests(unittest.TestCase):
     def test_tail_wrapper_pads_final_chunk(self): self.assertIn("if count < fixed",inspect.getsource(tail_module.GreenBridgeTail._evaluate_physical_fixed_batch))
     def test_tail_wrapper_slices_declared_rows(self): self.assertIn("logits[:count]",inspect.getsource(tail_module.GreenBridgeTail._evaluate_physical_fixed_batch))
     def test_scientific_tail_activates_fixed_batch(self): self.assertIn("fixed_batch_size=TAIL_FIXED_BATCH_SIZE",inspect.getsource(runner._tensor_item_v200))
-    def test_scientific_tail_has_no_recentering(self): self.assertNotIn("recenter_fixed_batch_output",inspect.getsource(runner._tensor_item_v200))
+    def test_scientific_tail_has_no_recentering(self):
+        self.assertNotIn("recenter_fixed_batch_output",inspect.getsource(runner._tensor_item_v200))
+        source=inspect.getsource(runner._mixed_system_v200)
+        self.assertIn('"contradictory_gates": 0',source);self.assertIn('"numerical_invalid_gates": 10',source);self.assertIn("center-noop-failure",source)
     def test_prepare_requires_bitwise_full_hook_match(self): self.assertIn('if not metrics["bitwise_equal"]',inspect.getsource(runner._prepare_exact_batch_one_and_throughput_v136))
     def test_full_reference_remains_batch_one(self): self.assertIn('"full_model_jvp_batch_size": 1',inspect.getsource(runner._prepare_exact_batch_one_and_throughput_v136))
     def test_eight_worker_gpus_are_frozen(self): self.assertIn('physical_gpus = tuple(range(8))',inspect.getsource(runner._run_split_v200_multigpu))
-    def test_worker_failure_is_terminal(self): self.assertIn('"11_MULTIGPU_WORKER"',inspect.getsource(runner._run_split_v200_multigpu))
+    def test_worker_failure_is_terminal(self):
+        self.assertIn('"11_MULTIGPU_WORKER"',inspect.getsource(runner._run_split_v200_multigpu))
+        launcher=(ROOT/"src"/"launch_green_bridge_v200.sh").read_text(encoding="utf-8")
+        self.assertNotIn("pip install",launcher);self.assertIn("python -m pip check",launcher)
     def test_worker_records_are_deterministically_sorted(self): self.assertIn('green-v200-worker|{role}|{row.pair_digest}',inspect.getsource(runner._run_split_v200_multigpu))
 
     def test_identification_is_paired_with_same_scale_gatejet_response(self):
@@ -538,7 +560,10 @@ class V200FactorizationBoundsTests(unittest.TestCase):
 
     def test_residual_one_ulp_above_bound_fails(self):
         jet = GateJet(np.ones(100), np.r_[1.0, np.zeros(99)], np.zeros((5,100)), np.zeros((5,100)), np.zeros((5,100)))
-        jet.H_path[0, 1] = np.nextafter(np.nextafter(1.0, np.inf), np.inf)
+        value = 1.0
+        for _ in range(16):
+            value = np.nextafter(value, np.inf)
+        jet.H_path[0, 1] = value
         enclosure = SimpleNamespace(
             final_epsilon_delta_H=np.r_[1.0, np.zeros(4)], final_epsilon_A=np.zeros(5),
             final_A_max=np.zeros(5), final_epsilon_C=0.0,
@@ -603,8 +628,7 @@ class V200ADAuditTests(unittest.TestCase):
     def test_ad_value_outside_enclosure_stops_prepare(self):
         zero = GateJet(np.zeros(100), np.zeros(100), np.zeros((5,100)), np.zeros((5,100)), np.zeros((5,100)))
         outside = GateJet(np.full(100, 2.0), np.zeros(100), np.zeros((5,100)), np.zeros((5,100)), np.zeros((5,100)))
-        bounds = ScaleNumericalBoundsV200(1.0,1.0,1.0,np.ones(5),np.ones(5),np.ones(5),np.ones(5),1.0,True)
-        self.assertFalse(audit_richardson_enclosure_v200(outside,outside,zero,zero,bounds,bounds)["passed"])
+        self.assertFalse(ad_route_certificate_v200(outside,zero).passed)
 
 
 class V200GateClassTests(unittest.TestCase):
@@ -620,15 +644,19 @@ class V200GateClassTests(unittest.TestCase):
 
     def test_noninvertible_gate_becomes_unresolved_bounded(self):
         jet = GateJet(np.ones(100), np.zeros(100), np.zeros((5,100)), np.zeros((5,100)), np.zeros((5,100)))
+        cert=ad_route_certificate_v200(jet,jet)
+        enc=ad_certified_enclosure_v200(jet,cert,epsilon_y=1e-7,fine_h_x=.1,fine_h_z=.1)
         triplet={"fine_richardson":jet,"coarse_richardson":jet,"dyadic_enclosure":self._enclosure(False)}
-        result=runner._classify_gate_v200(triplet,np.zeros(5),np.ones(768),np.ones(100),np.ones(768))
+        result=runner._classify_gate_v200(triplet,cert,enc,np.zeros(5),np.ones(768),np.ones(100),np.ones(768))
         self.assertEqual(result["audit"]["label"],"unresolved-bounded")
 
     def test_bound_exceedance_becomes_structural_contradiction(self):
         C=np.r_[1.0,np.zeros(99)]; delta=np.zeros((5,100)); delta[0,1]=1.0
         jet=GateJet(np.ones(100),C,np.zeros((5,100)),delta,np.zeros((5,100)))
+        cert=ad_route_certificate_v200(jet,jet)
+        enc=ad_certified_enclosure_v200(jet,cert,epsilon_y=1e-7,fine_h_x=.1,fine_h_z=.1)
         triplet={"fine_richardson":jet,"coarse_richardson":jet,"dyadic_enclosure":self._enclosure(True)}
-        result=runner._classify_gate_v200(triplet,np.zeros(5),np.ones(768),np.ones(100),np.ones(768))
+        result=runner._classify_gate_v200(triplet,cert,enc,np.zeros(5),np.ones(768),np.ones(100),np.ones(768))
         self.assertEqual(result["audit"]["label"],"structural-contradiction")
 
     def test_unresolved_gate_point_center_is_zero(self):
@@ -655,13 +683,13 @@ class V200SystemTests(unittest.TestCase):
 
 class V200IntervalTests(unittest.TestCase):
     def test_system_interval_is_minkowski_sum(self):
-        self.assertEqual(minkowski_sum_interval((-1,2),(3,4)),(2.0,6.0))
+        lo,hi=minkowski_sum_interval((-1,2),(3,4));self.assertLessEqual(lo,2.0);self.assertGreaterEqual(hi,6.0)
 
     def test_cell_interval_preserves_abs_of_mean_difference(self):
-        self.assertEqual(absolute_value_interval(subtract_intervals((2,3),(4,5))),(1.0,3.0))
+        lo,hi=absolute_value_interval(subtract_intervals((2,3),(4,5)));self.assertLessEqual(lo,1.0);self.assertGreaterEqual(hi,3.0)
 
     def test_worst_case_rmse_uses_farthest_endpoint(self):
-        self.assertEqual(worst_case_interval_rmse([0],[[1,3]]),3.0)
+        self.assertGreaterEqual(worst_case_interval_rmse([0],[[1,3]]),3.0)
 
     def test_robust_auc_is_pairwise_lower_bound(self):
         self.assertEqual(robust_interval_auc_lower_bound([True,False],[[2,3],[0,1]]),1.0)
@@ -703,6 +731,257 @@ class V200PredecessorTests(unittest.TestCase):
 class V200TheoryTests(unittest.TestCase):
     def test_fixed_rank_donor_pca_remains_terminated(self):
         self.assertNotIn("donor_pca",json.dumps(FROZEN_SPEC).lower());self.assertNotIn("pseudoinverse",inspect.getsource(runner._classify_gate_v200).lower())
+
+
+class V200SplitCorrigendumTests(unittest.TestCase):
+    def test_literal_canonical_payload_hash_is_087391(self):
+        self.assertEqual(
+            hashlib.sha256(canonical_json(V200_LITERAL_SPLIT_PAYLOAD).encode("utf-8")).hexdigest(),
+            "0873915c966bef8f54b83d4151a9d7c75b577da5dfc17ee093b9f5c58a9590f7",
+        )
+
+    def test_f012_digest_is_not_active(self):
+        self.assertNotEqual(V200_SPLIT_SHA256, "f012a286801bc3e3e937b390f0a62d7e92f8d5a21ba59d7e53478ae911e72cfc")
+
+
+class V200ADCertificateTests(unittest.TestCase):
+    @staticmethod
+    def _jet(*, g=0.0, c=0.0, delta=None):
+        delta = np.zeros((5, 100)) if delta is None else np.asarray(delta)
+        return GateJet(
+            np.full(100, g), np.full(100, c), np.zeros((5, 100)),
+            delta, np.zeros((5, 100)),
+        )
+
+    @staticmethod
+    def _tiny_model():
+        import torch
+        class Tiny(torch.nn.Module):
+            def __init__(self):
+                super().__init__()
+                self.blocks = torch.nn.ModuleList([torch.nn.Linear(2, 2) for _ in range(12)])
+                self.ln_final = torch.nn.Linear(2, 2)
+                self.unembed = torch.nn.Linear(2, 2)
+                self.cfg = SimpleNamespace(dtype=torch.float32)
+        return Tiny()
+
+    @staticmethod
+    def _diagnostic(overlap=True):
+        return SimpleNamespace(
+            overlap_G=overlap, overlap_C=overlap, overlap_J=overlap,
+            overlap_delta_H=np.full(5, overlap, dtype=bool),
+        )
+
+    def test_local_tail_cfg_dtype_is_float64(self):
+        import torch
+        model = self._tiny_model()
+        with isolated_ad_tail_v200(model) as local:
+            self.assertEqual(local.cfg.dtype, torch.float64)
+            self.assertEqual(next(local.block10.parameters()).dtype, torch.float64)
+
+    def test_active_scientific_model_state_is_bitwise_unchanged(self):
+        model = self._tiny_model(); before = active_model_integrity_hash_v200(model)
+        with isolated_ad_tail_v200(model) as local:
+            pass
+        self.assertTrue(local.active_model_unchanged)
+        self.assertEqual(before, active_model_integrity_hash_v200(model))
+
+    def test_route_guard_uses_gamma_65536(self):
+        self.assertEqual(AD_ROUTE_OPERATION_BUDGET, 65536)
+        self.assertEqual(AD_ROUTE_GAMMA, 7.275957614236365e-12)
+        cert = ad_route_certificate_v200(self._jet(g=1.0), self._jet(g=1.0))
+        self.assertTrue(cert.passed)
+
+    def test_route_excess_is_numerical_invalid(self):
+        forward, reverse = self._jet(g=1.0), self._jet(g=0.0)
+        cert = ad_route_certificate_v200(forward, reverse)
+        enc = ad_certified_enclosure_v200(forward, cert, epsilon_y=1e-7, fine_h_x=.1, fine_h_z=.1)
+        triplet = {"fine_richardson": forward, "coarse_richardson": forward,
+                   "dyadic_enclosure": self._diagnostic()}
+        result = runner._classify_gate_v200(
+            triplet, cert, enc, np.zeros(5), np.ones(768), np.ones(100), np.ones(768)
+        )
+        self.assertEqual(result["audit"]["reason"], "ad-route-disagreement")
+
+    def test_fine_richardson_remains_point_center(self):
+        fine, ad = self._jet(g=1.0), self._jet(g=0.5)
+        cert = ad_route_certificate_v200(ad, ad)
+        enc = ad_certified_enclosure_v200(fine, cert, epsilon_y=1e-7, fine_h_x=.1, fine_h_z=.1)
+        self.assertIs(enc.fine_jet, fine)
+        self.assertIsNot(enc.fine_jet, enc.ad_reference)
+
+    def test_fine_error_is_ad_distance_plus_route_and_endpoint_terms(self):
+        fine, ad = self._jet(g=1.0), self._jet(g=0.0)
+        cert = ad_route_certificate_v200(ad, ad)
+        enc = ad_certified_enclosure_v200(fine, cert, epsilon_y=1e-7, fine_h_x=.1, fine_h_z=.1)
+        component_sum = 10.0 + cert.route_radius_G + 10.0 * (3e-7 / .1)
+        self.assertGreaterEqual(enc.epsilon_G, component_sum)
+        self.assertLess(enc.epsilon_G - component_sum, 1e-12)
+
+    def test_coarse_fine_nonoverlap_is_diagnostic_only(self):
+        fine, coarse = self._jet(g=1.0), self._jet(g=100.0)
+        cert = ad_route_certificate_v200(fine, fine)
+        enc = ad_certified_enclosure_v200(fine, cert, epsilon_y=1e-7, fine_h_x=.1, fine_h_z=.1)
+        triplet = {"fine_richardson": fine, "coarse_richardson": coarse,
+                   "dyadic_enclosure": self._diagnostic(False)}
+        result = runner._classify_gate_v200(
+            triplet, cert, enc, np.zeros(5), np.ones(768), np.ones(100), np.ones(768)
+        )
+        self.assertNotEqual(result["audit"]["label"], "numerical-invalid")
+        self.assertTrue(result["audit"]["dyadic_diagnostic_only"])
+
+    def test_ad_whitebox_factorization_excess_is_structural_contradiction(self):
+        delta = np.zeros((5, 100)); delta[0, 0] = 1.0
+        jet = self._jet(c=0.0, delta=delta)
+        cert = ad_route_certificate_v200(jet, jet)
+        enc = ad_certified_enclosure_v200(jet, cert, epsilon_y=1e-7, fine_h_x=.1, fine_h_z=.1)
+        triplet = {"fine_richardson": jet, "coarse_richardson": jet,
+                   "dyadic_enclosure": self._diagnostic()}
+        result = runner._classify_gate_v200(
+            triplet, cert, enc, np.zeros(5), np.ones(768), np.ones(100), np.ones(768)
+        )
+        self.assertEqual(result["audit"]["reason"], "ad-matched-bypass-factorization")
+
+
+class V200OutwardRoundingTests(unittest.TestCase):
+    def test_zero_bound_zero_residual_passes(self):
+        self.assertEqual(compatibility_ratio(0.0, 0.0), 0.0)
+        self.assertLessEqual(0.0, round_up(0.0))
+
+    def test_zero_bound_positive_residual_fails(self):
+        self.assertTrue(math.isinf(compatibility_ratio(1.0, 0.0)))
+        self.assertGreater(1.0, round_up(0.0))
+
+    def test_nonpositive_inverse_lower_bound_is_unresolved_not_contradiction(self):
+        jet = V200ADCertificateTests._jet(g=1.0)
+        cert = ad_route_certificate_v200(jet, jet)
+        enc = ad_certified_enclosure_v200(jet, cert, epsilon_y=1e-7, fine_h_x=.1, fine_h_z=.1)
+        triplet = {"fine_richardson": jet, "coarse_richardson": jet,
+                   "dyadic_enclosure": V200ADCertificateTests._diagnostic()}
+        result = runner._classify_gate_v200(
+            triplet, cert, enc, np.zeros(5), np.ones(768), np.ones(100), np.ones(768)
+        )
+        self.assertLessEqual(enc.inverse_lower_bound, 0.0)
+        self.assertEqual(result["audit"]["label"], "unresolved-bounded")
+
+
+class V200ConfirmationFreezeTests(unittest.TestCase):
+    @staticmethod
+    def _development():
+        cells = []
+        for index in range(8):
+            target = float(index + 1)
+            cells.append({
+                "survived": True, "conditioned": True, "snr": 100.0,
+                "target": target, "mixed_lower": target, "mixed_upper": target,
+                "baselines": {"behavioral": target + (.1 if index % 2 else -.1), "single": target + (3 if index % 2 else -3),
+                              "first_order": 0.0, "pie": 0.0},
+            })
+        return {"cells": cells}
+
+    @staticmethod
+    def _confirmation(count=22, near=11):
+        cells = []
+        for index in range(count):
+            target = float(index + 1)
+            cells.append({
+                "survived": True, "conditioned": True,
+                "distance_bin": "near" if index < near else "far",
+                "target": target, "mixed_lower": target, "mixed_upper": target,
+                "mixed_coarse": target, "mixed_fine": target,
+                "baselines": {"behavioral": 0.0, "single": target,
+                              "first_order": 0.0, "pie": 0.0},
+                "cancellation_dx": 1.0, "cancellation_dz": 1.0,
+            })
+        return {"cells": cells}
+
+    def _frozen(self, directory):
+        frozen = freeze_confirmation_v200(
+            self._development(), Path(directory) / "frozen.json",
+            split_sha256=V200_SPLIT_SHA256,
+        )
+        frozen["bootstrap_replicates"] = 4
+        return frozen
+
+    def test_best_baseline_is_frozen_from_development(self):
+        with tempfile.TemporaryDirectory(dir=ROOT / "outputs") as directory:
+            frozen = self._frozen(directory)
+        self.assertEqual(frozen["frozen_best_baseline"], "behavioral")
+
+    def test_confirmation_cannot_reselect_best_baseline(self):
+        with tempfile.TemporaryDirectory(dir=ROOT / "outputs") as directory:
+            result = confirmation_decision_v200(self._confirmation(), self._frozen(directory))
+        self.assertEqual(result["best_baseline"], "behavioral")
+        self.assertLess(result["baseline_rmse"]["single"], result["baseline_rmse"]["behavioral"])
+
+    def test_bootstrap_and_per_bin_use_frozen_baseline(self):
+        with tempfile.TemporaryDirectory(dir=ROOT / "outputs") as directory:
+            result = confirmation_decision_v200(self._confirmation(), self._frozen(directory))
+        self.assertEqual(result["best_baseline"], "behavioral")
+        self.assertEqual(set(result["per_bin"]), {"near", "far"})
+
+    def test_technical_counts_include_conditioned_bins_and_combined(self):
+        with tempfile.TemporaryDirectory(dir=ROOT / "outputs") as directory:
+            result = confirmation_decision_v200(
+                self._confirmation(count=21, near=10), self._frozen(directory)
+            )
+        self.assertEqual(result["verdict"], "FAIL_SURVIVAL")
+        self.assertEqual(result["bin_counts"]["near"], 10)
+        self.assertGreaterEqual(result["combined_surviving_cells"], 27)
+
+
+class V200ThroughputContractTests(unittest.TestCase):
+    def test_v200_benchmark_executes_fine_tensor_and_dual_ad(self):
+        records = [
+            SimpleNamespace(pair_digest=f"{name}-{index}", distance_bin=name)
+            for name in ("near", "far") for index in range(8)
+        ]
+        tensor_calls, energy_calls = [], []
+        class Cuda:
+            reset_peak_memory_stats = staticmethod(lambda device: None)
+            synchronize = staticmethod(lambda device: None)
+            max_memory_allocated = staticmethod(lambda device: 1)
+        fake_torch = SimpleNamespace(cuda=Cuda())
+        @contextlib.contextmanager
+        def isolated(model):
+            yield SimpleNamespace(active_model_unchanged=True)
+        with tempfile.TemporaryDirectory(dir=ROOT / "outputs") as directory, \
+             mock.patch.object(runner, "_capture_structural_inputs", return_value={}), \
+             mock.patch.object(runner, "_construct_structural_design", return_value={}), \
+             mock.patch.object(runner, "_duplicate_noise_v13", return_value={"max_abs": 0.0}), \
+             mock.patch.object(runner, "first_order_directions", return_value=np.zeros((1, 1))), \
+             mock.patch.object(runner, "torch_module", return_value=fake_torch), \
+             mock.patch.object(runner, "isolated_ad_tail_v200", side_effect=isolated), \
+             mock.patch.object(runner, "_tensor_item_v200", side_effect=lambda *a, **k: tensor_calls.append(1)), \
+             mock.patch.object(runner, "_energy_item_v200", side_effect=lambda *a, **k: energy_calls.append(1)):
+            payload = runner._throughput_preflight_v200(
+                object(), object(), [], records, "cuda:0", Path(directory)
+            )
+        self.assertEqual((len(tensor_calls), len(energy_calls)), (8, 8))
+        self.assertEqual(payload["ad_gate_system_certificates_executed"], 160)
+
+
+class V200OperationCountTests(unittest.TestCase):
+    def test_dual_ad_route_counts_are_exact(self):
+        counts = runner.FORWARD_COUNTS
+        self.assertEqual(counts["total_ad_gate_system_certificates"], 5160)
+        self.assertEqual(counts["total_ad_gatejet_routes"], 10320)
+        self.assertEqual(counts["total_top_level_ad_derivative_calls"], 51600)
+
+
+class V200AnalysisCLITests(unittest.TestCase):
+    def test_cli_requires_v200_dispatch(self):
+        with tempfile.TemporaryDirectory(dir=ROOT / "outputs") as directory:
+            source = Path(directory) / "input.json"; output = Path(directory) / "output.json"
+            source.write_text('{"cells":[]}', encoding="utf-8")
+            argv = ["analyze_green_bridge.py", "--protocol-version", "v200",
+                    "--phase", "development", "--input", str(source), "--output", str(output)]
+            with mock.patch.object(sys, "argv", argv), \
+                 mock.patch.object(analysis_module, "development_decision_v200", return_value={"v2": True}) as decision, \
+                 contextlib.redirect_stdout(io.StringIO()):
+                analysis_module.main()
+            decision.assert_called_once()
+            self.assertEqual(json.loads(output.read_text(encoding="utf-8")), {"v2": True})
 
 
 if __name__ == "__main__":

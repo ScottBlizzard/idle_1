@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import argparse
+import atexit
 import json
 from pathlib import Path
 import time
@@ -73,6 +74,12 @@ def main() -> None:
     coefficients = runner.first_order_directions()
     started = time.perf_counter()
     completed = []
+    ad_context = None
+    ad_tail = None
+    if args.protocol_version == "v200":
+        ad_context = runner.isolated_ad_tail_v200(model)
+        ad_tail = ad_context.__enter__()
+        atexit.register(ad_context.__exit__, None, None, None)
     for record in records:
         role = record.role
         batch_id = f"{args.split}-{role}-{record.pair_digest}"
@@ -96,15 +103,16 @@ def main() -> None:
                 args.worker_root,
                 batch_id,
                 declaration,
-                lambda record=record: tensor_function(
-                    model,
-                    suffix_ids,
-                    record,
-                    "cuda:0",
-                    epsilon_y,
-                    coefficients,
-                    plain,
-                    design,
+                lambda record=record: (
+                    tensor_function(
+                        model, suffix_ids, record, "cuda:0", epsilon_y,
+                        coefficients, plain, design, ad_tail=ad_tail,
+                    )
+                    if args.protocol_version == "v200"
+                    else tensor_function(
+                        model, suffix_ids, record, "cuda:0", epsilon_y,
+                        coefficients, plain, design,
+                    )
                 ),
             )
         else:
@@ -128,6 +136,24 @@ def main() -> None:
             ),
             "result_sha256": sha256_text(canonical_json(result)),
         })
+    integrity = None
+    if ad_context is not None:
+        ad_context.__exit__(None, None, None)
+        atexit.unregister(ad_context.__exit__)
+        integrity = {
+            "active_model_parameter_hash_before": ad_tail.integrity_before["parameter_hash"],
+            "active_model_parameter_hash_after": ad_tail.integrity_after["parameter_hash"],
+            "active_model_buffer_hash_before": ad_tail.integrity_before["buffer_hash"],
+            "active_model_buffer_hash_after": ad_tail.integrity_after["buffer_hash"],
+            "active_model_config_hash_before": ad_tail.integrity_before["config_hash"],
+            "active_model_config_hash_after": ad_tail.integrity_after["config_hash"],
+            "active_model_unchanged": ad_tail.active_model_unchanged,
+            "ad_local_parameter_dtype": "float64",
+            "ad_local_cfg_dtype": "float64",
+            "scientific_model_dtype": "float32",
+        }
+        if not ad_tail.active_model_unchanged:
+            raise RuntimeError("STOP 08B_AD_MODEL_ISOLATION: active model changed")
     torch.cuda.synchronize("cuda:0")
     payload = {
         "schema_version": (
@@ -141,6 +167,7 @@ def main() -> None:
         "completed": completed,
         "elapsed_seconds": time.perf_counter() - started,
         "peak_allocated_bytes": int(torch.cuda.max_memory_allocated("cuda:0")),
+        "active_model_integrity": integrity,
         "contract_sha256": sha256_file(args.worker_root / "worker_contract.json"),
     }
     write_json_atomic(args.worker_root / "worker_result.json", payload)

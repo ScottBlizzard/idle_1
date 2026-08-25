@@ -33,13 +33,19 @@ else
   exit 1
 fi
 conda activate "$ENV_NAME"
-python -m pip install --upgrade "pip==25.1.1"
-python -m pip install "torch==2.7.1" --index-url https://download.pytorch.org/whl/cu126
-python -m pip install -r "$PROJECT_DIR/requirements-green-bridge.lock"
+python -m pip check
 if python - <<'PY'
 from pathlib import Path
 import hashlib
+import importlib.metadata
 import transformer_lens
+expected_versions = {
+    "torch": "2.7.1", "transformer-lens": "3.6.0",
+    "transformers": "5.13.0", "numpy": "2.2.6",
+    "scipy": "1.15.3", "pandas": "2.2.3", "pyarrow": "19.0.1",
+    "threadpoolctl": "3.6.0",
+}
+actual_versions = {name: importlib.metadata.version(name) for name in expected_versions}
 expected = {
     "HookedTransformer.py": "f80ee1ec42039a287a2b9366c75f98eec23ff33c6e941ffeee03f0374eb20af3",
     "HookedRootModule.py": "e7144971a973ec2d63bf7400db6443caba5d03f22f310f6789d52fa4a56ad245",
@@ -49,7 +55,7 @@ expected = {
 }
 root = Path(transformer_lens.__file__).resolve().parent
 actual = {name: hashlib.sha256((root / name).read_bytes()).hexdigest() for name in expected}
-raise SystemExit(0 if actual == expected else 1)
+raise SystemExit(0 if actual == expected and actual_versions == expected_versions else 1)
 PY
 then
   echo "TransformerLens source matches frozen commit 4a4dc26"

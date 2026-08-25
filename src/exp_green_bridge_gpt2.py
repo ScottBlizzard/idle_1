@@ -107,6 +107,9 @@ from green_bridge_whitebox_audit import (
     whitebox_A_coordinates,
 )
 from green_bridge_numerics import (
+    ad_certified_enclosure_v200,
+    ad_matched_bypass_compatibility_v200,
+    ad_route_certificate_v200,
     active_contraction_bound,
     active_envelope_contraction_bound,
     cell_error_bound,
@@ -123,6 +126,8 @@ from green_bridge_numerics import (
     whitebox_compatibility_v200,
     whitebox_factorization_compatibility_v200,
     absolute_value_interval,
+    round_down,
+    round_up,
 )
 from green_bridge_tail import GreenBridgeTail, TailAnchor, capture_tail_anchor, gather_year_logits
 from green_bridge_path_target import (
@@ -142,8 +147,10 @@ from matched_bypass_gate import (
     symmetric_relative_change,
 )
 from green_bridge_response_ad import (
+    active_model_integrity_hash_v200,
     audit_richardson_enclosure_v200,
     build_ad_response_functions_v200,
+    isolated_ad_tail_v200,
     response_gate_jet_forward_ad64,
     response_gate_jet_reverse_ad64,
     select_ad_audit_panel_v200,
@@ -195,6 +202,8 @@ PROTOCOL_FILES = (
     "analysis/CODEX_GREEN_V135_GATEJET_RESPONSE_PAIRING_DECISION_20260825.md",
     "analysis/CODEX_GREEN_V136_DIRECT_BYPASS_ORIENTATION_DECISION_20260825.md",
     "analysis/GPTPRO_GREEN_V136_TERMINAL_DECISION_20260825.md",
+    "analysis/GREEN_V200_IMPLEMENTATION_BLOCKERS_20260825.md",
+    "analysis/GPTPRO_GREEN_V200_CORRIGENDUM_DECISION_20260825.md",
     "requirements-green-bridge.lock",
 )
 EXPECTED_PACKAGES = {
@@ -245,6 +254,20 @@ FORWARD_COUNTS = {
     "conservative_units_total": 1_351_680,
     "development_effective_units": 335_840,
     "confirmation_effective_units": 1_007_520,
+    "prepare_ad_gate_system_certificates": 40,
+    "development_ad_gate_system_certificates": 1_280,
+    "confirmation_ad_gate_system_certificates": 3_840,
+    "total_ad_gate_system_certificates": 5_160,
+    "ad_routes_per_gate_system": 2,
+    "prepare_ad_gatejet_routes": 80,
+    "development_ad_gatejet_routes": 2_560,
+    "confirmation_ad_gatejet_routes": 7_680,
+    "total_ad_gatejet_routes": 10_320,
+    "ad_derivative_objects_per_route": 5,
+    "prepare_top_level_ad_derivative_calls": 400,
+    "development_top_level_ad_derivative_calls": 12_800,
+    "confirmation_top_level_ad_derivative_calls": 38_400,
+    "total_top_level_ad_derivative_calls": 51_600,
 }
 REVIEW_COMMIT = "3bdeac04a16724461f266705ef250a6357ced1cf"
 V136_TERMINAL_HASHES = {
@@ -3473,41 +3496,66 @@ def _gate_jet_triplet_v200(
 
 def _classify_gate_v200(
     triplet: dict,
+    certificate,
+    enclosure,
     wb_A: np.ndarray,
     whitebox_gradient: np.ndarray,
     contrast: np.ndarray,
     physical_v: np.ndarray,
 ) -> dict:
     fine = triplet["fine_richardson"]
-    enclosure = triplet["dyadic_enclosure"]
+    diagnostic = triplet["dyadic_enclosure"]
     overlap = bool(
-        enclosure.overlap_G and enclosure.overlap_C and enclosure.overlap_J
-        and np.all(enclosure.overlap_delta_H)
+        diagnostic.overlap_G and diagnostic.overlap_C and diagnostic.overlap_J
+        and np.all(diagnostic.overlap_delta_H)
     )
     audit = {
         "label": None,
         "dyadic_overlap": overlap,
-        "overlap_G": enclosure.overlap_G,
-        "overlap_C": enclosure.overlap_C,
-        "overlap_J": enclosure.overlap_J,
-        "overlap_delta_H": enclosure.overlap_delta_H.tolist(),
-        "epsilon_G": enclosure.final_epsilon_G,
-        "epsilon_C": enclosure.final_epsilon_C,
-        "epsilon_J": enclosure.final_epsilon_J,
-        "epsilon_delta_H": enclosure.final_epsilon_delta_H.tolist(),
-        "inverse_admissible": enclosure.final_inverse_admissible,
+        "dyadic_diagnostic_only": True,
+        "dyadic_active_admissibility_gate": False,
+        "overlap_G": diagnostic.overlap_G,
+        "overlap_C": diagnostic.overlap_C,
+        "overlap_J": diagnostic.overlap_J,
+        "overlap_delta_H": diagnostic.overlap_delta_H.tolist(),
+        "epsilon_G": enclosure.epsilon_G,
+        "epsilon_C": enclosure.epsilon_C,
+        "epsilon_J": enclosure.epsilon_J,
+        "epsilon_delta_H": enclosure.epsilon_delta_H.tolist(),
+        "inverse_lower_bound": enclosure.inverse_lower_bound,
+        "inverse_admissible": enclosure.inverse_admissible,
+        "ad_route_passed": certificate.passed,
+        "ad_route_difference_G": certificate.route_difference_G,
+        "ad_route_difference_C": certificate.route_difference_C,
+        "ad_route_difference_J": certificate.route_difference_J,
+        "ad_route_difference_delta_H": certificate.route_difference_delta_H.tolist(),
+        "ad_route_radius_G": certificate.route_radius_G,
+        "ad_route_radius_C": certificate.route_radius_C,
+        "ad_route_radius_J": certificate.route_radius_J,
+        "ad_route_radius_delta_H": certificate.route_radius_delta_H.tolist(),
         "curvature_norm": float(np.linalg.norm(fine.C)),
         "gate_response_norm": float(np.linalg.norm(fine.G)),
     }
-    if not overlap:
-        audit.update(label="numerical-invalid", reason="dyadic-ball-nonoverlap")
+    if not certificate.passed:
+        audit.update(label="numerical-invalid", reason="ad-route-disagreement")
+        return {"audit": audit, "identification": None, "coarse_identification": None}
+    theorem = ad_matched_bypass_compatibility_v200(certificate, wb_A)
+    audit["ad_matched_bypass"] = {
+        key: value.tolist() if isinstance(value, np.ndarray) else value
+        for key, value in theorem.items()
+    }
+    if not theorem["passed"]:
+        audit.update(label="structural-contradiction", reason="ad-matched-bypass-factorization")
         return {"audit": audit, "identification": None, "coarse_identification": None}
     identification = None
     coarse_identification = None
-    if enclosure.final_inverse_admissible:
+    if enclosure.inverse_admissible:
         try:
             identification = identify_gate(fine)
-            coarse_identification = identify_gate(triplet["coarse_richardson"])
+            try:
+                coarse_identification = identify_gate(triplet["coarse_richardson"])
+            except ValueError:
+                coarse_identification = None
         except ValueError:
             audit.update(label="numerical-invalid", reason="finite-inverse-failure")
             return {"audit": audit, "identification": None, "coarse_identification": None}
@@ -3516,7 +3564,7 @@ def _classify_gate_v200(
         whitebox = whitebox_compatibility_v200(identification, wb_A, enclosure)
         wb_factor = whitebox_factorization_compatibility_v200(fine, wb_A, enclosure)
         shift = shift_null_compatibility_v200(
-            float(identification.A[0]), float(enclosure.final_epsilon_A[0])
+            float(identification.A[0]), float(enclosure.epsilon_A[0])
         )
         audit.update({
             "factorization": {k: (v.tolist() if isinstance(v, np.ndarray) else v) for k, v in factor.items()},
@@ -3524,9 +3572,9 @@ def _classify_gate_v200(
             "whitebox_factorization": {k: (v.tolist() if isinstance(v, np.ndarray) else v) for k, v in wb_factor.items()},
             "shift": shift,
             "A": identification.A.tolist(),
-            "epsilon_A": enclosure.final_epsilon_A.tolist(),
-            "A_max": enclosure.final_A_max.tolist(),
-            "epsilon_P_F": enclosure.final_epsilon_P_F,
+            "epsilon_A": enclosure.epsilon_A.tolist(),
+            "A_max": enclosure.A_max.tolist(),
+            "epsilon_P_F": enclosure.epsilon_P_F,
         })
         if not (factor["passed"] and whitebox["passed"] and wb_factor["passed"] and shift["passed"]):
             audit.update(label="structural-contradiction", reason="bound-certified-identity-failure")
@@ -3534,47 +3582,24 @@ def _classify_gate_v200(
                     "coarse_identification": coarse_identification}
         active = (
             np.linalg.norm(fine.C) / 10 >= THRESHOLDS.curvature_rms_min
-            and np.linalg.norm(fine.C) >= THRESHOLDS.curvature_snr_min * enclosure.final_epsilon_C
+            and np.linalg.norm(fine.C) >= THRESHOLDS.curvature_snr_min * enclosure.epsilon_C
             and np.linalg.norm(fine.G) / 10 >= THRESHOLDS.gate_response_rms_min
-            and np.linalg.norm(fine.G) >= THRESHOLDS.gate_response_snr_min * enclosure.final_epsilon_G
-            and np.linalg.norm(identification.P) >= THRESHOLDS.tensor_snr_min * enclosure.final_epsilon_P_F
+            and np.linalg.norm(fine.G) >= THRESHOLDS.gate_response_snr_min * enclosure.epsilon_G
+            and np.linalg.norm(identification.P) >= THRESHOLDS.tensor_snr_min * enclosure.epsilon_P_F
         )
         if active:
             audit.update(label="active-identified", reason="all-bound-certified-active-rules")
             return {"audit": audit, "identification": identification,
                     "coarse_identification": coarse_identification}
-    null_bound = certified_null_bound(
-        float(np.linalg.norm(contrast)), float(np.linalg.norm(physical_v)),
-        float(np.linalg.norm(fine.G)), enclosure.final_epsilon_G,
-        float(np.linalg.norm(wb_A)),
+    complete_bound = unresolved_gate_contraction_bound_v200(
+        contrast, fine.G, enclosure.epsilon_G, whitebox_gradient, physical_v,
     )
-    contrast_norm = float(np.linalg.norm(contrast))
-    direction_norm = float(np.linalg.norm(physical_v))
-    wb_norm = float(np.linalg.norm(wb_A))
-    base_jet = triplet.get("base", triplet["fine_richardson"])
-    half_jet = triplet.get("half", triplet["fine_richardson"])
-    base_bound = contrast_norm * direction_norm * float(
-        np.linalg.norm(base_jet.G)
-    ) * wb_norm
-    half_bound = contrast_norm * direction_norm * float(
-        np.linalg.norm(half_jet.G)
-    ) * wb_norm
-    null_scale_change = abs(base_bound - half_bound)
-    null = (
-        np.linalg.norm(fine.G) <= 5 * enclosure.final_epsilon_G
-        and null_bound <= THRESHOLDS.certified_null_contribution_max
-        and null_scale_change <= THRESHOLDS.certified_null_contribution_max
-    )
-    audit["null_bound"] = null_bound
-    audit["null_base_half_bound_change"] = null_scale_change
-    if null:
+    audit["null_bound"] = complete_bound
+    if complete_bound <= THRESHOLDS.certified_null_contribution_max:
         audit.update(label="certified-target-null", reason="bound-certified-low-response")
         return {"audit": audit, "identification": identification,
                 "coarse_identification": coarse_identification}
-    unresolved_bound = unresolved_gate_contraction_bound_v200(
-        contrast, fine.G, enclosure.final_epsilon_G,
-        whitebox_gradient, physical_v,
-    )
+    unresolved_bound = complete_bound
     audit["unresolved_bound"] = unresolved_bound
     if math.isfinite(unresolved_bound):
         audit.update(label="unresolved-bounded", reason="finite-structural-upper-bound")
@@ -3586,7 +3611,8 @@ def _classify_gate_v200(
 
 
 def _mixed_system_v200(
-    tail, model, anchor, design, physical_v, contrast, epsilon_y: float,
+    tail, model, ad_tail, suffix_ids, anchor, design, physical_v, contrast,
+    epsilon_y: float, timing: dict | None = None,
 ) -> dict:
     torch = torch_module()
     device = anchor.resid_mid.device
@@ -3602,15 +3628,15 @@ def _mixed_system_v200(
                 "gate_slot": slot,
                 "gate_index": gate,
                 "label": "numerical-invalid",
-                "reason": "center-no-op-audit",
+                "reason": "center-noop-failure",
             }
             for slot, gate in enumerate(SELECTED_GATES)
         ]
         return {
             "theta_center": 0.0, "theta_lower": 0.0, "theta_upper": 0.0,
             "theta_coarse": 0.0, "theta_fine": 0.0, "active_gates": 0,
-            "null_gates": 0, "unresolved_gates": 0, "contradictory_gates": 10,
-            "numerical_invalid_gates": 0, "set_complete": False,
+            "null_gates": 0, "unresolved_gates": 0, "contradictory_gates": 0,
+            "numerical_invalid_gates": 10, "set_complete": False,
             "point_complete": False, "set_admissible": False,
             "bypass_disagreement": None, "gates": gates,
             "center_rms": center_rms, "center_max": center_max,
@@ -3625,10 +3651,13 @@ def _mixed_system_v200(
     direct_common = []
     theta_center = theta_coarse = 0.0
     for slot, (gate, frame) in enumerate(zip(SELECTED_GATES, design["gate_frames"])):
+        finite_started = time.perf_counter()
         triplet = _gate_jet_triplet_v200(
             tail, anchor, frame, slot, float(design["radius"]["h_x"]),
             GATE_RADIUS, center, epsilon_y,
         )
+        if timing is not None:
+            timing["finite_difference_seconds"] += time.perf_counter() - finite_started
         gradient = layernorm_gate_gradient_formula(
             residual, gamma, W_in[:, gate], eps=float(model.cfg.eps)
         )
@@ -3639,15 +3668,40 @@ def _mixed_system_v200(
         wb_A = whitebox_A_coordinates(frame, gradient)
         wb_A_ad = whitebox_A_coordinates(frame, gradient_ad)
         wb_coordinate_error = float(np.max(np.abs(wb_A - wb_A_ad)))
-        classified = _classify_gate_v200(
-            triplet, wb_A, gradient, contrast, physical_v
-        )
-        audit = classified["audit"]
+        ad_started = time.perf_counter()
+        try:
+            path_evaluate, control_evaluate = build_ad_response_functions_v200(
+                ad_tail, anchor, frame, suffix_ids, gate
+            )
+            ad_forward = response_gate_jet_forward_ad64(path_evaluate, control_evaluate)
+            ad_reverse = response_gate_jet_reverse_ad64(path_evaluate, control_evaluate)
+            certificate = ad_route_certificate_v200(ad_forward, ad_reverse)
+            enclosure = ad_certified_enclosure_v200(
+                triplet["fine_richardson"], certificate,
+                epsilon_y=epsilon_y,
+                fine_h_x=float(design["radius"]["h_x"]) * HALF_RADIUS_MULTIPLIER,
+                fine_h_z=GATE_RADIUS * HALF_RADIUS_MULTIPLIER,
+            )
+            classified = _classify_gate_v200(
+                triplet, certificate, enclosure, wb_A, gradient, contrast, physical_v
+            )
+            audit = classified["audit"]
+        except (ValueError, RuntimeError) as exc:
+            enclosure = None
+            classified = {"identification": None, "coarse_identification": None}
+            audit = {
+                "label": "numerical-invalid",
+                "reason": "ad-nonfinite-or-evaluation-failure",
+                "ad_error": f"{type(exc).__name__}: {exc}",
+            }
+        finally:
+            if timing is not None:
+                timing["ad_certification_seconds"] += time.perf_counter() - ad_started
         audit.update({
             "gate_slot": slot, "gate_index": gate,
             "whitebox_coordinate_error": wb_coordinate_error,
         })
-        if wb_coordinate_error > 1e-10:
+        if wb_coordinate_error > 1e-10 and audit["label"] != "numerical-invalid":
             audit.update(label="structural-contradiction", reason="whitebox-formula-autograd")
         label = audit["label"]
         if label == "active-identified":
@@ -3663,15 +3717,14 @@ def _mixed_system_v200(
                 coarse_contribution = float(contrast @ operator_action(
                     triplet["coarse_richardson"].G, coarse_cotangent, physical_v
                 ))
-            enclosure = triplet["dyadic_enclosure"]
             error = active_envelope_contraction_bound(
                 float(np.linalg.norm(contrast)), float(np.linalg.norm(frame.T @ physical_v)),
-                float(np.linalg.norm(physical_v)), enclosure.final_epsilon_P_F,
+                float(np.linalg.norm(physical_v)), enclosure.epsilon_P_F,
                 float(np.linalg.norm(triplet["fine_richardson"].G)),
-                enclosure.final_epsilon_G,
+                enclosure.epsilon_G,
                 gradient_envelope_residual(frame, gradient)["absolute"],
             )
-            interval = (contribution - error, contribution + error)
+            interval = (round_down(contribution - error), round_up(contribution + error))
             theta_center += contribution
             theta_coarse += coarse_contribution
             direct_common.append(direct_bypass_in_common_frame(
@@ -3682,13 +3735,13 @@ def _mixed_system_v200(
                          contribution_coarse=coarse_contribution)
         elif label == "certified-target-null":
             bound = float(audit["null_bound"])
-            interval = (-bound, bound)
+            interval = (round_down(-bound), round_up(bound))
             audit.update(contribution_center=0.0, contribution_error=bound,
                          contribution_lower=-bound, contribution_upper=bound,
                          contribution_coarse=0.0)
         elif label == "unresolved-bounded":
             bound = float(audit["unresolved_bound"])
-            interval = (-bound, bound)
+            interval = (round_down(-bound), round_up(bound))
             audit.update(contribution_center=0.0, contribution_error=bound,
                          contribution_lower=-bound, contribution_upper=bound,
                          contribution_coarse=0.0)
@@ -3728,6 +3781,7 @@ def _mixed_system_v200(
 
 def _tensor_item_v200(
     model, suffix_ids, record, device, epsilon_y, coefficients, plain, design,
+    ad_tail=None, timing: dict | None = None,
 ) -> dict:
     torch = torch_module()
     anchors = {
@@ -3744,10 +3798,13 @@ def _tensor_item_v200(
     contrast_t = margin_vector(record.y, device)
     contrast = contrast_t.cpu().numpy()
     physical_v = item["target"]
+    if ad_tail is None:
+        raise ValueError("v2 tensor items require an isolated float64 AD tail")
     with torch.inference_mode(False):
         mixed = {
             system: _mixed_system_v200(
-                tail, model, anchors[system], item, physical_v, contrast, epsilon_y
+                tail, model, ad_tail, suffix_ids, anchors[system], item,
+                physical_v, contrast, epsilon_y, timing
             )
             for system in ("tar", "pat")
         }
@@ -3756,6 +3813,7 @@ def _tensor_item_v200(
     gate_chord = pre_tar - pre_cor
     zeta = GATE_RADIUS * gate_chord / max(float(np.linalg.norm(gate_chord)), 1e-30)
     first_order, factorial = {}, {}
+    baseline_started = time.perf_counter()
     with torch.inference_mode():
         for system in ("tar", "pat"):
             first_order[system] = _first_order_system_v13(
@@ -3764,6 +3822,8 @@ def _tensor_item_v200(
             factorial[system] = _factorial_system_v13(
                 tail, anchors[system], physical_v, zeta, contrast_t
             )
+    if timing is not None:
+        timing["finite_difference_seconds"] += time.perf_counter() - baseline_started
     center_tar = float(margin(anchors["tar"].year_logits, contrast_t)[0].item())
     center_pat = float(margin(anchors["pat"].year_logits, contrast_t)[0].item())
     first_order_score = math.sqrt(
@@ -3813,8 +3873,14 @@ def _aggregate_cells_v200(tensor_rows, energy_rows, *, dev_sd=None) -> tuple[dic
             cells.append({"cell_id": cid, "survived": False, "n_tensor": len(tensor), "n_energy": len(energy)})
             continue
         mean = lambda values: float(np.mean(list(values)))
-        tar_interval = (mean(row["theta_tar_lower"] for row in tensor), mean(row["theta_tar_upper"] for row in tensor))
-        pat_interval = (mean(row["theta_pat_lower"] for row in tensor), mean(row["theta_pat_upper"] for row in tensor))
+        tar_interval = (
+            round_down(mean(row["theta_tar_lower"] for row in tensor)),
+            round_up(mean(row["theta_tar_upper"] for row in tensor)),
+        )
+        pat_interval = (
+            round_down(mean(row["theta_pat_lower"] for row in tensor)),
+            round_up(mean(row["theta_pat_upper"] for row in tensor)),
+        )
         mixed_interval = absolute_value_interval(subtract_intervals(pat_interval, tar_interval))
         systems = [json.loads(row["systems"]) if isinstance(row["systems"], str) else row["systems"] for row in energy]
         target_tar = mean(row["tar"]["full"] for row in systems)
@@ -4101,6 +4167,11 @@ def _run_split_v200_multigpu(
         assigned = assignments[worker_index]
         if result.get("record_count") != len(assigned):
             raise GreenStop("11_MULTIGPU_WORKER", f"coverage mismatch worker {worker_index}")
+        integrity = result.get("active_model_integrity") or {}
+        if integrity.get("active_model_unchanged") is not True:
+            raise GreenStop(
+                "08B_AD_MODEL_ISOLATION", f"worker {worker_index} model changed"
+            )
         committed = {row["batch_id"] for row in read_journal(worker_root / "endpoint_ledger.jsonl") if row.get("event") == "endpoint_batch_committed"}
         for record in assigned:
             batch_id = f"{split}-{record.role}-{record.pair_digest}"
@@ -4119,6 +4190,7 @@ def _run_split_v200_multigpu(
             "worker_log_sha256": sha256_file(worker_root / "worker.log"),
             "elapsed_seconds": result["elapsed_seconds"],
             "peak_allocated_bytes": result["peak_allocated_bytes"],
+            "active_model_integrity": integrity,
         })
     tensor_rows.sort(key=lambda row: row["pair_digest"]); energy_rows.sort(key=lambda row: row["pair_digest"])
     expected_tensor = sorted(row.pair_digest for row in records if row.role == "tensor")
@@ -4803,10 +4875,10 @@ def _response_ad_preflight_v200(
                 "radii": [1.0, 0.5, 0.25],
                 "finite": finite, "coarse_fine_overlap": overlap,
             })
-            if not finite or not overlap:
+            if not finite:
                 raise GreenStop(
                     "08_AD_ENCLOSURE",
-                    f"three-scale preflight failed at stratum {stratum_index}",
+                    f"nonfinite three-scale preflight at stratum {stratum_index}",
                 )
             residual = _selected_numpy(anchor, "resid_mid")
             gate = SELECTED_GATES[metadata["gate_slot"]]
@@ -4833,61 +4905,81 @@ def _response_ad_preflight_v200(
     )
 
     ad_rows = []
-    scientific_cfg_dtype = model.cfg.dtype
-    model.double()
-    model.cfg.dtype = torch.float64
-    try:
+    with isolated_ad_tail_v200(model) as ad_tail:
         for stratum_index, work in enumerate(finite_work):
             metadata, record, anchor, frame, item, triplet, gradient = work
-            anchor64 = TailAnchor(**{
-                key: (
-                    value.double()
-                    if getattr(value, "is_floating_point", lambda: False)()
-                    else value
-                )
-                for key, value in {
-                    "resid_mid": anchor.resid_mid,
-                    "pre": anchor.pre,
-                    "post": anchor.post,
-                    "resid_post": anchor.resid_post,
-                    "year_logits": anchor.year_logits,
-                    "final_positions": anchor.final_positions,
-                    "system": anchor.system,
-                    "mlp8_out": anchor.mlp8_out,
-                }.items()
-            })
             gate = SELECTED_GATES[metadata["gate_slot"]]
             path_map, control_map = build_ad_response_functions_v200(
-                model, anchor64, frame, suffix_ids, gate
+                ad_tail, anchor, frame, suffix_ids, gate
             )
+            x0 = torch.zeros(PROBE_FRAME_DIM, dtype=torch.float64, device=device)
+            z0 = torch.zeros((), dtype=torch.float64, device=device)
+            with torch.no_grad():
+                endpoint_path = path_map(x0, z0)
+                endpoint_control = control_map(x0, z0)
+            endpoint_bitwise_equal = bool(torch.equal(endpoint_path, endpoint_control))
+            endpoint_max_abs = float(
+                (endpoint_path - endpoint_control).abs().max().item()
+            )
+            if not endpoint_bitwise_equal:
+                raise GreenStop(
+                    "08A_AD_LOCAL_ENDPOINT",
+                    f"stratum={stratum_index} max_abs={endpoint_max_abs}",
+                )
             forward = response_gate_jet_forward_ad64(path_map, control_map)
             reverse = response_gate_jet_reverse_ad64(path_map, control_map)
-            enclosure_audit = audit_richardson_enclosure_v200(
-                forward, reverse,
-                triplet["coarse_richardson"], triplet["fine_richardson"],
-                triplet["coarse_bounds"], triplet["fine_bounds"],
+            certificate = ad_route_certificate_v200(forward, reverse)
+            enclosure = ad_certified_enclosure_v200(
+                triplet["fine_richardson"], certificate,
+                epsilon_y=epsilon_y,
+                fine_h_x=float(item["radius"]["h_x"]) * HALF_RADIUS_MULTIPLIER,
+                fine_h_z=GATE_RADIUS * HALF_RADIUS_MULTIPLIER,
             )
             wb_A = whitebox_A_coordinates(frame, gradient)
             structural = _classify_gate_v200(
-                triplet, wb_A, gradient,
+                triplet, certificate, enclosure, wb_A, gradient,
                 margin_vector(record.y, "cpu").numpy(), item["target"],
             )["audit"]
             structural_pass = structural["label"] not in {
                 "structural-contradiction", "numerical-invalid"
             }
-            passed = bool(enclosure_audit["passed"] and structural_pass)
+            passed = bool(certificate.passed and structural_pass)
             ad_rows.append({
                 **metadata, "stratum_index": stratum_index,
-                "enclosure": enclosure_audit,
+                "route_passed": certificate.passed,
+                "local_endpoint_bitwise_equal": endpoint_bitwise_equal,
+                "local_endpoint_max_abs": endpoint_max_abs,
+                "route_difference_G": certificate.route_difference_G,
+                "route_difference_C": certificate.route_difference_C,
+                "route_difference_J": certificate.route_difference_J,
+                "route_difference_delta_H": certificate.route_difference_delta_H.tolist(),
+                "epsilon_G": enclosure.epsilon_G,
+                "epsilon_C": enclosure.epsilon_C,
+                "epsilon_J": enclosure.epsilon_J,
+                "epsilon_delta_H": enclosure.epsilon_delta_H.tolist(),
+                "ad_matched_bypass": structural.get("ad_matched_bypass"),
                 "structural_label": structural["label"],
                 "structural_pass": structural_pass,
                 "passed": passed,
             })
             del path_map, control_map, forward, reverse
             torch.cuda.empty_cache()
-    finally:
-        model.float()
-        model.cfg.dtype = scientific_cfg_dtype
+
+    integrity = {
+        "active_model_parameter_hash_before": ad_tail.integrity_before["parameter_hash"],
+        "active_model_parameter_hash_after": ad_tail.integrity_after["parameter_hash"],
+        "active_model_buffer_hash_before": ad_tail.integrity_before["buffer_hash"],
+        "active_model_buffer_hash_after": ad_tail.integrity_after["buffer_hash"],
+        "active_model_config_hash_before": ad_tail.integrity_before["config_hash"],
+        "active_model_config_hash_after": ad_tail.integrity_after["config_hash"],
+        "active_model_unchanged": ad_tail.active_model_unchanged,
+        "ad_local_parameter_dtype": "float64",
+        "ad_local_cfg_dtype": "float64",
+        "scientific_model_dtype": "float32",
+    }
+    write_json_atomic(output_root / "active_model_integrity_v200.json", integrity)
+    if not integrity["active_model_unchanged"]:
+        raise GreenStop("08B_AD_MODEL_ISOLATION", str(integrity))
 
     misses = sum(not row["passed"] for row in ad_rows)
     ad_payload = {
@@ -4898,7 +4990,7 @@ def _response_ad_preflight_v200(
         "misses": misses,
         "permitted_misses": 0,
         "routes": ["forward-over-forward", "reverse-over-forward"],
-        "float64_prepare_only": True,
+        "float64_outcome_blind_certification": True,
         "exact_full_unembedding": True,
         "behavioral_fields_read": False,
         "baseline_fields_read": False,
@@ -4909,8 +5001,24 @@ def _response_ad_preflight_v200(
     write_json_atomic(
         output_root / "response_ad_enclosure_audit_v200.json", ad_payload
     )
+    write_json_atomic(output_root / "response_ad_route_audit_v200.json", ad_payload)
+    theorem_payload = {
+        "schema_version": "green-bridge-response-ad-theorem-v2.0.0",
+        "required_strata": 40,
+        "records": [
+            {key: row[key] for key in (
+                "pair_digest", "system", "gate_slot", "distance_bin",
+                "ad_matched_bypass", "structural_label", "structural_pass",
+            )}
+            for row in ad_rows
+        ],
+        "passed": all(row["structural_pass"] for row in ad_rows),
+    }
+    write_json_atomic(output_root / "response_ad_theorem_audit_v200.json", theorem_payload)
     if not ad_payload["passed"]:
-        raise GreenStop("08_AD_ENCLOSURE", f"AD misses={misses}")
+        route_misses = sum(not row["route_passed"] for row in ad_rows)
+        gate = "08_AD_ROUTE_CONSISTENCY" if route_misses else "08_AD_ENCLOSURE"
+        raise GreenStop(gate, f"AD misses={misses}")
     for suffix in (
         "anchor_cache.pt", "structural_inputs.npz",
         "structural_input_hashes.json", "frames.npz", "frame_audit.json",
@@ -5376,15 +5484,15 @@ def _verify_cpu_contract_v200() -> dict:
     output = completed.stdout
     passed = (
         completed.returncode == 0
-        and "Ran 200 tests" in output
+        and "Ran 220 tests" in output
         and re.search(r"^OK\s*$", output, flags=re.MULTILINE) is not None
         and "skipped=" not in output
     )
     payload = {
         "command": [sys.executable, "src/test_green_bridge_contract.py"],
         "return_code": completed.returncode,
-        "exact_test_count": 200,
-        "ran_200": "Ran 200 tests" in output,
+        "exact_test_count": 220,
+        "ran_220": "Ran 220 tests" in output,
         "ok": re.search(r"^OK\s*$", output, flags=re.MULTILINE) is not None,
         "skipped": False,
         "passed": passed,
@@ -5405,7 +5513,7 @@ def _scientific_delta_v200() -> dict:
         ),
         "scientific_forward_dtype": (
             FROZEN_SPEC["numerical_error_contract"]
-            == "three-scale-bound-certified-setid-v2.0.0"
+            == "dual-route-ad-certified-fine-richardson-v1"
         ),
         "endpoint_batch_size_one": TAIL_FIXED_BATCH_SIZE == 1,
         "ten_selected_gates": len(SELECTED_GATES) == 10,
@@ -5440,15 +5548,15 @@ def _scientific_delta_v200() -> dict:
     }
     authorized_changes = [
         "fixed quarter-radius GateJet evaluation",
-        "fine Richardson estimator is the immutable point estimator",
-        "bound-derived factorization and white-box admissibility",
-        "uncertainty-ball overlap replaces heuristic gate-scale metrics",
+        "fine Richardson estimator remains the immutable point estimator",
+        "dual-route float64 AD numerical certification",
+        "isolated AD tail leaves the scientific model unchanged",
+        "proof-derived factorization and white-box admissibility",
+        "coarse-fine overlap is diagnostic only",
         "unresolved-bounded and structural-contradiction gate classes",
-        "all-ten set accounting replaces all-ten point completeness",
-        "gate intervals aggregate into item and cell intervals",
-        "worst-case interval RMSE and interval AUROC lower bounds",
+        "all-ten outward-rounded interval accounting",
         "fresh split drawn only from unopened v1.3.6 confirmation groups",
-        "cell-count thresholds proportionally scaled upward",
+        "development-selected confirmation baseline is frozen",
     ]
     return {
         "schema_version": "green-bridge-scientific-delta-v2.0.0",
@@ -5461,6 +5569,107 @@ def _scientific_delta_v200() -> dict:
         "unauthorized_changes": [],
         "passed": all(invariant_checks.values()) and len(authorized_changes) == 10,
     }
+
+
+def _throughput_preflight_v200(
+    model, tokenizer, suffix_ids, legacy_records, device: str, output_root: Path,
+) -> dict:
+    """Execute the corrected eight-record full v2 workload on one RTX 4090."""
+    selected = []
+    for distance_bin in ("near", "far"):
+        candidates = [row for row in legacy_records if row.distance_bin == distance_bin]
+        selected.extend(sorted(
+            candidates,
+            key=lambda row: sha256_text(
+                "green-v200-corrigendum-throughput|" + row.pair_digest
+            ),
+        )[:4])
+    if len(selected) != 8 or Counter(row.distance_bin for row in selected) != {"near": 4, "far": 4}:
+        raise GreenStop("06G_PREPARE_THROUGHPUT", "invalid benchmark selection")
+    plain = _capture_structural_inputs(
+        model, tokenizer, suffix_ids, selected, device, output_root, "throughput"
+    )
+    design = _construct_structural_design(
+        model, selected, plain, output_root, "throughput"
+    )
+    epsilon_y = max(1e-7, float(_duplicate_noise_v13(
+        model, tokenizer, suffix_ids, selected, device
+    )["max_abs"]))
+    timing = {"finite_difference_seconds": 0.0, "ad_certification_seconds": 0.0}
+    coefficients = first_order_directions()
+    torch = torch_module()
+    torch.cuda.reset_peak_memory_stats(device)
+    torch.cuda.synchronize(device)
+    started = time.perf_counter()
+    with isolated_ad_tail_v200(model) as ad_tail:
+        for record in selected:
+            _tensor_item_v200(
+                model, suffix_ids, record, device, epsilon_y, coefficients,
+                plain, design, ad_tail=ad_tail, timing=timing,
+            )
+            energy_started = time.perf_counter()
+            _energy_item_v200(model, suffix_ids, record, device, plain, design)
+            torch.cuda.synchronize(device)
+            timing["finite_difference_seconds"] += time.perf_counter() - energy_started
+    torch.cuda.synchronize(device)
+    elapsed = time.perf_counter() - started
+    analysis_seconds = max(
+        0.0, elapsed - timing["finite_difference_seconds"]
+        - timing["ad_certification_seconds"]
+    )
+    # Eight paired records on one GPU correspond to one development wave on
+    # eight GPUs; confirmation has three such waves.
+    development_seconds = elapsed
+    confirmation_seconds = 3.0 * elapsed
+    prepare_seconds = timing["ad_certification_seconds"] / 4.0 + analysis_seconds
+    projected_total = prepare_seconds + development_seconds + confirmation_seconds
+    peak = int(torch.cuda.max_memory_allocated(device))
+    payload = {
+        "schema_version": "green-bridge-throughput-preflight-v2.0.0",
+        "selection_salt": "green-v200-corrigendum-throughput",
+        "selected_records": [
+            {"pair_digest": row.pair_digest, "distance_bin": row.distance_bin}
+            for row in selected
+        ],
+        "records": 8,
+        "tensor_items_executed": 8,
+        "energy_items_executed": 8,
+        "ad_gate_system_certificates_executed": 160,
+        "ad_gatejet_routes_executed": 320,
+        "prepare_seconds": prepare_seconds,
+        "development_seconds": development_seconds,
+        "confirmation_seconds": confirmation_seconds,
+        "total_seconds": projected_total,
+        "finite_difference_seconds": timing["finite_difference_seconds"],
+        "ad_certification_seconds": timing["ad_certification_seconds"],
+        "analysis_seconds": analysis_seconds,
+        "benchmark_elapsed_seconds": elapsed,
+        "peak_allocated_bytes": peak,
+        "peak_allocated_gib": peak / (1024 ** 3),
+        "operation_counts": FORWARD_COUNTS,
+        "selected_projection_fallback": False,
+        "lower_precision_fallback": False,
+        "reduced_gate_fallback": False,
+        "radius_fallback": False,
+        "active_model_unchanged": ad_tail.active_model_unchanged,
+    }
+    payload["passed"] = bool(
+        peak <= 20 * 1024 ** 3 and projected_total <= 24 * 3600
+        and ad_tail.active_model_unchanged
+        and not any(payload[name] for name in (
+            "selected_projection_fallback", "lower_precision_fallback",
+            "reduced_gate_fallback", "radius_fallback",
+        ))
+    )
+    write_json_atomic(output_root / "throughput_preflight.json", payload)
+    for suffix in (
+        "anchor_cache.pt", "structural_inputs.npz", "structural_input_hashes.json",
+        "frames.npz", "frame_audit.json", "radii.json", "target_vectors.npz",
+    ):
+        (output_root / f"throughput_{suffix}").unlink(missing_ok=True)
+    if not payload["passed"]:
+        raise GreenStop("06G_PREPARE_THROUGHPUT", str(payload))
+    return payload
 
 
 def prepare_v200(output_root: Path, device: str) -> None:
@@ -5499,6 +5708,18 @@ def prepare_v200(output_root: Path, device: str) -> None:
     if not scientific_delta["passed"]:
         raise GreenStop("00D_SCIENTIFIC_DELTA", str(scientific_delta))
     write_json_atomic(output_root / "gate04_legacy_panel.json", gate04_panel)
+    write_json_atomic(output_root / "numerical_contract_v200.json", {
+        "schema_version": "green-bridge-numerical-contract-v2.0.0",
+        "contract": FROZEN_SPEC["numerical_error_contract"],
+        "fine_richardson_point_estimator": True,
+        "dual_route_ad_certification": True,
+        "coarse_fine_overlap_diagnostic_only": True,
+        "outward_rounded_intervals": True,
+    })
+    write_json_atomic(output_root / "operation_counts_v200.json", {
+        "schema_version": "green-bridge-operation-counts-v2.0.0",
+        "counts": FORWARD_COUNTS,
+    })
 
     tokenizer, hf_model, model, cfg = load_models(device, tokenizer=tokenizer)
     suffix_ids, tokenizer_meta = validate_tokenizer(tokenizer, evaluation + legacy)
@@ -5604,19 +5825,11 @@ def prepare_v200(output_root: Path, device: str) -> None:
     hardware_plan["schema_version"] = "green-bridge-hardware-plan-v2.0.0"
     hardware_plan["worker_physical_gpus"] = list(range(8))
     write_json_atomic(output_root / "hardware_plan.json", hardware_plan)
-    throughput = json.loads(
-        (output_root / "manual_tail_throughput_v136.json").read_text(
-            encoding="utf-8"
-        )
-    )
-    throughput["schema_version"] = "green-bridge-throughput-preflight-v2.0.0"
-    throughput["development_effective_units"] = FORWARD_COUNTS[
-        "development_effective_units"
-    ]
-    write_json_atomic(output_root / "throughput_preflight.json", throughput)
-
     _response_ad_preflight_v200(
         model, tokenizer, suffix_ids, device, output_root
+    )
+    _throughput_preflight_v200(
+        model, tokenizer, suffix_ids, legacy, device, output_root
     )
     for name in (
         "preflight_anchor_cache.pt", "preflight_structural_inputs.npz",
@@ -5644,10 +5857,14 @@ def prepare_v200(output_root: Path, device: str) -> None:
     required = (
         "run_ledger.json", "predecessor_v136_manifest.json",
         "model_fingerprint.json", "v200_split.json",
-        "scientific_delta_v200.json", "gate04_legacy_panel.json",
+        "scientific_delta_v200.json", "numerical_contract_v200.json",
+        "operation_counts_v200.json", "gate04_legacy_panel.json",
         "hook_audit.json", "manual_tail_equivalence.json",
         "structural_frame_preflight.json",
         "response_ad_enclosure_audit_v200.json",
+        "response_ad_route_audit_v200.json",
+        "response_ad_theorem_audit_v200.json",
+        "active_model_integrity_v200.json",
         "three_scale_numerical_preflight_v200.json", "hardware_plan.json",
         "throughput_preflight.json", "prepare_result.json",
         "splits.json", "development_splits.json",
@@ -5827,6 +6044,10 @@ def development_phase_v200(output_root: Path, device: str) -> None:
     )
     frozen["source_sha256"] = source_hashes()
     frozen["protocol_sha256"] = manifest["protocol_sha256"]
+    frozen["execution_commit"] = manifest["execution_commit"]
+    frozen["development_result_sha256"] = sha256_file(
+        output_root / "dev_result.json"
+    )
     frozen["conditioning_dev_sd"] = dev_sd
     frozen["confirmation_cell_ids"] = sorted({
         row.cell_id for row in load_split_file(output_root)

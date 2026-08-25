@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 from pathlib import Path
 from typing import Iterable
@@ -398,6 +399,8 @@ def freeze_confirmation_v200(development: dict, path: Path, *, split_sha256: str
         "schema_version": "green-bridge-frozen-analysis-v2.0.0",
         "spec_sha256": frozen_spec_hash(),
         "split_sha256": split_sha256,
+        "frozen_best_baseline": result["best_baseline"],
+        "frozen_best_baseline_loocv_rmse": result["best_baseline_loocv_rmse"],
         "baseline_calibration": {
             name: {
                 "alpha": result["baseline_calibration"][name]["alpha"],
@@ -412,6 +415,12 @@ def freeze_confirmation_v200(development: dict, path: Path, *, split_sha256: str
         "bootstrap_replicates": 100_000,
         "bootstrap_seed": 20260805,
         "confirmation_retries": 0,
+        "source_sha256": {},
+        "protocol_sha256": {},
+        "execution_commit": "pending-freeze-caller-binding",
+        "development_result_sha256": hashlib.sha256(
+            json.dumps(result, sort_keys=True, separators=(",", ":")).encode("utf-8")
+        ).hexdigest(),
         "development_summary": result,
     }
     write_json_atomic(path, frozen)
@@ -419,13 +428,37 @@ def freeze_confirmation_v200(development: dict, path: Path, *, split_sha256: str
 
 
 def confirmation_decision_v200(confirm_payload: dict, frozen: dict) -> dict:
+    required_frozen = {
+        "frozen_best_baseline", "source_sha256", "protocol_sha256",
+        "split_sha256", "execution_commit", "development_result_sha256",
+        "confirmation_retries",
+    }
+    missing = required_frozen.difference(frozen)
+    if missing or frozen.get("confirmation_retries") != 0:
+        raise ValueError(f"invalid frozen confirmation payload: {sorted(missing)}")
     cells = _cells(confirm_payload)
     conditioned = sum(bool(cell.get("conditioned", False)) for cell in cells)
-    if len(cells) < THRESHOLDS.confirmation_technical_min:
+    bin_counts = {
+        name: sum(cell["distance_bin"] == name for cell in cells)
+        for name in ("near", "far")
+    }
+    development_survived = int(
+        frozen.get("development_summary", {}).get("n_surviving_cells", 0)
+    )
+    combined_survived = development_survived + len(cells)
+    technical_pass = (
+        len(cells) >= THRESHOLDS.confirmation_technical_min
+        and conditioned >= THRESHOLDS.confirmation_technical_min
+        and min(bin_counts.values()) >= THRESHOLDS.cells_per_bin_min
+        and combined_survived >= THRESHOLDS.total_cells_technical_min
+    )
+    if not technical_pass:
         return {
             "schema_version": "green-bridge-confirmation-v2.0.0",
             "phase": "confirmation", "verdict": "FAIL_SURVIVAL",
             "n_cells": len(cells), "n_conditioned": conditioned,
+            "bin_counts": bin_counts,
+            "combined_surviving_cells": combined_survived,
         }
     y = np.asarray([cell["target"] for cell in cells], dtype=np.float64)
     intervals = np.asarray(
@@ -437,7 +470,9 @@ def confirmation_decision_v200(confirm_payload: dict, frozen: dict) -> dict:
         raw = np.asarray([cell["baselines"][name] for cell in cells], dtype=np.float64)
         predictions[name] = calibration["alpha"] + calibration["beta"] * raw
     baseline_rmse = {name: rmse(y, prediction) for name, prediction in predictions.items()}
-    best_name = min(BASELINES, key=baseline_rmse.get)
+    best_name = frozen["frozen_best_baseline"]
+    if best_name not in BASELINES:
+        raise ValueError("frozen best baseline is unknown")
     best_rmse = baseline_rmse[best_name]
     mixed_worst = worst_case_interval_rmse(y, intervals)
     relative_gain = 1.0 - mixed_worst / best_rmse if best_rmse > 0 else float("-inf")
@@ -448,19 +483,19 @@ def confirmation_decision_v200(confirm_payload: dict, frozen: dict) -> dict:
     for replicate in range(replicates):
         idx = _stratified_indices(cells, rng)
         mixed_r = worst_case_interval_rmse(y[idx], intervals[idx])
-        best_r = min(rmse(y[idx], predictions[name][idx]) for name in BASELINES)
+        best_r = rmse(y[idx], predictions[best_name][idx])
         bootstrap_gain[replicate] = 1.0 - mixed_r / best_r if best_r > 0 else -np.inf
     relative_lcb = float(np.percentile(bootstrap_gain, 2.5))
     per_bin = {}
     for bin_name in ("near", "far"):
         idx = np.asarray([i for i, cell in enumerate(cells) if cell["distance_bin"] == bin_name])
         mixed_b = worst_case_interval_rmse(y[idx], intervals[idx])
-        best_b = min(rmse(y[idx], predictions[name][idx]) for name in BASELINES)
+        best_b = rmse(y[idx], predictions[best_name][idx])
         gains = np.empty(replicates, dtype=np.float64)
         for replicate in range(replicates):
             sample = rng.choice(idx, size=len(idx), replace=True)
             mr = worst_case_interval_rmse(y[sample], intervals[sample])
-            br = min(rmse(y[sample], predictions[name][sample]) for name in BASELINES)
+            br = rmse(y[sample], predictions[best_name][sample])
             gains[replicate] = 1.0 - mr / br if br > 0 else -np.inf
         per_bin[bin_name] = {
             "n": len(idx), "relative_gain": 1.0 - mixed_b / best_b,
@@ -540,6 +575,7 @@ def confirmation_decision_v200(confirm_payload: dict, frozen: dict) -> dict:
         "schema_version": "green-bridge-confirmation-v2.0.0",
         "phase": "confirmation", "verdict": "ORAL_RESULT_PASS" if success else "ORAL_RESULT_FAIL",
         "n_cells": len(cells), "n_conditioned": conditioned,
+        "bin_counts": bin_counts, "combined_surviving_cells": combined_survived,
         "mixed_worst_rmse": mixed_worst, "baseline_rmse": baseline_rmse,
         "best_baseline": best_name, "robust_relative_gain": relative_gain,
         "relative_gain_lcb": relative_lcb, "robust_absolute_gain": absolute_gain,
@@ -549,17 +585,29 @@ def confirmation_decision_v200(confirm_payload: dict, frozen: dict) -> dict:
 
 def main() -> None:
     parser = argparse.ArgumentParser()
+    parser.add_argument(
+        "--protocol-version", choices=("v136", "v200"), required=True
+    )
     parser.add_argument("--phase", choices=("development", "confirmation"), required=True)
     parser.add_argument("--input", type=Path, required=True)
     parser.add_argument("--frozen", type=Path, default=OUTPUT_ROOT / "frozen_analysis.json")
     parser.add_argument("--output", type=Path, required=True)
     args = parser.parse_args()
     payload = json.loads(args.input.read_text(encoding="utf-8"))
-    if args.phase == "development":
-        result = development_decision(payload)
-    else:
+    if args.phase == "confirmation":
         frozen = json.loads(args.frozen.read_text(encoding="utf-8"))
-        result = confirmation_decision(payload, frozen)
+    if args.protocol_version == "v200":
+        result = (
+            development_decision_v200(payload)
+            if args.phase == "development"
+            else confirmation_decision_v200(payload, frozen)
+        )
+    else:
+        result = (
+            development_decision(payload)
+            if args.phase == "development"
+            else confirmation_decision(payload, frozen)
+        )
     write_json_atomic(args.output, result)
     print(json.dumps(result, indent=2, sort_keys=True))
 

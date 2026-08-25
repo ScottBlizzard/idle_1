@@ -21,7 +21,9 @@ SCHEMA_VERSION = "green-bridge-v2.0.0"
 PROTOCOL_ID = "structural-envelope-matched-bypass-setid-v2.0.0"
 PARENT_PROTOCOL_ID = "structural-envelope-matched-bypass-v1.3.6"
 DECISION_ID = "GPTPRO-GREEN-V136-TERMINAL-SETID-v1-20260825"
-AMENDMENT_ID = DECISION_ID
+CORRIGENDUM_ID = "GPTPRO-GREEN-V200-CORRIGENDUM-v1-20260825"
+AMENDMENT_ID = CORRIGENDUM_ID
+NUMERICAL_ERROR_CONTRACT = "dual-route-ad-certified-fine-richardson-v1"
 THEORY_BASE_COMMIT = "126556f"
 GATE04_AMENDMENT_ID = "GPTPRO-GREEN-GATE04-v2-20260805"
 GATE08_AMENDMENT_ID = "GPTPRO-GREEN-GATE08-v2-20260805"
@@ -40,14 +42,23 @@ TAIL_DERIVATIVE_REFERENCE_NORM_FLOOR = 1.0e-5
 TAIL_EQUIVALENCE_OUTPUT_DIM = 100
 TAIL_FIXED_BATCH_SIZE = 1
 PREDECESSOR_RUN = {
-    "schema_version": "green-bridge-v1.3.5",
-    "protocol_id": "structural-envelope-matched-bypass-v1.3.5",
-    "protocol_run_id": "green-bridge-v1.3.5-one-shot",
+    "schema_version": "green-bridge-v1.3.6",
+    "protocol_id": "structural-envelope-matched-bypass-v1.3.6",
+    "protocol_run_id": "green-bridge-v1.3.6-one-shot",
     "attempt_index": 1,
     "retry_allowed": False,
-    "execution_commit": "8b5784906df3c4655bf39e4ff4f72f421a21d6ef",
-    "first_failed_gate": "11_MULTIGPU_WORKER",
-    "result_sha256": "c1c53e6b7fcf062a3c258a79f3ef4b87a0b33724e7087c2182f6f7e14fb81b20",
+    "verdict": "STOP_ORAL",
+    "first_failed_gate": "12_DEVELOPMENT_SURVIVAL",
+    "scientific_spec_sha256": "60ca5e9e221064f288a1993ee3cbf42e99330bbf6f9008946a25556438cbc3d3",
+    "frozen_spec_sha256": "cb771c59e91b4fc553ef73a1c7a116ec0ee55f499ce46a2f91e4c600cd8bd41d",
+    "confirmation_started": False,
+    "artifact_sha256": {
+        "dev_tensor_scores.parquet": "660788dde8bc5df1d057db31b4dc1065b222ac7777efc0e4c6220e09f1ed81ff",
+        "dev_energy_targets.parquet": "23a99b6998ec2c51184ae26b8f86a7656247ff2091e251752c1fccd06295e593",
+        "dev_cells.json": "1294a76d6d79c81f240c20c4257aa6b0fe76457d46b30cfc5d5699e27759ae1f",
+        "dev_result.json": "2e15531d62bd5cc1162980fdaa2643a7300b362eb6b11ff5b94bb3d623c37277",
+        "development_multigpu_merge.json": "31dbc71fbeaa40f313be6078a627082050aa5a338e132d3a6ed7343869eaad7a",
+    },
 }
 
 PROMPT = "<|endoftext|> The {noun} lasted from the year {cc:02d}{y:02d} to the year {cc:02d}"
@@ -75,8 +86,14 @@ QUARTER_RADIUS_MULTIPLIER = 0.25
 FACTORIZATION_COMPATIBILITY_RATIO_MAX = 1.0
 WHITEBOX_COMPATIBILITY_RATIO_MAX = 1.0
 WHITEBOX_FACTORIZATION_RATIO_MAX = 1.0
-DYADIC_BALL_OVERLAP_RATIO_MAX = 1.0
+HISTORICAL_DYADIC_BALL_OVERLAP_RATIO_MAX = 1.0
 WHITEBOX_COORDINATE_ABS_ERROR_MAX = 1.0e-10
+FLOAT64_UNIT_ROUNDOFF = 2.0 ** -53
+AD_ROUTE_OPERATION_BUDGET = 65_536
+AD_ROUTE_GAMMA = (
+    AD_ROUTE_OPERATION_BUDGET * FLOAT64_UNIT_ROUNDOFF
+    / (1.0 - AD_ROUTE_OPERATION_BUDGET * FLOAT64_UNIT_ROUNDOFF)
+)
 AD_AUDIT_STRATA = 40
 AD_AUDIT_PERMITTED_MISSES = 0
 STRUCTURAL_FRAME_ORTHOGONAL_MAX = 5e-13
@@ -145,7 +162,10 @@ V200_CONFIRMATION_GROUPS = (
     ("campaign", 16),
     ("expedition", 16),
 )
-V200_SPLIT_SHA256 = "f012a286801bc3e3e937b390f0a62d7e92f8d5a21ba59d7e53478ae911e72cfc"
+V200_SPLIT_SHA256 = (
+    "0873915c966bef8f54b83d4151a9d7c75"
+    "b577da5dfc17ee093b9f5c58a9590f7"
+)
 
 HISTORICAL_V136_THRESHOLDS = {
     "factorization_residual_max": 0.15,
@@ -195,7 +215,7 @@ class Thresholds:
     factorization_compatibility_ratio_max: float = FACTORIZATION_COMPATIBILITY_RATIO_MAX
     whitebox_compatibility_ratio_max: float = WHITEBOX_COMPATIBILITY_RATIO_MAX
     whitebox_factorization_ratio_max: float = WHITEBOX_FACTORIZATION_RATIO_MAX
-    dyadic_ball_overlap_ratio_max: float = DYADIC_BALL_OVERLAP_RATIO_MAX
+    dyadic_ball_overlap_ratio_max: float = HISTORICAL_DYADIC_BALL_OVERLAP_RATIO_MAX
     tensor_snr_min: float = 20.0
     bypass_disagreement_max: float = 0.15
     active_gates_min: int = 3
@@ -254,7 +274,10 @@ FROZEN_SPEC: dict[str, Any] = {
         "target_bypass_subtraction": "blocks.10.hook_resid_post",
     },
     "protocol_id": PROTOCOL_ID,
+    "decision_id": DECISION_ID,
+    "corrigendum_id": CORRIGENDUM_ID,
     "amendment_id": AMENDMENT_ID,
+    "v200_split_sha256": V200_SPLIT_SHA256,
     "probe_frames": {
         "probe_frame_dim": PROBE_FRAME_DIM,
         "common_frame_dim": COMMON_FRAME_DIM,
@@ -280,7 +303,28 @@ FROZEN_SPEC: dict[str, Any] = {
         "parameter_mapping_exact": True,
         "hf_tl_error_enters_epsilon_y": False,
     },
-    "numerical_error_contract": "three-scale-bound-certified-setid-v2.0.0",
+    "numerical_error_contract": NUMERICAL_ERROR_CONTRACT,
+    "ad_route": {
+        "unit_roundoff": FLOAT64_UNIT_ROUNDOFF,
+        "operation_budget": AD_ROUTE_OPERATION_BUDGET,
+        "gamma": AD_ROUTE_GAMMA,
+    },
+    "ad_operation_counts": {
+        "prepare_certificates": 40,
+        "development_certificates": 1280,
+        "confirmation_certificates": 3840,
+        "total_certificates": 5160,
+        "routes_per_certificate": 2,
+        "prepare_routes": 80,
+        "development_routes": 2560,
+        "confirmation_routes": 7680,
+        "total_routes": 10320,
+        "derivative_objects_per_route": 5,
+        "prepare_top_level_calls": 400,
+        "development_top_level_calls": 12800,
+        "confirmation_top_level_calls": 38400,
+        "total_top_level_calls": 51600,
+    },
     "structural_envelope_amendment": {
         "id": AMENDMENT_ID,
         "basis_object": "ambient-rank-one-operator",
@@ -332,11 +376,15 @@ def write_json_atomic(path: Path, value: Any) -> None:
         handle.flush()
         os.fsync(handle.fileno())
     os.replace(temporary, path)
-    directory_fd = os.open(path.parent, os.O_RDONLY)
-    try:
-        os.fsync(directory_fd)
-    finally:
-        os.close(directory_fd)
+    # POSIX directory fsync makes the rename durable. Windows does not permit
+    # opening directories through ``os.open``; the file flush above remains
+    # the strongest portable guarantee there.
+    if os.name != "nt":
+        directory_fd = os.open(path.parent, os.O_RDONLY)
+        try:
+            os.fsync(directory_fd)
+        finally:
+            os.close(directory_fd)
 
 
 def assert_scientific_override_free(arguments: dict[str, Any]) -> None:

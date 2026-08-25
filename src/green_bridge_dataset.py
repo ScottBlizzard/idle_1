@@ -3,6 +3,7 @@ from __future__ import annotations
 
 from dataclasses import asdict, dataclass, replace
 import hashlib
+import json
 from pathlib import Path
 from typing import Callable, Iterable, Sequence
 
@@ -210,6 +211,36 @@ def v200_split_payload() -> dict:
     }
 
 
+V200_LITERAL_SPLIT_PAYLOAD = {
+    "schema": "green-bridge-v2.0.0-resplit-v1",
+    "salt": "green-v200-resplit-20260825",
+    "source_split": "green-bridge-v1.3.6-confirmation",
+    "development_groups": [
+        {"noun": "dynasty", "century": 16, "rank_key": "066e4d0fbd2636a5de7c5587fea60ba6d83c2173fd8a1a3b9598806973ed2596"},
+        {"noun": "dynasty", "century": 12, "rank_key": "0fe1884c7d56deb8cdcb34d7b4eea65b398a9fdf03fc638f8bbc4a422c6ff6b6"},
+        {"noun": "reign", "century": 14, "rank_key": "169c8a45b7aea24c90ce94ecefc84aa0588e34831b5074b9a57a4c5380373b51"},
+        {"noun": "warfare", "century": 14, "rank_key": "36d63a7d439059d0877995705989132fddb35d1cfc9381be110925cacc8776c4"},
+    ],
+    "confirmation_groups": [
+        {"noun": "treaty", "century": 12, "rank_key": "5419d9cb8844c61db83ae2eae7243dbd16a9c2bf5ee7967401eafd7f70f2475a"},
+        {"noun": "warfare", "century": 12, "rank_key": "57822f1c018d9552848007996257f81da49ebef54f6e4559dc84fe13312ed2b4"},
+        {"noun": "expedition", "century": 14, "rank_key": "5f5f6555263c3ee9052d9f1240096f6004091201fdd805b4ede1769481fcc321"},
+        {"noun": "kingdom", "century": 12, "rank_key": "6c27075f448a87bd7bdb373924e72caba1816a5033625dbe92d1c59d1977dae8"},
+        {"noun": "treaty", "century": 16, "rank_key": "6c8d9da9bd864657ac675f5b68f65e22f44ac97b0ccec1a4acfa8987a513fb77"},
+        {"noun": "kingdom", "century": 16, "rank_key": "8571c8283f76806da63c769868b6a34448f6f02ae86d57f8a13db6597cecde00"},
+        {"noun": "campaign", "century": 14, "rank_key": "9942a20d23a6fb97e7f33390172c7049ebe78341bde1b047a28ae64e997d431b"},
+        {"noun": "siege", "century": 16, "rank_key": "a19e2bc49bf4b522ae28f500cd6596f5c492e8f817008f0c5985341e55c45741"},
+        {"noun": "reign", "century": 12, "rank_key": "aa4cd1c743ab745f1278738367fcdd5a3937d36082f92b10aa3144c990001af4"},
+        {"noun": "siege", "century": 14, "rank_key": "c39c88f5f37a424b7196cf99a4d34062f6150740ede6ab7c97abdd36d2d76d01"},
+        {"noun": "campaign", "century": 16, "rank_key": "e1d35b6e9b3ec70687d8ed270afec74fc565c633b0d0a43011d507323df4f939"},
+        {"noun": "expedition", "century": 16, "rank_key": "f7fcfdc5e4306cca1d4b0309c086dc0d6e033b72ce1236d8bb6d1986c362351f"},
+    ],
+    "distance_bins": ["near", "far"],
+    "roles": ["tensor", "energy"],
+    "records_per_role_per_cell": 8,
+}
+
+
 def build_green_bridge_v200_splits(
     pair_allowed: Callable[[str, str], bool] | None = None,
 ) -> tuple[list[PairRecord], dict]:
@@ -238,7 +269,12 @@ def build_green_bridge_v200_splits(
     if len(dev_cells) != 8 or len(confirm_cells) != 24:
         raise AssertionError("v2.0.0 cell counts are not 8 development and 24 confirmation")
     payload = v200_split_payload()
-    actual = sha256_text(canonical_json(payload))
+    if payload != V200_LITERAL_SPLIT_PAYLOAD:
+        raise AssertionError("v2.0.0 split payload differs from the literal typed schema")
+    canonical = json.dumps(
+        payload, sort_keys=True, separators=(",", ":"), ensure_ascii=False
+    )
+    actual = hashlib.sha256(canonical.encode("utf-8")).hexdigest()
     payload["sha256"] = actual
     if actual != V200_SPLIT_SHA256:
         raise AssertionError(f"v2.0.0 split hash mismatch: {actual}")
