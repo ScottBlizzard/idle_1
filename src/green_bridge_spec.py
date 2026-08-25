@@ -16,11 +16,11 @@ from typing import Any
 
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
-OUTPUT_ROOT = PROJECT_ROOT / "outputs" / "green_bridge_v132"
-SCHEMA_VERSION = "green-bridge-v1.3.2"
-PROTOCOL_ID = "structural-envelope-matched-bypass-v1.3.2"
+OUTPUT_ROOT = PROJECT_ROOT / "outputs" / "green_bridge_v133"
+SCHEMA_VERSION = "green-bridge-v1.3.3"
+PROTOCOL_ID = "structural-envelope-matched-bypass-v1.3.3"
 PARENT_PROTOCOL_ID = "structural-envelope-matched-bypass-v1"
-AMENDMENT_ID = "CODEX-GREEN-V131-BATCH-SHAPE-v1-20260825"
+AMENDMENT_ID = "CODEX-GREEN-V132-ANCHOR-RECENTER-v1-20260825"
 THEORY_BASE_COMMIT = "126556f"
 GATE04_AMENDMENT_ID = "GPTPRO-GREEN-GATE04-v2-20260805"
 GATE08_AMENDMENT_ID = "GPTPRO-GREEN-GATE08-v2-20260805"
@@ -32,19 +32,19 @@ SALT = LEGACY_SALT
 MODEL_ID = "openai-community/gpt2"
 MODEL_REVISION = "607a30d783dfa663caf39e06633721c8d4cfcd7e"
 TRANSFORMER_LENS_COMMIT = "4a4dc26c750475b29e6f54b362c2aab988702c9c"
-PROTOCOL_RUN_ID = "green-bridge-v1.3.2-one-shot"
+PROTOCOL_RUN_ID = "green-bridge-v1.3.3-one-shot"
 TAIL_DERIVATIVE_REFERENCE_NORM_FLOOR = 1.0e-5
 TAIL_EQUIVALENCE_OUTPUT_DIM = 100
 TAIL_FIXED_BATCH_SIZE = 512
 PREDECESSOR_RUN = {
-    "schema_version": "green-bridge-v1.3.1",
-    "protocol_id": "structural-envelope-matched-bypass-v1.3.1",
-    "protocol_run_id": "green-bridge-v1.3.1-one-shot",
+    "schema_version": "green-bridge-v1.3.2",
+    "protocol_id": "structural-envelope-matched-bypass-v1.3.2",
+    "protocol_run_id": "green-bridge-v1.3.2-one-shot",
     "attempt_index": 1,
     "retry_allowed": False,
-    "execution_commit": "67bd92c72057db48642280dd28ef2fa9b03c0cac",
-    "first_failed_gate": "06E_BATCH_SHAPE_EQUIVALENCE",
-    "result_sha256": "e911860ea406e6b38d7dc475dffd500dde68044185c11e0bc7be605f899ebbbf",
+    "execution_commit": "2d0d8d9de1218b1788716a9bba4e7030d498e5f5",
+    "first_failed_gate": "12_DEVELOPMENT_SURVIVAL",
+    "dev_cells_sha256": "1294a76d6d79c81f240c20c4257aa6b0fe76457d46b30cfc5d5699e27759ae1f",
 }
 
 PROMPT = "<|endoftext|> The {noun} lasted from the year {cc:02d}{y:02d} to the year {cc:02d}"

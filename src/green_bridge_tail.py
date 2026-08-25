@@ -143,6 +143,7 @@ class GreenBridgeTail:
         selected_gates=SELECTED_GATES,
         *,
         fixed_batch_size: int | None = None,
+        recenter_fixed_batch_output: bool = False,
     ):
         torch = _torch()
         self.model = model
@@ -150,8 +151,13 @@ class GreenBridgeTail:
         self.suffix_ids = suffix_token_ids
         self.gates = tuple(int(gate) for gate in selected_gates)
         self.fixed_batch_size = fixed_batch_size
+        self.recenter_fixed_batch_output = bool(recenter_fixed_batch_output)
         if fixed_batch_size is not None and int(fixed_batch_size) < 1:
             raise ValueError("fixed_batch_size must be positive")
+        if self.recenter_fixed_batch_output and fixed_batch_size is None:
+            raise ValueError(
+                "fixed-batch output recentering requires a fixed operation shape"
+            )
         if tuple(self.U.shape) != (model.cfg.d_model, PROBE_FRAME_DIM):
             raise ValueError(
                 f"legacy coordinate frame must have shape [768,{PROBE_FRAME_DIM}], got {self.U.shape}"
@@ -290,6 +296,25 @@ class GreenBridgeTail:
                 subtract_residual_bypass=subtract_residual_bypass,
                 return_trace=False,
             )
+            if self.recenter_fixed_batch_output:
+                zero_delta = torch.zeros_like(part_delta)
+                zero_z = torch.zeros_like(part_z)
+                zero_logits, _ = self._evaluate_physical_core(
+                    part_anchor,
+                    zero_delta,
+                    zero_z,
+                    mode=mode,
+                    gate_slot=gate_slot,
+                    subtract_residual_bypass=subtract_residual_bypass,
+                    return_trace=False,
+                )
+                # In exact arithmetic the fixed-shape zero endpoint and the
+                # frozen batch-one anchor are the same function value.  CUDA
+                # GEMM rounding makes their absolute representations differ.
+                # Preserve fixed-shape increments while restoring the declared
+                # frozen origin; this changes no mathematical or scientific
+                # estimand and makes zero interventions bitwise exact.
+                logits = part_anchor.year_logits + (logits - zero_logits)
             outputs.append(logits[:count])
         return torch.cat(outputs, dim=0)
 

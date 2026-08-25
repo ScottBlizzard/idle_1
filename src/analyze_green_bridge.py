@@ -66,6 +66,25 @@ def calibrate_development(cells: list[dict]) -> dict:
 
 def development_decision(payload: dict) -> dict:
     cells = _cells(payload)
+    conditioned = sum(cell.get("conditioned", False) for cell in cells)
+    snr_count = sum(
+        cell.get("snr", 0.0) >= THRESHOLDS.development_snr_min
+        for cell in cells
+    )
+    if len(cells) < THRESHOLDS.development_cells_min:
+        return {
+            "phase": "development",
+            "verdict": "STOP_ORAL",
+            "n_surviving_cells": len(cells),
+            "n_conditioned_cells": conditioned,
+            "n_snr_cells": snr_count,
+            "mixed_rmse": None,
+            "best_baseline": None,
+            "best_baseline_loocv_rmse": None,
+            "relative_gain": None,
+            "baseline_calibration": {},
+            "spec_sha256": frozen_spec_hash(),
+        }
     calibration = calibrate_development(cells)
     y = np.array([cell["target"] for cell in cells], dtype=np.float64)
     mixed = np.array([cell["mixed"] for cell in cells], dtype=np.float64)
@@ -73,8 +92,6 @@ def development_decision(payload: dict) -> dict:
     best_name = min(BASELINES, key=lambda name: calibration[name]["loocv_rmse"])
     best_rmse = calibration[best_name]["loocv_rmse"]
     gain = 1.0 - mixed_rmse / best_rmse if best_rmse > 0 else float("-inf")
-    snr_count = sum(cell.get("snr", 0.0) >= THRESHOLDS.development_snr_min for cell in cells)
-    conditioned = sum(cell.get("conditioned", False) for cell in cells)
     gates_pass = (
         len(cells) >= THRESHOLDS.development_cells_min
         and conditioned >= THRESHOLDS.development_cells_min
