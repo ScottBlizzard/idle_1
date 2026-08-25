@@ -45,7 +45,7 @@ import hashlib
 import importlib.metadata
 import transformer_lens
 expected_versions = {
-    "torch": "2.7.1", "transformer-lens": "3.6.0",
+    "torch": "2.7.1+cu126", "transformer-lens": "3.6.0",
     "transformers": "5.13.0", "numpy": "2.2.6",
     "scipy": "1.15.3", "pandas": "2.2.3", "pyarrow": "19.0.1",
     "threadpoolctl": "3.6.0",
