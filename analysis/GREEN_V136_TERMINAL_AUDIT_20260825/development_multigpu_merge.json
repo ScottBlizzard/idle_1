@@ -1,0 +1,102 @@
+{
+  "energy_count": 128,
+  "energy_parquet_sha256": "23a99b6998ec2c51184ae26b8f86a7656247ff2091e251752c1fccd06295e593",
+  "exact_batch_size": 1,
+  "input_sha256": {
+    "development_anchor_cache.pt": "06d59a0425231944e55664a88742d6ad6193b4f0e0abd8ecc5683791b12ee551",
+    "development_frame_audit.json": "d04e68e7010a0d6d0ff59fb50e0943bb7e01d778c473a10d75c65ef1c0b6ac44",
+    "development_frames.npz": "545c42fb162d68678082ac50ed3c2d6f085a167a8fe96b7f7e0320a6912c0404",
+    "development_radii.json": "ecd78b16e5456cafc1900e972b8fb5c90e0f30d20e9d20253030274e8532800d",
+    "development_structural_input_hashes.json": "c67346f629c94058d3081d2d364e257166e303acac7a93a42a77a86e4dc7bf98",
+    "development_structural_inputs.npz": "70f990ab020022b6673f8e031baf3dca8e5cb90c19a975ebc30da266940986b4",
+    "development_target_vectors.npz": "1078d7469493472a16325c469d34af2129f208f5339c8faded01aaa2a98a85c9"
+  },
+  "physical_gpus": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7
+  ],
+  "schema_version": "green-bridge-v1.3.6-multigpu-merge-v1",
+  "split": "development",
+  "tensor_count": 128,
+  "tensor_parquet_sha256": "660788dde8bc5df1d057db31b4dc1065b222ac7777efc0e4c6220e09f1ed81ff",
+  "workers": [
+    {
+      "elapsed_seconds": 208.24672980999458,
+      "peak_allocated_bytes": 1865645056,
+      "physical_gpu": 0,
+      "record_count": 32,
+      "worker_index": 0,
+      "worker_log_sha256": "afad3ba095f63ed73500baca1a5341878cabbba186f635d22f7b3e18bf23c29c",
+      "worker_result_sha256": "faf2f9693419ca808afa4f0ebbf3515109ce63ac1d9d8db3fcde0d614c4167ac"
+    },
+    {
+      "elapsed_seconds": 209.3715771040006,
+      "peak_allocated_bytes": 1865645056,
+      "physical_gpu": 1,
+      "record_count": 32,
+      "worker_index": 1,
+      "worker_log_sha256": "c9249cc95928f68da1d97d3eda32fa18e1d21315ff9840ece980dd5c691de26c",
+      "worker_result_sha256": "d939e8f28b00e1b0c8c8de092bd95f13ce50952777645b643aba596ef6f4823f"
+    },
+    {
+      "elapsed_seconds": 209.82005608599866,
+      "peak_allocated_bytes": 1865645056,
+      "physical_gpu": 2,
+      "record_count": 32,
+      "worker_index": 2,
+      "worker_log_sha256": "f9d7656353cce172e871b96a70c0f61c07659dbb38e4d44f7e2f98fe89c174e1",
+      "worker_result_sha256": "bdbb9fe9fbabc935528fbebce9b005b0accb090f799a9d7138bc5be2c9e07205"
+    },
+    {
+      "elapsed_seconds": 207.52769148400694,
+      "peak_allocated_bytes": 1865645056,
+      "physical_gpu": 3,
+      "record_count": 32,
+      "worker_index": 3,
+      "worker_log_sha256": "ce99612953ff486f1f31513e29541fc199a4f7d7b8341f35d6517cb5602889ba",
+      "worker_result_sha256": "d057f1530e0a309eb44d6cc82958f26f6ea567c18cdf2dfc052feb2ff85c830d"
+    },
+    {
+      "elapsed_seconds": 200.4488809950126,
+      "peak_allocated_bytes": 1865645056,
+      "physical_gpu": 4,
+      "record_count": 32,
+      "worker_index": 4,
+      "worker_log_sha256": "245da22287b97f713d33cc0d0bc7eed49839ffac4362ec945c2feb2d42c08ade",
+      "worker_result_sha256": "4aabfdee37a65718d9f024d707024a1aa6522d9ce7040e707e7d263b8f74b04c"
+    },
+    {
+      "elapsed_seconds": 201.95198623299075,
+      "peak_allocated_bytes": 1865645056,
+      "physical_gpu": 5,
+      "record_count": 32,
+      "worker_index": 5,
+      "worker_log_sha256": "8a9c9935e6e437de11313c79075c7f8cf81efbd5643d80ecf7b833a85f6bb3c8",
+      "worker_result_sha256": "e63f2958596ab4ea2a492e5fd2a1dc8969db0c0b4fb536c8e5fa6bf0bc538895"
+    },
+    {
+      "elapsed_seconds": 214.86063727199507,
+      "peak_allocated_bytes": 1865645056,
+      "physical_gpu": 6,
+      "record_count": 32,
+      "worker_index": 6,
+      "worker_log_sha256": "8998fc9b1ac372724eee6fa799ee23df2c4aff568eb764a2687e366fa42ef175",
+      "worker_result_sha256": "7dd4b02d10b2776b25a0614201d847cfbd2b27aa1950681c55eb7e6a31f46831"
+    },
+    {
+      "elapsed_seconds": 201.62324961500417,
+      "peak_allocated_bytes": 1865645056,
+      "physical_gpu": 7,
+      "record_count": 32,
+      "worker_index": 7,
+      "worker_log_sha256": "e2d5edfbd09fa4430369717997dea212eba50f8178aa2e0ed8ee3895e9d5a9b4",
+      "worker_result_sha256": "19077980b1ee8c03e90ebede137c1e761b245f356e2bd948a3dfd3c4cfc75b4b"
+    }
+  ]
+}

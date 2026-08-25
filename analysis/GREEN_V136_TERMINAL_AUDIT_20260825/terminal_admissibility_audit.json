@@ -1,0 +1,3320 @@
+{
+  "cells": {
+    "conditioning_dev_sd": 0.0,
+    "n_energy_histogram": {
+      "8": 16
+    },
+    "n_tensor_histogram": {
+      "0": 16
+    },
+    "survived": 0,
+    "total": 16
+  },
+  "energy_records": {
+    "admissible": 128,
+    "inadmissible": 0,
+    "total": 128
+  },
+  "energy_systems": {
+    "cor": {
+      "admissibility": {
+        "true": 128
+      },
+      "metrics": {
+        "jvp_absolute_error": {
+          "max": 4.740811559937434e-05,
+          "median": 6.81880843957024e-06,
+          "min": 8.336113937979991e-08,
+          "p25": 3.415382363729468e-06,
+          "p75": 1.2945819614712653e-05
+        },
+        "jvp_relative_error": {
+          "max": 0.0009481623119874868,
+          "median": 0.0001363761687914048,
+          "min": 1.6672227875959983e-06,
+          "p25": 6.830764727458936e-05,
+          "p75": 0.00025891639229425306
+        },
+        "locality_error": {
+          "max": 5.814114090481326e-05,
+          "median": 7.993385996207358e-06,
+          "min": 1.0670481861753411e-07,
+          "p25": 3.9803861367580925e-06,
+          "p75": 1.352633104305639e-05
+        }
+      }
+    },
+    "pat": {
+      "admissibility": {
+        "true": 128
+      },
+      "metrics": {
+        "jvp_absolute_error": {
+          "max": 3.246332040441214e-05,
+          "median": 6.480435166272922e-06,
+          "min": 4.783470768793263e-09,
+          "p25": 3.0347167622084086e-06,
+          "p75": 1.244890239606329e-05
+        },
+        "jvp_relative_error": {
+          "max": 0.0006492664080882428,
+          "median": 0.00012960870332545844,
+          "min": 9.566941537586526e-08,
+          "p25": 6.069433524416817e-05,
+          "p75": 0.00024897804792126577
+        },
+        "locality_error": {
+          "max": 3.5824983016304046e-05,
+          "median": 7.599119156125565e-06,
+          "min": 4.5935051912247924e-07,
+          "p25": 3.3236442662174783e-06,
+          "p75": 1.377188610729013e-05
+        }
+      }
+    },
+    "tar": {
+      "admissibility": {
+        "true": 128
+      },
+      "metrics": {
+        "jvp_absolute_error": {
+          "max": 3.447012804671471e-05,
+          "median": 6.10519925429382e-06,
+          "min": 8.809573441397045e-09,
+          "p25": 3.0447445744197048e-06,
+          "p75": 1.2347903279128126e-05
+        },
+        "jvp_relative_error": {
+          "max": 0.0006894025609342942,
+          "median": 0.0001221039850858764,
+          "min": 1.761914688279409e-07,
+          "p25": 6.0894891488394096e-05,
+          "p75": 0.0002469580655825625
+        },
+        "locality_error": {
+          "max": 4.042927016559804e-05,
+          "median": 7.0701615858695475e-06,
+          "min": 3.762851162952222e-07,
+          "p25": 2.634758842224872e-06,
+          "p75": 1.2993203884221398e-05
+        }
+      }
+    }
+  },
+  "invalid_gate_failure_cardinality": {
+    "1": 473,
+    "2": 444,
+    "3": 171,
+    "4": 36,
+    "5": 12,
+    "6": 1
+  },
+  "mixed_systems": {
+    "pat": {
+      "active_gate_histogram": {
+        "2": 2,
+        "3": 9,
+        "4": 21,
+        "5": 35,
+        "6": 33,
+        "7": 16,
+        "8": 8,
+        "9": 2,
+        "10": 2
+      },
+      "counts": {
+        "admissible_false": 126,
+        "admissible_true": 2,
+        "all_valid_false": 126,
+        "all_valid_true": 2
+      },
+      "gate_labels": {
+        "active-identified": 702,
+        "certified-target-null": 7,
+        "invalid": 571
+      },
+      "gate_metric_quantiles_by_label": {
+        "active-identified": {
+          "curvature_snr_ratio": {
+            "max": 33.135438508617575,
+            "median": 4.534633230545188,
+            "min": 1.9879141661980753,
+            "p25": 3.1166213763310746,
+            "p75": 7.845917520480313
+          },
+          "factorization_residual": {
+            "max": 0.14571339518391113,
+            "median": 0.06405672786320213,
+            "min": 0.00648800804200383,
+            "p25": 0.036963290243743376,
+            "p75": 0.0926612581468508
+          },
+          "full_half_change": {
+            "max": 0.1045720740337103,
+            "median": 0.01753222168263152,
+            "min": 0.0014811795381421218,
+            "p25": 0.01180552182962661,
+            "p75": 0.02615405721801776
+          },
+          "full_half_cosine": {
+            "max": 0.9999997637579668,
+            "median": 0.9999503596784802,
+            "min": 0.9993818122406211,
+            "p25": 0.9998664310223185,
+            "p75": 0.9999835591287849
+          },
+          "gate_response_snr_ratio": {
+            "max": 1174.655482291419,
+            "median": 50.36362228386798,
+            "min": 1.4013128832430959,
+            "p25": 24.29788592079842,
+            "p75": 146.73865178624186
+          },
+          "richardson_change": {
+            "max": 0.033845385395783065,
+            "median": 0.005743568099000207,
+            "min": 0.00046728980882917824,
+            "p25": 0.0038553417607235466,
+            "p75": 0.008554047661994966
+          },
+          "whitebox_relative_error": {
+            "max": 0.049970643845897694,
+            "median": 0.01986713197722601,
+            "min": 0.0006659384259276003,
+            "p25": 0.010759038099011596,
+            "p75": 0.03048956212173637
+          }
+        },
+        "certified-target-null": {
+          "curvature_snr_ratio": {
+            "max": 26.5293296957212,
+            "median": 2.361245449128579,
+            "min": 1.7164590719297805,
+            "p25": 1.9354074022466894,
+            "p75": 15.855130527651745
+          },
+          "factorization_residual": {
+            "max": 0.1608314086829193,
+            "median": 0.10580527149616566,
+            "min": 0.009375018686894885,
+            "p25": 0.01731738627002868,
+            "p75": 0.14574485505254337
+          },
+          "full_half_change": {
+            "max": 1.9698855612054722,
+            "median": 1.1520885617801533,
+            "min": 0.4079328802572309,
+            "p25": 0.5770290573020185,
+            "p75": 1.4095337349388646
+          },
+          "full_half_cosine": {
+            "max": 0.999922783649362,
+            "median": 0.9677065225713074,
+            "min": -0.9052605660524841,
+            "p25": 0.8775805828600208,
+            "p75": 0.997852186557214
+          },
+          "gate_response_snr_ratio": {
+            "max": 0.24563232857103107,
+            "median": 0.16641477085297107,
+            "min": 0.019538440907100007,
+            "p25": 0.0768679457933567,
+            "p75": 0.19983122664129033
+          },
+          "richardson_change": {
+            "max": 2.55904222435352,
+            "median": 0.3003047674697654,
+            "min": 0.20474344017422175,
+            "p25": 0.25248307913614776,
+            "p75": 0.9098759363135087
+          },
+          "whitebox_relative_error": {
+            "max": 0.05461487164159128,
+            "median": 0.021238789838042584,
+            "min": 0.005803834890273592,
+            "p25": 0.008080625514219389,
+            "p75": 0.03491125385359722
+          }
+        },
+        "invalid": {
+          "curvature_snr_ratio": {
+            "max": 23.798649984127312,
+            "median": 1.6038070230360792,
+            "min": 0.22461218192918808,
+            "p25": 1.1470398593601963,
+            "p75": 1.9773770712637735
+          },
+          "factorization_residual": {
+            "max": 0.984852812313439,
+            "median": 0.18493171832321684,
+            "min": 0.007423539847029135,
+            "p25": 0.14903259822045267,
+            "p75": 0.2537077138991326
+          },
+          "full_half_change": {
+            "max": 1.089791120523235,
+            "median": 0.05444009468549044,
+            "min": 0.00689105691883208,
+            "p25": 0.03849275174893786,
+            "p75": 0.08077877572550832
+          },
+          "full_half_cosine": {
+            "max": 0.9999955322506128,
+            "median": 0.999413606038124,
+            "min": 0.5870661903687647,
+            "p25": 0.9986209319454071,
+            "p75": 0.9997471345766056
+          },
+          "gate_response_snr_ratio": {
+            "max": 785.9703095801513,
+            "median": 62.74821794996355,
+            "min": 0.277558869820877,
+            "p25": 24.762086653199646,
+            "p75": 167.36384777129177
+          },
+          "richardson_change": {
+            "max": 0.33425680779343736,
+            "median": 0.01881243356522065,
+            "min": 0.0021860654511360674,
+            "p25": 0.012624217910949885,
+            "p75": 0.028696518684852512
+          },
+          "whitebox_relative_error": {
+            "max": 0.9388212382146437,
+            "median": 0.07157301932417277,
+            "min": 0.002268180470783844,
+            "p25": 0.0513933317501537,
+            "p75": 0.10264108242405988
+          }
+        }
+      },
+      "invalid_active_criterion_failures": {
+        "curvature_snr": 106,
+        "factorization_residual": 422,
+        "gate_response_snr": 11,
+        "richardson_change": 3,
+        "tensor_cosine": 2,
+        "tensor_snr_unserialized_inferred": 27,
+        "tensor_symmetric_change": 22,
+        "whitebox_agreement": 441
+      },
+      "invalid_failure_combinations": {
+        "curvature_snr + factorization_residual": 3,
+        "curvature_snr + factorization_residual + richardson_change + tensor_symmetric_change + whitebox_agreement": 3,
+        "curvature_snr + factorization_residual + tensor_cosine + tensor_symmetric_change + whitebox_agreement": 2,
+        "curvature_snr + factorization_residual + tensor_symmetric_change + whitebox_agreement": 13,
+        "curvature_snr + factorization_residual + whitebox_agreement": 85,
+        "factorization_residual": 89,
+        "factorization_residual + gate_response_snr": 1,
+        "factorization_residual + gate_response_snr + tensor_symmetric_change": 1,
+        "factorization_residual + whitebox_agreement": 225,
+        "gate_response_snr": 6,
+        "gate_response_snr + tensor_symmetric_change": 3,
+        "tensor_snr_unserialized_inferred": 27,
+        "whitebox_agreement": 113
+      },
+      "invalid_gate_histogram": {
+        "0": 2,
+        "1": 2,
+        "2": 8,
+        "3": 17,
+        "4": 34,
+        "5": 34,
+        "6": 22,
+        "7": 8,
+        "8": 1
+      },
+      "metrics": {
+        "bypass_disagreement": {
+          "max": 0.0177454809876987,
+          "median": 0.00518670925672327,
+          "min": 0.0006992730483455794,
+          "p25": 0.003673637808336257,
+          "p75": 0.007323278088154337
+        },
+        "center_max": {
+          "max": 0.0,
+          "median": 0.0,
+          "min": 0.0,
+          "p25": 0.0,
+          "p75": 0.0
+        },
+        "center_rms": {
+          "max": 0.0,
+          "median": 0.0,
+          "min": 0.0,
+          "p25": 0.0,
+          "p75": 0.0
+        }
+      }
+    },
+    "tar": {
+      "active_gate_histogram": {
+        "2": 1,
+        "3": 4,
+        "4": 21,
+        "5": 36,
+        "6": 41,
+        "7": 18,
+        "8": 5,
+        "9": 2
+      },
+      "counts": {
+        "admissible_false": 128,
+        "all_valid_false": 128
+      },
+      "gate_labels": {
+        "active-identified": 708,
+        "certified-target-null": 6,
+        "invalid": 566
+      },
+      "gate_metric_quantiles_by_label": {
+        "active-identified": {
+          "curvature_snr_ratio": {
+            "max": 32.526075719080076,
+            "median": 4.607802580674751,
+            "min": 1.897743100895722,
+            "p25": 3.1366145346302052,
+            "p75": 7.915653733135332
+          },
+          "factorization_residual": {
+            "max": 0.14916982783708316,
+            "median": 0.06269956220494445,
+            "min": 0.006498781247121719,
+            "p25": 0.03486962309753938,
+            "p75": 0.09190563846329992
+          },
+          "full_half_change": {
+            "max": 0.13962803915193797,
+            "median": 0.01715642637680395,
+            "min": 0.0006636236630906786,
+            "p25": 0.011316374469265117,
+            "p75": 0.025419181745325183
+          },
+          "full_half_cosine": {
+            "max": 0.999999824601589,
+            "median": 0.9999564323680132,
+            "min": 0.9992216620218923,
+            "p25": 0.9998769444395242,
+            "p75": 0.9999875431954592
+          },
+          "gate_response_snr_ratio": {
+            "max": 1782.5324941059007,
+            "median": 49.976269499770815,
+            "min": 1.1666324721010968,
+            "p25": 24.091452183383623,
+            "p75": 140.14168784357327
+          },
+          "richardson_change": {
+            "max": 0.04144597689660033,
+            "median": 0.0055965249951373305,
+            "min": 0.0002464165530887651,
+            "p25": 0.0037039011719069304,
+            "p75": 0.00843584239833353
+          },
+          "whitebox_relative_error": {
+            "max": 0.04982783917069716,
+            "median": 0.01796895876784981,
+            "min": 0.0009377723704968515,
+            "p25": 0.009658743404256147,
+            "p75": 0.02834681822138582
+          }
+        },
+        "certified-target-null": {
+          "curvature_snr_ratio": {
+            "max": 19.73053128782166,
+            "median": 11.033468893667239,
+            "min": 1.450370696498002,
+            "p25": 3.9797494699101863,
+            "p75": 18.44232346245859
+          },
+          "factorization_residual": {
+            "max": 0.1661218788809637,
+            "median": 0.03479608589583198,
+            "min": 0.012610427080409305,
+            "p25": 0.013666538245423174,
+            "p75": 0.06232722752412971
+          },
+          "full_half_change": {
+            "max": 1.9908855194884003,
+            "median": 1.0418736032545677,
+            "min": 0.41764144419426746,
+            "p25": 0.49687896180743907,
+            "p75": 1.8120716865250575
+          },
+          "full_half_cosine": {
+            "max": 0.9998914258477971,
+            "median": 0.9841682158123942,
+            "min": -0.9712944732232067,
+            "p25": -0.21712176465389038,
+            "p75": 0.9998026596581131
+          },
+          "gate_response_snr_ratio": {
+            "max": 0.22941375158291694,
+            "median": 0.17606457422419897,
+            "min": 0.07021787394358006,
+            "p25": 0.16386862965129964,
+            "p75": 0.21021262634687343
+          },
+          "richardson_change": {
+            "max": 0.702527095939784,
+            "median": 0.284386059550365,
+            "min": 0.215481499227669,
+            "p25": 0.23786039439565113,
+            "p75": 0.30346890375101204
+          },
+          "whitebox_relative_error": {
+            "max": 0.06120640080235618,
+            "median": 0.010503857374862882,
+            "min": 0.004820992502122099,
+            "p25": 0.00612075785348897,
+            "p75": 0.017713172005056205
+          }
+        },
+        "invalid": {
+          "curvature_snr_ratio": {
+            "max": 30.539953926783866,
+            "median": 1.530064608212009,
+            "min": 0.19361011219610405,
+            "p25": 1.0561947953253301,
+            "p75": 2.0228995582069453
+          },
+          "factorization_residual": {
+            "max": 0.9967872815304748,
+            "median": 0.18981045702685267,
+            "min": 0.009536114834509321,
+            "p25": 0.14459056723604743,
+            "p75": 0.26556024590307986
+          },
+          "full_half_change": {
+            "max": 1.4880932344332174,
+            "median": 0.05376795437909516,
+            "min": 0.0077543499773279675,
+            "p25": 0.037069930050297566,
+            "p75": 0.08523557645598678
+          },
+          "full_half_cosine": {
+            "max": 0.9999945632575904,
+            "median": 0.9993993517345794,
+            "min": 0.928779402321023,
+            "p25": 0.9987040623695211,
+            "p75": 0.9997459977270373
+          },
+          "gate_response_snr_ratio": {
+            "max": 1082.2483441379854,
+            "median": 70.23306512808345,
+            "min": 0.2745025171544809,
+            "p25": 21.67786804707,
+            "p75": 201.86707243587423
+          },
+          "richardson_change": {
+            "max": 1.4382173988238347,
+            "median": 0.019005516394112652,
+            "min": 0.0030846546556756982,
+            "p25": 0.012992003240680103,
+            "p75": 0.032988722149234095
+          },
+          "whitebox_relative_error": {
+            "max": 0.9684384314197285,
+            "median": 0.06521946416861324,
+            "min": 0.0013660110640871033,
+            "p25": 0.048095488343937086,
+            "p75": 0.10366900626789538
+          }
+        }
+      },
+      "invalid_active_criterion_failures": {
+        "curvature_snr": 123,
+        "factorization_residual": 401,
+        "gate_response_snr": 19,
+        "richardson_change": 8,
+        "tensor_cosine": 2,
+        "tensor_snr_unserialized_inferred": 47,
+        "tensor_symmetric_change": 40,
+        "whitebox_agreement": 410
+      },
+      "invalid_failure_combinations": {
+        "curvature_snr + factorization_residual": 9,
+        "curvature_snr + factorization_residual + richardson_change + tensor_cosine + tensor_symmetric_change + whitebox_agreement": 1,
+        "curvature_snr + factorization_residual + richardson_change + tensor_symmetric_change + whitebox_agreement": 6,
+        "curvature_snr + factorization_residual + richardson_change + whitebox_agreement": 1,
+        "curvature_snr + factorization_residual + tensor_cosine + tensor_symmetric_change + whitebox_agreement": 1,
+        "curvature_snr + factorization_residual + tensor_symmetric_change + whitebox_agreement": 22,
+        "curvature_snr + factorization_residual + whitebox_agreement": 83,
+        "factorization_residual": 83,
+        "factorization_residual + gate_response_snr": 1,
+        "factorization_residual + gate_response_snr + tensor_symmetric_change": 1,
+        "factorization_residual + whitebox_agreement": 193,
+        "gate_response_snr": 7,
+        "gate_response_snr + tensor_symmetric_change": 8,
+        "gate_response_snr + tensor_symmetric_change + whitebox_agreement": 1,
+        "gate_response_snr + whitebox_agreement": 1,
+        "tensor_snr_unserialized_inferred": 47,
+        "whitebox_agreement": 101
+      },
+      "invalid_gate_histogram": {
+        "1": 3,
+        "2": 4,
+        "3": 20,
+        "4": 41,
+        "5": 34,
+        "6": 22,
+        "7": 3,
+        "8": 1
+      },
+      "metrics": {
+        "bypass_disagreement": {
+          "max": 0.014065706530567112,
+          "median": 0.004855945692401412,
+          "min": 0.0009733084013769213,
+          "p25": 0.003054364148936655,
+          "p75": 0.006522071958262126
+        },
+        "center_max": {
+          "max": 0.0,
+          "median": 0.0,
+          "min": 0.0,
+          "p25": 0.0,
+          "p75": 0.0
+        },
+        "center_rms": {
+          "max": 0.0,
+          "median": 0.0,
+          "min": 0.0,
+          "p25": 0.0,
+          "p75": 0.0
+        }
+      }
+    }
+  },
+  "per_item_system_summary": [
+    {
+      "cell_id": "treaty|14|near",
+      "pair_digest": "000474b8e376e06914a86c72f9f0ab1ea45fe460281ed41eb49cf73c6681acea",
+      "pat": {
+        "active": 6,
+        "admissible": false,
+        "all_valid": false,
+        "bypass": 0.009579448763766082,
+        "invalid": 4,
+        "null": 0
+      },
+      "tar": {
+        "active": 4,
+        "admissible": false,
+        "all_valid": false,
+        "bypass": 0.007230301775310644,
+        "invalid": 6,
+        "null": 0
+      }
+    },
+    {
+      "cell_id": "campaign|12|near",
+      "pair_digest": "00095767c6d96402be2fa4fe512234b1a6341771505e2edc480c8c6dba12ee8e",
+      "pat": {
+        "active": 5,
+        "admissible": false,
+        "all_valid": false,
+        "bypass": 0.014065505917560414,
+        "invalid": 5,
+        "null": 0
+      },
+      "tar": {
+        "active": 4,
+        "admissible": false,
+        "all_valid": false,
+        "bypass": 0.0038835876069210754,
+        "invalid": 6,
+        "null": 0
+      }
+    },
+    {
+      "cell_id": "dynasty|14|far",
+      "pair_digest": "000fb3ca8d3bc32d09e0422a939907256ed9a8647819e297ed635fdfe05d5ec9",
+      "pat": {
+        "active": 8,
+        "admissible": false,
+        "all_valid": false,
+        "bypass": 0.004457637800974088,
+        "invalid": 2,
+        "null": 0
+      },
+      "tar": {
+        "active": 5,
+        "admissible": false,
+        "all_valid": false,
+        "bypass": 0.009337567862215821,
+        "invalid": 5,
+        "null": 0
+      }
+    },
+    {
+      "cell_id": "treaty|14|far",
+      "pair_digest": "0011efac9315de31d41651dafaf914e92519c93b52936de6993fed2322d90a9d",
+      "pat": {
+        "active": 7,
+        "admissible": false,
+        "all_valid": false,
+        "bypass": 0.002347695078039587,
+        "invalid": 3,
+        "null": 0
+      },
+      "tar": {
+        "active": 6,
+        "admissible": false,
+        "all_valid": false,
+        "bypass": 0.010855884821200937,
+        "invalid": 4,
+        "null": 0
+      }
+    },
+    {
+      "cell_id": "warfare|16|far",
+      "pair_digest": "00144b32eb70772ee953b2d454d8eda6ff05c5f92a9549f04640bca4ab08ff2b",
+      "pat": {
+        "active": 7,
+        "admissible": false,
+        "all_valid": false,
+        "bypass": 0.003166939331274973,
+        "invalid": 3,
+        "null": 0
+      },
+      "tar": {
+        "active": 7,
+        "admissible": false,
+        "all_valid": false,
+        "bypass": 0.002354464681955672,
+        "invalid": 3,
+        "null": 0
+      }
+    },
+    {
+      "cell_id": "campaign|12|far",
+      "pair_digest": "0015faa30355dc83a392950a176b2da2ffdfeba46e8aefdd782cc428bee1f2b6",
+      "pat": {
+        "active": 5,
+        "admissible": false,
+        "all_valid": false,
+        "bypass": 0.0069248566511287005,
+        "invalid": 5,
+        "null": 0
+      },
+      "tar": {
+        "active": 5,
+        "admissible": false,
+        "all_valid": false,
+        "bypass": 0.0034510197730587763,
+        "invalid": 5,
+        "null": 0
+      }
+    },
+    {
+      "cell_id": "warfare|16|far",
+      "pair_digest": "00190063f5fd12fec326d172e2d8216bde4235ce3d2f29c637015629a8966978",
+      "pat": {
+        "active": 4,
+        "admissible": false,
+        "all_valid": false,
+        "bypass": 0.003130389021224316,
+        "invalid": 6,
+        "null": 0
+      },
+      "tar": {
+        "active": 7,
+        "admissible": false,
+        "all_valid": false,
+        "bypass": 0.005016400833081626,
+        "invalid": 3,
+        "null": 0
+      }
+    },
+    {
+      "cell_id": "dynasty|14|far",
+      "pair_digest": "001a3b47f1fc5b2b3c6b07a93fa403d359f355af2b947b102153e6fd46c0f6aa",
+      "pat": {
+        "active": 3,
+        "admissible": false,
+        "all_valid": false,
+        "bypass": 0.005447934877265321,
+        "invalid": 7,
+        "null": 0
+      },
+      "tar": {
+        "active": 5,
+        "admissible": false,
+        "all_valid": false,
+        "bypass": 0.009585109042416256,
+        "invalid": 5,
+        "null": 0
+      }
+    },
+    {
+      "cell_id": "treaty|14|far",
+      "pair_digest": "001c00e31eab609d5f0c439fd21745b7ba911381bd138fd0493c142e3c6d5af5",
+      "pat": {
+        "active": 5,
+        "admissible": false,
+        "all_valid": false,
+        "bypass": 0.005264613380632114,
+        "invalid": 5,
+        "null": 0
+      },
+      "tar": {
+        "active": 6,
+        "admissible": false,
+        "all_valid": false,
+        "bypass": 0.0035474905931415232,
+        "invalid": 4,
+        "null": 0
+      }
+    },
+    {
+      "cell_id": "treaty|14|far",
+      "pair_digest": "00210820b677ac7fdb8f954732f1835815fc68254e2c34c43153b28752d3da35",
+      "pat": {
+        "active": 7,
+        "admissible": false,
+        "all_valid": false,
+        "bypass": 0.004155619145892399,
+        "invalid": 3,
+        "null": 0
+      },
+      "tar": {
+        "active": 5,
+        "admissible": false,
+        "all_valid": false,
+        "bypass": 0.0028581703033444352,
+        "invalid": 5,
+        "null": 0
+      }
+    },
+    {
+      "cell_id": "kingdom|14|near",
+      "pair_digest": "00273e5135cd4ec44c07ba5d8e4b4e33e2c83d007dd57f3e14ade744dee65e22",
+      "pat": {
+        "active": 4,
+        "admissible": false,
+        "all_valid": false,
+        "bypass": 0.0008369652431966722,
+        "invalid": 6,
+        "null": 0
+      },
+      "tar": {
+        "active": 5,
+        "admissible": false,
+        "all_valid": false,
+        "bypass": 0.003120059674909349,
+        "invalid": 5,
+        "null": 0
+      }
+    },
+    {
+      "cell_id": "warfare|16|near",
+      "pair_digest": "0029a6e12c43be9c322e93a90f8d418d1189d651556dd3679077a00be7348a22",
+      "pat": {
+        "active": 5,
+        "admissible": false,
+        "all_valid": false,
+        "bypass": 0.003009356326390726,
+        "invalid": 4,
+        "null": 1
+      },
+      "tar": {
+        "active": 5,
+        "admissible": false,
+        "all_valid": false,
+        "bypass": 0.005644334035148608,
+        "invalid": 5,
+        "null": 0
+      }
+    },
+    {
+      "cell_id": "warfare|16|far",
+      "pair_digest": "003356c2ac37f43db0419edff5b83940c7ec58ef2c303655ccf742f3843d43e8",
+      "pat": {
+        "active": 5,
+        "admissible": false,
+        "all_valid": false,
+        "bypass": 0.0072012977538468415,
+        "invalid": 5,
+        "null": 0
+      },
+      "tar": {
+        "active": 5,
+        "admissible": false,
+        "all_valid": false,
+        "bypass": 0.002380064292621337,
+        "invalid": 4,
+        "null": 1
+      }
+    },
+    {
+      "cell_id": "dynasty|14|far",
+      "pair_digest": "003a99ecd1fc98cbda13dab19a1dee630e06d1821aa3c0afacd81374eaa7457e",
+      "pat": {
+        "active": 6,
+        "admissible": false,
+        "all_valid": false,
+        "bypass": 0.005422189735937538,
+        "invalid": 4,
+        "null": 0
+      },
+      "tar": {
+        "active": 7,
+        "admissible": false,
+        "all_valid": false,
+        "bypass": 0.0061797787296039445,
+        "invalid": 3,
+        "null": 0
+      }
+    },
+    {
+      "cell_id": "warfare|16|far",
+      "pair_digest": "0046d31d2601d846a3be43f14f6e594a1dca582aa7eecab2de7040af531eeebb",
+      "pat": {
+        "active": 6,
+        "admissible": false,
+        "all_valid": false,
+        "bypass": 0.007016385289522677,
+        "invalid": 4,
+        "null": 0
+      },
+      "tar": {
+        "active": 7,
+        "admissible": false,
+        "all_valid": false,
+        "bypass": 0.0023400601889670193,
+        "invalid": 3,
+        "null": 0
+      }
+    },
+    {
+      "cell_id": "siege|12|near",
+      "pair_digest": "004b712403b198ce6614999432994dce16a4b8c7558fb36177ddead457d6c9cf",
+      "pat": {
+        "active": 8,
+        "admissible": false,
+        "all_valid": false,
+        "bypass": 0.002295951146792728,
+        "invalid": 2,
+        "null": 0
+      },
+      "tar": {
+        "active": 7,
+        "admissible": false,
+        "all_valid": false,
+        "bypass": 0.00419127289150987,
+        "invalid": 3,
+        "null": 0
+      }
+    },
+    {
+      "cell_id": "campaign|12|near",
+      "pair_digest": "004be7087faa049365ea72074fafa685e84ee8766e88796054bfa41214c3d60e",
+      "pat": {
+        "active": 5,
+        "admissible": false,
+        "all_valid": false,
+        "bypass": 0.008532095661514472,
+        "invalid": 5,
+        "null": 0
+      },
+      "tar": {
+        "active": 6,
+        "admissible": false,
+        "all_valid": false,
+        "bypass": 0.011534848596454579,
+        "invalid": 4,
+        "null": 0
+      }
+    },
+    {
+      "cell_id": "treaty|14|far",
+      "pair_digest": "004eaf538a2d6c35daa1bf519834b21a08c4259a94fde1e193e5ef9fb17fe176",
+      "pat": {
+        "active": 8,
+        "admissible": false,
+        "all_valid": false,
+        "bypass": 0.004492642299717887,
+        "invalid": 2,
+        "null": 0
+      },
+      "tar": {
+        "active": 5,
+        "admissible": false,
+        "all_valid": false,
+        "bypass": 0.002561824412409638,
+        "invalid": 5,
+        "null": 0
+      }
+    },
+    {
+      "cell_id": "reign|16|far",
+      "pair_digest": "0054be935efda00ae0089f33a959e3b2957463d7a620488708b350dd37bb0ef2",
+      "pat": {
+        "active": 5,
+        "admissible": false,
+        "all_valid": false,
+        "bypass": 0.003683377314217632,
+        "invalid": 5,
+        "null": 0
+      },
+      "tar": {
+        "active": 5,
+        "admissible": false,
+        "all_valid": false,
+        "bypass": 0.004663369777776713,
+        "invalid": 5,
+        "null": 0
+      }
+    },
+    {
+      "cell_id": "expedition|12|far",
+      "pair_digest": "0057479efefa2db9b48bb624d5fe98ba2c199dbe84c21e3bbece54a55c2a6c1a",
+      "pat": {
+        "active": 6,
+        "admissible": false,
+        "all_valid": false,
+        "bypass": 0.0044392690336390985,
+        "invalid": 4,
+        "null": 0
+      },
+      "tar": {
+        "active": 6,
+        "admissible": false,
+        "all_valid": false,
+        "bypass": 0.0035877402633945525,
+        "invalid": 4,
+        "null": 0
+      }
+    },
+    {
+      "cell_id": "reign|16|far",
+      "pair_digest": "00668fb092412fad647690ba49f12c5cd3edbb7d04a2799779ab78d83352b894",
+      "pat": {
+        "active": 5,
+        "admissible": false,
+        "all_valid": false,
+        "bypass": 0.004147977008556743,
+        "invalid": 5,
+        "null": 0
+      },
+      "tar": {
+        "active": 7,
+        "admissible": false,
+        "all_valid": false,
+        "bypass": 0.004156696634370419,
+        "invalid": 3,
+        "null": 0
+      }
+    },
+    {
+      "cell_id": "siege|12|near",
+      "pair_digest": "006c02f57283f2b93798e9192604c8f3affd3cb85c1d2e20e3fbbcf5e7099749",
+      "pat": {
+        "active": 5,
+        "admissible": false,
+        "all_valid": false,
+        "bypass": 0.00610288761205946,
+        "invalid": 5,
+        "null": 0
+      },
+      "tar": {
+        "active": 5,
+        "admissible": false,
+        "all_valid": false,
+        "bypass": 0.002247846527944726,
+        "invalid": 5,
+        "null": 0
+      }
+    },
+    {
+      "cell_id": "kingdom|14|far",
+      "pair_digest": "007420314bedf80f072c54cae3fd0034a2da1678b6815c8f7e12bdef4c741bfa",
+      "pat": {
+        "active": 4,
+        "admissible": false,
+        "all_valid": false,
+        "bypass": 0.00402078006960039,
+        "invalid": 6,
+        "null": 0
+      },
+      "tar": {
+        "active": 3,
+        "admissible": false,
+        "all_valid": false,
+        "bypass": 0.0016012599907177488,
+        "invalid": 7,
+        "null": 0
+      }
+    },
+    {
+      "cell_id": "siege|12|far",
+      "pair_digest": "007cff3d7cea95270664b7dd5eb7a61454671a47e243e29bfa9661babd5f130f",
+      "pat": {
+        "active": 6,
+        "admissible": false,
+        "all_valid": false,
+        "bypass": 0.005750534176386309,
+        "invalid": 4,
+        "null": 0
+      },
+      "tar": {
+        "active": 6,
+        "admissible": false,
+        "all_valid": false,
+        "bypass": 0.0030073817662109835,
+        "invalid": 4,
+        "null": 0
+      }
+    },
+    {
+      "cell_id": "reign|16|near",
+      "pair_digest": "00921d608bbea8c925830200b31e8cadfca155bb7e67216a61c222ec852daca6",
+      "pat": {
+        "active": 6,
+        "admissible": false,
+        "all_valid": false,
+        "bypass": 0.0048985934219872105,
+        "invalid": 4,
+        "null": 0
+      },
+      "tar": {
+        "active": 6,
+        "admissible": false,
+        "all_valid": false,
+        "bypass": 0.0019460763589542152,
+        "invalid": 4,
+        "null": 0
+      }
+    },
+    {
+      "cell_id": "kingdom|14|near",
+      "pair_digest": "009295ba0571a6e453d8a2eb359dbe426eaed32932f3fd5616a16b194f2672cc",
+      "pat": {
+        "active": 4,
+        "admissible": false,
+        "all_valid": false,
+        "bypass": 0.0007425534633978111,
+        "invalid": 6,
+        "null": 0
+      },
+      "tar": {
+        "active": 6,
+        "admissible": false,
+        "all_valid": false,
+        "bypass": 0.009719145116820921,
+        "invalid": 4,
+        "null": 0
+      }
+    },
+    {
+      "cell_id": "campaign|12|near",
+      "pair_digest": "00a16763c000ca996171410c802f30f0bc37d7c67bda14feee21ac38936b8e20",
+      "pat": {
+        "active": 8,
+        "admissible": false,
+        "all_valid": false,
+        "bypass": 0.005554373866293323,
+        "invalid": 2,
+        "null": 0
+      },
+      "tar": {
+        "active": 4,
+        "admissible": false,
+        "all_valid": false,
+        "bypass": 0.0038727266990297177,
+        "invalid": 6,
+        "null": 0
+      }
+    },
+    {
+      "cell_id": "expedition|12|far",
+      "pair_digest": "00aa71c0b892c3d0da04fe6057fab19b94df92e79a87043fe935e897f79ee6c5",
+      "pat": {
+        "active": 5,
+        "admissible": false,
+        "all_valid": false,
+        "bypass": 0.0114632458077713,
+        "invalid": 5,
+        "null": 0
+      },
+      "tar": {
+        "active": 6,
+        "admissible": false,
+        "all_valid": false,
+        "bypass": 0.0021579497471938525,
+        "invalid": 4,
+        "null": 0
+      }
+    },
+    {
+      "cell_id": "siege|12|far",
+      "pair_digest": "00ae44027ab86265c2fb4b69bf10e5d615ff8acef8086adc5d95e49182446851",
+      "pat": {
+        "active": 5,
+        "admissible": false,
+        "all_valid": false,
+        "bypass": 0.004876058753288229,
+        "invalid": 5,
+        "null": 0
+      },
+      "tar": {
+        "active": 6,
+        "admissible": false,
+        "all_valid": false,
+        "bypass": 0.00455870958511894,
+        "invalid": 4,
+        "null": 0
+      }
+    },
+    {
+      "cell_id": "treaty|14|near",
+      "pair_digest": "00ae67bc7f568794eecf4a047ae4f970f16b3bb9cf472dffa28984ae452c8caa",
+      "pat": {
+        "active": 6,
+        "admissible": false,
+        "all_valid": false,
+        "bypass": 0.008967671825564941,
+        "invalid": 4,
+        "null": 0
+      },
+      "tar": {
+        "active": 4,
+        "admissible": false,
+        "all_valid": false,
+        "bypass": 0.010247172769373153,
+        "invalid": 6,
+        "null": 0
+      }
+    },
+    {
+      "cell_id": "treaty|14|near",
+      "pair_digest": "00b016d7961aa4a6cb8048e20f1de14687bf1a2cb19e97541a35b8c20b247e39",
+      "pat": {
+        "active": 5,
+        "admissible": false,
+        "all_valid": false,
+        "bypass": 0.0036444192906921317,
+        "invalid": 5,
+        "null": 0
+      },
+      "tar": {
+        "active": 5,
+        "admissible": false,
+        "all_valid": false,
+        "bypass": 0.007759169484452517,
+        "invalid": 5,
+        "null": 0
+      }
+    },
+    {
+      "cell_id": "expedition|12|far",
+      "pair_digest": "00b171a5c4612dc37019093c110f0d3a99eae5320e45efebea5547cc71a1ee64",
+      "pat": {
+        "active": 6,
+        "admissible": false,
+        "all_valid": false,
+        "bypass": 0.006881680603595249,
+        "invalid": 4,
+        "null": 0
+      },
+      "tar": {
+        "active": 6,
+        "admissible": false,
+        "all_valid": false,
+        "bypass": 0.004910923880930086,
+        "invalid": 4,
+        "null": 0
+      }
+    },
+    {
+      "cell_id": "expedition|12|near",
+      "pair_digest": "00b214cfd637e1bbee93d75b860dd23cba44f54f7af4aa0ff1b3c604b2533035",
+      "pat": {
+        "active": 7,
+        "admissible": false,
+        "all_valid": false,
+        "bypass": 0.003917281367246833,
+        "invalid": 3,
+        "null": 0
+      },
+      "tar": {
+        "active": 5,
+        "admissible": false,
+        "all_valid": false,
+        "bypass": 0.0023441392132991477,
+        "invalid": 5,
+        "null": 0
+      }
+    },
+    {
+      "cell_id": "treaty|14|near",
+      "pair_digest": "00b3df00d53c160dda2cddaeed52b2697998250f95f50d0bcb5ffd246659b8b2",
+      "pat": {
+        "active": 6,
+        "admissible": false,
+        "all_valid": false,
+        "bypass": 0.0022343767253801407,
+        "invalid": 4,
+        "null": 0
+      },
+      "tar": {
+        "active": 4,
+        "admissible": false,
+        "all_valid": false,
+        "bypass": 0.002768613094204437,
+        "invalid": 6,
+        "null": 0
+      }
+    },
+    {
+      "cell_id": "warfare|16|far",
+      "pair_digest": "00b4cd7b26861c1da4339e34595c0a62347f35ca33fe5a596b89feeee30acf2b",
+      "pat": {
+        "active": 6,
+        "admissible": false,
+        "all_valid": false,
+        "bypass": 0.004245443920696832,
+        "invalid": 4,
+        "null": 0
+      },
+      "tar": {
+        "active": 3,
+        "admissible": false,
+        "all_valid": false,
+        "bypass": 0.0016702632496268278,
+        "invalid": 7,
+        "null": 0
+      }
+    },
+    {
+      "cell_id": "campaign|12|far",
+      "pair_digest": "00b6471138af1cd77da3884d51e9be4365d4a57ba9fa34bf2ff2bfb37d71f2a8",
+      "pat": {
+        "active": 6,
+        "admissible": false,
+        "all_valid": false,
+        "bypass": 0.0074618596833431194,
+        "invalid": 4,
+        "null": 0
+      },
+      "tar": {
+        "active": 5,
+        "admissible": false,
+        "all_valid": false,
+        "bypass": 0.0036995376995923464,
+        "invalid": 4,
+        "null": 1
+      }
+    },
+    {
+      "cell_id": "treaty|14|near",
+      "pair_digest": "00bb7230559dae8afac3d84ffdcd571f176f34130317735e1a3c42da92148b41",
+      "pat": {
+        "active": 5,
+        "admissible": false,
+        "all_valid": false,
+        "bypass": 0.0007029051187669044,
+        "invalid": 5,
+        "null": 0
+      },
+      "tar": {
+        "active": 6,
+        "admissible": false,
+        "all_valid": false,
+        "bypass": 0.0032718793731741263,
+        "invalid": 4,
+        "null": 0
+      }
+    },
+    {
+      "cell_id": "reign|16|near",
+      "pair_digest": "00bd2b453594e219ccfe2a0e60b259de50af3c116851dadecd7b9ed9ff6e7013",
+      "pat": {
+        "active": 4,
+        "admissible": false,
+        "all_valid": false,
+        "bypass": 0.004367518460916127,
+        "invalid": 6,
+        "null": 0
+      },
+      "tar": {
+        "active": 5,
+        "admissible": false,
+        "all_valid": false,
+        "bypass": 0.00596134068049828,
+        "invalid": 5,
+        "null": 0
+      }
+    },
+    {
+      "cell_id": "campaign|12|near",
+      "pair_digest": "00c2462749c86a4b93180da51482b465a599b29a83439180debeeacfa5f59b7b",
+      "pat": {
+        "active": 7,
+        "admissible": false,
+        "all_valid": false,
+        "bypass": 0.005398661699907644,
+        "invalid": 3,
+        "null": 0
+      },
+      "tar": {
+        "active": 4,
+        "admissible": false,
+        "all_valid": false,
+        "bypass": 0.007262231793950972,
+        "invalid": 6,
+        "null": 0
+      }
+    },
+    {
+      "cell_id": "expedition|12|near",
+      "pair_digest": "00c2464312c646857495bd1f3a94448aeac1836469c3b12da34b4b511b6d7645",
+      "pat": {
+        "active": 5,
+        "admissible": false,
+        "all_valid": false,
+        "bypass": 0.004456980277393403,
+        "invalid": 5,
+        "null": 0
+      },
+      "tar": {
+        "active": 5,
+        "admissible": false,
+        "all_valid": false,
+        "bypass": 0.006059362158210745,
+        "invalid": 5,
+        "null": 0
+      }
+    },
+    {
+      "cell_id": "dynasty|14|far",
+      "pair_digest": "00cb8380d257085750f8b0182e8a008d34b30864752a6aab172bc41820e6aca2",
+      "pat": {
+        "active": 6,
+        "admissible": false,
+        "all_valid": false,
+        "bypass": 0.007323270064774632,
+        "invalid": 4,
+        "null": 0
+      },
+      "tar": {
+        "active": 6,
+        "admissible": false,
+        "all_valid": false,
+        "bypass": 0.005966981233259011,
+        "invalid": 4,
+        "null": 0
+      }
+    },
+    {
+      "cell_id": "expedition|12|far",
+      "pair_digest": "00cf7c4891ec4990bd0e04331e4cd5bcd7a91f0f20772876bf25c7237b3538ae",
+      "pat": {
+        "active": 5,
+        "admissible": false,
+        "all_valid": false,
+        "bypass": 0.006605526009026898,
+        "invalid": 5,
+        "null": 0
+      },
+      "tar": {
+        "active": 5,
+        "admissible": false,
+        "all_valid": false,
+        "bypass": 0.00794764714644692,
+        "invalid": 5,
+        "null": 0
+      }
+    },
+    {
+      "cell_id": "warfare|16|far",
+      "pair_digest": "00d7c17e26f2c19c73873ac9f53ad37ea4acc0fdbc635583ca4ecf7e0805e7d1",
+      "pat": {
+        "active": 10,
+        "admissible": true,
+        "all_valid": true,
+        "bypass": 0.004529038900623297,
+        "invalid": 0,
+        "null": 0
+      },
+      "tar": {
+        "active": 8,
+        "admissible": false,
+        "all_valid": false,
+        "bypass": 0.0012876778797961245,
+        "invalid": 1,
+        "null": 1
+      }
+    },
+    {
+      "cell_id": "reign|16|near",
+      "pair_digest": "00daf286db81ab78ca7954eb255aed5ed4379fcf86976a86e6b2c0d2b4135958",
+      "pat": {
+        "active": 5,
+        "admissible": false,
+        "all_valid": false,
+        "bypass": 0.007940020302810285,
+        "invalid": 5,
+        "null": 0
+      },
+      "tar": {
+        "active": 4,
+        "admissible": false,
+        "all_valid": false,
+        "bypass": 0.006940618155955548,
+        "invalid": 6,
+        "null": 0
+      }
+    },
+    {
+      "cell_id": "expedition|12|far",
+      "pair_digest": "00ddefc7f3d17fda1147c7762a2de2695e4c9a50429dd7512f7fd2cd7279d747",
+      "pat": {
+        "active": 6,
+        "admissible": false,
+        "all_valid": false,
+        "bypass": 0.008872101212885371,
+        "invalid": 4,
+        "null": 0
+      },
+      "tar": {
+        "active": 4,
+        "admissible": false,
+        "all_valid": false,
+        "bypass": 0.00491792499673476,
+        "invalid": 6,
+        "null": 0
+      }
+    },
+    {
+      "cell_id": "treaty|14|near",
+      "pair_digest": "00ef682b5f5a76c5224c9216fd04e2ca0b2b04254871220a355ec9131deb4234",
+      "pat": {
+        "active": 5,
+        "admissible": false,
+        "all_valid": false,
+        "bypass": 0.010431808731062963,
+        "invalid": 5,
+        "null": 0
+      },
+      "tar": {
+        "active": 7,
+        "admissible": false,
+        "all_valid": false,
+        "bypass": 0.0029733785013564165,
+        "invalid": 3,
+        "null": 0
+      }
+    },
+    {
+      "cell_id": "warfare|16|far",
+      "pair_digest": "00f166159208165ee47e50e7b65a6d0b0bf31f80fe829a9e47fcca2a2298365f",
+      "pat": {
+        "active": 10,
+        "admissible": true,
+        "all_valid": true,
+        "bypass": 0.004137922309156199,
+        "invalid": 0,
+        "null": 0
+      },
+      "tar": {
+        "active": 6,
+        "admissible": false,
+        "all_valid": false,
+        "bypass": 0.0024713373880555535,
+        "invalid": 3,
+        "null": 1
+      }
+    },
+    {
+      "cell_id": "reign|16|near",
+      "pair_digest": "00f4cebcb8210d52b14b07be6900b5fccf9762940e36fcadfcdfa4c49e1977e9",
+      "pat": {
+        "active": 3,
+        "admissible": false,
+        "all_valid": false,
+        "bypass": 0.005798869295209116,
+        "invalid": 7,
+        "null": 0
+      },
+      "tar": {
+        "active": 9,
+        "admissible": false,
+        "all_valid": false,
+        "bypass": 0.006507946972251753,
+        "invalid": 1,
+        "null": 0
+      }
+    },
+    {
+      "cell_id": "reign|16|near",
+      "pair_digest": "011100f75c3ec19b66f92aa0f4170b9a675f744a5aea533313a3b2f4eec2aa40",
+      "pat": {
+        "active": 7,
+        "admissible": false,
+        "all_valid": false,
+        "bypass": 0.004102152763171275,
+        "invalid": 3,
+        "null": 0
+      },
+      "tar": {
+        "active": 4,
+        "admissible": false,
+        "all_valid": false,
+        "bypass": 0.004905125957534378,
+        "invalid": 6,
+        "null": 0
+      }
+    },
+    {
+      "cell_id": "expedition|12|far",
+      "pair_digest": "011668b29415ce40d76578dc3ab3c1138645fb8cd14d79801dd1a994e9c93f76",
+      "pat": {
+        "active": 5,
+        "admissible": false,
+        "all_valid": false,
+        "bypass": 0.006364528324279674,
+        "invalid": 5,
+        "null": 0
+      },
+      "tar": {
+        "active": 5,
+        "admissible": false,
+        "all_valid": false,
+        "bypass": 0.0029232981857019807,
+        "invalid": 5,
+        "null": 0
+      }
+    },
+    {
+      "cell_id": "reign|16|far",
+      "pair_digest": "011826ef0a5a508e5e39d1a99658c3e5ebe7588c952ddeeaa37ee5f96a47682b",
+      "pat": {
+        "active": 5,
+        "admissible": false,
+        "all_valid": false,
+        "bypass": 0.0028656592896837657,
+        "invalid": 5,
+        "null": 0
+      },
+      "tar": {
+        "active": 5,
+        "admissible": false,
+        "all_valid": false,
+        "bypass": 0.006685199643779534,
+        "invalid": 5,
+        "null": 0
+      }
+    },
+    {
+      "cell_id": "reign|16|far",
+      "pair_digest": "0121abd7ec4aadeb7e905d6f1359e6e46aca629f2356bb1899faa6fb1f467dc3",
+      "pat": {
+        "active": 8,
+        "admissible": false,
+        "all_valid": false,
+        "bypass": 0.005989784826087045,
+        "invalid": 2,
+        "null": 0
+      },
+      "tar": {
+        "active": 6,
+        "admissible": false,
+        "all_valid": false,
+        "bypass": 0.005142163731871727,
+        "invalid": 4,
+        "null": 0
+      }
+    },
+    {
+      "cell_id": "reign|16|near",
+      "pair_digest": "012507bf3d223d0c77e3c47180597d334eb2de6606d27c8a208818f74138e2c7",
+      "pat": {
+        "active": 6,
+        "admissible": false,
+        "all_valid": false,
+        "bypass": 0.00760455930049883,
+        "invalid": 4,
+        "null": 0
+      },
+      "tar": {
+        "active": 6,
+        "admissible": false,
+        "all_valid": false,
+        "bypass": 0.006016898964337919,
+        "invalid": 3,
+        "null": 1
+      }
+    },
+    {
+      "cell_id": "reign|16|far",
+      "pair_digest": "0134c71eb8338b4f9b3eaf3a08f4466c22f023b085b2e5e4eedd0a9d6522ef82",
+      "pat": {
+        "active": 9,
+        "admissible": false,
+        "all_valid": false,
+        "bypass": 0.003582864890483556,
+        "invalid": 1,
+        "null": 0
+      },
+      "tar": {
+        "active": 5,
+        "admissible": false,
+        "all_valid": false,
+        "bypass": 0.005500958699643087,
+        "invalid": 5,
+        "null": 0
+      }
+    },
+    {
+      "cell_id": "reign|16|near",
+      "pair_digest": "0136b3111068d2b2d0b54f0d56efe8257adc08e19bc256eb967471b2d7801221",
+      "pat": {
+        "active": 5,
+        "admissible": false,
+        "all_valid": false,
+        "bypass": 0.004675169959770028,
+        "invalid": 5,
+        "null": 0
+      },
+      "tar": {
+        "active": 9,
+        "admissible": false,
+        "all_valid": false,
+        "bypass": 0.005687253962161648,
+        "invalid": 1,
+        "null": 0
+      }
+    },
+    {
+      "cell_id": "warfare|16|far",
+      "pair_digest": "013a327bed3d78fcacb81cdbe69f4a51198a95d5a0612c161403b44a32e601fa",
+      "pat": {
+        "active": 6,
+        "admissible": false,
+        "all_valid": false,
+        "bypass": 0.0028954016086301503,
+        "invalid": 4,
+        "null": 0
+      },
+      "tar": {
+        "active": 8,
+        "admissible": false,
+        "all_valid": false,
+        "bypass": 0.003070024943178546,
+        "invalid": 2,
+        "null": 0
+      }
+    },
+    {
+      "cell_id": "campaign|12|far",
+      "pair_digest": "01449ba85c5944829cd0b452117ef93b3fc374d2dd72ff9d8a43b8b99d334a15",
+      "pat": {
+        "active": 6,
+        "admissible": false,
+        "all_valid": false,
+        "bypass": 0.006304686673207742,
+        "invalid": 4,
+        "null": 0
+      },
+      "tar": {
+        "active": 5,
+        "admissible": false,
+        "all_valid": false,
+        "bypass": 0.004263250781976373,
+        "invalid": 5,
+        "null": 0
+      }
+    },
+    {
+      "cell_id": "campaign|12|near",
+      "pair_digest": "01477fc748bc4d75b65c2d51208027b5f14f0768e804d27ee1b84bfb807e590b",
+      "pat": {
+        "active": 6,
+        "admissible": false,
+        "all_valid": false,
+        "bypass": 0.00824878212123968,
+        "invalid": 4,
+        "null": 0
+      },
+      "tar": {
+        "active": 5,
+        "admissible": false,
+        "all_valid": false,
+        "bypass": 0.002412368932320748,
+        "invalid": 5,
+        "null": 0
+      }
+    },
+    {
+      "cell_id": "kingdom|14|near",
+      "pair_digest": "014b98bd8db41f64d30d2534ba05ad184f38b85322a1a2a28c0afc0b3ccca9fa",
+      "pat": {
+        "active": 3,
+        "admissible": false,
+        "all_valid": false,
+        "bypass": 0.007323302158293454,
+        "invalid": 7,
+        "null": 0
+      },
+      "tar": {
+        "active": 8,
+        "admissible": false,
+        "all_valid": false,
+        "bypass": 0.008045192157359186,
+        "invalid": 2,
+        "null": 0
+      }
+    },
+    {
+      "cell_id": "treaty|14|far",
+      "pair_digest": "014cfcb3eef04c73903a2fe92a8022c90ca71c280201b4cbba55d2f05880a32e",
+      "pat": {
+        "active": 9,
+        "admissible": false,
+        "all_valid": false,
+        "bypass": 0.005412719216210821,
+        "invalid": 1,
+        "null": 0
+      },
+      "tar": {
+        "active": 6,
+        "admissible": false,
+        "all_valid": false,
+        "bypass": 0.0038594532870601214,
+        "invalid": 4,
+        "null": 0
+      }
+    },
+    {
+      "cell_id": "campaign|12|far",
+      "pair_digest": "015a5e3bb7d39c87257693bdb55b4e9cebb8f1d20d9681367140fef475832f33",
+      "pat": {
+        "active": 6,
+        "admissible": false,
+        "all_valid": false,
+        "bypass": 0.006947136419100516,
+        "invalid": 4,
+        "null": 0
+      },
+      "tar": {
+        "active": 6,
+        "admissible": false,
+        "all_valid": false,
+        "bypass": 0.004934033037738341,
+        "invalid": 4,
+        "null": 0
+      }
+    },
+    {
+      "cell_id": "kingdom|14|near",
+      "pair_digest": "015b2518159dcaa84b2c9f4f9349a16e84d11e011f96c65dbbe7830b2ea72fe9",
+      "pat": {
+        "active": 4,
+        "admissible": false,
+        "all_valid": false,
+        "bypass": 0.0016670636320786966,
+        "invalid": 6,
+        "null": 0
+      },
+      "tar": {
+        "active": 4,
+        "admissible": false,
+        "all_valid": false,
+        "bypass": 0.006662121116491067,
+        "invalid": 6,
+        "null": 0
+      }
+    },
+    {
+      "cell_id": "reign|16|far",
+      "pair_digest": "016407029b3ce4bfc9106b6c280ee4a0a88a2d892e5405e1d05777b85ab21757",
+      "pat": {
+        "active": 5,
+        "admissible": false,
+        "all_valid": false,
+        "bypass": 0.001795703475753095,
+        "invalid": 5,
+        "null": 0
+      },
+      "tar": {
+        "active": 8,
+        "admissible": false,
+        "all_valid": false,
+        "bypass": 0.004533876912218645,
+        "invalid": 2,
+        "null": 0
+      }
+    },
+    {
+      "cell_id": "campaign|12|near",
+      "pair_digest": "0166ad46df8447fa7c35a051922e06c5266a9206e66f4d005c6f55120a8c0db9",
+      "pat": {
+        "active": 4,
+        "admissible": false,
+        "all_valid": false,
+        "bypass": 0.0177454809876987,
+        "invalid": 6,
+        "null": 0
+      },
+      "tar": {
+        "active": 6,
+        "admissible": false,
+        "all_valid": false,
+        "bypass": 0.006093607507131902,
+        "invalid": 4,
+        "null": 0
+      }
+    },
+    {
+      "cell_id": "siege|12|far",
+      "pair_digest": "016aafcd40ec79cc8ba36d1eae899518a5598562b2932e5be4fd75c8a4d1bba6",
+      "pat": {
+        "active": 6,
+        "admissible": false,
+        "all_valid": false,
+        "bypass": 0.0024351333945175626,
+        "invalid": 4,
+        "null": 0
+      },
+      "tar": {
+        "active": 7,
+        "admissible": false,
+        "all_valid": false,
+        "bypass": 0.00437580831373071,
+        "invalid": 3,
+        "null": 0
+      }
+    },
+    {
+      "cell_id": "warfare|16|near",
+      "pair_digest": "016ea6d36213c7d06f5d925525406ae73e9e2ab33b0f22bffc22938ccec3db8b",
+      "pat": {
+        "active": 6,
+        "admissible": false,
+        "all_valid": false,
+        "bypass": 0.008406635681600442,
+        "invalid": 4,
+        "null": 0
+      },
+      "tar": {
+        "active": 7,
+        "admissible": false,
+        "all_valid": false,
+        "bypass": 0.0016566023034875839,
+        "invalid": 3,
+        "null": 0
+      }
+    },
+    {
+      "cell_id": "campaign|12|near",
+      "pair_digest": "017f1d83f76f7c75dd4a93a118db1adaff4d0774c5be9ac3950ab0594be6993d",
+      "pat": {
+        "active": 6,
+        "admissible": false,
+        "all_valid": false,
+        "bypass": 0.004392264050994175,
+        "invalid": 4,
+        "null": 0
+      },
+      "tar": {
+        "active": 4,
+        "admissible": false,
+        "all_valid": false,
+        "bypass": 0.006622831551523828,
+        "invalid": 6,
+        "null": 0
+      }
+    },
+    {
+      "cell_id": "siege|12|far",
+      "pair_digest": "0186999686d2dd5d5801cb53d0d9238720343fd4e69fbe0cccab46bb289c7551",
+      "pat": {
+        "active": 3,
+        "admissible": false,
+        "all_valid": false,
+        "bypass": 0.003917744865944704,
+        "invalid": 7,
+        "null": 0
+      },
+      "tar": {
+        "active": 5,
+        "admissible": false,
+        "all_valid": false,
+        "bypass": 0.004672227978883151,
+        "invalid": 5,
+        "null": 0
+      }
+    },
+    {
+      "cell_id": "expedition|12|far",
+      "pair_digest": "018912794696fe9718e10429bfed6f0f02843a06cfc035b1001e1b94f7c20f10",
+      "pat": {
+        "active": 6,
+        "admissible": false,
+        "all_valid": false,
+        "bypass": 0.006827498087172079,
+        "invalid": 4,
+        "null": 0
+      },
+      "tar": {
+        "active": 4,
+        "admissible": false,
+        "all_valid": false,
+        "bypass": 0.007195065063995523,
+        "invalid": 6,
+        "null": 0
+      }
+    },
+    {
+      "cell_id": "expedition|12|near",
+      "pair_digest": "018f678a206111c34fbab214dfd2f0a5f20ddbc6b047963765294e055a939a4b",
+      "pat": {
+        "active": 4,
+        "admissible": false,
+        "all_valid": false,
+        "bypass": 0.004595516873132441,
+        "invalid": 6,
+        "null": 0
+      },
+      "tar": {
+        "active": 3,
+        "admissible": false,
+        "all_valid": false,
+        "bypass": 0.005769621102634055,
+        "invalid": 7,
+        "null": 0
+      }
+    },
+    {
+      "cell_id": "reign|16|near",
+      "pair_digest": "01a5599d3dde532e43acbf0522522621d07facfa6e9e9c514e1b68afdd0d88db",
+      "pat": {
+        "active": 7,
+        "admissible": false,
+        "all_valid": false,
+        "bypass": 0.0055323783280186375,
+        "invalid": 3,
+        "null": 0
+      },
+      "tar": {
+        "active": 8,
+        "admissible": false,
+        "all_valid": false,
+        "bypass": 0.0039196725896297364,
+        "invalid": 2,
+        "null": 0
+      }
+    },
+    {
+      "cell_id": "campaign|12|near",
+      "pair_digest": "01a6614eafd2838eeb7b6f78b1b507fc013785d9a9cd4d6d13069a2898c7782f",
+      "pat": {
+        "active": 3,
+        "admissible": false,
+        "all_valid": false,
+        "bypass": 0.006676934650213123,
+        "invalid": 7,
+        "null": 0
+      },
+      "tar": {
+        "active": 4,
+        "admissible": false,
+        "all_valid": false,
+        "bypass": 0.01248626505273481,
+        "invalid": 6,
+        "null": 0
+      }
+    },
+    {
+      "cell_id": "expedition|12|near",
+      "pair_digest": "01aa79e6aaf93cf4b7a4884aaa0317ba41c68775ea364776ac770df8734324d4",
+      "pat": {
+        "active": 3,
+        "admissible": false,
+        "all_valid": false,
+        "bypass": 0.005807390936531744,
+        "invalid": 6,
+        "null": 1
+      },
+      "tar": {
+        "active": 2,
+        "admissible": false,
+        "all_valid": false,
+        "bypass": 0.009906511570183633,
+        "invalid": 8,
+        "null": 0
+      }
+    },
+    {
+      "cell_id": "expedition|12|near",
+      "pair_digest": "01ba16d62af911401d11fe9068de8533487ed1296e7f2c6554689bd26a5cf727",
+      "pat": {
+        "active": 6,
+        "admissible": false,
+        "all_valid": false,
+        "bypass": 0.008000110649727717,
+        "invalid": 4,
+        "null": 0
+      },
+      "tar": {
+        "active": 5,
+        "admissible": false,
+        "all_valid": false,
+        "bypass": 0.005054803979865658,
+        "invalid": 5,
+        "null": 0
+      }
+    },
+    {
+      "cell_id": "kingdom|14|near",
+      "pair_digest": "01c3281f8f29960256649bbb2590938b4478985019dc18da0b1f66966f7070fb",
+      "pat": {
+        "active": 4,
+        "admissible": false,
+        "all_valid": false,
+        "bypass": 0.006114178756697473,
+        "invalid": 6,
+        "null": 0
+      },
+      "tar": {
+        "active": 6,
+        "admissible": false,
+        "all_valid": false,
+        "bypass": 0.0015703450015090072,
+        "invalid": 4,
+        "null": 0
+      }
+    },
+    {
+      "cell_id": "dynasty|14|near",
+      "pair_digest": "01c85664ee25d46cdf7da1b6e03e2741dbf60913d1d02899ecac12d530d7291d",
+      "pat": {
+        "active": 4,
+        "admissible": false,
+        "all_valid": false,
+        "bypass": 0.012591194954455242,
+        "invalid": 6,
+        "null": 0
+      },
+      "tar": {
+        "active": 6,
+        "admissible": false,
+        "all_valid": false,
+        "bypass": 0.008311434181244111,
+        "invalid": 4,
+        "null": 0
+      }
+    },
+    {
+      "cell_id": "treaty|14|far",
+      "pair_digest": "01d03fc2b91fe8c162c5461c05c12f3b52bce5a36323b5bcf61d8f897badd150",
+      "pat": {
+        "active": 6,
+        "admissible": false,
+        "all_valid": false,
+        "bypass": 0.0029754921868109384,
+        "invalid": 4,
+        "null": 0
+      },
+      "tar": {
+        "active": 7,
+        "admissible": false,
+        "all_valid": false,
+        "bypass": 0.0095001675889436,
+        "invalid": 3,
+        "null": 0
+      }
+    },
+    {
+      "cell_id": "reign|16|far",
+      "pair_digest": "01d27642e4a6cb455423bff2db34815599a35309256f0c70b929ab9a19e3643e",
+      "pat": {
+        "active": 4,
+        "admissible": false,
+        "all_valid": false,
+        "bypass": 0.014865728841889947,
+        "invalid": 6,
+        "null": 0
+      },
+      "tar": {
+        "active": 6,
+        "admissible": false,
+        "all_valid": false,
+        "bypass": 0.0038423639651639285,
+        "invalid": 4,
+        "null": 0
+      }
+    },
+    {
+      "cell_id": "dynasty|14|near",
+      "pair_digest": "01d843b7f78e530bfb0076cbec7871432c1edc6f0572e4a3933fbe0c645c0502",
+      "pat": {
+        "active": 8,
+        "admissible": false,
+        "all_valid": false,
+        "bypass": 0.0046571747888450666,
+        "invalid": 2,
+        "null": 0
+      },
+      "tar": {
+        "active": 5,
+        "admissible": false,
+        "all_valid": false,
+        "bypass": 0.0016399495357323295,
+        "invalid": 5,
+        "null": 0
+      }
+    },
+    {
+      "cell_id": "siege|12|far",
+      "pair_digest": "01e0cb5d2ff8696080c18689e549d9ee837f283502256107bbc75828822e9918",
+      "pat": {
+        "active": 7,
+        "admissible": false,
+        "all_valid": false,
+        "bypass": 0.0020009317079595383,
+        "invalid": 3,
+        "null": 0
+      },
+      "tar": {
+        "active": 6,
+        "admissible": false,
+        "all_valid": false,
+        "bypass": 0.002786493228145068,
+        "invalid": 4,
+        "null": 0
+      }
+    },
+    {
+      "cell_id": "siege|12|near",
+      "pair_digest": "01e478108da8851f198482ea092fca2205461c83a77fa251ce76a980eb37f082",
+      "pat": {
+        "active": 5,
+        "admissible": false,
+        "all_valid": false,
+        "bypass": 0.004298578192894456,
+        "invalid": 5,
+        "null": 0
+      },
+      "tar": {
+        "active": 4,
+        "admissible": false,
+        "all_valid": false,
+        "bypass": 0.010444945591177326,
+        "invalid": 6,
+        "null": 0
+      }
+    },
+    {
+      "cell_id": "dynasty|14|far",
+      "pair_digest": "01e8a10d46b5d5837d9a8733f0e4b86346ee719e11b24354d7db299636740211",
+      "pat": {
+        "active": 7,
+        "admissible": false,
+        "all_valid": false,
+        "bypass": 0.006683833284225491,
+        "invalid": 3,
+        "null": 0
+      },
+      "tar": {
+        "active": 5,
+        "admissible": false,
+        "all_valid": false,
+        "bypass": 0.0036432883165680215,
+        "invalid": 5,
+        "null": 0
+      }
+    },
+    {
+      "cell_id": "treaty|14|far",
+      "pair_digest": "01ebcbc94f18230aafc3fa8650333d7dbb69e117d85790b3cbca02e7b7e0252b",
+      "pat": {
+        "active": 8,
+        "admissible": false,
+        "all_valid": false,
+        "bypass": 0.005579260809269847,
+        "invalid": 2,
+        "null": 0
+      },
+      "tar": {
+        "active": 4,
+        "admissible": false,
+        "all_valid": false,
+        "bypass": 0.005437688822212794,
+        "invalid": 6,
+        "null": 0
+      }
+    },
+    {
+      "cell_id": "campaign|12|far",
+      "pair_digest": "01f77dd4a518fa291c5ba17659dac789b3c9605ed77249464154b79930529480",
+      "pat": {
+        "active": 5,
+        "admissible": false,
+        "all_valid": false,
+        "bypass": 0.005188351042650631,
+        "invalid": 5,
+        "null": 0
+      },
+      "tar": {
+        "active": 4,
+        "admissible": false,
+        "all_valid": false,
+        "bypass": 0.011722844178176471,
+        "invalid": 6,
+        "null": 0
+      }
+    },
+    {
+      "cell_id": "kingdom|14|far",
+      "pair_digest": "01fb5a9857cb7cffe54d17d20b150a9bd0e756908ad84fccb44b73712a232e8c",
+      "pat": {
+        "active": 8,
+        "admissible": false,
+        "all_valid": false,
+        "bypass": 0.0034997847127752136,
+        "invalid": 2,
+        "null": 0
+      },
+      "tar": {
+        "active": 5,
+        "admissible": false,
+        "all_valid": false,
+        "bypass": 0.0009733084013769213,
+        "invalid": 5,
+        "null": 0
+      }
+    },
+    {
+      "cell_id": "dynasty|14|far",
+      "pair_digest": "0209f4ecf3be9f4af39e71b63514536aff03bcb7b1925110e71a0ddf195ecf57",
+      "pat": {
+        "active": 4,
+        "admissible": false,
+        "all_valid": false,
+        "bypass": 0.008746718283742906,
+        "invalid": 6,
+        "null": 0
+      },
+      "tar": {
+        "active": 7,
+        "admissible": false,
+        "all_valid": false,
+        "bypass": 0.006098708101371305,
+        "invalid": 3,
+        "null": 0
+      }
+    },
+    {
+      "cell_id": "siege|12|near",
+      "pair_digest": "02157de290d6f0db67e3cd6649deb3571dbe235a3da7687879439cbe8ea9f509",
+      "pat": {
+        "active": 5,
+        "admissible": false,
+        "all_valid": false,
+        "bypass": 0.00419368089531617,
+        "invalid": 3,
+        "null": 2
+      },
+      "tar": {
+        "active": 5,
+        "admissible": false,
+        "all_valid": false,
+        "bypass": 0.0026602197404049636,
+        "invalid": 5,
+        "null": 0
+      }
+    },
+    {
+      "cell_id": "warfare|16|near",
+      "pair_digest": "021f87ea0fd9354cd51636acc85138b43ff3f7d4c97e96bd3448f66ab07d2693",
+      "pat": {
+        "active": 2,
+        "admissible": false,
+        "all_valid": false,
+        "bypass": 0.0008478295228037467,
+        "invalid": 8,
+        "null": 0
+      },
+      "tar": {
+        "active": 6,
+        "admissible": false,
+        "all_valid": false,
+        "bypass": 0.004335944384313355,
+        "invalid": 4,
+        "null": 0
+      }
+    },
+    {
+      "cell_id": "siege|12|near",
+      "pair_digest": "022e6e311295e556b1d75a24121cf57535e9e59e17af9632a274141b150ea665",
+      "pat": {
+        "active": 7,
+        "admissible": false,
+        "all_valid": false,
+        "bypass": 0.0047610406661970864,
+        "invalid": 3,
+        "null": 0
+      },
+      "tar": {
+        "active": 6,
+        "admissible": false,
+        "all_valid": false,
+        "bypass": 0.0025618667314402524,
+        "invalid": 4,
+        "null": 0
+      }
+    },
+    {
+      "cell_id": "reign|16|far",
+      "pair_digest": "0230592a5d238d97f07350d2a26886dc51ccb47869a44044113330a2d6e7a369",
+      "pat": {
+        "active": 6,
+        "admissible": false,
+        "all_valid": false,
+        "bypass": 0.0035568073217771977,
+        "invalid": 4,
+        "null": 0
+      },
+      "tar": {
+        "active": 6,
+        "admissible": false,
+        "all_valid": false,
+        "bypass": 0.004329225503690877,
+        "invalid": 4,
+        "null": 0
+      }
+    },
+    {
+      "cell_id": "kingdom|14|far",
+      "pair_digest": "0235e01d0c8fa963d0245defa4433b2e30935d1c162221ab970a2e300754b3e0",
+      "pat": {
+        "active": 5,
+        "admissible": false,
+        "all_valid": false,
+        "bypass": 0.0015003462193004331,
+        "invalid": 5,
+        "null": 0
+      },
+      "tar": {
+        "active": 6,
+        "admissible": false,
+        "all_valid": false,
+        "bypass": 0.011308109495828375,
+        "invalid": 4,
+        "null": 0
+      }
+    },
+    {
+      "cell_id": "siege|12|far",
+      "pair_digest": "02371755b8144c06ecf9fef2e5a994eee595d9d85526e9696460c478787a29e8",
+      "pat": {
+        "active": 4,
+        "admissible": false,
+        "all_valid": false,
+        "bypass": 0.006238186853529185,
+        "invalid": 6,
+        "null": 0
+      },
+      "tar": {
+        "active": 7,
+        "admissible": false,
+        "all_valid": false,
+        "bypass": 0.0059336182304908875,
+        "invalid": 3,
+        "null": 0
+      }
+    },
+    {
+      "cell_id": "kingdom|14|near",
+      "pair_digest": "0239820033e15202494239211ceda4c4cce47992fd33d3c2517c11a05258f121",
+      "pat": {
+        "active": 5,
+        "admissible": false,
+        "all_valid": false,
+        "bypass": 0.0006992730483455794,
+        "invalid": 5,
+        "null": 0
+      },
+      "tar": {
+        "active": 5,
+        "admissible": false,
+        "all_valid": false,
+        "bypass": 0.008036597602161914,
+        "invalid": 5,
+        "null": 0
+      }
+    },
+    {
+      "cell_id": "dynasty|14|far",
+      "pair_digest": "023e3ced200d34ba4cb1fdb91849e092199bce6da9cf3e6c5616edcb124ffcbb",
+      "pat": {
+        "active": 4,
+        "admissible": false,
+        "all_valid": false,
+        "bypass": 0.010626854329845167,
+        "invalid": 6,
+        "null": 0
+      },
+      "tar": {
+        "active": 5,
+        "admissible": false,
+        "all_valid": false,
+        "bypass": 0.005416095042493013,
+        "invalid": 5,
+        "null": 0
+      }
+    },
+    {
+      "cell_id": "dynasty|14|far",
+      "pair_digest": "02420def536aeeba1064bbe87796954159b6927886a73526dc36b6bc9622d37f",
+      "pat": {
+        "active": 4,
+        "admissible": false,
+        "all_valid": false,
+        "bypass": 0.00142280448959315,
+        "invalid": 6,
+        "null": 0
+      },
+      "tar": {
+        "active": 4,
+        "admissible": false,
+        "all_valid": false,
+        "bypass": 0.004422920720298748,
+        "invalid": 6,
+        "null": 0
+      }
+    },
+    {
+      "cell_id": "kingdom|14|near",
+      "pair_digest": "02462a41a27c724350a40b44a808fc65e0230f52c6e890a91032216815b905b8",
+      "pat": {
+        "active": 7,
+        "admissible": false,
+        "all_valid": false,
+        "bypass": 0.005210482700558356,
+        "invalid": 3,
+        "null": 0
+      },
+      "tar": {
+        "active": 7,
+        "admissible": false,
+        "all_valid": false,
+        "bypass": 0.0016638081381504985,
+        "invalid": 3,
+        "null": 0
+      }
+    },
+    {
+      "cell_id": "kingdom|14|near",
+      "pair_digest": "025cc7a0f6639f79c2ddb81af2d021ce7c52e6e8ad1fb56693172c65155d09b5",
+      "pat": {
+        "active": 5,
+        "admissible": false,
+        "all_valid": false,
+        "bypass": 0.015232934620799053,
+        "invalid": 5,
+        "null": 0
+      },
+      "tar": {
+        "active": 3,
+        "admissible": false,
+        "all_valid": false,
+        "bypass": 0.0021668025180858193,
+        "invalid": 6,
+        "null": 1
+      }
+    },
+    {
+      "cell_id": "treaty|14|far",
+      "pair_digest": "0261d1d1c88f5bb24a9f4b69e50e9c45af7ff5b2ba8fc36529faec16d662b3eb",
+      "pat": {
+        "active": 5,
+        "admissible": false,
+        "all_valid": false,
+        "bypass": 0.0009464455214691662,
+        "invalid": 5,
+        "null": 0
+      },
+      "tar": {
+        "active": 5,
+        "admissible": false,
+        "all_valid": false,
+        "bypass": 0.004806765427268446,
+        "invalid": 5,
+        "null": 0
+      }
+    },
+    {
+      "cell_id": "expedition|12|near",
+      "pair_digest": "02677eafcbb8a25746ee2516bdcbc13cbbe249421ea64d25ed28f5279a13edfb",
+      "pat": {
+        "active": 5,
+        "admissible": false,
+        "all_valid": false,
+        "bypass": 0.00474156966888919,
+        "invalid": 5,
+        "null": 0
+      },
+      "tar": {
+        "active": 4,
+        "admissible": false,
+        "all_valid": false,
+        "bypass": 0.00658914008406271,
+        "invalid": 6,
+        "null": 0
+      }
+    },
+    {
+      "cell_id": "siege|12|near",
+      "pair_digest": "026b3781a2ff730ff14b9588e8c1d6659a90991aee39ce2b1d3272a8b45fc4c3",
+      "pat": {
+        "active": 6,
+        "admissible": false,
+        "all_valid": false,
+        "bypass": 0.00886481949942744,
+        "invalid": 4,
+        "null": 0
+      },
+      "tar": {
+        "active": 5,
+        "admissible": false,
+        "all_valid": false,
+        "bypass": 0.0094825100803215,
+        "invalid": 5,
+        "null": 0
+      }
+    },
+    {
+      "cell_id": "expedition|12|far",
+      "pair_digest": "026bbcc00412ff83d6b03df3c8fefd06f96c80920c0b5f537d5ca586fc001916",
+      "pat": {
+        "active": 6,
+        "admissible": false,
+        "all_valid": false,
+        "bypass": 0.0019174394100462326,
+        "invalid": 4,
+        "null": 0
+      },
+      "tar": {
+        "active": 7,
+        "admissible": false,
+        "all_valid": false,
+        "bypass": 0.0028200829956404696,
+        "invalid": 3,
+        "null": 0
+      }
+    },
+    {
+      "cell_id": "kingdom|14|far",
+      "pair_digest": "026d6e40455f104e0fa3d5d45627a3c933295fe93aa9e9949efcefcb91d161fc",
+      "pat": {
+        "active": 7,
+        "admissible": false,
+        "all_valid": false,
+        "bypass": 0.0071567605478798,
+        "invalid": 3,
+        "null": 0
+      },
+      "tar": {
+        "active": 6,
+        "admissible": false,
+        "all_valid": false,
+        "bypass": 0.003988494290037094,
+        "invalid": 4,
+        "null": 0
+      }
+    },
+    {
+      "cell_id": "expedition|12|near",
+      "pair_digest": "0285234d25fda48596fb6bb1a85d7d7c0c57ef018952989742d2ea6b2287fec4",
+      "pat": {
+        "active": 4,
+        "admissible": false,
+        "all_valid": false,
+        "bypass": 0.0029568868752838143,
+        "invalid": 6,
+        "null": 0
+      },
+      "tar": {
+        "active": 5,
+        "admissible": false,
+        "all_valid": false,
+        "bypass": 0.002924712846936681,
+        "invalid": 5,
+        "null": 0
+      }
+    },
+    {
+      "cell_id": "siege|12|near",
+      "pair_digest": "029d5d3212daa951334cff3defd1bf15328e19838864c32af403b2656472dc15",
+      "pat": {
+        "active": 4,
+        "admissible": false,
+        "all_valid": false,
+        "bypass": 0.005185067470795908,
+        "invalid": 5,
+        "null": 1
+      },
+      "tar": {
+        "active": 5,
+        "admissible": false,
+        "all_valid": false,
+        "bypass": 0.0037188198370583557,
+        "invalid": 5,
+        "null": 0
+      }
+    },
+    {
+      "cell_id": "kingdom|14|far",
+      "pair_digest": "02a1941f904c191bb5b9238181640e2a7da13e6c9af42ee6a49c47a98d12dcc8",
+      "pat": {
+        "active": 5,
+        "admissible": false,
+        "all_valid": false,
+        "bypass": 0.0012018255835074742,
+        "invalid": 5,
+        "null": 0
+      },
+      "tar": {
+        "active": 6,
+        "admissible": false,
+        "all_valid": false,
+        "bypass": 0.005562041410463803,
+        "invalid": 4,
+        "null": 0
+      }
+    },
+    {
+      "cell_id": "warfare|16|near",
+      "pair_digest": "02ae84677f2516617dad933fd8e728db61ea14719fff875baf730284dc693153",
+      "pat": {
+        "active": 7,
+        "admissible": false,
+        "all_valid": false,
+        "bypass": 0.009026285602132287,
+        "invalid": 3,
+        "null": 0
+      },
+      "tar": {
+        "active": 7,
+        "admissible": false,
+        "all_valid": false,
+        "bypass": 0.009942989294727821,
+        "invalid": 3,
+        "null": 0
+      }
+    },
+    {
+      "cell_id": "treaty|14|near",
+      "pair_digest": "02b50ffa626e179f1495871a343c31cd3eb5d5fc6eee213a641935dfbd882875",
+      "pat": {
+        "active": 5,
+        "admissible": false,
+        "all_valid": false,
+        "bypass": 0.00745616860940363,
+        "invalid": 5,
+        "null": 0
+      },
+      "tar": {
+        "active": 6,
+        "admissible": false,
+        "all_valid": false,
+        "bypass": 0.0029449467083034406,
+        "invalid": 4,
+        "null": 0
+      }
+    },
+    {
+      "cell_id": "siege|12|far",
+      "pair_digest": "02b85189707090b6916d1a6fc02be2af6ca43caedebf6dd42d4501360124a8ae",
+      "pat": {
+        "active": 7,
+        "admissible": false,
+        "all_valid": false,
+        "bypass": 0.00663606700070457,
+        "invalid": 3,
+        "null": 0
+      },
+      "tar": {
+        "active": 6,
+        "admissible": false,
+        "all_valid": false,
+        "bypass": 0.005828277739091981,
+        "invalid": 4,
+        "null": 0
+      }
+    },
+    {
+      "cell_id": "warfare|16|near",
+      "pair_digest": "02bcb622588768cabcefb07d8b8f3ea45d954eb112251c26e7c9cb620376c101",
+      "pat": {
+        "active": 6,
+        "admissible": false,
+        "all_valid": false,
+        "bypass": 0.00871830864506701,
+        "invalid": 4,
+        "null": 0
+      },
+      "tar": {
+        "active": 6,
+        "admissible": false,
+        "all_valid": false,
+        "bypass": 0.0022479773959918473,
+        "invalid": 4,
+        "null": 0
+      }
+    },
+    {
+      "cell_id": "siege|12|far",
+      "pair_digest": "02be2790c20d7fb2a05405010179c7e6782a5c79ef01d7443c1ea24e105dd51f",
+      "pat": {
+        "active": 5,
+        "admissible": false,
+        "all_valid": false,
+        "bypass": 0.0045727429347085105,
+        "invalid": 5,
+        "null": 0
+      },
+      "tar": {
+        "active": 6,
+        "admissible": false,
+        "all_valid": false,
+        "bypass": 0.0061189273033915755,
+        "invalid": 4,
+        "null": 0
+      }
+    },
+    {
+      "cell_id": "warfare|16|near",
+      "pair_digest": "02c286cb60286b78dad5945d8f566c436b98476e61a6f327ee443c906ce58cb6",
+      "pat": {
+        "active": 6,
+        "admissible": false,
+        "all_valid": false,
+        "bypass": 0.0049307784203697575,
+        "invalid": 4,
+        "null": 0
+      },
+      "tar": {
+        "active": 6,
+        "admissible": false,
+        "all_valid": false,
+        "bypass": 0.008360782551762412,
+        "invalid": 4,
+        "null": 0
+      }
+    },
+    {
+      "cell_id": "warfare|16|near",
+      "pair_digest": "02d5d1293b7752c2a1ffcf15935894830a289241f18b590db935e41b182a6813",
+      "pat": {
+        "active": 4,
+        "admissible": false,
+        "all_valid": false,
+        "bypass": 0.0033737338740261135,
+        "invalid": 6,
+        "null": 0
+      },
+      "tar": {
+        "active": 7,
+        "admissible": false,
+        "all_valid": false,
+        "bypass": 0.006564446916293244,
+        "invalid": 3,
+        "null": 0
+      }
+    },
+    {
+      "cell_id": "dynasty|14|near",
+      "pair_digest": "02d87053434665af1193c7624fd707895fffdee8eff9d3513a1f9c7931e00a42",
+      "pat": {
+        "active": 3,
+        "admissible": false,
+        "all_valid": false,
+        "bypass": 0.0047238673684313675,
+        "invalid": 6,
+        "null": 1
+      },
+      "tar": {
+        "active": 6,
+        "admissible": false,
+        "all_valid": false,
+        "bypass": 0.003173287332462495,
+        "invalid": 4,
+        "null": 0
+      }
+    },
+    {
+      "cell_id": "kingdom|14|far",
+      "pair_digest": "0308e3b7a508ed1750202d9d3fcaa7b0359f70608cc15fc8a52288b3bc98b9a0",
+      "pat": {
+        "active": 6,
+        "admissible": false,
+        "all_valid": false,
+        "bypass": 0.004243905549912886,
+        "invalid": 4,
+        "null": 0
+      },
+      "tar": {
+        "active": 7,
+        "admissible": false,
+        "all_valid": false,
+        "bypass": 0.01258509564553604,
+        "invalid": 3,
+        "null": 0
+      }
+    },
+    {
+      "cell_id": "dynasty|14|near",
+      "pair_digest": "030b6311ee4345b6e74a76483c952fdfc4126a07c2d3fd7527e1904657c851f2",
+      "pat": {
+        "active": 3,
+        "admissible": false,
+        "all_valid": false,
+        "bypass": 0.00838295540324138,
+        "invalid": 7,
+        "null": 0
+      },
+      "tar": {
+        "active": 6,
+        "admissible": false,
+        "all_valid": false,
+        "bypass": 0.004995134694721042,
+        "invalid": 4,
+        "null": 0
+      }
+    },
+    {
+      "cell_id": "treaty|14|near",
+      "pair_digest": "03193c660168d8fd6da47c61d35a7a75b8f8a4946e07c966ca468cb3d414ea55",
+      "pat": {
+        "active": 3,
+        "admissible": false,
+        "all_valid": false,
+        "bypass": 0.008038365818961571,
+        "invalid": 7,
+        "null": 0
+      },
+      "tar": {
+        "active": 4,
+        "admissible": false,
+        "all_valid": false,
+        "bypass": 0.00874396964897589,
+        "invalid": 6,
+        "null": 0
+      }
+    },
+    {
+      "cell_id": "siege|12|near",
+      "pair_digest": "036042519e7fa48093e092bad17cd0d08464bac4c08ff5cee30fcfa36ef3f9d2",
+      "pat": {
+        "active": 5,
+        "admissible": false,
+        "all_valid": false,
+        "bypass": 0.007823507451199854,
+        "invalid": 5,
+        "null": 0
+      },
+      "tar": {
+        "active": 6,
+        "admissible": false,
+        "all_valid": false,
+        "bypass": 0.005529233362417199,
+        "invalid": 4,
+        "null": 0
+      }
+    },
+    {
+      "cell_id": "kingdom|14|far",
+      "pair_digest": "036c1d844eb2c6fc9be8fd05d44ffb8da757ce660a77b7d841888df8ebb6e68b",
+      "pat": {
+        "active": 6,
+        "admissible": false,
+        "all_valid": false,
+        "bypass": 0.009890169613359485,
+        "invalid": 4,
+        "null": 0
+      },
+      "tar": {
+        "active": 6,
+        "admissible": false,
+        "all_valid": false,
+        "bypass": 0.003482456155160673,
+        "invalid": 4,
+        "null": 0
+      }
+    },
+    {
+      "cell_id": "kingdom|14|far",
+      "pair_digest": "03706d1877f26582492254cc31c984dc0ac259ec1b20c3092f678026b5680366",
+      "pat": {
+        "active": 5,
+        "admissible": false,
+        "all_valid": false,
+        "bypass": 0.0021251224089644323,
+        "invalid": 5,
+        "null": 0
+      },
+      "tar": {
+        "active": 5,
+        "admissible": false,
+        "all_valid": false,
+        "bypass": 0.0059187605380388785,
+        "invalid": 5,
+        "null": 0
+      }
+    },
+    {
+      "cell_id": "warfare|16|near",
+      "pair_digest": "038fbc8e602d427f539f13bfa47a5a863bdd102cafd239197b0b86fa13cb457c",
+      "pat": {
+        "active": 5,
+        "admissible": false,
+        "all_valid": false,
+        "bypass": 0.00818128787570898,
+        "invalid": 5,
+        "null": 0
+      },
+      "tar": {
+        "active": 4,
+        "admissible": false,
+        "all_valid": false,
+        "bypass": 0.005665469431580095,
+        "invalid": 6,
+        "null": 0
+      }
+    },
+    {
+      "cell_id": "campaign|12|far",
+      "pair_digest": "03a2cfdcc582c5b247a2d6658a72c1550cddad5471f168f7155a28b664cb5985",
+      "pat": {
+        "active": 6,
+        "admissible": false,
+        "all_valid": false,
+        "bypass": 0.006623094064432253,
+        "invalid": 4,
+        "null": 0
+      },
+      "tar": {
+        "active": 6,
+        "admissible": false,
+        "all_valid": false,
+        "bypass": 0.0057707098124627765,
+        "invalid": 4,
+        "null": 0
+      }
+    },
+    {
+      "cell_id": "expedition|12|near",
+      "pair_digest": "03b1f57166a653a8c171638f8ee7f9631b237709980875fdfeec00aadfa05a51",
+      "pat": {
+        "active": 6,
+        "admissible": false,
+        "all_valid": false,
+        "bypass": 0.0039988933391479,
+        "invalid": 4,
+        "null": 0
+      },
+      "tar": {
+        "active": 6,
+        "admissible": false,
+        "all_valid": false,
+        "bypass": 0.005884908130988843,
+        "invalid": 4,
+        "null": 0
+      }
+    },
+    {
+      "cell_id": "campaign|12|far",
+      "pair_digest": "041d324a26b6609e7138c4070ccabf2de9e53c1d07a6823535e64e4fe7484225",
+      "pat": {
+        "active": 4,
+        "admissible": false,
+        "all_valid": false,
+        "bypass": 0.0076269919328494995,
+        "invalid": 6,
+        "null": 0
+      },
+      "tar": {
+        "active": 5,
+        "admissible": false,
+        "all_valid": false,
+        "bypass": 0.0051085864723127115,
+        "invalid": 5,
+        "null": 0
+      }
+    },
+    {
+      "cell_id": "dynasty|14|near",
+      "pair_digest": "041e110776eea09f9a68b7bd993e3e74cea8cb5ef8cbe198ecc70f5cbeef93cf",
+      "pat": {
+        "active": 4,
+        "admissible": false,
+        "all_valid": false,
+        "bypass": 0.009637657047366854,
+        "invalid": 6,
+        "null": 0
+      },
+      "tar": {
+        "active": 6,
+        "admissible": false,
+        "all_valid": false,
+        "bypass": 0.014065706530567112,
+        "invalid": 4,
+        "null": 0
+      }
+    },
+    {
+      "cell_id": "dynasty|14|near",
+      "pair_digest": "048cfeb30a551d55282d1d93a4f7dfb2da534d14a0cacbf711e30cf20237aafb",
+      "pat": {
+        "active": 7,
+        "admissible": false,
+        "all_valid": false,
+        "bypass": 0.003387651852863942,
+        "invalid": 3,
+        "null": 0
+      },
+      "tar": {
+        "active": 7,
+        "admissible": false,
+        "all_valid": false,
+        "bypass": 0.0031586179134378586,
+        "invalid": 3,
+        "null": 0
+      }
+    },
+    {
+      "cell_id": "campaign|12|far",
+      "pair_digest": "049e17990392a5ab3ebf7c0753aee01790121da209d2c793b3e42b55fc94315b",
+      "pat": {
+        "active": 4,
+        "admissible": false,
+        "all_valid": false,
+        "bypass": 0.0045755057713156265,
+        "invalid": 6,
+        "null": 0
+      },
+      "tar": {
+        "active": 6,
+        "admissible": false,
+        "all_valid": false,
+        "bypass": 0.002019218740163383,
+        "invalid": 4,
+        "null": 0
+      }
+    },
+    {
+      "cell_id": "dynasty|14|near",
+      "pair_digest": "056b719f7a6ff02ce29835bad5f21c3c6f1641ec9bce1fb11b6314d2122bda6b",
+      "pat": {
+        "active": 2,
+        "admissible": false,
+        "all_valid": false,
+        "bypass": 0.0032029704409946825,
+        "invalid": 7,
+        "null": 1
+      },
+      "tar": {
+        "active": 5,
+        "admissible": false,
+        "all_valid": false,
+        "bypass": 0.003606885164152593,
+        "invalid": 5,
+        "null": 0
+      }
+    },
+    {
+      "cell_id": "dynasty|14|near",
+      "pair_digest": "05e4d1b7bf1df209285086b7cf572bcebe0050c4d45b27c30e24519de1d239f0",
+      "pat": {
+        "active": 7,
+        "admissible": false,
+        "all_valid": false,
+        "bypass": 0.014079279500939991,
+        "invalid": 3,
+        "null": 0
+      },
+      "tar": {
+        "active": 4,
+        "admissible": false,
+        "all_valid": false,
+        "bypass": 0.003387154404530863,
+        "invalid": 6,
+        "null": 0
+      }
+    }
+  ],
+  "raw_nonconfirmatory_diagnostics": {
+    "cell_mean_spearman": {
+      "behavioral": {
+        "behavioral": 1.0,
+        "first_order": 0.876471,
+        "pie": 0.961765,
+        "single": 0.061765
+      },
+      "first_order": {
+        "behavioral": 0.876471,
+        "first_order": 1.0,
+        "pie": 0.894118,
+        "single": 0.258824
+      },
+      "pie": {
+        "behavioral": 0.961765,
+        "first_order": 0.894118,
+        "pie": 1.0,
+        "single": 0.147059
+      },
+      "single": {
+        "behavioral": 0.061765,
+        "first_order": 0.258824,
+        "pie": 0.147059,
+        "single": 1.0
+      }
+    },
+    "item_spearman": {
+      "behavioral": {
+        "behavioral": 1.0,
+        "first_order": 0.329793,
+        "pie": 0.612954,
+        "single": 0.221148
+      },
+      "first_order": {
+        "behavioral": 0.329793,
+        "first_order": 1.0,
+        "pie": 0.583289,
+        "single": 0.209503
+      },
+      "pie": {
+        "behavioral": 0.612954,
+        "first_order": 0.583289,
+        "pie": 1.0,
+        "single": 0.011897
+      },
+      "single": {
+        "behavioral": 0.221148,
+        "first_order": 0.209503,
+        "pie": 0.011897,
+        "single": 1.0
+      }
+    },
+    "quantiles": {
+      "behavioral": {
+        "max": 6.020175009062818,
+        "median": 1.1235395926933824,
+        "min": 0.025647295199746623,
+        "p25": 0.526873706078149,
+        "p75": 2.853478456420156
+      },
+      "cancellation_dx": {
+        "max": 0.007717220262572156,
+        "median": 0.001923567676322218,
+        "min": -0.011248071939891819,
+        "p25": 0.0008893229535205847,
+        "p75": 0.004115305797918559
+      },
+      "cancellation_dz": {
+        "max": 0.02248160879219352,
+        "median": -0.0009717070442404694,
+        "min": -0.0390349917941449,
+        "p25": -0.006036919649283767,
+        "p75": 0.005701098690293151
+      },
+      "first_order": {
+        "max": 0.020782849723501244,
+        "median": 0.0070687468394590725,
+        "min": 0.0021429181489457756,
+        "p25": 0.004822432225111183,
+        "p75": 0.009724758194994881
+      },
+      "physical_target_norm": {
+        "max": 0.6550116179002443,
+        "median": 0.4794099517760922,
+        "min": 0.32607863891196015,
+        "p25": 0.4374095379363928,
+        "p75": 0.5290039411660946
+      },
+      "pie": {
+        "max": 0.0011365815160733206,
+        "median": 0.0001360184594287143,
+        "min": 2.157808535111865e-06,
+        "p25": 4.6966239597878705e-05,
+        "p75": 0.00033092063097073243
+      },
+      "residual_radius": {
+        "max": 0.6550116179002443,
+        "median": 0.4794099517760922,
+        "min": 0.32607863891196015,
+        "p25": 0.4374095379363928,
+        "p75": 0.5290039411660946
+      },
+      "single": {
+        "max": 0.04931109393081634,
+        "median": 0.007348892414333896,
+        "min": 3.087665809431428e-05,
+        "p25": 0.0030802111275252883,
+        "p75": 0.01253775857452174
+      },
+      "theta_pat": {
+        "max": 0.011482457636028448,
+        "median": 0.0003816417995594129,
+        "min": -0.003784009046376977,
+        "p25": -0.0008741467353234189,
+        "p75": 0.003623357964677617
+      },
+      "theta_tar": {
+        "max": 0.012094704533761868,
+        "median": 0.00015463125062342546,
+        "min": -0.0061872147740923596,
+        "p25": -0.0008785153143812158,
+        "p75": 0.001552898609958408
+      }
+    },
+    "warning": "All tensor rows are protocol-inadmissible; these summaries cannot support a scientific claim."
+  },
+  "schema": "green-v1.3.6-terminal-audit-v1",
+  "source_sha256": {
+    "dev_cells.json": "1294a76d6d79c81f240c20c4257aa6b0fe76457d46b30cfc5d5699e27759ae1f",
+    "dev_energy_targets.parquet": "23a99b6998ec2c51184ae26b8f86a7656247ff2091e251752c1fccd06295e593",
+    "dev_result.json": "2e15531d62bd5cc1162980fdaa2643a7300b362eb6b11ff5b94bb3d623c37277",
+    "dev_tensor_scores.parquet": "660788dde8bc5df1d057db31b4dc1065b222ac7777efc0e4c6220e09f1ed81ff",
+    "development_multigpu_merge.json": "31dbc71fbeaa40f313be6078a627082050aa5a338e132d3a6ed7343869eaad7a"
+  },
+  "tensor_records": {
+    "admissible": 0,
+    "inadmissible": 128,
+    "total": 128
+  },
+  "terminal_result": {
+    "baseline_calibration": {},
+    "best_baseline": null,
+    "best_baseline_loocv_rmse": null,
+    "mixed_rmse": null,
+    "n_conditioned_cells": 0,
+    "n_snr_cells": 0,
+    "n_surviving_cells": 0,
+    "phase": "development",
+    "relative_gain": null,
+    "spec_sha256": "cb771c59e91b4fc553ef73a1c7a116ec0ee55f499ce46a2f91e4c600cd8bd41d",
+    "verdict": "STOP_ORAL"
+  },
+  "thresholds": {
+    "active_gates_min": 3,
+    "bypass_disagreement_max": 0.15,
+    "curvature_rms_min": 0.0005,
+    "curvature_snr_min": 20.0,
+    "factorization_residual_max": 0.15,
+    "gate_response_rms_min": 0.0005,
+    "gate_response_snr_min": 20.0,
+    "richardson_change_max": 0.25,
+    "tensor_cosine_min": 0.95,
+    "tensor_snr_min": 20.0,
+    "tensor_symmetric_change_max": 0.25,
+    "whitebox_a_relative_max": 0.05,
+    "whitebox_a_small_absolute_max": 0.0001
+  }
+}

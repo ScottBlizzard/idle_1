@@ -1,0 +1,13 @@
+{
+  "baseline_calibration": {},
+  "best_baseline": null,
+  "best_baseline_loocv_rmse": null,
+  "mixed_rmse": null,
+  "n_conditioned_cells": 0,
+  "n_snr_cells": 0,
+  "n_surviving_cells": 0,
+  "phase": "development",
+  "relative_gain": null,
+  "spec_sha256": "cb771c59e91b4fc553ef73a1c7a116ec0ee55f499ce46a2f91e4c600cd8bd41d",
+  "verdict": "STOP_ORAL"
+}

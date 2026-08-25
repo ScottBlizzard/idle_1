@@ -1,0 +1,101 @@
+{
+  "cells": [
+    {
+      "cell_id": "campaign|12|far",
+      "n_energy": 8,
+      "n_tensor": 0,
+      "survived": false
+    },
+    {
+      "cell_id": "campaign|12|near",
+      "n_energy": 8,
+      "n_tensor": 0,
+      "survived": false
+    },
+    {
+      "cell_id": "dynasty|14|far",
+      "n_energy": 8,
+      "n_tensor": 0,
+      "survived": false
+    },
+    {
+      "cell_id": "dynasty|14|near",
+      "n_energy": 8,
+      "n_tensor": 0,
+      "survived": false
+    },
+    {
+      "cell_id": "expedition|12|far",
+      "n_energy": 8,
+      "n_tensor": 0,
+      "survived": false
+    },
+    {
+      "cell_id": "expedition|12|near",
+      "n_energy": 8,
+      "n_tensor": 0,
+      "survived": false
+    },
+    {
+      "cell_id": "kingdom|14|far",
+      "n_energy": 8,
+      "n_tensor": 0,
+      "survived": false
+    },
+    {
+      "cell_id": "kingdom|14|near",
+      "n_energy": 8,
+      "n_tensor": 0,
+      "survived": false
+    },
+    {
+      "cell_id": "reign|16|far",
+      "n_energy": 8,
+      "n_tensor": 0,
+      "survived": false
+    },
+    {
+      "cell_id": "reign|16|near",
+      "n_energy": 8,
+      "n_tensor": 0,
+      "survived": false
+    },
+    {
+      "cell_id": "siege|12|far",
+      "n_energy": 8,
+      "n_tensor": 0,
+      "survived": false
+    },
+    {
+      "cell_id": "siege|12|near",
+      "n_energy": 8,
+      "n_tensor": 0,
+      "survived": false
+    },
+    {
+      "cell_id": "treaty|14|far",
+      "n_energy": 8,
+      "n_tensor": 0,
+      "survived": false
+    },
+    {
+      "cell_id": "treaty|14|near",
+      "n_energy": 8,
+      "n_tensor": 0,
+      "survived": false
+    },
+    {
+      "cell_id": "warfare|16|far",
+      "n_energy": 8,
+      "n_tensor": 0,
+      "survived": false
+    },
+    {
+      "cell_id": "warfare|16|near",
+      "n_energy": 8,
+      "n_tensor": 0,
+      "survived": false
+    }
+  ],
+  "conditioning_dev_sd": 0.0
+}
