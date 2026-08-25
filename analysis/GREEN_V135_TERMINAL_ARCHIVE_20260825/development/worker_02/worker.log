@@ -1,0 +1,23 @@
+Loading weights:   0%|          | 0/148 [00:00<?, ?it/s]Loading weights:  82%|████████▏ | 122/148 [00:00<00:00, 915.40it/s]Loading weights: 100%|██████████| 148/148 [00:00<00:00, 1096.13it/s]
+Loaded pretrained model gpt2 into HookedTransformer
+Traceback (most recent call last):
+  File "/mnt/sdb/ccj/iclr_1_runs/idle_1_green_bridge_v135/src/green_bridge_multigpu_worker.py", line 139, in <module>
+    main()
+  File "/mnt/sdb/ccj/iclr_1_runs/idle_1_green_bridge_v135/src/green_bridge_multigpu_worker.py", line 90, in main
+    result = runner._run_endpoint_batch(
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/mnt/sdb/ccj/iclr_1_runs/idle_1_green_bridge_v135/src/exp_green_bridge_gpt2.py", line 2776, in _run_endpoint_batch
+    result = evaluate()
+             ^^^^^^^^^^
+  File "/mnt/sdb/ccj/iclr_1_runs/idle_1_green_bridge_v135/src/green_bridge_multigpu_worker.py", line 94, in <lambda>
+    lambda record=record: runner._tensor_item_v13(
+                          ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/mnt/sdb/ccj/iclr_1_runs/idle_1_green_bridge_v135/src/exp_green_bridge_gpt2.py", line 3194, in _tensor_item_v13
+    mixed[system] = _mixed_system_v13(
+                    ^^^^^^^^^^^^^^^^^^
+  File "/mnt/sdb/ccj/iclr_1_runs/idle_1_green_bridge_v135/src/exp_green_bridge_gpt2.py", line 3067, in _mixed_system_v13
+    direct_common.append(direct_bypass_in_common_frame(
+                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/mnt/sdb/ccj/iclr_1_runs/idle_1_green_bridge_v135/src/matched_bypass_gate.py", line 220, in direct_bypass_in_common_frame
+    raise ValueError("direct bypass and frame dimensions disagree")
+ValueError: direct bypass and frame dimensions disagree

@@ -16,11 +16,11 @@ from typing import Any
 
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
-OUTPUT_ROOT = PROJECT_ROOT / "outputs" / "green_bridge_v135"
-SCHEMA_VERSION = "green-bridge-v1.3.5"
-PROTOCOL_ID = "structural-envelope-matched-bypass-v1.3.5"
+OUTPUT_ROOT = PROJECT_ROOT / "outputs" / "green_bridge_v136"
+SCHEMA_VERSION = "green-bridge-v1.3.6"
+PROTOCOL_ID = "structural-envelope-matched-bypass-v1.3.6"
 PARENT_PROTOCOL_ID = "structural-envelope-matched-bypass-v1"
-AMENDMENT_ID = "CODEX-GREEN-V135-GATEJET-RESPONSE-PAIRING-v1-20260825"
+AMENDMENT_ID = "CODEX-GREEN-V136-DIRECT-BYPASS-ORIENTATION-v1-20260825"
 THEORY_BASE_COMMIT = "126556f"
 GATE04_AMENDMENT_ID = "GPTPRO-GREEN-GATE04-v2-20260805"
 GATE08_AMENDMENT_ID = "GPTPRO-GREEN-GATE08-v2-20260805"
@@ -32,19 +32,19 @@ SALT = LEGACY_SALT
 MODEL_ID = "openai-community/gpt2"
 MODEL_REVISION = "607a30d783dfa663caf39e06633721c8d4cfcd7e"
 TRANSFORMER_LENS_COMMIT = "4a4dc26c750475b29e6f54b362c2aab988702c9c"
-PROTOCOL_RUN_ID = "green-bridge-v1.3.5-one-shot"
+PROTOCOL_RUN_ID = "green-bridge-v1.3.6-one-shot"
 TAIL_DERIVATIVE_REFERENCE_NORM_FLOOR = 1.0e-5
 TAIL_EQUIVALENCE_OUTPUT_DIM = 100
 TAIL_FIXED_BATCH_SIZE = 1
 PREDECESSOR_RUN = {
-    "schema_version": "green-bridge-v1.3.4",
-    "protocol_id": "structural-envelope-matched-bypass-v1.3.4",
-    "protocol_run_id": "green-bridge-v1.3.4-one-shot",
+    "schema_version": "green-bridge-v1.3.5",
+    "protocol_id": "structural-envelope-matched-bypass-v1.3.5",
+    "protocol_run_id": "green-bridge-v1.3.5-one-shot",
     "attempt_index": 1,
     "retry_allowed": False,
-    "execution_commit": "d3015bab1fbc833c849b4594e811a7d921f3b30d",
+    "execution_commit": "8b5784906df3c4655bf39e4ff4f72f421a21d6ef",
     "first_failed_gate": "11_MULTIGPU_WORKER",
-    "result_sha256": "e340700ec23616cd2c8dd4c02f341896ee616f3aeffdf574dbcdc67075196cb2",
+    "result_sha256": "c1c53e6b7fcf062a3c258a79f3ef4b87a0b33724e7087c2182f6f7e14fb81b20",
 }
 
 PROMPT = "<|endoftext|> The {noun} lasted from the year {cc:02d}{y:02d} to the year {cc:02d}"

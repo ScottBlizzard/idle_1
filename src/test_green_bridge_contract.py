@@ -6,6 +6,7 @@ import inspect
 import json
 from pathlib import Path
 import tempfile
+from types import SimpleNamespace
 import unittest
 from unittest import mock
 
@@ -93,6 +94,7 @@ class HistoricalAndTerminationTests(unittest.TestCase):
             "analysis/GREEN_V134_ANCHOR_RELATIVE_DIAGNOSTIC_20260825.json",
             "analysis/CODEX_GREEN_V134_EXACT_BATCH1_MULTIGPU_DECISION_20260825.md",
             "analysis/CODEX_GREEN_V135_GATEJET_RESPONSE_PAIRING_DECISION_20260825.md",
+            "analysis/CODEX_GREEN_V136_DIRECT_BYPASS_ORIENTATION_DECISION_20260825.md",
         ):
             self.assertIn(name, runner.PROTOCOL_FILES)
     def test_active_protocol_has_no_pca_rank(self): self.assertNotIn("residual_rank", json.dumps(FROZEN_SPEC))
@@ -323,7 +325,7 @@ class SerializationAndOneRunTests(unittest.TestCase):
 
 
 class FrozenCoreTests(unittest.TestCase):
-    def test_schema_and_protocol(self): self.assertEqual((SCHEMA_VERSION,PROTOCOL_ID),("green-bridge-v1.3.5","structural-envelope-matched-bypass-v1.3.5"))
+    def test_schema_and_protocol(self): self.assertEqual((SCHEMA_VERSION,PROTOCOL_ID),("green-bridge-v1.3.6","structural-envelope-matched-bypass-v1.3.6"))
     def test_dimensions(self): self.assertEqual((DIMENSIONS.d_model,DIMENSIONS.probe_frame_dim),(768,5))
     def test_expected_calls(self): self.assertEqual(expected_tensor_calls(),2082)
     def test_envelope_error_term_is_positive(self): self.assertEqual(active_envelope_contraction_bound(2,3,4,5,6,7,8),2*(3*5+(6+7)*4*8))
@@ -359,20 +361,20 @@ class FullHookReferenceContractTests(unittest.TestCase):
 
 
 class TailAuditMetricContractTests(unittest.TestCase):
-    def test_tail_raw_gate_compares_raw_year_logits(self): self.assertIn('"quantity": "raw_100_dimensional_year_logits"',inspect.getsource(runner._tail_preflight_v135))
+    def test_tail_raw_gate_compares_raw_year_logits(self): self.assertIn('"quantity": "raw_100_dimensional_year_logits"',inspect.getsource(runner._tail_preflight_v136))
     def test_tail_raw_gate_threshold_is_two_e_minus_five(self): self.assertEqual(runner.THRESHOLDS.tail_max_abs,2e-5)
-    def test_tail_center_condition_is_binding(self): self.assertIn('("center", "path", np.zeros(5), 0.0)',inspect.getsource(runner._tail_preflight_v135))
+    def test_tail_center_condition_is_binding(self): self.assertIn('("center", "path", np.zeros(5), 0.0)',inspect.getsource(runner._tail_preflight_v136))
     def test_tail_derivative_gate_uses_central_difference(self): self.assertIn("2.0 * step",inspect.getsource(runner.derivative_equivalence_record))
     def test_tail_nonzero_derivative_relative_threshold_is_one_e_minus_four(self): self.assertEqual(runner.THRESHOLDS.tail_derivative_relative,1e-4)
     def test_tail_near_zero_derivative_uses_propagated_absolute_bound(self): self.assertIn("THRESHOLDS.tail_max_abs / step",inspect.getsource(runner.derivative_equivalence_record))
     def test_tail_near_zero_derivative_is_not_silently_dropped(self): self.assertIn("NOT_APPLICABLE_NEAR_ZERO",inspect.getsource(runner.derivative_equivalence_record))
 
 
-class ProtocolIdentityV135Tests(unittest.TestCase):
-    def test_v135_identity_is_fresh(self): self.assertEqual(runner.PROTOCOL_RUN_ID,"green-bridge-v1.3.5-one-shot")
-    def test_v135_output_root_is_distinct(self): self.assertEqual(runner.OUTPUT_ROOT.name,"green_bridge_v135")
-    def test_v135_attempt_index_is_one(self): self.assertIn('"attempt_index": 1',inspect.getsource(runner.write_run_ledger))
-    def test_v135_retry_is_false(self): self.assertIn('"retry_allowed": False',inspect.getsource(runner.write_run_ledger))
+class ProtocolIdentityV136Tests(unittest.TestCase):
+    def test_v136_identity_is_fresh(self): self.assertEqual(runner.PROTOCOL_RUN_ID,"green-bridge-v1.3.6-one-shot")
+    def test_v136_output_root_is_distinct(self): self.assertEqual(runner.OUTPUT_ROOT.name,"green_bridge_v136")
+    def test_v136_attempt_index_is_one(self): self.assertIn('"attempt_index": 1',inspect.getsource(runner.write_run_ledger))
+    def test_v136_retry_is_false(self): self.assertIn('"retry_allowed": False',inspect.getsource(runner.write_run_ledger))
 
 
 class PredecessorArchiveContractTests(unittest.TestCase):
@@ -380,15 +382,15 @@ class PredecessorArchiveContractTests(unittest.TestCase):
     def test_v131_diagnostic_hash_is_frozen(self): self.assertIn("666a20604fa4b123732bd68a15681fa7a16cafeef8edc2b61544fd911567d07d",inspect.getsource(runner.verify_v131_terminal_archive))
     def test_v132_development_hash_is_frozen(self): self.assertEqual(runner.V132_TERMINAL_HASHES["outputs/green_bridge_v132/dev_cells.json"],"1294a76d6d79c81f240c20c4257aa6b0fe76457d46b30cfc5d5699e27759ae1f")
     def test_v133_prepare_stop_hash_is_frozen(self): self.assertEqual(runner.V133_TERMINAL_HASHES["outputs/green_bridge_v133/result.json"],"e1084e999ff3c94c7d7cec343f22b6d7462f142440955edcde561b860d36a1d8")
-    def test_v134_development_stop_hash_is_frozen(self): self.assertEqual(runner.PREDECESSOR_RUN["result_sha256"],"e340700ec23616cd2c8dd4c02f341896ee616f3aeffdf574dbcdc67075196cb2")
+    def test_v135_development_stop_hash_is_frozen(self): self.assertEqual(runner.PREDECESSOR_RUN["result_sha256"],"c1c53e6b7fcf062a3c258a79f3ef4b87a0b33724e7087c2182f6f7e14fb81b20")
 
 
 class PrepareArtifactContractTests(unittest.TestCase):
     def test_root_cause_reproduction_written_before_equivalence_pass(self):
-        source=inspect.getsource(runner._tail_preflight_v135);self.assertLess(source.index("manual_tail_root_cause_reproduction_v135.json"),source.index("manual_tail_equivalence_v135.json"))
+        source=inspect.getsource(runner._tail_preflight_v136);self.assertLess(source.index("manual_tail_root_cause_reproduction_v136.json"),source.index("manual_tail_equivalence_v136.json"))
     def test_stage_trace_written_before_equivalence_pass(self):
-        source=inspect.getsource(runner._tail_preflight_v135);self.assertLess(source.index("manual_tail_stage_trace_v135.json"),source.index("manual_tail_equivalence_v135.json"))
-    def test_path_target_equivalence_written_before_manifest(self): self.assertLess(RUNNER_SOURCE.index("path_target_equivalence_v135.json"),RUNNER_SOURCE.index('"schema_version": "green-bridge-manifest-v1.3.5"'))
+        source=inspect.getsource(runner._tail_preflight_v136);self.assertLess(source.index("manual_tail_stage_trace_v136.json"),source.index("manual_tail_equivalence_v136.json"))
+    def test_path_target_equivalence_written_before_manifest(self): self.assertLess(RUNNER_SOURCE.index("path_target_equivalence_v136.json"),RUNNER_SOURCE.index('"schema_version": "green-bridge-manifest-v1.3.6"'))
 
 
 class ExactBatchOneOperationGraphTests(unittest.TestCase):
@@ -397,11 +399,11 @@ class ExactBatchOneOperationGraphTests(unittest.TestCase):
     def test_tail_wrapper_slices_declared_rows(self): self.assertIn("logits[:count]",inspect.getsource(tail_module.GreenBridgeTail._evaluate_physical_fixed_batch))
     def test_scientific_tail_activates_fixed_batch(self): self.assertIn("fixed_batch_size=ACTIVE_MANUAL_TAIL_BATCH_SIZE",inspect.getsource(runner._tensor_item_v13))
     def test_scientific_tail_has_no_recentering(self): self.assertNotIn("recenter_fixed_batch_output",inspect.getsource(runner._tensor_item_v13))
-    def test_prepare_requires_bitwise_full_hook_match(self): self.assertIn('if not metrics["bitwise_equal"]',inspect.getsource(runner._prepare_exact_batch_one_and_throughput_v135))
-    def test_full_reference_remains_batch_one(self): self.assertIn('"full_model_jvp_batch_size": 1',inspect.getsource(runner._prepare_exact_batch_one_and_throughput_v135))
-    def test_eight_worker_gpus_are_frozen(self): self.assertIn('physical_gpus = tuple(range(8))',inspect.getsource(runner._run_split_v135_multigpu))
-    def test_worker_failure_is_terminal(self): self.assertIn('"11_MULTIGPU_WORKER"',inspect.getsource(runner._run_split_v135_multigpu))
-    def test_worker_records_are_deterministically_sorted(self): self.assertIn('sorted(records, key=lambda row: (row.role, row.pair_digest))',inspect.getsource(runner._run_split_v135_multigpu))
+    def test_prepare_requires_bitwise_full_hook_match(self): self.assertIn('if not metrics["bitwise_equal"]',inspect.getsource(runner._prepare_exact_batch_one_and_throughput_v136))
+    def test_full_reference_remains_batch_one(self): self.assertIn('"full_model_jvp_batch_size": 1',inspect.getsource(runner._prepare_exact_batch_one_and_throughput_v136))
+    def test_eight_worker_gpus_are_frozen(self): self.assertIn('physical_gpus = tuple(range(8))',inspect.getsource(runner._run_split_v136_multigpu))
+    def test_worker_failure_is_terminal(self): self.assertIn('"11_MULTIGPU_WORKER"',inspect.getsource(runner._run_split_v136_multigpu))
+    def test_worker_records_are_deterministically_sorted(self): self.assertIn('sorted(records, key=lambda row: (row.role, row.pair_digest))',inspect.getsource(runner._run_split_v136_multigpu))
 
     def test_identification_is_paired_with_same_scale_gatejet_response(self):
         source = inspect.getsource(runner._mixed_system_v13)
@@ -427,6 +429,63 @@ class ExactBatchOneOperationGraphTests(unittest.TestCase):
         )
         coordinate = float(contrast @ ((frame.T @ physical_v) @ estimate.P))
         self.assertAlmostEqual(ambient, coordinate, places=11)
+
+    def test_active_identified_branch_completes_all_interfaces(self):
+        import torch
+        rng = np.random.default_rng(136)
+        frame = np.linalg.qr(rng.normal(size=(768, 5)))[0]
+        common = frame[:, :4]
+        response = rng.normal(size=100)
+        curvature = rng.normal(size=100)
+        coefficients = np.r_[0.0, rng.normal(size=4)]
+        direct = rng.normal(size=(5, 100))
+        delta_h = coefficients[:, None] * curvature[None, :]
+        jet = GateJet(
+            response,
+            curvature,
+            direct + coefficients[:, None] * response[None, :],
+            delta_h,
+            np.zeros_like(delta_h),
+        )
+        estimate = identify_gate(jet)
+        numerical = SimpleNamespace(
+            epsilon_A=np.zeros(5), epsilon_P_F=0.0, epsilon_G=0.0
+        )
+        values = {
+            "rich": estimate,
+            "full": estimate,
+            "half": estimate,
+            "numerical": numerical,
+            "audit": {"label": "active-identified"},
+        }
+        anchor = SimpleNamespace(
+            resid_mid=torch.zeros((1, 768), dtype=torch.float32),
+            year_logits=torch.zeros((1, 100), dtype=torch.float32),
+        )
+        tail = SimpleNamespace(
+            evaluate_physical=lambda *args, **kwargs: anchor.year_logits.clone()
+        )
+        block = SimpleNamespace(
+            ln2=SimpleNamespace(w=torch.ones(768)),
+            mlp=SimpleNamespace(W_in=torch.ones((768, 3072))),
+        )
+        model = SimpleNamespace(blocks=[None] * 10 + [block], cfg=SimpleNamespace(eps=1e-5))
+        design = {"gate_frames": [frame] * 10, "common": common, "radius": {"h_x": 0.1}}
+        with mock.patch.object(runner, "_jet_at_radius_physical", return_value=jet), \
+             mock.patch.object(runner, "_selected_numpy", return_value=np.zeros(768)), \
+             mock.patch.object(runner, "layernorm_gate_gradient_formula", return_value=np.zeros(768)), \
+             mock.patch.object(runner, "whitebox_A_coordinates", return_value=coefficients), \
+             mock.patch.object(runner, "classify_gate", return_value=("active-identified", values)), \
+             mock.patch.object(runner, "gradient_envelope_residual", return_value={"absolute": 0.0}):
+            result = runner._mixed_system_v13(
+                tail, model, anchor, design, rng.normal(size=768),
+                rng.normal(size=100), 1e-7,
+            )
+        self.assertEqual(result["active_gates"], 10)
+        self.assertTrue(result["all_valid"])
+        self.assertTrue(result["admissible"])
+        self.assertAlmostEqual(result["bypass_disagreement"], 0.0)
+        self.assertIn("values[\"rich\"].D.T", inspect.getsource(runner._mixed_system_v13))
 
 
 class DevelopmentTerminalContractTests(unittest.TestCase):

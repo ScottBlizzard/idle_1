@@ -140,7 +140,7 @@ SOURCE_FILES = (
     "src/launch_green_bridge_v131.sh",
     "src/launch_green_bridge_v132.sh",
     "src/launch_green_bridge_v133.sh",
-    "src/launch_green_bridge_v135.sh",
+    "src/launch_green_bridge_v136.sh",
 )
 PROTOCOL_FILES = (
     "analysis/GPTPRO_GREEN_BRIDGE_20260805.md",
@@ -164,6 +164,7 @@ PROTOCOL_FILES = (
     "analysis/GREEN_V134_ANCHOR_RELATIVE_DIAGNOSTIC_20260825.json",
     "analysis/CODEX_GREEN_V134_EXACT_BATCH1_MULTIGPU_DECISION_20260825.md",
     "analysis/CODEX_GREEN_V135_GATEJET_RESPONSE_PAIRING_DECISION_20260825.md",
+    "analysis/CODEX_GREEN_V136_DIRECT_BYPASS_ORIENTATION_DECISION_20260825.md",
     "requirements-green-bridge.lock",
 )
 EXPECTED_PACKAGES = {
@@ -488,6 +489,43 @@ def verify_v134_terminal_archive() -> dict:
     }
 
 
+def verify_v135_terminal_archive() -> dict:
+    """Verify the immutable v1.3.5 engineering STOP before v1.3.6."""
+    grandparent = verify_v134_terminal_archive()
+    archive = PROJECT_ROOT / "analysis" / "GREEN_V135_TERMINAL_ARCHIVE_20260825"
+    result_path = archive / "result.json"
+    ledger_path = archive / "run_ledger.json"
+    if not result_path.is_file() or sha256_file(result_path) != PREDECESSOR_RUN["result_sha256"]:
+        raise GreenStop("00A_PREDECESSOR_ARCHIVE", "v1.3.5 result mismatch")
+    if not ledger_path.is_file() or sha256_file(ledger_path) != "3659f737b36a81262bf21e1e47f598221f83550dde3bcb6e06f278779e0dfcaf":
+        raise GreenStop("00A_PREDECESSOR_ARCHIVE", "v1.3.5 ledger mismatch")
+    result = json.loads(result_path.read_text(encoding="utf-8"))
+    ledger = json.loads(ledger_path.read_text(encoding="utf-8"))
+    logs = sorted((archive / "development").glob("worker_*/worker.log"))
+    required = {
+        "verdict": result.get("verdict") == "STOP",
+        "gate": result.get("first_failed_gate") == "11_MULTIGPU_WORKER",
+        "attempt": ledger.get("attempt_index") == 1,
+        "retry": ledger.get("retry_allowed") is False,
+        "development": ledger.get("development_started") is True,
+        "confirmation": ledger.get("confirmation_started") is False,
+        "eight_worker_logs": len(logs) == 8,
+        "uniform_orientation_failure": all(
+            "direct bypass and frame dimensions disagree" in path.read_text(encoding="utf-8")
+            for path in logs
+        ),
+    }
+    if not all(required.values()):
+        raise GreenStop("00A_PREDECESSOR_ARCHIVE", str(required))
+    return {
+        "predecessor": PREDECESSOR_RUN,
+        "result_sha256": sha256_file(result_path),
+        "ledger_sha256": sha256_file(ledger_path),
+        "observed_terminal_condition": "direct-bypass matrix orientation mismatch",
+        "grandparent": grandparent,
+    }
+
+
 def torch_module():
     import torch
     return torch
@@ -495,7 +533,7 @@ def torch_module():
 
 def terminal_stop(output_root: Path, gate: str, detail: str) -> None:
     payload = {
-        "schema_version": "green-bridge-terminal-v1.3.5",
+        "schema_version": "green-bridge-terminal-v1.3.6",
         "verdict": "STOP",
         "first_failed_gate": gate,
         "detail": detail,
@@ -590,7 +628,7 @@ def configure_runtime(device: str, physical_gpu: int = 4) -> dict:
     if os.environ.get("CUDA_VISIBLE_DEVICES") != str(physical_gpu) or device != "cuda:0":
         raise GreenStop(
             "01_ENVIRONMENT",
-            f"v1.3.5 requires physical GPU {physical_gpu} exposed as cuda:0",
+            f"v1.3.6 requires physical GPU {physical_gpu} exposed as cuda:0",
         )
     if os.environ.get("CUBLAS_WORKSPACE_CONFIG") != ":4096:8":
         raise GreenStop(
@@ -2548,7 +2586,7 @@ def verify_freeze(output_root: Path, require_confirmation: bool = False) -> dict
     if not manifest_path.is_file():
         raise GreenStop("17_MANIFEST_FREEZE", "manifest.json missing")
     manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
-    if manifest.get("schema_version") != "green-bridge-manifest-v1.3.5":
+    if manifest.get("schema_version") != "green-bridge-manifest-v1.3.6":
         raise GreenStop("17_MANIFEST_FREEZE", "manifest schema changed")
     run = manifest.get("run", {})
     if (
@@ -2556,7 +2594,7 @@ def verify_freeze(output_root: Path, require_confirmation: bool = False) -> dict
         or run.get("parent_protocol_id") != PARENT_PROTOCOL_ID
         or run.get("protocol_run_id") != PROTOCOL_RUN_ID
     ):
-        raise GreenStop("17_MANIFEST_FREEZE", "v1.3.5 protocol identity changed")
+        raise GreenStop("17_MANIFEST_FREEZE", "v1.3.6 protocol identity changed")
     if manifest.get("prepare_complete") is not True:
         raise GreenStop("17_MANIFEST_FREEZE", "prepare did not complete")
     stopped = output_root / "result.json"
@@ -2583,8 +2621,8 @@ def verify_freeze(output_root: Path, require_confirmation: bool = False) -> dict
         PROJECT_ROOT / "requirements-green-bridge.lock"
     ):
         raise GreenStop("17_MANIFEST_FREEZE", "requirements hash changed after launch")
-    verify_v134_terminal_archive()
-    invariance_path = output_root / "scientific_invariance_v135.json"
+    verify_v135_terminal_archive()
+    invariance_path = output_root / "scientific_invariance_v136.json"
     if not invariance_path.is_file():
         raise GreenStop("17_MANIFEST_FREEZE", "scientific invariance record missing")
     invariance = json.loads(invariance_path.read_text(encoding="utf-8"))
@@ -3065,7 +3103,7 @@ def _mixed_system_v13(
                 elif name == "full": theta_full += contraction
                 else: theta_half += contraction
             direct_common.append(direct_bypass_in_common_frame(
-                values["rich"].D, frame, design["common"]
+                values["rich"].D.T, frame, design["common"]
             ))
             envelope_absolute = gradient_envelope_residual(frame, gradient)["absolute"]
             bounds.append(active_envelope_contraction_bound(
@@ -3326,7 +3364,7 @@ def _run_split_v13(
     return aggregate_cells(tensor_rows, energy_rows, dev_sd=dev_sd)
 
 
-def _run_split_v135_multigpu(
+def _run_split_v136_multigpu(
     records,
     split: str,
     output_root: Path,
@@ -3364,7 +3402,7 @@ def _run_split_v135_multigpu(
         assigned = assignments[worker_index]
         write_json_atomic(worker_root / "assigned_records.json", plan_payload(assigned))
         contract = {
-            "schema_version": "green-bridge-v1.3.5-worker-contract-v1",
+            "schema_version": "green-bridge-v1.3.6-worker-contract-v1",
             "worker_index": worker_index,
             "physical_gpu": physical_gpu,
             "split": split,
@@ -3458,7 +3496,7 @@ def _run_split_v135_multigpu(
     write_parquet(output_root / tensor_name, tensor_rows)
     write_parquet(output_root / energy_name, energy_rows)
     merge_payload = {
-        "schema_version": "green-bridge-v1.3.5-multigpu-merge-v1",
+        "schema_version": "green-bridge-v1.3.6-multigpu-merge-v1",
         "split": split,
         "exact_batch_size": 1,
         "physical_gpus": list(physical_gpus),
@@ -3623,7 +3661,7 @@ def derivative_equivalence_record(
     }
 
 
-def _prepare_exact_batch_one_and_throughput_v135(
+def _prepare_exact_batch_one_and_throughput_v136(
     model,
     tokens,
     suffix_ids,
@@ -3734,7 +3772,7 @@ def _prepare_exact_batch_one_and_throughput_v135(
         raise GreenStop("06E_EXACT_BATCH_ONE", f"repeat: {repeat_invariance}")
 
     plan = {
-        "schema_version": "green-bridge-hardware-batch-plan-v1.3.5",
+        "schema_version": "green-bridge-hardware-batch-plan-v1.3.6",
         "prepare_physical_gpu": 4,
         "worker_physical_gpus": list(range(8)),
         "worker_count": 8,
@@ -3748,7 +3786,7 @@ def _prepare_exact_batch_one_and_throughput_v135(
     }
     write_json_atomic(output_root / "hardware_batch_plan.json", plan)
     batch_payload = {
-        "schema_version": "green-bridge-exact-batch-one-equivalence-v1.3.5",
+        "schema_version": "green-bridge-exact-batch-one-equivalence-v1.3.6",
         "exact_batch_size": 1,
         "batch_one_repeat_invariance": repeat_invariance,
         "batch_one_vs_full_hook": exact_full_records,
@@ -3756,14 +3794,14 @@ def _prepare_exact_batch_one_and_throughput_v135(
         "passed": True,
     }
     write_json_atomic(
-        output_root / "manual_tail_batch_equivalence_v135.json",
+        output_root / "manual_tail_batch_equivalence_v136.json",
         batch_payload,
     )
 
     projected_single = FORWARD_COUNTS["tail_evaluations_total"] * seconds_per_endpoint
     projected_eight = projected_single / 8.0
     throughput = {
-        "schema_version": "green-bridge-tail-throughput-v1.3.5",
+        "schema_version": "green-bridge-tail-throughput-v1.3.6",
         "preflight_record_only": True,
         "fixed_batch_size": fixed,
         "benchmark_endpoints": 64,
@@ -3777,7 +3815,7 @@ def _prepare_exact_batch_one_and_throughput_v135(
         "peak_limit_bytes": memory_limit,
         "passed": projected_eight <= 24.0 * 3600.0,
     }
-    write_json_atomic(output_root / "manual_tail_throughput_v135.json", throughput)
+    write_json_atomic(output_root / "manual_tail_throughput_v136.json", throughput)
     if not throughput["passed"]:
         raise GreenStop("06G_PREPARE_THROUGHPUT", str(throughput))
     return {"plan": plan, "batch": batch_payload, "throughput": throughput}
@@ -3785,7 +3823,7 @@ def _prepare_exact_batch_one_and_throughput_v135(
 
 
 
-def _tail_preflight_v135(
+def _tail_preflight_v136(
     model,
     tokenizer,
     suffix_ids,
@@ -3883,7 +3921,7 @@ def _tail_preflight_v135(
             corrected_endpoints[name] = (manual, full)
 
     legacy_payload = {
-        "schema_version": "green-bridge-tail-root-cause-v1.3.5",
+        "schema_version": "green-bridge-tail-root-cause-v1.3.6",
         "diagnostic_only": True,
         "condition_order": [row[0] for row in conditions],
         "expected_errors": expected_legacy,
@@ -3893,21 +3931,21 @@ def _tail_preflight_v135(
         "active_scientific_endpoint": False,
     }
     write_json_atomic(
-        output_root / "manual_tail_root_cause_reproduction_v135.json",
+        output_root / "manual_tail_root_cause_reproduction_v136.json",
         legacy_payload,
     )
     if legacy_errors != expected_legacy or max(legacy_errors) <= THRESHOLDS.tail_max_abs:
         raise GreenStop("06A_LEGACY_ROOT_CAUSE_REPRODUCTION", str(legacy_payload))
 
     stage_payload = {
-        "schema_version": "green-bridge-tail-stage-trace-v1.3.5",
+        "schema_version": "green-bridge-tail-stage-trace-v1.3.6",
         "records": stage_records,
         "first_divergent_legacy_stage": "unembedding_endpoint",
         "passed": all(
             row["first_divergent_stage"] is None for row in stage_records
         ),
     }
-    write_json_atomic(output_root / "manual_tail_stage_trace_v135.json", stage_payload)
+    write_json_atomic(output_root / "manual_tail_stage_trace_v136.json", stage_payload)
     if not stage_payload["passed"]:
         raise GreenStop("06B_MANUAL_TAIL_STAGE_TRACE", str(stage_payload))
 
@@ -3967,7 +4005,7 @@ def _tail_preflight_v135(
                 raise GreenStop("06D_MANUAL_TAIL_DERIVATIVE", str(derivative_records[-1]))
 
     equivalence_payload = {
-        "schema_version": "green-bridge-tail-equivalence-v1.3.5",
+        "schema_version": "green-bridge-tail-equivalence-v1.3.6",
         "quantity": "raw_100_dimensional_year_logits",
         "threshold": THRESHOLDS.tail_max_abs,
         "original_conditions": raw_records,
@@ -3975,15 +4013,15 @@ def _tail_preflight_v135(
         "center_retained": True,
         "passed": True,
     }
-    write_json_atomic(output_root / "manual_tail_equivalence_v135.json", equivalence_payload)
+    write_json_atomic(output_root / "manual_tail_equivalence_v136.json", equivalence_payload)
     derivative_payload = {
-        "schema_version": "green-bridge-tail-derivative-v1.3.5",
+        "schema_version": "green-bridge-tail-derivative-v1.3.6",
         "estimator": "central_finite_difference",
         "records": derivative_records,
         "near_zero_not_silently_dropped": True,
         "passed": True,
     }
-    write_json_atomic(output_root / "manual_tail_derivative_v135.json", derivative_payload)
+    write_json_atomic(output_root / "manual_tail_derivative_v136.json", derivative_payload)
 
     target_anchor = TargetAnchor(
         resid_mid=anchor.resid_mid,
@@ -4019,15 +4057,15 @@ def _tail_preflight_v135(
             if metrics["max_abs"] > THRESHOLDS.tail_max_abs:
                 raise GreenStop("06F_PATH_TARGET_RAW", str(target_records[-1]))
     target_payload = {
-        "schema_version": "green-bridge-path-target-equivalence-v1.3.5",
+        "schema_version": "green-bridge-path-target-equivalence-v1.3.6",
         "mode": "joint",
         "subtract_residual_bypass": True,
         "code_isolated": True,
         "records": target_records,
         "passed": True,
     }
-    write_json_atomic(output_root / "path_target_equivalence_v135.json", target_payload)
-    hardware = _prepare_exact_batch_one_and_throughput_v135(
+    write_json_atomic(output_root / "path_target_equivalence_v136.json", target_payload)
+    hardware = _prepare_exact_batch_one_and_throughput_v136(
         model,
         clean_tokens,
         suffix_ids,
@@ -4063,7 +4101,7 @@ def _duplicate_noise_v13(model, tokenizer, suffix_ids, records, device: str) -> 
 def prepare(output_root: Path, device: str) -> None:
     repository = assert_clean_repository()
     assert_empty_prepare_root(output_root)
-    predecessor_archive = verify_v134_terminal_archive()
+    predecessor_archive = verify_v135_terminal_archive()
     environment = configure_runtime(device)
     from transformers import AutoTokenizer
     tokenizer = AutoTokenizer.from_pretrained(MODEL_ID, revision=MODEL_REVISION)
@@ -4088,8 +4126,8 @@ def prepare(output_root: Path, device: str) -> None:
     current_scientific_hash = sha256_text(canonical_json(current_scientific_payload))
     parent_scientific_hash = parent_scientific["scientific_sha256"]
     invariance = {
-        "parent_schema": "green-bridge-v1.3.4",
-        "current_schema": "green-bridge-v1.3.5",
+        "parent_schema": "green-bridge-v1.3.5",
+        "current_schema": "green-bridge-v1.3.6",
         "scientific_payload_equal": (
             parent_scientific.get("scientific_payload") == current_scientific_payload
             and parent_scientific_hash == current_scientific_hash
@@ -4109,9 +4147,10 @@ def prepare(output_root: Path, device: str) -> None:
             "deterministic record sharding across eight physical GPUs",
             "explicit insufficient-survival terminal decision",
             "correct GateIdentification/GateJet response pairing",
+            "correct direct-bypass matrix orientation",
         ],
     }
-    write_json_atomic(output_root / "scientific_invariance_v135.json", invariance)
+    write_json_atomic(output_root / "scientific_invariance_v136.json", invariance)
     if not invariance["scientific_payload_equal"]:
         raise GreenStop("00B_V133_IDENTITY", str(invariance))
     evaluation_payload = plan_payload(evaluation)
@@ -4205,7 +4244,7 @@ def prepare(output_root: Path, device: str) -> None:
             f"coefficient hash {coefficient_hash} != {FIRST_ORDER_COEFFICIENT_SHA256}",
         )
     _atomic_np_save(output_root / "first_order_coefficients.npy", coefficients)
-    tail_result = _tail_preflight_v135(
+    tail_result = _tail_preflight_v136(
         model, tokenizer, suffix_ids, preflight_record, device,
         output_root, preflight_design,
     )
@@ -4223,18 +4262,18 @@ def prepare(output_root: Path, device: str) -> None:
         "run_ledger.json", "model_fingerprint.json", "splits.json",
         "development_splits.json", "gate04_legacy_panel.json",
         "hook_audit.json", "structural_frame_preflight.json",
-        "first_order_coefficients.npy", "scientific_invariance_v135.json",
-        "manual_tail_root_cause_reproduction_v135.json",
-        "manual_tail_stage_trace_v135.json",
-        "manual_tail_equivalence_v135.json",
-        "manual_tail_derivative_v135.json",
-        "manual_tail_batch_equivalence_v135.json",
-        "path_target_equivalence_v135.json", "hardware_batch_plan.json",
-        "manual_tail_throughput_v135.json", "tail_audit.json",
+        "first_order_coefficients.npy", "scientific_invariance_v136.json",
+        "manual_tail_root_cause_reproduction_v136.json",
+        "manual_tail_stage_trace_v136.json",
+        "manual_tail_equivalence_v136.json",
+        "manual_tail_derivative_v136.json",
+        "manual_tail_batch_equivalence_v136.json",
+        "path_target_equivalence_v136.json", "hardware_batch_plan.json",
+        "manual_tail_throughput_v136.json", "tail_audit.json",
         "prepare_result.json",
     )
     prepare_result = {
-        "schema_version": "green-bridge-prepare-v1.3.5",
+        "schema_version": "green-bridge-prepare-v1.3.6",
         "verdict": "PREPARE_PASS",
         "first_failed_gate": None,
         "development_started": False,
@@ -4242,7 +4281,7 @@ def prepare(output_root: Path, device: str) -> None:
     }
     write_json_atomic(output_root / "prepare_result.json", prepare_result)
     manifest = {
-        "schema_version": "green-bridge-manifest-v1.3.5",
+        "schema_version": "green-bridge-manifest-v1.3.6",
         "execution_commit": repository["commit"],
         "review_commit": REVIEW_COMMIT,
         "repository": {
@@ -4264,7 +4303,7 @@ def prepare(output_root: Path, device: str) -> None:
             "phase_all_allowed": False,
         },
         "binding_decision": {
-            "document": "analysis/CODEX_GREEN_V135_GATEJET_RESPONSE_PAIRING_DECISION_20260825.md",
+            "document": "analysis/CODEX_GREEN_V136_DIRECT_BYPASS_ORIENTATION_DECISION_20260825.md",
             "fixed_rank_donor_pca_terminated": True,
             "rank_search_allowed": False, "donor_basis_allowed": False,
             "spectral_filter_allowed": False, "learned_alignment_allowed": False,
@@ -4364,7 +4403,7 @@ def development_phase(output_root: Path, device: str) -> None:
     del tokenizer, model, plain, design
     gc.collect()
     torch_module().cuda.empty_cache()
-    payload, dev_sd = _run_split_v135_multigpu(
+    payload, dev_sd = _run_split_v136_multigpu(
         development, "development", output_root, epsilon_y
     )
     write_json_atomic(output_root / "dev_cells.json", payload)
@@ -4453,7 +4492,7 @@ def confirmation_phase(output_root: Path, device: str) -> None:
     del tokenizer, model, plain, design
     gc.collect()
     torch_module().cuda.empty_cache()
-    payload, _ = _run_split_v135_multigpu(
+    payload, _ = _run_split_v136_multigpu(
         confirmation,
         "confirmation",
         output_root,
@@ -4480,7 +4519,7 @@ def confirmation_phase(output_root: Path, device: str) -> None:
         )
     else:
         result["first_failed_gate"] = None
-    result["schema_version"] = "green-bridge-terminal-v1.3.5"
+    result["schema_version"] = "green-bridge-terminal-v1.3.6"
     write_json_atomic(output_root / "result.json", result)
     manifest["confirmation_complete"] = True
     for name in (
