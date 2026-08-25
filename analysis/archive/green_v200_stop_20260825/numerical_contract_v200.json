@@ -1,0 +1,8 @@
+{
+  "coarse_fine_overlap_diagnostic_only": true,
+  "contract": "dual-route-ad-certified-fine-richardson-v1",
+  "dual_route_ad_certification": true,
+  "fine_richardson_point_estimator": true,
+  "outward_rounded_intervals": true,
+  "schema_version": "green-bridge-numerical-contract-v2.0.0"
+}

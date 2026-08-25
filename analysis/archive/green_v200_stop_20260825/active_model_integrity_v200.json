@@ -1,0 +1,12 @@
+{
+  "active_model_buffer_hash_after": "617dda81bb5569dfa93b71725be9f176ca5bb425fbb7fcbd25f6476e81c643fc",
+  "active_model_buffer_hash_before": "617dda81bb5569dfa93b71725be9f176ca5bb425fbb7fcbd25f6476e81c643fc",
+  "active_model_config_hash_after": "5cd63ce190f238a6fda805a93e21cd68140a3103304ab7cb31436cf2130dac9e",
+  "active_model_config_hash_before": "5cd63ce190f238a6fda805a93e21cd68140a3103304ab7cb31436cf2130dac9e",
+  "active_model_parameter_hash_after": "1cdd1919af3f5cf88d298c9440d92529ec4460d187a177f7e737578eb4973b15",
+  "active_model_parameter_hash_before": "1cdd1919af3f5cf88d298c9440d92529ec4460d187a177f7e737578eb4973b15",
+  "active_model_unchanged": true,
+  "ad_local_cfg_dtype": "float64",
+  "ad_local_parameter_dtype": "float64",
+  "scientific_model_dtype": "float32"
+}

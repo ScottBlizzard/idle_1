@@ -1,0 +1,9 @@
+{
+  "attempt_index": 1,
+  "confirmation_started": false,
+  "development_started": false,
+  "first_failed_gate": null,
+  "retry_allowed": false,
+  "schema_version": "green-bridge-prepare-v2.0.0",
+  "verdict": "PREPARE_PASS"
+}

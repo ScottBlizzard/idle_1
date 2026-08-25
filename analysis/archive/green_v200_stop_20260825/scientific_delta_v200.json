@@ -1,0 +1,35 @@
+{
+  "all_invariants_equal": true,
+  "authorized_change_count": 10,
+  "authorized_changes": [
+    "fixed quarter-radius GateJet evaluation",
+    "fine Richardson estimator remains the immutable point estimator",
+    "dual-route float64 AD numerical certification",
+    "isolated AD tail leaves the scientific model unchanged",
+    "proof-derived factorization and white-box admissibility",
+    "coarse-fine overlap is diagnostic only",
+    "unresolved-bounded and structural-contradiction gate classes",
+    "all-ten outward-rounded interval accounting",
+    "fresh split drawn only from unopened v1.3.6 confirmation groups",
+    "development-selected confirmation baseline is frozen"
+  ],
+  "invariant_checks": {
+    "active_and_null_rules": true,
+    "base_radii": true,
+    "bootstrap": true,
+    "endpoint_batch_size_one": true,
+    "frame_dimensions": true,
+    "frozen_sites": true,
+    "materiality_and_snr": true,
+    "model_and_revision": true,
+    "no_pseudoinverse_ridge_or_donor_pca": true,
+    "scientific_forward_dtype": true,
+    "ten_selected_gates": true,
+    "transformer_lens_commit": true
+  },
+  "parent_protocol_id": "structural-envelope-matched-bypass-v1.3.6",
+  "passed": true,
+  "protocol_id": "structural-envelope-matched-bypass-setid-v2.0.0",
+  "schema_version": "green-bridge-scientific-delta-v2.0.0",
+  "unauthorized_changes": []
+}

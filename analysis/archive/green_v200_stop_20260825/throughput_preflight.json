@@ -1,0 +1,92 @@
+{
+  "active_model_unchanged": true,
+  "ad_certification_seconds": 196.4725738499692,
+  "ad_gate_system_certificates_executed": 160,
+  "ad_gatejet_routes_executed": 320,
+  "analysis_seconds": 3.411702122859424,
+  "benchmark_elapsed_seconds": 328.85516082899994,
+  "confirmation_seconds": 986.5654824869998,
+  "development_seconds": 328.85516082899994,
+  "energy_items_executed": 8,
+  "finite_difference_seconds": 128.97088485617132,
+  "lower_precision_fallback": false,
+  "operation_counts": {
+    "ad_derivative_objects_per_route": 5,
+    "ad_routes_per_gate_system": 2,
+    "confirmation_ad_gate_system_certificates": 3840,
+    "confirmation_ad_gatejet_routes": 7680,
+    "confirmation_effective_units": 1007520,
+    "confirmation_top_level_ad_derivative_calls": 38400,
+    "conservative_units_total": 1351680,
+    "development_ad_gate_system_certificates": 1280,
+    "development_ad_gatejet_routes": 2560,
+    "development_effective_units": 335840,
+    "development_top_level_ad_derivative_calls": 12800,
+    "effective_units_total": 1343360,
+    "energy_items_total": 256,
+    "energy_tail_total": 3840,
+    "factorial_per_tensor_item": 16,
+    "first_order_per_tensor_item": 2082,
+    "first_order_residual_directions": 250,
+    "full_model_evaluations_total": 1664,
+    "jvp_invocations_total": 768,
+    "mixed_per_tensor_item": 3122,
+    "prepare_ad_gate_system_certificates": 40,
+    "prepare_ad_gatejet_routes": 80,
+    "prepare_top_level_ad_derivative_calls": 400,
+    "raw_invocations_total": 1342592,
+    "tail_evaluations_total": 1340160,
+    "tensor_item_unique_calls": 5220,
+    "tensor_items_total": 256,
+    "tensor_tail_total": 1336320,
+    "total_ad_gate_system_certificates": 5160,
+    "total_ad_gatejet_routes": 10320,
+    "total_top_level_ad_derivative_calls": 51600
+  },
+  "passed": true,
+  "peak_allocated_bytes": 8007553024,
+  "peak_allocated_gib": 7.457614898681641,
+  "prepare_seconds": 52.52984558535172,
+  "radius_fallback": false,
+  "records": 8,
+  "reduced_gate_fallback": false,
+  "schema_version": "green-bridge-throughput-preflight-v2.0.0",
+  "selected_projection_fallback": false,
+  "selected_records": [
+    {
+      "distance_bin": "near",
+      "pair_digest": "028a411e72cfd51e5b3641a2f2e54350edfdf6a309d06312b71da2c29253c375"
+    },
+    {
+      "distance_bin": "near",
+      "pair_digest": "026c678de8ddbedba78b23c4e85f61a16569216c7df6446529d67d8743501a1b"
+    },
+    {
+      "distance_bin": "near",
+      "pair_digest": "00dfae4588d8888ab5bbabddc6329f07bc2330e79668807fb2669656935d2a00"
+    },
+    {
+      "distance_bin": "near",
+      "pair_digest": "00aec3934febf43dc93e08294855bc146a98fafdb90fce8ee80fa34ba89c3d65"
+    },
+    {
+      "distance_bin": "far",
+      "pair_digest": "002a2fbad54506028437d725504c9bb847c5e250f058ff4f2e8c0caca81fa782"
+    },
+    {
+      "distance_bin": "far",
+      "pair_digest": "0041071dd78c0bd21101943a19e67b2f4c55e06e07152a35c7f81a5e0a173439"
+    },
+    {
+      "distance_bin": "far",
+      "pair_digest": "01f52277e183764d3c54824495923ec3b7c882a69a38c0471d755d66188a3409"
+    },
+    {
+      "distance_bin": "far",
+      "pair_digest": "02bd41f2c6be11b8eea942825e5aa201a2da71213e1ceb29da6774c2071f6f86"
+    }
+  ],
+  "selection_salt": "green-v200-corrigendum-throughput",
+  "tensor_items_executed": 8,
+  "total_seconds": 1367.9504889013515
+}

@@ -1,0 +1,54 @@
+{
+  "cells": [
+    {
+      "cell_id": "dynasty|12|far",
+      "n_energy": 8,
+      "n_tensor": 0,
+      "survived": false
+    },
+    {
+      "cell_id": "dynasty|12|near",
+      "n_energy": 8,
+      "n_tensor": 0,
+      "survived": false
+    },
+    {
+      "cell_id": "dynasty|16|far",
+      "n_energy": 8,
+      "n_tensor": 0,
+      "survived": false
+    },
+    {
+      "cell_id": "dynasty|16|near",
+      "n_energy": 8,
+      "n_tensor": 0,
+      "survived": false
+    },
+    {
+      "cell_id": "reign|14|far",
+      "n_energy": 8,
+      "n_tensor": 0,
+      "survived": false
+    },
+    {
+      "cell_id": "reign|14|near",
+      "n_energy": 8,
+      "n_tensor": 0,
+      "survived": false
+    },
+    {
+      "cell_id": "warfare|14|far",
+      "n_energy": 8,
+      "n_tensor": 0,
+      "survived": false
+    },
+    {
+      "cell_id": "warfare|14|near",
+      "n_energy": 8,
+      "n_tensor": 0,
+      "survived": false
+    }
+  ],
+  "conditioning_dev_sd": 0.0,
+  "schema_version": "green-bridge-cell-setid-v2.0.0"
+}

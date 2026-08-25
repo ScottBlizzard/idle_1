@@ -1,0 +1,82 @@
+{
+  "schema_version": "green-bridge-v2.0.0-postmortem-diagnostic-v1",
+  "status": "read-only-postmortem-not-an-official-protocol-result",
+  "official_execution": {
+    "protocol_identity": "green-bridge-v2.0.0-one-shot",
+    "execution_commit": "e52e082296c33a10557636706e572147136fce34",
+    "formal_server_root": "/mnt/sdb/ccj/iclr_1_runs/idle_1_green_bridge_v200_f99626f/outputs/green_bridge_v200",
+    "verdict": "STOP_ORAL",
+    "phase": "development",
+    "first_failed_gate": "12_DEVELOPMENT_SURVIVAL",
+    "confirmation_open": false,
+    "confirmation_started": false,
+    "confirmation_complete": false
+  },
+  "official_development_counts": {
+    "tensor_records": 64,
+    "energy_records": 64,
+    "development_cells": 8,
+    "surviving_cells": 0,
+    "conditioned_cells": 0,
+    "set_snr_cells": 0,
+    "tensor_set_admissible_records": 0,
+    "tensor_point_complete_records": 55,
+    "energy_admissible_records": 64
+  },
+  "read_only_certificate_audit": {
+    "gate_system_rows": 1280,
+    "active_identified": 7,
+    "certified_target_null": 1262,
+    "unresolved_bounded": 11,
+    "numerical_invalid": 0,
+    "structural_contradiction": 0,
+    "route_failures": 0,
+    "theorem_failures": 0,
+    "whitebox_coordinate_failures": 0,
+    "system_records": 128,
+    "systems_with_zero_active_gates": 121,
+    "systems_with_one_active_gate": 7,
+    "systems_with_at_least_three_active_gates": 0,
+    "inverse_nonactive_active_condition_failures": {
+      "curvature_snr": 1163,
+      "response_snr": 22,
+      "materiality": 0
+    },
+    "available_null_bound_count": 1273,
+    "available_null_bound_quantiles": {
+      "min": 1.483457366809733e-08,
+      "q25": 5.49505125509586e-05,
+      "median": 0.0001819193651067195,
+      "q75": 0.0004964123839007782,
+      "q90": 0.0013541111023903445,
+      "q95": 0.0024500351339437057,
+      "q99": 0.004710984123913554,
+      "max": 0.006831456038278738
+    }
+  },
+  "non_protocol_counterfactual": {
+    "warning": "Diagnostic only. It did not alter, rerun, or relabel the official one-shot.",
+    "intervention": "Temporarily count every complete tensor interval as admissible in memory while retaining the observed interval values.",
+    "surviving_cells": 8,
+    "conditioned_cells": 8,
+    "set_snr_cells_at_threshold_3": 0,
+    "per_cell_interval_snr": 1.0,
+    "mixed_midpoint_rmse": 0.004746674288442684,
+    "mixed_worst_rmse": 0.010643813119989697,
+    "best_baseline_loocv_rmse": 0.0008111058675662651,
+    "robust_relative_gain": -12.122594158918629
+  },
+  "interpretation_boundary": {
+    "supported": [
+      "The official stop is not explained by AD route failure, theorem failure, structural contradiction, numerical invalidity, or active-model mutation.",
+      "The immediate official failure is that no tensor record is set-admissible because no system reaches the required three active gates.",
+      "Even the deliberately permissive diagnostic bypass does not recover the preregistered set-SNR or development performance gates."
+    ],
+    "not_supported_without_a_new_pro_reviewed_protocol": [
+      "Changing thresholds or active-gate counts after seeing development.",
+      "Opening confirmation.",
+      "Retrying or relabeling the v2.0.0 one-shot.",
+      "Claiming that the matched-bypass theory itself is falsified without separating target scale, aggregation, and proof-conservatism hypotheses."
+    ]
+  }
+}

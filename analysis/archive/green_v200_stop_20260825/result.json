@@ -1,0 +1,16 @@
+{
+  "baseline_calibration": {},
+  "best_baseline": null,
+  "best_baseline_loocv_rmse": null,
+  "first_failed_gate": "12_DEVELOPMENT_SURVIVAL",
+  "mixed_midpoint_rmse_diagnostic": null,
+  "mixed_worst_rmse": null,
+  "n_conditioned_cells": 0,
+  "n_snr_cells": 0,
+  "n_surviving_cells": 0,
+  "phase": "development",
+  "robust_relative_gain": null,
+  "schema_version": "green-bridge-terminal-v2.0.0",
+  "spec_sha256": "405f6a0a2f42c6dc08a89d8c7360931bfa39862cc6386f98fbe85daa653e10b9",
+  "verdict": "STOP_ORAL"
+}
