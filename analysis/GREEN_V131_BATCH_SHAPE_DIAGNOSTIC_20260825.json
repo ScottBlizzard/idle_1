@@ -1,0 +1,293 @@
+{
+  "environment": {
+    "cublas_workspace_config": ":4096:8",
+    "cuda": "12.6",
+    "cuda_matmul_allow_tf32": false,
+    "cudnn_allow_tf32": false,
+    "deterministic_algorithms_enabled": true,
+    "device_name": "NVIDIA GeForce RTX 4090",
+    "float32_matmul_precision": "highest",
+    "packages": {
+      "numpy": "2.2.6",
+      "pandas": "2.2.3",
+      "pyarrow": "19.0.1",
+      "scipy": "1.15.3",
+      "threadpoolctl": "3.6.0",
+      "torch": "2.7.1+cu126",
+      "transformer-lens": "3.6.0",
+      "transformers": "5.13.0"
+    },
+    "platform": "Linux-5.15.0-67-generic-x86_64-with-glibc2.31",
+    "python": "3.11.13 (main, Jun  5 2025, 13:12:00) [GCC 11.2.0]",
+    "thread_environment": {
+      "BLIS_NUM_THREADS": "1",
+      "MKL_NUM_THREADS": "1",
+      "NUMEXPR_NUM_THREADS": "1",
+      "OMP_NUM_THREADS": "1",
+      "OPENBLAS_NUM_THREADS": "1",
+      "VECLIB_MAXIMUM_THREADS": "1"
+    },
+    "transformer_lens_source_sha256": {
+      "HookedRootModule.py": "e7144971a973ec2d63bf7400db6443caba5d03f22f310f6789d52fa4a56ad245",
+      "HookedTransformer.py": "f80ee1ec42039a287a2b9366c75f98eec23ff33c6e941ffeee03f0374eb20af3",
+      "components/mlps/mlp.py": "615cb178d3ce65d8784af18dec86fbfe2b3957ddc02d3b99bdd2d45aa6759b32",
+      "components/unembed.py": "efde00edc62c521c4da216266ea698876b46df6aa8bc3b0632cfe929dbfdce6f",
+      "utilities/addmm.py": "f9e72f6a3d6c508814fa8e69918c20e1cb72cbc9ae7bcb1a1abb2476e246bc38"
+    }
+  },
+  "fixed_shape_padding_panel": {
+    "batch": 512,
+    "identical_fixed_shape_repeat": {
+      "bitwise_equal": true,
+      "max_abs": 0.0,
+      "rms": 0.0,
+      "shape": [
+        512,
+        100
+      ]
+    },
+    "zero_row_with_diverse_padding_vs_zero_row_with_zero_padding": {
+      "bitwise_equal": true,
+      "max_abs": 0.0,
+      "rms": 0.0,
+      "shape": [
+        1,
+        100
+      ]
+    }
+  },
+  "frozen_v131_root_modified": false,
+  "interpretation": "Cross-shape GEMM changes float32 outputs; a fixed padded batch keeps the operation graph invariant without changing scientific endpoints.",
+  "manual_batch_panel": [
+    {
+      "batch": 512,
+      "elapsed_seconds": 0.020950214006006718,
+      "peak_allocated_bytes": 2763337728,
+      "versus_batch_one": {
+        "bitwise_equal": false,
+        "max_abs": 0.000213623046875,
+        "rms": 8.455902711485236e-05,
+        "shape": [
+          512,
+          100
+        ]
+      }
+    },
+    {
+      "batch": 256,
+      "elapsed_seconds": 0.018431851000059396,
+      "peak_allocated_bytes": 1805531136,
+      "versus_batch_one": {
+        "bitwise_equal": false,
+        "max_abs": 0.0002288818359375,
+        "rms": 8.352009389284673e-05,
+        "shape": [
+          256,
+          100
+        ]
+      }
+    },
+    {
+      "batch": 128,
+      "elapsed_seconds": 0.014044966999790631,
+      "peak_allocated_bytes": 1326612992,
+      "versus_batch_one": {
+        "bitwise_equal": false,
+        "max_abs": 0.000244140625,
+        "rms": 8.397880801890267e-05,
+        "shape": [
+          128,
+          100
+        ]
+      }
+    },
+    {
+      "batch": 64,
+      "elapsed_seconds": 0.005786391993751749,
+      "peak_allocated_bytes": 1085334016,
+      "versus_batch_one": {
+        "bitwise_equal": false,
+        "max_abs": 0.0002288818359375,
+        "rms": 8.377061298407473e-05,
+        "shape": [
+          64,
+          100
+        ]
+      }
+    },
+    {
+      "batch": 32,
+      "elapsed_seconds": 0.004204780998406932,
+      "peak_allocated_bytes": 969020416,
+      "versus_batch_one": {
+        "bitwise_equal": false,
+        "max_abs": 0.0001983642578125,
+        "rms": 8.347826761834674e-05,
+        "shape": [
+          32,
+          100
+        ]
+      }
+    },
+    {
+      "batch": 16,
+      "elapsed_seconds": 0.004372562005301006,
+      "peak_allocated_bytes": 904506880,
+      "versus_batch_one": {
+        "bitwise_equal": false,
+        "max_abs": 0.000213623046875,
+        "rms": 8.461407857062849e-05,
+        "shape": [
+          16,
+          100
+        ]
+      }
+    },
+    {
+      "batch": 8,
+      "elapsed_seconds": 0.0037818369892193004,
+      "peak_allocated_bytes": 877526016,
+      "versus_batch_one": {
+        "bitwise_equal": false,
+        "max_abs": 0.0002288818359375,
+        "rms": 8.471033253040777e-05,
+        "shape": [
+          8,
+          100
+        ]
+      }
+    },
+    {
+      "batch": 4,
+      "elapsed_seconds": 0.003999653999926522,
+      "peak_allocated_bytes": 859530752,
+      "versus_batch_one": {
+        "bitwise_equal": false,
+        "max_abs": 0.0002288818359375,
+        "rms": 8.332472498459501e-05,
+        "shape": [
+          4,
+          100
+        ]
+      }
+    },
+    {
+      "batch": 2,
+      "elapsed_seconds": 0.0036337860074127093,
+      "peak_allocated_bytes": 852056576,
+      "versus_batch_one": {
+        "bitwise_equal": false,
+        "max_abs": 0.0001678466796875,
+        "rms": 4.7005986940763437e-05,
+        "shape": [
+          2,
+          100
+        ]
+      }
+    },
+    {
+      "batch": 1,
+      "elapsed_seconds": 0.0034506309893913567,
+      "peak_allocated_bytes": 848319488,
+      "versus_batch_one": {
+        "bitwise_equal": true,
+        "max_abs": 0.0,
+        "rms": 0.0,
+        "shape": [
+          1,
+          100
+        ]
+      }
+    }
+  ],
+  "projected_tail_seconds_at_fixed_512": 65.88842304889113,
+  "record_digest": "000314403c0726b1f1dca388a4a133dc38fb002f00e992b6f1efd02f21022eaa",
+  "same_shape_manual_full_panel": [
+    {
+      "batch": 64,
+      "manual_vs_full_same_shape": {
+        "bitwise_equal": false,
+        "max_abs": 9.1552734375e-05,
+        "rms": 3.899210308587841e-05,
+        "shape": [
+          64,
+          100
+        ]
+      }
+    },
+    {
+      "batch": 32,
+      "manual_vs_full_same_shape": {
+        "bitwise_equal": false,
+        "max_abs": 4.57763671875e-05,
+        "rms": 1.875031391516801e-05,
+        "shape": [
+          32,
+          100
+        ]
+      }
+    },
+    {
+      "batch": 16,
+      "manual_vs_full_same_shape": {
+        "bitwise_equal": false,
+        "max_abs": 7.62939453125e-05,
+        "rms": 3.1604484828503385e-05,
+        "shape": [
+          16,
+          100
+        ]
+      }
+    },
+    {
+      "batch": 8,
+      "manual_vs_full_same_shape": {
+        "bitwise_equal": false,
+        "max_abs": 4.57763671875e-05,
+        "rms": 2.05852318774903e-05,
+        "shape": [
+          8,
+          100
+        ]
+      }
+    },
+    {
+      "batch": 4,
+      "manual_vs_full_same_shape": {
+        "bitwise_equal": false,
+        "max_abs": 9.1552734375e-05,
+        "rms": 5.3645006809225295e-05,
+        "shape": [
+          4,
+          100
+        ]
+      }
+    },
+    {
+      "batch": 2,
+      "manual_vs_full_same_shape": {
+        "bitwise_equal": false,
+        "max_abs": 7.62939453125e-05,
+        "rms": 4.618147567877672e-05,
+        "shape": [
+          2,
+          100
+        ]
+      }
+    },
+    {
+      "batch": 1,
+      "manual_vs_full_same_shape": {
+        "bitwise_equal": true,
+        "max_abs": 0.0,
+        "rms": 0.0,
+        "shape": [
+          1,
+          100
+        ]
+      }
+    }
+  ],
+  "schema_version": "green-bridge-v1.3.1-batch-diagnostic-v1",
+  "source_execution_commit": "67bd92c72057db48642280dd28ef2fa9b03c0cac"
+}

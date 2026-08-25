@@ -135,12 +135,23 @@ def capture_tail_anchor(
 class GreenBridgeTail:
     """Continue exactly from cached block-10 ``resid_mid`` anchors."""
 
-    def __init__(self, model, residual_basis, suffix_token_ids, selected_gates=SELECTED_GATES):
+    def __init__(
+        self,
+        model,
+        residual_basis,
+        suffix_token_ids,
+        selected_gates=SELECTED_GATES,
+        *,
+        fixed_batch_size: int | None = None,
+    ):
         torch = _torch()
         self.model = model
         self.U = residual_basis
         self.suffix_ids = suffix_token_ids
         self.gates = tuple(int(gate) for gate in selected_gates)
+        self.fixed_batch_size = fixed_batch_size
+        if fixed_batch_size is not None and int(fixed_batch_size) < 1:
+            raise ValueError("fixed_batch_size must be positive")
         if tuple(self.U.shape) != (model.cfg.d_model, PROBE_FRAME_DIM):
             raise ValueError(
                 f"legacy coordinate frame must have shape [768,{PROBE_FRAME_DIM}], got {self.U.shape}"
@@ -192,6 +203,15 @@ class GreenBridgeTail:
         subtract_residual_bypass: bool = False,
     ):
         """Evaluate an intervention expressed directly in residual coordinates."""
+        if self.fixed_batch_size is not None:
+            return self._evaluate_physical_fixed_batch(
+                anchor,
+                residual_delta,
+                z,
+                mode=mode,
+                gate_slot=gate_slot,
+                subtract_residual_bypass=subtract_residual_bypass,
+            )
         logits, _ = self._evaluate_physical_core(
             anchor,
             residual_delta,
@@ -202,6 +222,76 @@ class GreenBridgeTail:
             return_trace=False,
         )
         return logits
+
+    def _slice_anchor(self, anchor: TailAnchor, index):
+        def select(value):
+            return None if value is None else value.index_select(0, index)
+        return TailAnchor(
+            resid_mid=select(anchor.resid_mid),
+            pre=select(anchor.pre),
+            post=select(anchor.post),
+            resid_post=select(anchor.resid_post),
+            year_logits=select(anchor.year_logits),
+            final_positions=select(anchor.final_positions),
+            system=anchor.system,
+            mlp8_out=select(anchor.mlp8_out),
+        )
+
+    def _evaluate_physical_fixed_batch(
+        self,
+        anchor: TailAnchor,
+        residual_delta,
+        z,
+        *,
+        mode: TailMode,
+        gate_slot: int | None,
+        subtract_residual_bypass: bool,
+    ):
+        """Run every scientific tail endpoint with one padded operation shape."""
+        torch = _torch()
+        fixed = int(self.fixed_batch_size)
+        batch = int(anchor.resid_mid.shape[0])
+        if int(residual_delta.shape[0]) != batch or int(z.shape[0]) != batch:
+            raise ValueError("fixed-batch inputs must share the anchor batch dimension")
+        outputs = []
+        for start in range(0, batch, fixed):
+            stop = min(start + fixed, batch)
+            count = stop - start
+            actual_index = torch.arange(
+                start, stop, dtype=torch.long, device=anchor.resid_mid.device
+            )
+            part_anchor = self._slice_anchor(anchor, actual_index)
+            part_delta = residual_delta[start:stop]
+            part_z = z[start:stop]
+            if count < fixed:
+                pad_index = torch.cat((
+                    torch.arange(count, device=anchor.resid_mid.device),
+                    torch.zeros(fixed - count, dtype=torch.long, device=anchor.resid_mid.device),
+                ))
+                part_anchor = self._slice_anchor(part_anchor, pad_index)
+                delta_padding = torch.zeros(
+                    (fixed - count, *part_delta.shape[1:]),
+                    dtype=part_delta.dtype,
+                    device=part_delta.device,
+                )
+                z_padding = torch.zeros(
+                    (fixed - count, *part_z.shape[1:]),
+                    dtype=part_z.dtype,
+                    device=part_z.device,
+                )
+                part_delta = torch.cat((part_delta, delta_padding), dim=0)
+                part_z = torch.cat((part_z, z_padding), dim=0)
+            logits, _ = self._evaluate_physical_core(
+                part_anchor,
+                part_delta,
+                part_z,
+                mode=mode,
+                gate_slot=gate_slot,
+                subtract_residual_bypass=subtract_residual_bypass,
+                return_trace=False,
+            )
+            outputs.append(logits[:count])
+        return torch.cat(outputs, dim=0)
 
     def evaluate_physical_with_trace(
         self,

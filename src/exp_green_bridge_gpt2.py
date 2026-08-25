@@ -69,6 +69,7 @@ from green_bridge_spec import (
     THRESHOLDS,
     TAIL_DERIVATIVE_REFERENCE_NORM_FLOOR,
     TAIL_EQUIVALENCE_OUTPUT_DIM,
+    TAIL_FIXED_BATCH_SIZE,
     TRANSFORMER_LENS_COMMIT,
     canonical_json,
     frozen_spec_hash,
@@ -135,6 +136,7 @@ SOURCE_FILES = (
     "src/test_green_bridge_contract.py",
     "src/launch_green_bridge.sh",
     "src/launch_green_bridge_v131.sh",
+    "src/launch_green_bridge_v132.sh",
 )
 PROTOCOL_FILES = (
     "analysis/GPTPRO_GREEN_BRIDGE_20260805.md",
@@ -149,6 +151,9 @@ PROTOCOL_FILES = (
     "analysis/GPTPRO_GREEN_V13_MANUAL_TAIL_DECISION_20260825.md",
     "analysis/archive/green_v13_stop_20260825/archive_manifest.json",
     "analysis/archive/green_v13_stop_20260825/green_bridge_v13_prepare.log",
+    "analysis/GREEN_SERVER_V131_PREPARE_STOP_20260825.md",
+    "analysis/GREEN_V131_BATCH_SHAPE_DIAGNOSTIC_20260825.json",
+    "analysis/CODEX_GREEN_V132_BATCH_SHAPE_DECISION_20260825.md",
     "requirements-green-bridge.lock",
 )
 EXPECTED_PACKAGES = {
@@ -187,9 +192,9 @@ FORWARD_COUNTS = {
     "development_effective_units": 538_336,
     "confirmation_effective_units": 1_076_288,
 }
-REVIEW_COMMIT = "b8b5f7b509abda310f3e2414e0552a644a12b4bf"
+REVIEW_COMMIT = "67bd92c72057db48642280dd28ef2fa9b03c0cac"
 GATE04_ORDERED_PROMPT_HASH = "619d21c10d4f30e6ce2597c3ba4df1de72cf0cb4f6cce322d82c2d3ec62803ce"
-ACTIVE_MANUAL_TAIL_BATCH_SIZE = 512
+ACTIVE_MANUAL_TAIL_BATCH_SIZE = TAIL_FIXED_BATCH_SIZE
 
 
 class GreenStop(RuntimeError):
@@ -212,9 +217,21 @@ V13_TERMINAL_HASHES = {
     "analysis/archive/green_v13_stop_20260825/green_bridge_v13_prepare.log": "28c2788da0477b5c95c4498d70a9a4183f2188419dbca6e5f4725b60d5dc8e52",
 }
 
+V131_TERMINAL_HASHES = {
+    "outputs/green_bridge_v131/result.json": "e911860ea406e6b38d7dc475dffd500dde68044185c11e0bc7be605f899ebbbf",
+    "outputs/green_bridge_v131/run_ledger.json": "a65eb0aed2611996ecd7074512450efe1e598f392127c398d28d53bfe02bb47b",
+    "outputs/green_bridge_v131/manual_tail_root_cause_reproduction_v131.json": "742d9bdac6d423e73836772960037ff1699bf953cdfaa5eec1dd18e9bfbf1d80",
+    "outputs/green_bridge_v131/manual_tail_stage_trace_v131.json": "a5d599f8bc1e31c4678b3e2cc1955df35ffa3cbd7ec3b2b537ef5fc175b0936f",
+    "outputs/green_bridge_v131/manual_tail_equivalence_v131.json": "a3151c719a855990d49539f42f9a00bb25e505c24803d0e197df3eeac75209c6",
+    "outputs/green_bridge_v131/manual_tail_derivative_v131.json": "9072473e263ad7cc06bfe80bafb0fccea1e9016c78f0611ce32c1ef69835eee2",
+    "outputs/green_bridge_v131/path_target_equivalence_v131.json": "dd5cc30ed9506b602339f2688f0d1eed5a34ba397fe1dd526a4427ed74564545",
+    "outputs/green_bridge_v131/scientific_invariance_v131.json": "adf1d39fd1b8d29e9d1d124f56ecbd1f75bf34d8f3ec95dc7f56cbaf193d464e",
+    "outputs/green_bridge_v131/structural_frame_preflight.json": "e0f65f22d29fb8db891094c407c25234f7f8f9f19738d4edaf3fb2ed5a19a05a",
+}
+
 
 def _scientific_payload(spec: dict | None = None) -> dict:
-    """Return only the frozen scientific contract, excluding v1.3.1 identity."""
+    """Return only the frozen scientific contract, excluding technical identity."""
     payload = json.loads(canonical_json(FROZEN_SPEC if spec is None else spec))
     for key in ("schema_version", "protocol_id", "amendment_id"):
         payload.pop(key, None)
@@ -232,7 +249,7 @@ def activate_hardware_batch_plan(output_root: Path) -> dict:
         raise GreenStop("17_MANIFEST_FREEZE", "hardware batch plan missing")
     plan = json.loads(path.read_text(encoding="utf-8"))
     selected = plan.get("manual_tail_batch_size")
-    if selected not in (512, 256, 128, 64, 32, 16, 8, 4, 2, 1):
+    if selected != TAIL_FIXED_BATCH_SIZE:
         raise GreenStop("17_MANIFEST_FREEZE", f"invalid manual batch {selected}")
     ACTIVE_MANUAL_TAIL_BATCH_SIZE = int(selected)
     return plan
@@ -299,6 +316,42 @@ def verify_v13_terminal_archive() -> dict:
     }
 
 
+def verify_v131_terminal_archive() -> dict:
+    """Verify the immutable v1.3.1 technical STOP before v1.3.2."""
+    grandparent = verify_v13_terminal_archive()
+    for relative, expected in V131_TERMINAL_HASHES.items():
+        path = PROJECT_ROOT / relative
+        if not path.is_file() or sha256_file(path) != expected:
+            raise GreenStop("00A_PREDECESSOR_ARCHIVE", f"v1.3.1 mismatch: {relative}")
+    root = PROJECT_ROOT / "outputs" / "green_bridge_v131"
+    result = json.loads((root / "result.json").read_text(encoding="utf-8"))
+    ledger = json.loads((root / "run_ledger.json").read_text(encoding="utf-8"))
+    required = {
+        "verdict": result.get("verdict") == "STOP",
+        "gate": result.get("first_failed_gate") == "06E_BATCH_SHAPE_EQUIVALENCE",
+        "attempt": ledger.get("attempt_index") == 1,
+        "retry": ledger.get("retry_allowed") is False,
+        "development": ledger.get("development_started") is False,
+        "confirmation": ledger.get("confirmation_started") is False,
+    }
+    if not all(required.values()):
+        raise GreenStop("00A_PREDECESSOR_ARCHIVE", str(required))
+    diagnostic = PROJECT_ROOT / "analysis" / "GREEN_V131_BATCH_SHAPE_DIAGNOSTIC_20260825.json"
+    if not diagnostic.is_file() or sha256_file(diagnostic) != "666a20604fa4b123732bd68a15681fa7a16cafeef8edc2b61544fd911567d07d":
+        raise GreenStop("00A_PREDECESSOR_ARCHIVE", "batch diagnostic mismatch")
+    return {
+        "predecessor": {
+            "schema_version": "green-bridge-v1.3",
+            "protocol_run_id": "green-bridge-v1.3-one-shot",
+            "execution_commit": "ed4b3b4c55ba2c7acfda1291b4814957ce90c845",
+            "first_failed_gate": "06_MANUAL_TAIL",
+        },
+        "terminal_hashes": dict(V131_TERMINAL_HASHES),
+        "diagnostic_sha256": sha256_file(diagnostic),
+        "grandparent": grandparent,
+    }
+
+
 def torch_module():
     import torch
     return torch
@@ -306,7 +359,7 @@ def torch_module():
 
 def terminal_stop(output_root: Path, gate: str, detail: str) -> None:
     payload = {
-        "schema_version": "green-bridge-terminal-v1.3.1",
+        "schema_version": "green-bridge-terminal-v1.3.2",
         "verdict": "STOP",
         "first_failed_gate": gate,
         "detail": detail,
@@ -401,7 +454,7 @@ def configure_runtime(device: str) -> dict:
     if os.environ.get("CUDA_VISIBLE_DEVICES") != "4" or device != "cuda:0":
         raise GreenStop(
             "01_ENVIRONMENT",
-            "v1.3.1 requires physical GPU 4 exposed as cuda:0",
+            "v1.3.2 requires physical GPU 4 exposed as cuda:0",
         )
     if os.environ.get("CUBLAS_WORKSPACE_CONFIG") != ":4096:8":
         raise GreenStop(
@@ -2359,7 +2412,7 @@ def verify_freeze(output_root: Path, require_confirmation: bool = False) -> dict
     if not manifest_path.is_file():
         raise GreenStop("17_MANIFEST_FREEZE", "manifest.json missing")
     manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
-    if manifest.get("schema_version") != "green-bridge-manifest-v1.3.1":
+    if manifest.get("schema_version") != "green-bridge-manifest-v1.3.2":
         raise GreenStop("17_MANIFEST_FREEZE", "manifest schema changed")
     run = manifest.get("run", {})
     if (
@@ -2367,7 +2420,7 @@ def verify_freeze(output_root: Path, require_confirmation: bool = False) -> dict
         or run.get("parent_protocol_id") != PARENT_PROTOCOL_ID
         or run.get("protocol_run_id") != PROTOCOL_RUN_ID
     ):
-        raise GreenStop("17_MANIFEST_FREEZE", "v1.3.1 protocol identity changed")
+        raise GreenStop("17_MANIFEST_FREEZE", "v1.3.2 protocol identity changed")
     if manifest.get("prepare_complete") is not True:
         raise GreenStop("17_MANIFEST_FREEZE", "prepare did not complete")
     stopped = output_root / "result.json"
@@ -2394,8 +2447,8 @@ def verify_freeze(output_root: Path, require_confirmation: bool = False) -> dict
         PROJECT_ROOT / "requirements-green-bridge.lock"
     ):
         raise GreenStop("17_MANIFEST_FREEZE", "requirements hash changed after launch")
-    verify_v13_terminal_archive()
-    invariance_path = output_root / "scientific_invariance_v131.json"
+    verify_v131_terminal_archive()
+    invariance_path = output_root / "scientific_invariance_v132.json"
     if not invariance_path.is_file():
         raise GreenStop("17_MANIFEST_FREEZE", "scientific invariance record missing")
     invariance = json.loads(invariance_path.read_text(encoding="utf-8"))
@@ -2986,7 +3039,12 @@ def _tensor_item_v13(
     item = design[record.pair_digest]
     seed_frame = torch.as_tensor(item["gate_frames"][0], dtype=torch.float32, device=device)
     suffix_tensor = torch.as_tensor(suffix_ids, dtype=torch.long, device=device)
-    tail = GreenBridgeTail(model, seed_frame, suffix_tensor)
+    tail = GreenBridgeTail(
+        model,
+        seed_frame,
+        suffix_tensor,
+        fixed_batch_size=ACTIVE_MANUAL_TAIL_BATCH_SIZE,
+    )
     contrast_t = margin_vector(record.y, device)
     contrast = contrast_t.cpu().numpy()
     physical_v = item["target"]
@@ -3278,7 +3336,7 @@ def derivative_equivalence_record(
     }
 
 
-def _prepare_batch_and_throughput_v131(
+def _prepare_fixed_batch_and_throughput_v132(
     model,
     tokens,
     suffix_ids,
@@ -3288,189 +3346,137 @@ def _prepare_batch_and_throughput_v131(
     device: str,
     output_root: Path,
 ) -> dict:
-    """Freeze memory-safe batch sizes and project the faithful endpoint cost."""
+    """Validate one fixed padded tail operation graph for all scientific calls."""
     torch = torch_module()
+    fixed = TAIL_FIXED_BATCH_SIZE
     memory_limit = 20 * 1024**3
 
-    def synchronize():
-        if torch.cuda.is_available():
-            torch.cuda.synchronize(device)
+    def sync():
+        torch.cuda.synchronize(device)
 
-    def reset_peak():
-        if torch.cuda.is_available():
-            torch.cuda.empty_cache()
-            torch.cuda.reset_peak_memory_stats(device)
-
-    def peak_bytes():
-        return int(torch.cuda.max_memory_allocated(device)) if torch.cuda.is_available() else 0
-
-    def manual_batch(count: int):
-        repeated = _repeat_anchor(anchor, count)
-        delta = torch.zeros((count, model.cfg.d_model), dtype=torch.float32, device=device)
-        z = torch.zeros(count, dtype=torch.float32, device=device)
-        return tail.evaluate_physical(repeated, delta, z, mode="path", gate_slot=0)
-
-    manual_trials = []
-    manual_choice = None
-    manual_elapsed = None
-    manual_reference = None
-    for candidate in (512, 256, 128, 64, 32, 16, 8, 4, 2, 1):
-        reset_peak()
-        started = time.perf_counter()
-        try:
-            with torch.inference_mode():
-                batched = manual_batch(candidate)
-            synchronize()
-            elapsed = time.perf_counter() - started
-            peak = peak_bytes()
-            fits = peak <= memory_limit
-            manual_trials.append({
-                "candidate": candidate, "peak_allocated_bytes": peak,
-                "elapsed_seconds": elapsed, "fits": fits,
-            })
-            if fits:
-                manual_choice = candidate
-                manual_elapsed = elapsed
-                manual_reference = batched.detach()
-                break
-        except (torch.cuda.OutOfMemoryError, RuntimeError) as exc:
-            if "out of memory" not in str(exc).lower() and not isinstance(exc, torch.cuda.OutOfMemoryError):
-                raise
-            manual_trials.append({
-                "candidate": candidate, "fits": False,
-                "error": "CUDA_OUT_OF_MEMORY",
-            })
-            if torch.cuda.is_available():
-                torch.cuda.empty_cache()
-    if manual_choice is None:
-        raise GreenStop("06E_BATCH_SHAPE_EQUIVALENCE", "no manual-tail batch fits")
-
+    repeated = _repeat_anchor(anchor, fixed)
+    coordinates = torch.zeros(
+        (fixed, PROBE_FRAME_DIM), dtype=torch.float32, device=device
+    )
+    z = torch.zeros(fixed, dtype=torch.float32, device=device)
+    torch.cuda.empty_cache()
+    torch.cuda.reset_peak_memory_stats(device)
+    sync()
+    started = time.perf_counter()
     with torch.inference_mode():
-        concatenated = torch.cat([manual_batch(1) for _ in range(manual_choice)], dim=0)
-    manual_concat_metrics = _equivalence_metrics(manual_reference, concatenated)
-    if manual_concat_metrics["max_abs"] > THRESHOLDS.tail_max_abs:
-        raise GreenStop("06E_BATCH_SHAPE_EQUIVALENCE", str(manual_concat_metrics))
-
-    full_trials = []
-    full_choice = None
-    full_elapsed = None
-    full_metrics = None
-    full_concat_metrics = None
-    for candidate in (64, 32, 16, 8, 4, 2, 1):
-        reset_peak()
-        repeated_tokens = tokens.repeat(candidate, 1)
-        repeated_anchor = _repeat_anchor(anchor, candidate)
-        coordinates = torch.zeros(
-            (candidate, PROBE_FRAME_DIM), dtype=torch.float32, device=device
+        zero_padding = tail.evaluate_physical(
+            repeated, coordinates @ frame_t.T, z, mode="path", gate_slot=0
         )
-        z = torch.zeros(candidate, dtype=torch.float32, device=device)
-        started = time.perf_counter()
-        try:
-            with torch.inference_mode():
-                manual = tail.evaluate_physical(
-                    repeated_anchor,
-                    coordinates @ frame_t.T,
-                    z,
-                    mode="path",
-                    gate_slot=0,
-                )
-                full = full_hook_endpoint(
-                    model, repeated_tokens, suffix_ids, repeated_anchor,
-                    frame_t, coordinates, z, mode="path", gate_slot=0,
-                )
-            synchronize()
-            elapsed = time.perf_counter() - started
-            peak = peak_bytes()
-            fits = peak <= memory_limit
-            metrics = _equivalence_metrics(manual, full)
-            full_trials.append({
-                "candidate": candidate, "peak_allocated_bytes": peak,
-                "elapsed_seconds": elapsed, "fits": fits,
-                "manual_full": metrics,
-            })
-            if fits:
-                if metrics["max_abs"] > THRESHOLDS.tail_max_abs:
-                    raise GreenStop("06E_BATCH_SHAPE_EQUIVALENCE", str(metrics))
-                with torch.inference_mode():
-                    concat = torch.cat([manual_batch(1) for _ in range(candidate)], dim=0)
-                concat_metrics = _equivalence_metrics(manual, concat)
-                if concat_metrics["max_abs"] > THRESHOLDS.tail_max_abs:
-                    raise GreenStop("06E_BATCH_SHAPE_EQUIVALENCE", str(concat_metrics))
-                full_choice = candidate
-                full_elapsed = elapsed
-                full_metrics = metrics
-                full_concat_metrics = concat_metrics
-                break
-        except (torch.cuda.OutOfMemoryError, RuntimeError) as exc:
-            if isinstance(exc, GreenStop):
-                raise
-            if "out of memory" not in str(exc).lower() and not isinstance(exc, torch.cuda.OutOfMemoryError):
-                raise
-            full_trials.append({
-                "candidate": candidate, "fits": False,
-                "error": "CUDA_OUT_OF_MEMORY",
-            })
-            if torch.cuda.is_available():
-                torch.cuda.empty_cache()
-    if full_choice is None:
-        raise GreenStop("06E_BATCH_SHAPE_EQUIVALENCE", "no full-model batch fits")
+    sync()
+    elapsed = time.perf_counter() - started
+    peak = int(torch.cuda.max_memory_allocated(device))
+    if peak > memory_limit:
+        raise GreenStop("06E_FIXED_BATCH_GRAPH", f"peak={peak}")
+
+    diverse_coordinates = coordinates.clone()
+    diverse_coordinates[:, 0] = torch.linspace(
+        -0.2, 0.2, fixed, dtype=torch.float32, device=device
+    )
+    diverse_coordinates[0].zero_()
+    diverse_z = torch.sin(torch.arange(fixed, device=device).float()) * GATE_RADIUS
+    diverse_z[0] = 0.0
+    with torch.inference_mode():
+        diverse = tail.evaluate_physical(
+            repeated,
+            diverse_coordinates @ frame_t.T,
+            diverse_z,
+            mode="path",
+            gate_slot=0,
+        )
+        repeated_call = tail.evaluate_physical(
+            repeated,
+            diverse_coordinates @ frame_t.T,
+            diverse_z,
+            mode="path",
+            gate_slot=0,
+        )
+    padding_invariance = _equivalence_metrics(diverse[:1], zero_padding[:1])
+    repeat_invariance = _equivalence_metrics(diverse, repeated_call)
+
+    actual = 37
+    fixed_tail = GreenBridgeTail(
+        model,
+        frame_t,
+        torch.as_tensor(suffix_ids, dtype=torch.long, device=device),
+        fixed_batch_size=fixed,
+    )
+    actual_anchor = _repeat_anchor(anchor, actual)
+    actual_coordinates = diverse_coordinates[:actual]
+    actual_z = diverse_z[:actual]
+    with torch.inference_mode():
+        wrapped = fixed_tail.evaluate_physical(
+            actual_anchor,
+            actual_coordinates @ frame_t.T,
+            actual_z,
+            mode="path",
+            gate_slot=0,
+        )
+    wrapper_equivalence = _equivalence_metrics(wrapped, diverse[:actual])
+
+    for label, metrics in (
+        ("padding_content", padding_invariance),
+        ("repeat", repeat_invariance),
+        ("wrapper", wrapper_equivalence),
+    ):
+        if not metrics["bitwise_equal"]:
+            raise GreenStop("06E_FIXED_BATCH_GRAPH", f"{label}: {metrics}")
 
     plan = {
-        "schema_version": "green-bridge-hardware-batch-plan-v1.3.1",
+        "schema_version": "green-bridge-hardware-batch-plan-v1.3.2",
         "physical_gpu": 4,
         "visible_device": "cuda:0",
-        "manual_tail_batch_size": manual_choice,
-        "full_model_jvp_batch_size": full_choice,
+        "manual_tail_batch_size": fixed,
+        "manual_tail_final_chunk_padding": True,
+        "full_model_jvp_batch_size": 1,
         "memory_limit_bytes": memory_limit,
-        "manual_candidates": manual_trials,
-        "full_candidates": full_trials,
+        "peak_allocated_bytes": peak,
         "frozen_before_development": True,
     }
     write_json_atomic(output_root / "hardware_batch_plan.json", plan)
     batch_payload = {
-        "schema_version": "green-bridge-tail-batch-equivalence-v1.3.1",
-        "manual_batch_vs_concatenated_batch_one": manual_concat_metrics,
-        "selected_full_shape_manual_vs_full": full_metrics,
-        "selected_full_shape_manual_vs_concatenated_batch_one": full_concat_metrics,
-        "condition_order_preserved": True,
-        "repeated_anchor_values": True,
+        "schema_version": "green-bridge-fixed-batch-equivalence-v1.3.2",
+        "cross_shape_equivalence_applicable": False,
+        "cross_shape_reason": "CUDA GEMM algorithm depends on matrix shape",
+        "fixed_shape_padding_content_invariance": padding_invariance,
+        "fixed_shape_repeat_invariance": repeat_invariance,
+        "padded_wrapper_vs_direct_fixed_shape": wrapper_equivalence,
+        "manual_full_raw_equivalence_batch": 1,
         "passed": True,
     }
     write_json_atomic(
-        output_root / "manual_tail_batch_equivalence_v131.json",
+        output_root / "manual_tail_batch_equivalence_v132.json",
         batch_payload,
     )
 
-    tail_seconds = (
-        math.ceil(FORWARD_COUNTS["tail_evaluations_total"] / manual_choice)
-        * float(manual_elapsed)
+    projected = (
+        math.ceil(FORWARD_COUNTS["tail_evaluations_total"] / fixed) * elapsed
     )
-    full_seconds = (
-        math.ceil(FORWARD_COUNTS["full_model_evaluations_total"] / full_choice)
-        * float(full_elapsed)
-    )
-    projected = tail_seconds + full_seconds
     throughput = {
-        "schema_version": "green-bridge-tail-throughput-v1.3.1",
+        "schema_version": "green-bridge-tail-throughput-v1.3.2",
         "preflight_record_only": True,
-        "manual_batch_seconds": manual_elapsed,
-        "full_batch_seconds": full_elapsed,
-        "manual_tail_projected_seconds": tail_seconds,
-        "full_model_projected_seconds": full_seconds,
-        "projected_total_seconds": projected,
+        "fixed_batch_size": fixed,
+        "fixed_batch_seconds": elapsed,
+        "manual_tail_projected_seconds": projected,
         "hard_cap_seconds": 24.0 * 3600.0,
         "operation_counts": FORWARD_COUNTS,
         "selected_projection_fallback": False,
         "peak_limit_bytes": memory_limit,
         "passed": projected <= 24.0 * 3600.0,
     }
-    write_json_atomic(output_root / "manual_tail_throughput_v131.json", throughput)
+    write_json_atomic(output_root / "manual_tail_throughput_v132.json", throughput)
     if not throughput["passed"]:
         raise GreenStop("06G_PREPARE_THROUGHPUT", str(throughput))
     return {"plan": plan, "batch": batch_payload, "throughput": throughput}
 
 
-def _tail_preflight_v131(
+
+
+def _tail_preflight_v132(
     model,
     tokenizer,
     suffix_ids,
@@ -3568,7 +3574,7 @@ def _tail_preflight_v131(
             corrected_endpoints[name] = (manual, full)
 
     legacy_payload = {
-        "schema_version": "green-bridge-tail-root-cause-v1.3.1",
+        "schema_version": "green-bridge-tail-root-cause-v1.3.2",
         "diagnostic_only": True,
         "condition_order": [row[0] for row in conditions],
         "expected_errors": expected_legacy,
@@ -3578,21 +3584,21 @@ def _tail_preflight_v131(
         "active_scientific_endpoint": False,
     }
     write_json_atomic(
-        output_root / "manual_tail_root_cause_reproduction_v131.json",
+        output_root / "manual_tail_root_cause_reproduction_v132.json",
         legacy_payload,
     )
     if legacy_errors != expected_legacy or max(legacy_errors) <= THRESHOLDS.tail_max_abs:
         raise GreenStop("06A_LEGACY_ROOT_CAUSE_REPRODUCTION", str(legacy_payload))
 
     stage_payload = {
-        "schema_version": "green-bridge-tail-stage-trace-v1.3.1",
+        "schema_version": "green-bridge-tail-stage-trace-v1.3.2",
         "records": stage_records,
         "first_divergent_legacy_stage": "unembedding_endpoint",
         "passed": all(
             row["first_divergent_stage"] is None for row in stage_records
         ),
     }
-    write_json_atomic(output_root / "manual_tail_stage_trace_v131.json", stage_payload)
+    write_json_atomic(output_root / "manual_tail_stage_trace_v132.json", stage_payload)
     if not stage_payload["passed"]:
         raise GreenStop("06B_MANUAL_TAIL_STAGE_TRACE", str(stage_payload))
 
@@ -3652,7 +3658,7 @@ def _tail_preflight_v131(
                 raise GreenStop("06D_MANUAL_TAIL_DERIVATIVE", str(derivative_records[-1]))
 
     equivalence_payload = {
-        "schema_version": "green-bridge-tail-equivalence-v1.3.1",
+        "schema_version": "green-bridge-tail-equivalence-v1.3.2",
         "quantity": "raw_100_dimensional_year_logits",
         "threshold": THRESHOLDS.tail_max_abs,
         "original_conditions": raw_records,
@@ -3660,15 +3666,15 @@ def _tail_preflight_v131(
         "center_retained": True,
         "passed": True,
     }
-    write_json_atomic(output_root / "manual_tail_equivalence_v131.json", equivalence_payload)
+    write_json_atomic(output_root / "manual_tail_equivalence_v132.json", equivalence_payload)
     derivative_payload = {
-        "schema_version": "green-bridge-tail-derivative-v1.3.1",
+        "schema_version": "green-bridge-tail-derivative-v1.3.2",
         "estimator": "central_finite_difference",
         "records": derivative_records,
         "near_zero_not_silently_dropped": True,
         "passed": True,
     }
-    write_json_atomic(output_root / "manual_tail_derivative_v131.json", derivative_payload)
+    write_json_atomic(output_root / "manual_tail_derivative_v132.json", derivative_payload)
 
     target_anchor = TargetAnchor(
         resid_mid=anchor.resid_mid,
@@ -3704,15 +3710,15 @@ def _tail_preflight_v131(
             if metrics["max_abs"] > THRESHOLDS.tail_max_abs:
                 raise GreenStop("06F_PATH_TARGET_RAW", str(target_records[-1]))
     target_payload = {
-        "schema_version": "green-bridge-path-target-equivalence-v1.3.1",
+        "schema_version": "green-bridge-path-target-equivalence-v1.3.2",
         "mode": "joint",
         "subtract_residual_bypass": True,
         "code_isolated": True,
         "records": target_records,
         "passed": True,
     }
-    write_json_atomic(output_root / "path_target_equivalence_v131.json", target_payload)
-    hardware = _prepare_batch_and_throughput_v131(
+    write_json_atomic(output_root / "path_target_equivalence_v132.json", target_payload)
+    hardware = _prepare_fixed_batch_and_throughput_v132(
         model,
         clean_tokens,
         suffix_ids,
@@ -3748,7 +3754,7 @@ def _duplicate_noise_v13(model, tokenizer, suffix_ids, records, device: str) -> 
 def prepare(output_root: Path, device: str) -> None:
     repository = assert_clean_repository()
     assert_empty_prepare_root(output_root)
-    predecessor_archive = verify_v13_terminal_archive()
+    predecessor_archive = verify_v131_terminal_archive()
     environment = configure_runtime(device)
     from transformers import AutoTokenizer
     tokenizer = AutoTokenizer.from_pretrained(MODEL_ID, revision=MODEL_REVISION)
@@ -3773,8 +3779,8 @@ def prepare(output_root: Path, device: str) -> None:
     current_scientific_hash = sha256_text(canonical_json(current_scientific_payload))
     parent_scientific_hash = parent_scientific["scientific_sha256"]
     invariance = {
-        "parent_schema": "green-bridge-v1.3",
-        "current_schema": "green-bridge-v1.3.1",
+        "parent_schema": "green-bridge-v1.3.1",
+        "current_schema": "green-bridge-v1.3.2",
         "scientific_payload_equal": (
             parent_scientific.get("scientific_payload") == current_scientific_payload
             and parent_scientific_hash == current_scientific_hash
@@ -3789,9 +3795,10 @@ def prepare(output_root: Path, device: str) -> None:
             "equivalence-audit metric implementation",
             "equivalence-audit artifacts",
             "predecessor archival metadata",
+            "fixed-shape tail batching and final-chunk padding",
         ],
     }
-    write_json_atomic(output_root / "scientific_invariance_v131.json", invariance)
+    write_json_atomic(output_root / "scientific_invariance_v132.json", invariance)
     if not invariance["scientific_payload_equal"]:
         raise GreenStop("00B_V131_IDENTITY", str(invariance))
     evaluation_payload = plan_payload(evaluation)
@@ -3885,7 +3892,7 @@ def prepare(output_root: Path, device: str) -> None:
             f"coefficient hash {coefficient_hash} != {FIRST_ORDER_COEFFICIENT_SHA256}",
         )
     _atomic_np_save(output_root / "first_order_coefficients.npy", coefficients)
-    tail_result = _tail_preflight_v131(
+    tail_result = _tail_preflight_v132(
         model, tokenizer, suffix_ids, preflight_record, device,
         output_root, preflight_design,
     )
@@ -3903,18 +3910,18 @@ def prepare(output_root: Path, device: str) -> None:
         "run_ledger.json", "model_fingerprint.json", "splits.json",
         "development_splits.json", "gate04_legacy_panel.json",
         "hook_audit.json", "structural_frame_preflight.json",
-        "first_order_coefficients.npy", "scientific_invariance_v131.json",
-        "manual_tail_root_cause_reproduction_v131.json",
-        "manual_tail_stage_trace_v131.json",
-        "manual_tail_equivalence_v131.json",
-        "manual_tail_derivative_v131.json",
-        "manual_tail_batch_equivalence_v131.json",
-        "path_target_equivalence_v131.json", "hardware_batch_plan.json",
-        "manual_tail_throughput_v131.json", "tail_audit.json",
+        "first_order_coefficients.npy", "scientific_invariance_v132.json",
+        "manual_tail_root_cause_reproduction_v132.json",
+        "manual_tail_stage_trace_v132.json",
+        "manual_tail_equivalence_v132.json",
+        "manual_tail_derivative_v132.json",
+        "manual_tail_batch_equivalence_v132.json",
+        "path_target_equivalence_v132.json", "hardware_batch_plan.json",
+        "manual_tail_throughput_v132.json", "tail_audit.json",
         "prepare_result.json",
     )
     prepare_result = {
-        "schema_version": "green-bridge-prepare-v1.3.1",
+        "schema_version": "green-bridge-prepare-v1.3.2",
         "verdict": "PREPARE_PASS",
         "first_failed_gate": None,
         "development_started": False,
@@ -3922,7 +3929,7 @@ def prepare(output_root: Path, device: str) -> None:
     }
     write_json_atomic(output_root / "prepare_result.json", prepare_result)
     manifest = {
-        "schema_version": "green-bridge-manifest-v1.3.1",
+        "schema_version": "green-bridge-manifest-v1.3.2",
         "execution_commit": repository["commit"],
         "review_commit": REVIEW_COMMIT,
         "repository": {
@@ -3944,7 +3951,7 @@ def prepare(output_root: Path, device: str) -> None:
             "phase_all_allowed": False,
         },
         "binding_decision": {
-            "document": "analysis/GPTPRO_GREEN_V13_MANUAL_TAIL_DECISION_20260825.md",
+            "document": "analysis/CODEX_GREEN_V132_BATCH_SHAPE_DECISION_20260825.md",
             "fixed_rank_donor_pca_terminated": True,
             "rank_search_allowed": False, "donor_basis_allowed": False,
             "spectral_filter_allowed": False, "learned_alignment_allowed": False,
@@ -3985,7 +3992,7 @@ def prepare(output_root: Path, device: str) -> None:
         },
         "frozen_spec": FROZEN_SPEC, "frozen_spec_sha256": frozen_spec_hash(),
         "scientific_spec_sha256": current_scientific_hash,
-        "predecessor_archive_sha256": predecessor_archive["archive_manifest_sha256"],
+        "predecessor_archive_sha256": sha256_text(canonical_json(predecessor_archive)),
         "predecessor_archive": predecessor_archive,
         "source_sha256": source_hashes(),
         "requirements_sha256": sha256_file(PROJECT_ROOT / "requirements-green-bridge.lock"),
@@ -4142,7 +4149,7 @@ def confirmation_phase(output_root: Path, device: str) -> None:
         )
     else:
         result["first_failed_gate"] = None
-    result["schema_version"] = "green-bridge-terminal-v1.3.1"
+    result["schema_version"] = "green-bridge-terminal-v1.3.2"
     write_json_atomic(output_root / "result.json", result)
     manifest["confirmation_complete"] = True
     manifest["artifact_sha256"]["run_ledger.json"] = sha256_file(

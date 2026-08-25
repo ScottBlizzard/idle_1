@@ -22,6 +22,7 @@ from green_bridge_spec import (
     FIRST_ORDER_RESIDUAL_DIRECTIONS, FROZEN_SPEC, GATE_RADIUS,
     HALF_RADIUS_MULTIPLIER, HISTORICAL_V12_BASIS_SPEC, PROBE_FRAME_DIM,
     PROTOCOL_ID, RESIDUAL_RADIUS_MULTIPLIER, SCHEMA_VERSION,
+    TAIL_FIXED_BATCH_SIZE,
     STRUCTURAL_ATOM_RESIDUAL_MAX, STRUCTURAL_FRAME_ORTHOGONAL_MAX,
 )
 from green_bridge_structural_frame import (
@@ -82,6 +83,9 @@ class HistoricalAndTerminationTests(unittest.TestCase):
             "analysis/GPTPRO_GREEN_V13_MANUAL_TAIL_DECISION_20260825.md",
             "analysis/archive/green_v13_stop_20260825/archive_manifest.json",
             "analysis/archive/green_v13_stop_20260825/green_bridge_v13_prepare.log",
+            "analysis/GREEN_SERVER_V131_PREPARE_STOP_20260825.md",
+            "analysis/GREEN_V131_BATCH_SHAPE_DIAGNOSTIC_20260825.json",
+            "analysis/CODEX_GREEN_V132_BATCH_SHAPE_DECISION_20260825.md",
         ):
             self.assertIn(name, runner.PROTOCOL_FILES)
     def test_active_protocol_has_no_pca_rank(self): self.assertNotIn("residual_rank", json.dumps(FROZEN_SPEC))
@@ -312,7 +316,7 @@ class SerializationAndOneRunTests(unittest.TestCase):
 
 
 class FrozenCoreTests(unittest.TestCase):
-    def test_schema_and_protocol(self): self.assertEqual((SCHEMA_VERSION,PROTOCOL_ID),("green-bridge-v1.3.1","structural-envelope-matched-bypass-v1.3.1"))
+    def test_schema_and_protocol(self): self.assertEqual((SCHEMA_VERSION,PROTOCOL_ID),("green-bridge-v1.3.2","structural-envelope-matched-bypass-v1.3.2"))
     def test_dimensions(self): self.assertEqual((DIMENSIONS.d_model,DIMENSIONS.probe_frame_dim),(768,5))
     def test_expected_calls(self): self.assertEqual(expected_tensor_calls(),2082)
     def test_envelope_error_term_is_positive(self): self.assertEqual(active_envelope_contraction_bound(2,3,4,5,6,7,8),2*(3*5+(6+7)*4*8))
@@ -348,33 +352,42 @@ class FullHookReferenceContractTests(unittest.TestCase):
 
 
 class TailAuditMetricContractTests(unittest.TestCase):
-    def test_tail_raw_gate_compares_raw_year_logits(self): self.assertIn('"quantity": "raw_100_dimensional_year_logits"',inspect.getsource(runner._tail_preflight_v131))
+    def test_tail_raw_gate_compares_raw_year_logits(self): self.assertIn('"quantity": "raw_100_dimensional_year_logits"',inspect.getsource(runner._tail_preflight_v132))
     def test_tail_raw_gate_threshold_is_two_e_minus_five(self): self.assertEqual(runner.THRESHOLDS.tail_max_abs,2e-5)
-    def test_tail_center_condition_is_binding(self): self.assertIn('("center", "path", np.zeros(5), 0.0)',inspect.getsource(runner._tail_preflight_v131))
+    def test_tail_center_condition_is_binding(self): self.assertIn('("center", "path", np.zeros(5), 0.0)',inspect.getsource(runner._tail_preflight_v132))
     def test_tail_derivative_gate_uses_central_difference(self): self.assertIn("2.0 * step",inspect.getsource(runner.derivative_equivalence_record))
     def test_tail_nonzero_derivative_relative_threshold_is_one_e_minus_four(self): self.assertEqual(runner.THRESHOLDS.tail_derivative_relative,1e-4)
     def test_tail_near_zero_derivative_uses_propagated_absolute_bound(self): self.assertIn("THRESHOLDS.tail_max_abs / step",inspect.getsource(runner.derivative_equivalence_record))
     def test_tail_near_zero_derivative_is_not_silently_dropped(self): self.assertIn("NOT_APPLICABLE_NEAR_ZERO",inspect.getsource(runner.derivative_equivalence_record))
 
 
-class ProtocolIdentityV131Tests(unittest.TestCase):
-    def test_v131_identity_is_not_v13_attempt_two(self): self.assertEqual(runner.PROTOCOL_RUN_ID,"green-bridge-v1.3.1-one-shot")
-    def test_v131_output_root_is_distinct_from_v13_root(self): self.assertEqual(runner.OUTPUT_ROOT.name,"green_bridge_v131")
-    def test_v131_attempt_index_is_one(self): self.assertIn('"attempt_index": 1',inspect.getsource(runner.write_run_ledger))
-    def test_v131_retry_is_false(self): self.assertIn('"retry_allowed": False',inspect.getsource(runner.write_run_ledger))
+class ProtocolIdentityV132Tests(unittest.TestCase):
+    def test_v132_identity_is_fresh(self): self.assertEqual(runner.PROTOCOL_RUN_ID,"green-bridge-v1.3.2-one-shot")
+    def test_v132_output_root_is_distinct(self): self.assertEqual(runner.OUTPUT_ROOT.name,"green_bridge_v132")
+    def test_v132_attempt_index_is_one(self): self.assertIn('"attempt_index": 1',inspect.getsource(runner.write_run_ledger))
+    def test_v132_retry_is_false(self): self.assertIn('"retry_allowed": False',inspect.getsource(runner.write_run_ledger))
 
 
 class PredecessorArchiveContractTests(unittest.TestCase):
-    def test_v13_stop_hashes_are_frozen_and_verified(self): self.assertEqual(runner.V13_TERMINAL_HASHES["outputs/green_bridge/result.json"],"6f61c77b262eee821970dc19ff98f3baaf78e0aa9a65135bed343ed54ac7445d")
-    def test_v13_external_log_hash_is_frozen(self): self.assertEqual(runner.V13_TERMINAL_HASHES["analysis/archive/green_v13_stop_20260825/green_bridge_v13_prepare.log"],"28c2788da0477b5c95c4498d70a9a4183f2188419dbca6e5f4725b60d5dc8e52")
+    def test_v131_stop_hashes_are_frozen_and_verified(self): self.assertEqual(runner.V131_TERMINAL_HASHES["outputs/green_bridge_v131/result.json"],"e911860ea406e6b38d7dc475dffd500dde68044185c11e0bc7be605f899ebbbf")
+    def test_v131_diagnostic_hash_is_frozen(self): self.assertIn("666a20604fa4b123732bd68a15681fa7a16cafeef8edc2b61544fd911567d07d",inspect.getsource(runner.verify_v131_terminal_archive))
 
 
 class PrepareArtifactContractTests(unittest.TestCase):
     def test_root_cause_reproduction_written_before_equivalence_pass(self):
-        source=inspect.getsource(runner._tail_preflight_v131);self.assertLess(source.index("manual_tail_root_cause_reproduction_v131.json"),source.index("manual_tail_equivalence_v131.json"))
+        source=inspect.getsource(runner._tail_preflight_v132);self.assertLess(source.index("manual_tail_root_cause_reproduction_v132.json"),source.index("manual_tail_equivalence_v132.json"))
     def test_stage_trace_written_before_equivalence_pass(self):
-        source=inspect.getsource(runner._tail_preflight_v131);self.assertLess(source.index("manual_tail_stage_trace_v131.json"),source.index("manual_tail_equivalence_v131.json"))
-    def test_path_target_equivalence_written_before_manifest(self): self.assertLess(RUNNER_SOURCE.index("path_target_equivalence_v131.json"),RUNNER_SOURCE.index('"schema_version": "green-bridge-manifest-v1.3.1"'))
+        source=inspect.getsource(runner._tail_preflight_v132);self.assertLess(source.index("manual_tail_stage_trace_v132.json"),source.index("manual_tail_equivalence_v132.json"))
+    def test_path_target_equivalence_written_before_manifest(self): self.assertLess(RUNNER_SOURCE.index("path_target_equivalence_v132.json"),RUNNER_SOURCE.index('"schema_version": "green-bridge-manifest-v1.3.2"'))
+
+
+class FixedBatchOperationGraphTests(unittest.TestCase):
+    def test_fixed_tail_batch_is_512(self): self.assertEqual(TAIL_FIXED_BATCH_SIZE,512)
+    def test_tail_wrapper_pads_final_chunk(self): self.assertIn("if count < fixed",inspect.getsource(tail_module.GreenBridgeTail._evaluate_physical_fixed_batch))
+    def test_tail_wrapper_slices_declared_rows(self): self.assertIn("logits[:count]",inspect.getsource(tail_module.GreenBridgeTail._evaluate_physical_fixed_batch))
+    def test_scientific_tail_activates_fixed_batch(self): self.assertIn("fixed_batch_size=ACTIVE_MANUAL_TAIL_BATCH_SIZE",inspect.getsource(runner._tensor_item_v13))
+    def test_cross_shape_equivalence_is_not_binding(self): self.assertIn('"cross_shape_equivalence_applicable": False',inspect.getsource(runner._prepare_fixed_batch_and_throughput_v132))
+    def test_full_reference_remains_batch_one(self): self.assertIn('"full_model_jvp_batch_size": 1',inspect.getsource(runner._prepare_fixed_batch_and_throughput_v132))
 
 
 class TheoryPreservationContractTests(unittest.TestCase):
