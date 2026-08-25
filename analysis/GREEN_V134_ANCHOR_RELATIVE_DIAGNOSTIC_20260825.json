@@ -1,0 +1,321 @@
+{
+  "fixed_batch_size": 512,
+  "prepare_pair_digest": "000314403c0726b1f1dca388a4a133dc38fb002f00e992b6f1efd02f21022eaa",
+  "residual_step": 0.4277208605856451,
+  "schema_version": "green-bridge-v1.3.4-anchor-relative-diagnostic-v1",
+  "scientific_data_used": false,
+  "variants": {
+    "anchor_relative_block10_plus_output_recenter": {
+      "derivatives": {
+        "dx": {
+          "absolute_l2": 0.0004512525080726425,
+          "absolute_max": 8.918660783581679e-05,
+          "l2_bound": null,
+          "max_bound": null,
+          "passed": false,
+          "reference_l2": 0.00017658047453684772,
+          "reference_norm_floor": 1e-05,
+          "relative": 2.5555062599997598,
+          "relative_threshold": 0.0001,
+          "status": "RELATIVE_APPLICABLE",
+          "step": 0.4277208605856451
+        },
+        "dz": {
+          "absolute_l2": 0.0030842482041469055,
+          "absolute_max": 0.00095367431640625,
+          "l2_bound": null,
+          "max_bound": null,
+          "passed": false,
+          "reference_l2": 3.376133934267049,
+          "reference_norm_floor": 1e-05,
+          "relative": 0.0009135443866259082,
+          "relative_threshold": 0.0001,
+          "status": "RELATIVE_APPLICABLE",
+          "step": 0.2
+        }
+      },
+      "max_abs": 0.000396728515625,
+      "max_rms": 0.00012931317344810976,
+      "records": [
+        {
+          "bitwise_equal": true,
+          "condition": "center",
+          "max_abs": 0.0,
+          "rms": 0.0,
+          "shape": [
+            1,
+            100
+          ]
+        },
+        {
+          "bitwise_equal": false,
+          "condition": "x_plus",
+          "max_abs": 6.103515625e-05,
+          "rms": 4.11704637549806e-05,
+          "shape": [
+            1,
+            100
+          ]
+        },
+        {
+          "bitwise_equal": false,
+          "condition": "x_minus",
+          "max_abs": 4.57763671875e-05,
+          "rms": 1.4635716318703368e-05,
+          "shape": [
+            1,
+            100
+          ]
+        },
+        {
+          "bitwise_equal": false,
+          "condition": "z_plus",
+          "max_abs": 0.000396728515625,
+          "rms": 0.00012204169891696051,
+          "shape": [
+            1,
+            100
+          ]
+        },
+        {
+          "bitwise_equal": false,
+          "condition": "z_minus",
+          "max_abs": 0.00030517578125,
+          "rms": 0.00011477612041681816,
+          "shape": [
+            1,
+            100
+          ]
+        },
+        {
+          "bitwise_equal": false,
+          "condition": "path_xz",
+          "max_abs": 0.00030517578125,
+          "rms": 0.00011512045967932138,
+          "shape": [
+            1,
+            100
+          ]
+        },
+        {
+          "bitwise_equal": false,
+          "condition": "control_xz",
+          "max_abs": 0.0003204345703125,
+          "rms": 0.00012931317344810976,
+          "shape": [
+            1,
+            100
+          ]
+        }
+      ]
+    },
+    "exact_batch_one": {
+      "derivatives": {
+        "dx": {
+          "absolute_l2": 0.0,
+          "absolute_max": 0.0,
+          "l2_bound": null,
+          "max_bound": null,
+          "passed": true,
+          "reference_l2": 0.00017658047453684772,
+          "reference_norm_floor": 1e-05,
+          "relative": 0.0,
+          "relative_threshold": 0.0001,
+          "status": "RELATIVE_APPLICABLE",
+          "step": 0.4277208605856451
+        },
+        "dz": {
+          "absolute_l2": 0.0,
+          "absolute_max": 0.0,
+          "l2_bound": null,
+          "max_bound": null,
+          "passed": true,
+          "reference_l2": 3.376133934267049,
+          "reference_norm_floor": 1e-05,
+          "relative": 0.0,
+          "relative_threshold": 0.0001,
+          "status": "RELATIVE_APPLICABLE",
+          "step": 0.2
+        }
+      },
+      "max_abs": 0.0,
+      "max_rms": 0.0,
+      "records": [
+        {
+          "bitwise_equal": true,
+          "condition": "center",
+          "max_abs": 0.0,
+          "rms": 0.0,
+          "shape": [
+            1,
+            100
+          ]
+        },
+        {
+          "bitwise_equal": true,
+          "condition": "x_plus",
+          "max_abs": 0.0,
+          "rms": 0.0,
+          "shape": [
+            1,
+            100
+          ]
+        },
+        {
+          "bitwise_equal": true,
+          "condition": "x_minus",
+          "max_abs": 0.0,
+          "rms": 0.0,
+          "shape": [
+            1,
+            100
+          ]
+        },
+        {
+          "bitwise_equal": true,
+          "condition": "z_plus",
+          "max_abs": 0.0,
+          "rms": 0.0,
+          "shape": [
+            1,
+            100
+          ]
+        },
+        {
+          "bitwise_equal": true,
+          "condition": "z_minus",
+          "max_abs": 0.0,
+          "rms": 0.0,
+          "shape": [
+            1,
+            100
+          ]
+        },
+        {
+          "bitwise_equal": true,
+          "condition": "path_xz",
+          "max_abs": 0.0,
+          "rms": 0.0,
+          "shape": [
+            1,
+            100
+          ]
+        },
+        {
+          "bitwise_equal": true,
+          "condition": "control_xz",
+          "max_abs": 0.0,
+          "rms": 0.0,
+          "shape": [
+            1,
+            100
+          ]
+        }
+      ]
+    },
+    "output_recenter_only": {
+      "derivatives": {
+        "dx": {
+          "absolute_l2": 0.00023731012873916531,
+          "absolute_max": 5.3511964701490075e-05,
+          "l2_bound": null,
+          "max_bound": null,
+          "passed": false,
+          "reference_l2": 0.00017658047453684772,
+          "reference_norm_floor": 1e-05,
+          "relative": 1.3439205515876271,
+          "relative_threshold": 0.0001,
+          "status": "RELATIVE_APPLICABLE",
+          "step": 0.4277208605856451
+        },
+        "dz": {
+          "absolute_l2": 0.003123629165029033,
+          "absolute_max": 0.00087738037109375,
+          "l2_bound": null,
+          "max_bound": null,
+          "passed": false,
+          "reference_l2": 3.376133934267049,
+          "reference_norm_floor": 1e-05,
+          "relative": 0.0009252089004304167,
+          "relative_threshold": 0.0001,
+          "status": "RELATIVE_APPLICABLE",
+          "step": 0.2
+        }
+      },
+      "max_abs": 0.0003509521484375,
+      "max_rms": 0.00012369034559938692,
+      "records": [
+        {
+          "bitwise_equal": true,
+          "condition": "center",
+          "max_abs": 0.0,
+          "rms": 0.0,
+          "shape": [
+            1,
+            100
+          ]
+        },
+        {
+          "bitwise_equal": false,
+          "condition": "x_plus",
+          "max_abs": 4.57763671875e-05,
+          "rms": 1.8563118073419858e-05,
+          "shape": [
+            1,
+            100
+          ]
+        },
+        {
+          "bitwise_equal": false,
+          "condition": "x_minus",
+          "max_abs": 3.0517578125e-05,
+          "rms": 1.3389533061816593e-05,
+          "shape": [
+            1,
+            100
+          ]
+        },
+        {
+          "bitwise_equal": false,
+          "condition": "z_plus",
+          "max_abs": 0.0003509521484375,
+          "rms": 0.00012005089271710781,
+          "shape": [
+            1,
+            100
+          ]
+        },
+        {
+          "bitwise_equal": false,
+          "condition": "z_minus",
+          "max_abs": 0.0003204345703125,
+          "rms": 0.0001144612612127057,
+          "shape": [
+            1,
+            100
+          ]
+        },
+        {
+          "bitwise_equal": false,
+          "condition": "path_xz",
+          "max_abs": 0.00030517578125,
+          "rms": 0.00011721491492986225,
+          "shape": [
+            1,
+            100
+          ]
+        },
+        {
+          "bitwise_equal": false,
+          "condition": "control_xz",
+          "max_abs": 0.0002899169921875,
+          "rms": 0.00012369034559938692,
+          "shape": [
+            1,
+            100
+          ]
+        }
+      ]
+    }
+  }
+}

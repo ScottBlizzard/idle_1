@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import argparse
 from dataclasses import asdict, replace
+import gc
 import hashlib
 import importlib.metadata
 import json
@@ -132,12 +133,14 @@ SOURCE_FILES = (
     "src/green_bridge_tail.py",
     "src/green_bridge_path_target.py",
     "src/exp_green_bridge_gpt2.py",
+    "src/green_bridge_multigpu_worker.py",
     "src/analyze_green_bridge.py",
     "src/test_green_bridge_contract.py",
     "src/launch_green_bridge.sh",
     "src/launch_green_bridge_v131.sh",
     "src/launch_green_bridge_v132.sh",
     "src/launch_green_bridge_v133.sh",
+    "src/launch_green_bridge_v134.sh",
 )
 PROTOCOL_FILES = (
     "analysis/GPTPRO_GREEN_BRIDGE_20260805.md",
@@ -157,6 +160,9 @@ PROTOCOL_FILES = (
     "analysis/CODEX_GREEN_V132_BATCH_SHAPE_DECISION_20260825.md",
     "analysis/GREEN_SERVER_V132_DEVELOPMENT_STOP_20260825.md",
     "analysis/CODEX_GREEN_V133_ANCHOR_RECENTER_DECISION_20260825.md",
+    "analysis/GREEN_SERVER_V133_PREPARE_STOP_20260825.md",
+    "analysis/GREEN_V134_ANCHOR_RELATIVE_DIAGNOSTIC_20260825.json",
+    "analysis/CODEX_GREEN_V134_EXACT_BATCH1_MULTIGPU_DECISION_20260825.md",
     "requirements-green-bridge.lock",
 )
 EXPECTED_PACKAGES = {
@@ -244,6 +250,15 @@ V132_TERMINAL_HASHES = {
     "outputs/green_bridge_v132/dev_tensor_scores.parquet": "9a81230ab4979c4460f9bd6d8ff59a48d41b813bd878b59d65725cece4c936d6",
     "outputs/green_bridge_v132/dev_cells.json": "1294a76d6d79c81f240c20c4257aa6b0fe76457d46b30cfc5d5699e27759ae1f",
     "outputs/green_bridge_v132/endpoint_ledger.jsonl": "78defc4809b0e8dc260fc885c9cd92dd2e15055ba6f9cff5be3149b0b2dc8788",
+}
+
+V133_TERMINAL_HASHES = {
+    "outputs/green_bridge_v133/result.json": "e1084e999ff3c94c7d7cec343f22b6d7462f142440955edcde561b860d36a1d8",
+    "outputs/green_bridge_v133/run_ledger.json": "72d4c9ae7f3af99bb25c1a28c3576ad29772a1585dbc8c304a9b482dfd11a51d",
+    "outputs/green_bridge_v133/scientific_invariance_v133.json": "cd4395f49f5073c09a2d20579006ee3c96046c7a855f5cc7353e414491c66297",
+    "outputs/green_bridge_v133/manual_tail_equivalence_v133.json": "ecdffe77adf8df5831b4d93c48dd960442afaeeddd51b9b38d5d3f1bbe7eac73",
+    "outputs/green_bridge_v133/manual_tail_derivative_v133.json": "1e52604f351abd8c16804025cfffddcf6bc5f9192ea33afbf3b853f2fa2dfe08",
+    "outputs/green_bridge_v133/path_target_equivalence_v133.json": "0d93c9992f974baa6fc9bf36f54c99be8a81775ef499903996d26e3973bbf76b",
 }
 
 
@@ -403,6 +418,38 @@ def verify_v132_terminal_archive() -> dict:
     }
 
 
+def verify_v133_terminal_archive() -> dict:
+    """Verify the immutable v1.3.3 prepare STOP before v1.3.4."""
+    grandparent = verify_v132_terminal_archive()
+    for relative, expected in V133_TERMINAL_HASHES.items():
+        path = PROJECT_ROOT / relative
+        if not path.is_file() or sha256_file(path) != expected:
+            raise GreenStop("00A_PREDECESSOR_ARCHIVE", f"v1.3.3 mismatch: {relative}")
+    root = PROJECT_ROOT / "outputs" / "green_bridge_v133"
+    result = json.loads((root / "result.json").read_text(encoding="utf-8"))
+    ledger = json.loads((root / "run_ledger.json").read_text(encoding="utf-8"))
+    required = {
+        "verdict": result.get("verdict") == "STOP",
+        "gate": result.get("first_failed_gate") == "06E_FIXED_BATCH_GRAPH",
+        "attempt": ledger.get("attempt_index") == 1,
+        "retry": ledger.get("retry_allowed") is False,
+        "development": ledger.get("development_started") is False,
+        "confirmation": ledger.get("confirmation_started") is False,
+    }
+    if not all(required.values()):
+        raise GreenStop("00A_PREDECESSOR_ARCHIVE", str(required))
+    diagnostic = PROJECT_ROOT / "analysis" / "GREEN_V134_ANCHOR_RELATIVE_DIAGNOSTIC_20260825.json"
+    expected_diagnostic = "7a35dd8d3ad21973850e20466a8d39cb3f0eea4ab73a725617c6c30ea2da0ab5"
+    if not diagnostic.is_file() or sha256_file(diagnostic) != expected_diagnostic:
+        raise GreenStop("00A_PREDECESSOR_ARCHIVE", "v1.3.4 diagnostic mismatch")
+    return {
+        "predecessor": PREDECESSOR_RUN,
+        "terminal_hashes": dict(V133_TERMINAL_HASHES),
+        "diagnostic_sha256": expected_diagnostic,
+        "grandparent": grandparent,
+    }
+
+
 def torch_module():
     import torch
     return torch
@@ -410,7 +457,7 @@ def torch_module():
 
 def terminal_stop(output_root: Path, gate: str, detail: str) -> None:
     payload = {
-        "schema_version": "green-bridge-terminal-v1.3.3",
+        "schema_version": "green-bridge-terminal-v1.3.4",
         "verdict": "STOP",
         "first_failed_gate": gate,
         "detail": detail,
@@ -501,11 +548,11 @@ def first_order_directions() -> np.ndarray:
     return first_order_coefficient_directions()
 
 
-def configure_runtime(device: str) -> dict:
-    if os.environ.get("CUDA_VISIBLE_DEVICES") != "4" or device != "cuda:0":
+def configure_runtime(device: str, physical_gpu: int = 4) -> dict:
+    if os.environ.get("CUDA_VISIBLE_DEVICES") != str(physical_gpu) or device != "cuda:0":
         raise GreenStop(
             "01_ENVIRONMENT",
-            "v1.3.3 requires physical GPU 4 exposed as cuda:0",
+            f"v1.3.4 requires physical GPU {physical_gpu} exposed as cuda:0",
         )
     if os.environ.get("CUBLAS_WORKSPACE_CONFIG") != ":4096:8":
         raise GreenStop(
@@ -2463,7 +2510,7 @@ def verify_freeze(output_root: Path, require_confirmation: bool = False) -> dict
     if not manifest_path.is_file():
         raise GreenStop("17_MANIFEST_FREEZE", "manifest.json missing")
     manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
-    if manifest.get("schema_version") != "green-bridge-manifest-v1.3.3":
+    if manifest.get("schema_version") != "green-bridge-manifest-v1.3.4":
         raise GreenStop("17_MANIFEST_FREEZE", "manifest schema changed")
     run = manifest.get("run", {})
     if (
@@ -2471,7 +2518,7 @@ def verify_freeze(output_root: Path, require_confirmation: bool = False) -> dict
         or run.get("parent_protocol_id") != PARENT_PROTOCOL_ID
         or run.get("protocol_run_id") != PROTOCOL_RUN_ID
     ):
-        raise GreenStop("17_MANIFEST_FREEZE", "v1.3.3 protocol identity changed")
+        raise GreenStop("17_MANIFEST_FREEZE", "v1.3.4 protocol identity changed")
     if manifest.get("prepare_complete") is not True:
         raise GreenStop("17_MANIFEST_FREEZE", "prepare did not complete")
     stopped = output_root / "result.json"
@@ -2498,8 +2545,8 @@ def verify_freeze(output_root: Path, require_confirmation: bool = False) -> dict
         PROJECT_ROOT / "requirements-green-bridge.lock"
     ):
         raise GreenStop("17_MANIFEST_FREEZE", "requirements hash changed after launch")
-    verify_v132_terminal_archive()
-    invariance_path = output_root / "scientific_invariance_v133.json"
+    verify_v133_terminal_archive()
+    invariance_path = output_root / "scientific_invariance_v134.json"
     if not invariance_path.is_file():
         raise GreenStop("17_MANIFEST_FREEZE", "scientific invariance record missing")
     invariance = json.loads(invariance_path.read_text(encoding="utf-8"))
@@ -3095,7 +3142,6 @@ def _tensor_item_v13(
         seed_frame,
         suffix_tensor,
         fixed_batch_size=ACTIVE_MANUAL_TAIL_BATCH_SIZE,
-        recenter_fixed_batch_output=True,
     )
     contrast_t = margin_vector(record.y, device)
     contrast = contrast_t.cpu().numpy()
@@ -3235,6 +3281,153 @@ def _run_split_v13(
         ))
     write_parquet(output_root / ("dev_tensor_scores.parquet" if split == "development" else "confirm_tensor_scores.parquet"), tensor_rows)
     write_parquet(output_root / ("dev_energy_targets.parquet" if split == "development" else "confirm_energy_targets.parquet"), energy_rows)
+    return aggregate_cells(tensor_rows, energy_rows, dev_sd=dev_sd)
+
+
+def _run_split_v134_multigpu(
+    records,
+    split: str,
+    output_root: Path,
+    epsilon_y: float,
+    dev_sd=None,
+) -> tuple[dict, float]:
+    """Evaluate each frozen record once at exact batch one across eight GPUs."""
+    physical_gpus = tuple(range(8))
+    shard_root = output_root / "shards" / split
+    if shard_root.exists():
+        raise GreenStop("17_ENDPOINT_LEDGER", f"shard root already exists: {shard_root}")
+    ordered = sorted(records, key=lambda row: (row.role, row.pair_digest))
+    assignments = {
+        index: [row for position, row in enumerate(ordered) if position % 8 == index]
+        for index in range(8)
+    }
+    launch_contract_hashes = {
+        name: sha256_file(output_root / name)
+        for name in (
+            f"{split}_anchor_cache.pt",
+            f"{split}_structural_inputs.npz",
+            f"{split}_structural_input_hashes.json",
+            f"{split}_frames.npz",
+            f"{split}_frame_audit.json",
+            f"{split}_radii.json",
+            f"{split}_target_vectors.npz",
+        )
+    }
+    processes = []
+    log_handles = []
+    worker_roots = []
+    for worker_index, physical_gpu in enumerate(physical_gpus):
+        worker_root = shard_root / f"worker_{worker_index:02d}"
+        worker_root.mkdir(parents=True, exist_ok=False)
+        assigned = assignments[worker_index]
+        write_json_atomic(worker_root / "assigned_records.json", plan_payload(assigned))
+        contract = {
+            "schema_version": "green-bridge-v1.3.4-worker-contract-v1",
+            "worker_index": worker_index,
+            "physical_gpu": physical_gpu,
+            "split": split,
+            "epsilon_y": float(epsilon_y),
+            "record_digests": [row.pair_digest for row in assigned],
+            "input_sha256": launch_contract_hashes,
+            "source_sha256": source_hashes(),
+        }
+        write_json_atomic(worker_root / "worker_contract.json", contract)
+        log_path = worker_root / "worker.log"
+        log_handle = log_path.open("w", encoding="utf-8")
+        environment = os.environ.copy()
+        environment["CUDA_VISIBLE_DEVICES"] = str(physical_gpu)
+        command = [
+            sys.executable,
+            "src/green_bridge_multigpu_worker.py",
+            "--output-root", str(output_root),
+            "--worker-root", str(worker_root),
+            "--split", split,
+            "--worker-index", str(worker_index),
+            "--physical-gpu", str(physical_gpu),
+        ]
+        process = subprocess.Popen(
+            command,
+            cwd=PROJECT_ROOT,
+            env=environment,
+            stdout=log_handle,
+            stderr=subprocess.STDOUT,
+            text=True,
+        )
+        processes.append(process)
+        log_handles.append(log_handle)
+        worker_roots.append(worker_root)
+    return_codes = []
+    for process, log_handle in zip(processes, log_handles):
+        return_codes.append(process.wait())
+        log_handle.flush()
+        os.fsync(log_handle.fileno())
+        log_handle.close()
+    if any(code != 0 for code in return_codes):
+        raise GreenStop(
+            "11_MULTIGPU_WORKER",
+            str({"return_codes": return_codes, "shard_root": str(shard_root)}),
+        )
+
+    tensor_rows, energy_rows = [], []
+    worker_summaries = []
+    for worker_index, worker_root in enumerate(worker_roots):
+        worker_result_path = worker_root / "worker_result.json"
+        if not worker_result_path.is_file():
+            raise GreenStop("11_MULTIGPU_WORKER", f"missing {worker_result_path}")
+        worker_result = json.loads(worker_result_path.read_text(encoding="utf-8"))
+        assigned = assignments[worker_index]
+        if worker_result.get("record_count") != len(assigned):
+            raise GreenStop("11_MULTIGPU_WORKER", f"coverage mismatch worker {worker_index}")
+        committed = {
+            row["batch_id"]
+            for row in read_journal(worker_root / "endpoint_ledger.jsonl")
+            if row.get("event") == "endpoint_batch_committed"
+        }
+        for record in assigned:
+            batch_id = f"{split}-{record.role}-{record.pair_digest}"
+            if batch_id not in committed:
+                raise GreenStop("11_MULTIGPU_WORKER", f"uncommitted {batch_id}")
+            artifact = worker_root / "endpoint_batches" / f"{batch_id}.json"
+            row = json.loads(artifact.read_text(encoding="utf-8"))
+            if row.get("pair_digest") != record.pair_digest:
+                raise GreenStop("11_MULTIGPU_WORKER", f"identity mismatch {batch_id}")
+            (tensor_rows if record.role == "tensor" else energy_rows).append(row)
+        for journal_row in read_journal(worker_root / "endpoint_ledger.jsonl"):
+            append_journal(_endpoint_ledger_path(output_root), journal_row)
+        worker_summaries.append({
+            "worker_index": worker_index,
+            "physical_gpu": physical_gpus[worker_index],
+            "record_count": len(assigned),
+            "worker_result_sha256": sha256_file(worker_result_path),
+            "worker_log_sha256": sha256_file(worker_root / "worker.log"),
+            "elapsed_seconds": worker_result["elapsed_seconds"],
+            "peak_allocated_bytes": worker_result["peak_allocated_bytes"],
+        })
+    tensor_rows.sort(key=lambda row: row["pair_digest"])
+    energy_rows.sort(key=lambda row: row["pair_digest"])
+    expected_tensor = sorted(row.pair_digest for row in records if row.role == "tensor")
+    expected_energy = sorted(row.pair_digest for row in records if row.role == "energy")
+    if [row["pair_digest"] for row in tensor_rows] != expected_tensor:
+        raise GreenStop("11_MULTIGPU_WORKER", "tensor coverage is not exact")
+    if [row["pair_digest"] for row in energy_rows] != expected_energy:
+        raise GreenStop("11_MULTIGPU_WORKER", "energy coverage is not exact")
+    tensor_name = "dev_tensor_scores.parquet" if split == "development" else "confirm_tensor_scores.parquet"
+    energy_name = "dev_energy_targets.parquet" if split == "development" else "confirm_energy_targets.parquet"
+    write_parquet(output_root / tensor_name, tensor_rows)
+    write_parquet(output_root / energy_name, energy_rows)
+    merge_payload = {
+        "schema_version": "green-bridge-v1.3.4-multigpu-merge-v1",
+        "split": split,
+        "exact_batch_size": 1,
+        "physical_gpus": list(physical_gpus),
+        "tensor_count": len(tensor_rows),
+        "energy_count": len(energy_rows),
+        "input_sha256": launch_contract_hashes,
+        "workers": worker_summaries,
+        "tensor_parquet_sha256": sha256_file(output_root / tensor_name),
+        "energy_parquet_sha256": sha256_file(output_root / energy_name),
+    }
+    write_json_atomic(output_root / f"{split}_multigpu_merge.json", merge_payload)
     return aggregate_cells(tensor_rows, energy_rows, dev_sd=dev_sd)
 
 
@@ -3388,7 +3581,7 @@ def derivative_equivalence_record(
     }
 
 
-def _prepare_fixed_batch_and_throughput_v133(
+def _prepare_exact_batch_one_and_throughput_v134(
     model,
     tokens,
     suffix_ids,
@@ -3398,79 +3591,66 @@ def _prepare_fixed_batch_and_throughput_v133(
     device: str,
     output_root: Path,
 ) -> dict:
-    """Validate one fixed padded tail operation graph for all scientific calls."""
+    """Validate exact batch-one endpoints and projected eight-GPU throughput."""
     torch = torch_module()
     fixed = TAIL_FIXED_BATCH_SIZE
+    if fixed != 1:
+        raise GreenStop("06E_EXACT_BATCH_ONE", f"batch size changed to {fixed}")
     memory_limit = 20 * 1024**3
     fixed_tail = GreenBridgeTail(
         model,
         frame_t,
         torch.as_tensor(suffix_ids, dtype=torch.long, device=device),
         fixed_batch_size=fixed,
-        recenter_fixed_batch_output=True,
     )
 
     def sync():
         torch.cuda.synchronize(device)
 
-    repeated = _repeat_anchor(anchor, fixed)
-    coordinates = torch.zeros(
-        (fixed, PROBE_FRAME_DIM), dtype=torch.float32, device=device
-    )
-    z = torch.zeros(fixed, dtype=torch.float32, device=device)
+    coordinates = torch.zeros((1, PROBE_FRAME_DIM), dtype=torch.float32, device=device)
+    z = torch.zeros(1, dtype=torch.float32, device=device)
     torch.cuda.empty_cache()
     torch.cuda.reset_peak_memory_stats(device)
+    with torch.inference_mode():
+        fixed_tail.evaluate_physical(
+            anchor, coordinates @ frame_t.T, z, mode="path", gate_slot=0
+        )
     sync()
     started = time.perf_counter()
     with torch.inference_mode():
-        zero_padding = fixed_tail.evaluate_physical(
-            repeated, coordinates @ frame_t.T, z, mode="path", gate_slot=0
+        benchmark_anchor = _repeat_anchor(anchor, 64)
+        benchmark_coordinates = torch.zeros(
+            (64, PROBE_FRAME_DIM), dtype=torch.float32, device=device
+        )
+        benchmark_coordinates[:, 0] = torch.linspace(
+            -residual_step, residual_step, 64, dtype=torch.float32, device=device
+        )
+        benchmark_z = torch.linspace(
+            -GATE_RADIUS, GATE_RADIUS, 64, dtype=torch.float32, device=device
+        )
+        benchmark = fixed_tail.evaluate_physical(
+            benchmark_anchor,
+            benchmark_coordinates @ frame_t.T,
+            benchmark_z,
+            mode="path",
+            gate_slot=0,
         )
     sync()
     elapsed = time.perf_counter() - started
+    seconds_per_endpoint = elapsed / 64.0
     peak = int(torch.cuda.max_memory_allocated(device))
     if peak > memory_limit:
-        raise GreenStop("06E_FIXED_BATCH_GRAPH", f"peak={peak}")
+        raise GreenStop("06E_EXACT_BATCH_ONE", f"peak={peak}")
 
-    diverse_coordinates = coordinates.clone()
-    diverse_coordinates[:, 0] = torch.linspace(
-        -0.2, 0.2, fixed, dtype=torch.float32, device=device
-    )
-    diverse_coordinates[0].zero_()
-    diverse_z = torch.sin(torch.arange(fixed, device=device).float()) * GATE_RADIUS
-    diverse_z[0] = 0.0
     with torch.inference_mode():
-        diverse = fixed_tail.evaluate_physical(
-            repeated,
-            diverse_coordinates @ frame_t.T,
-            diverse_z,
+        benchmark_repeat = fixed_tail.evaluate_physical(
+            benchmark_anchor,
+            benchmark_coordinates @ frame_t.T,
+            benchmark_z,
             mode="path",
             gate_slot=0,
         )
-        repeated_call = fixed_tail.evaluate_physical(
-            repeated,
-            diverse_coordinates @ frame_t.T,
-            diverse_z,
-            mode="path",
-            gate_slot=0,
-        )
-    padding_invariance = _equivalence_metrics(diverse[:1], zero_padding[:1])
-    repeat_invariance = _equivalence_metrics(diverse, repeated_call)
-    frozen_origin = _equivalence_metrics(zero_padding[:1], anchor.year_logits)
-
-    actual = 37
-    actual_anchor = _repeat_anchor(anchor, actual)
-    actual_coordinates = diverse_coordinates[:actual]
-    actual_z = diverse_z[:actual]
-    with torch.inference_mode():
-        wrapped = fixed_tail.evaluate_physical(
-            actual_anchor,
-            actual_coordinates @ frame_t.T,
-            actual_z,
-            mode="path",
-            gate_slot=0,
-        )
-    wrapper_equivalence = _equivalence_metrics(wrapped, diverse[:actual])
+    repeat_invariance = _equivalence_metrics(benchmark, benchmark_repeat)
 
     batch_one_conditions = [
         ("center", "path", np.zeros(PROBE_FRAME_DIM), 0.0),
@@ -3479,7 +3659,7 @@ def _prepare_fixed_batch_and_throughput_v133(
         ("path_x_plus_z", "path", np.eye(PROBE_FRAME_DIM)[1] * residual_step, GATE_RADIUS),
         ("control_x_plus_z", "control", np.eye(PROBE_FRAME_DIM)[2] * residual_step, GATE_RADIUS),
     ]
-    recentered_full_records = []
+    exact_full_records = []
     with torch.inference_mode():
         for name, mode, coordinate, z_value in batch_one_conditions:
             coordinate_t = torch.as_tensor(
@@ -3487,7 +3667,7 @@ def _prepare_fixed_batch_and_throughput_v133(
             )
             delta_t = coordinate_t @ frame_t.T
             z_t = torch.tensor([z_value], dtype=torch.float32, device=device)
-            recentered = fixed_tail.evaluate_physical(
+            exact = fixed_tail.evaluate_physical(
                 anchor, delta_t, z_t, mode=mode, gate_slot=0
             )
             full = full_hook_endpoint_physical(
@@ -3500,30 +3680,25 @@ def _prepare_fixed_batch_and_throughput_v133(
                 mode=mode,
                 gate_slot=0,
             )
-            metrics = _equivalence_metrics(recentered, full)
-            recentered_full_records.append({"condition": name, **metrics})
-            if metrics["max_abs"] > THRESHOLDS.tail_max_abs:
+            metrics = _equivalence_metrics(exact, full)
+            exact_full_records.append({"condition": name, **metrics})
+            if not metrics["bitwise_equal"]:
                 raise GreenStop(
-                    "06E_FIXED_BATCH_GRAPH",
-                    f"recentered batch-one endpoint {name}: {metrics}",
+                    "06E_EXACT_BATCH_ONE",
+                    f"batch-one endpoint {name}: {metrics}",
                 )
 
-    for label, metrics in (
-        ("padding_content", padding_invariance),
-        ("repeat", repeat_invariance),
-        ("wrapper", wrapper_equivalence),
-        ("frozen_origin", frozen_origin),
-    ):
-        if not metrics["bitwise_equal"]:
-            raise GreenStop("06E_FIXED_BATCH_GRAPH", f"{label}: {metrics}")
+    if not repeat_invariance["bitwise_equal"]:
+        raise GreenStop("06E_EXACT_BATCH_ONE", f"repeat: {repeat_invariance}")
 
     plan = {
-        "schema_version": "green-bridge-hardware-batch-plan-v1.3.3",
-        "physical_gpu": 4,
-        "visible_device": "cuda:0",
+        "schema_version": "green-bridge-hardware-batch-plan-v1.3.4",
+        "prepare_physical_gpu": 4,
+        "worker_physical_gpus": list(range(8)),
+        "worker_count": 8,
         "manual_tail_batch_size": fixed,
-        "manual_tail_final_chunk_padding": True,
-        "manual_tail_output_recentering": True,
+        "manual_tail_final_chunk_padding": False,
+        "manual_tail_output_recentering": False,
         "full_model_jvp_batch_size": 1,
         "memory_limit_bytes": memory_limit,
         "peak_allocated_bytes": peak,
@@ -3531,38 +3706,36 @@ def _prepare_fixed_batch_and_throughput_v133(
     }
     write_json_atomic(output_root / "hardware_batch_plan.json", plan)
     batch_payload = {
-        "schema_version": "green-bridge-fixed-batch-equivalence-v1.3.3",
-        "cross_shape_equivalence_applicable": False,
-        "cross_shape_reason": "CUDA GEMM algorithm depends on matrix shape",
-        "fixed_shape_padding_content_invariance": padding_invariance,
-        "fixed_shape_repeat_invariance": repeat_invariance,
-        "padded_wrapper_vs_direct_fixed_shape": wrapper_equivalence,
-        "fixed_shape_zero_vs_frozen_anchor": frozen_origin,
-        "recentered_fixed_shape_vs_full_batch_one": recentered_full_records,
+        "schema_version": "green-bridge-exact-batch-one-equivalence-v1.3.4",
+        "exact_batch_size": 1,
+        "batch_one_repeat_invariance": repeat_invariance,
+        "batch_one_vs_full_hook": exact_full_records,
         "manual_full_raw_equivalence_batch": 1,
         "passed": True,
     }
     write_json_atomic(
-        output_root / "manual_tail_batch_equivalence_v133.json",
+        output_root / "manual_tail_batch_equivalence_v134.json",
         batch_payload,
     )
 
-    projected = (
-        math.ceil(FORWARD_COUNTS["tail_evaluations_total"] / fixed) * elapsed
-    )
+    projected_single = FORWARD_COUNTS["tail_evaluations_total"] * seconds_per_endpoint
+    projected_eight = projected_single / 8.0
     throughput = {
-        "schema_version": "green-bridge-tail-throughput-v1.3.3",
+        "schema_version": "green-bridge-tail-throughput-v1.3.4",
         "preflight_record_only": True,
         "fixed_batch_size": fixed,
-        "fixed_batch_seconds": elapsed,
-        "manual_tail_projected_seconds": projected,
+        "benchmark_endpoints": 64,
+        "benchmark_seconds": elapsed,
+        "seconds_per_endpoint": seconds_per_endpoint,
+        "manual_tail_projected_single_gpu_seconds": projected_single,
+        "manual_tail_projected_eight_gpu_seconds": projected_eight,
         "hard_cap_seconds": 24.0 * 3600.0,
         "operation_counts": FORWARD_COUNTS,
         "selected_projection_fallback": False,
         "peak_limit_bytes": memory_limit,
-        "passed": projected <= 24.0 * 3600.0,
+        "passed": projected_eight <= 24.0 * 3600.0,
     }
-    write_json_atomic(output_root / "manual_tail_throughput_v133.json", throughput)
+    write_json_atomic(output_root / "manual_tail_throughput_v134.json", throughput)
     if not throughput["passed"]:
         raise GreenStop("06G_PREPARE_THROUGHPUT", str(throughput))
     return {"plan": plan, "batch": batch_payload, "throughput": throughput}
@@ -3570,7 +3743,7 @@ def _prepare_fixed_batch_and_throughput_v133(
 
 
 
-def _tail_preflight_v133(
+def _tail_preflight_v134(
     model,
     tokenizer,
     suffix_ids,
@@ -3668,7 +3841,7 @@ def _tail_preflight_v133(
             corrected_endpoints[name] = (manual, full)
 
     legacy_payload = {
-        "schema_version": "green-bridge-tail-root-cause-v1.3.3",
+        "schema_version": "green-bridge-tail-root-cause-v1.3.4",
         "diagnostic_only": True,
         "condition_order": [row[0] for row in conditions],
         "expected_errors": expected_legacy,
@@ -3678,21 +3851,21 @@ def _tail_preflight_v133(
         "active_scientific_endpoint": False,
     }
     write_json_atomic(
-        output_root / "manual_tail_root_cause_reproduction_v133.json",
+        output_root / "manual_tail_root_cause_reproduction_v134.json",
         legacy_payload,
     )
     if legacy_errors != expected_legacy or max(legacy_errors) <= THRESHOLDS.tail_max_abs:
         raise GreenStop("06A_LEGACY_ROOT_CAUSE_REPRODUCTION", str(legacy_payload))
 
     stage_payload = {
-        "schema_version": "green-bridge-tail-stage-trace-v1.3.3",
+        "schema_version": "green-bridge-tail-stage-trace-v1.3.4",
         "records": stage_records,
         "first_divergent_legacy_stage": "unembedding_endpoint",
         "passed": all(
             row["first_divergent_stage"] is None for row in stage_records
         ),
     }
-    write_json_atomic(output_root / "manual_tail_stage_trace_v133.json", stage_payload)
+    write_json_atomic(output_root / "manual_tail_stage_trace_v134.json", stage_payload)
     if not stage_payload["passed"]:
         raise GreenStop("06B_MANUAL_TAIL_STAGE_TRACE", str(stage_payload))
 
@@ -3752,7 +3925,7 @@ def _tail_preflight_v133(
                 raise GreenStop("06D_MANUAL_TAIL_DERIVATIVE", str(derivative_records[-1]))
 
     equivalence_payload = {
-        "schema_version": "green-bridge-tail-equivalence-v1.3.3",
+        "schema_version": "green-bridge-tail-equivalence-v1.3.4",
         "quantity": "raw_100_dimensional_year_logits",
         "threshold": THRESHOLDS.tail_max_abs,
         "original_conditions": raw_records,
@@ -3760,15 +3933,15 @@ def _tail_preflight_v133(
         "center_retained": True,
         "passed": True,
     }
-    write_json_atomic(output_root / "manual_tail_equivalence_v133.json", equivalence_payload)
+    write_json_atomic(output_root / "manual_tail_equivalence_v134.json", equivalence_payload)
     derivative_payload = {
-        "schema_version": "green-bridge-tail-derivative-v1.3.3",
+        "schema_version": "green-bridge-tail-derivative-v1.3.4",
         "estimator": "central_finite_difference",
         "records": derivative_records,
         "near_zero_not_silently_dropped": True,
         "passed": True,
     }
-    write_json_atomic(output_root / "manual_tail_derivative_v133.json", derivative_payload)
+    write_json_atomic(output_root / "manual_tail_derivative_v134.json", derivative_payload)
 
     target_anchor = TargetAnchor(
         resid_mid=anchor.resid_mid,
@@ -3804,15 +3977,15 @@ def _tail_preflight_v133(
             if metrics["max_abs"] > THRESHOLDS.tail_max_abs:
                 raise GreenStop("06F_PATH_TARGET_RAW", str(target_records[-1]))
     target_payload = {
-        "schema_version": "green-bridge-path-target-equivalence-v1.3.3",
+        "schema_version": "green-bridge-path-target-equivalence-v1.3.4",
         "mode": "joint",
         "subtract_residual_bypass": True,
         "code_isolated": True,
         "records": target_records,
         "passed": True,
     }
-    write_json_atomic(output_root / "path_target_equivalence_v133.json", target_payload)
-    hardware = _prepare_fixed_batch_and_throughput_v133(
+    write_json_atomic(output_root / "path_target_equivalence_v134.json", target_payload)
+    hardware = _prepare_exact_batch_one_and_throughput_v134(
         model,
         clean_tokens,
         suffix_ids,
@@ -3848,7 +4021,7 @@ def _duplicate_noise_v13(model, tokenizer, suffix_ids, records, device: str) -> 
 def prepare(output_root: Path, device: str) -> None:
     repository = assert_clean_repository()
     assert_empty_prepare_root(output_root)
-    predecessor_archive = verify_v132_terminal_archive()
+    predecessor_archive = verify_v133_terminal_archive()
     environment = configure_runtime(device)
     from transformers import AutoTokenizer
     tokenizer = AutoTokenizer.from_pretrained(MODEL_ID, revision=MODEL_REVISION)
@@ -3873,8 +4046,8 @@ def prepare(output_root: Path, device: str) -> None:
     current_scientific_hash = sha256_text(canonical_json(current_scientific_payload))
     parent_scientific_hash = parent_scientific["scientific_sha256"]
     invariance = {
-        "parent_schema": "green-bridge-v1.3.2",
-        "current_schema": "green-bridge-v1.3.3",
+        "parent_schema": "green-bridge-v1.3.3",
+        "current_schema": "green-bridge-v1.3.4",
         "scientific_payload_equal": (
             parent_scientific.get("scientific_payload") == current_scientific_payload
             and parent_scientific_hash == current_scientific_hash
@@ -3890,13 +4063,14 @@ def prepare(output_root: Path, device: str) -> None:
             "equivalence-audit artifacts",
             "predecessor archival metadata",
             "fixed-shape tail batching and final-chunk padding",
-            "fixed-shape output recentering at the frozen batch-one anchor",
+            "exact batch-one manual-tail execution",
+            "deterministic record sharding across eight physical GPUs",
             "explicit insufficient-survival terminal decision",
         ],
     }
-    write_json_atomic(output_root / "scientific_invariance_v133.json", invariance)
+    write_json_atomic(output_root / "scientific_invariance_v134.json", invariance)
     if not invariance["scientific_payload_equal"]:
-        raise GreenStop("00B_V132_IDENTITY", str(invariance))
+        raise GreenStop("00B_V133_IDENTITY", str(invariance))
     evaluation_payload = plan_payload(evaluation)
     write_json_atomic(output_root / "splits.json", evaluation_payload)
     write_json_atomic(
@@ -3988,7 +4162,7 @@ def prepare(output_root: Path, device: str) -> None:
             f"coefficient hash {coefficient_hash} != {FIRST_ORDER_COEFFICIENT_SHA256}",
         )
     _atomic_np_save(output_root / "first_order_coefficients.npy", coefficients)
-    tail_result = _tail_preflight_v133(
+    tail_result = _tail_preflight_v134(
         model, tokenizer, suffix_ids, preflight_record, device,
         output_root, preflight_design,
     )
@@ -4006,18 +4180,18 @@ def prepare(output_root: Path, device: str) -> None:
         "run_ledger.json", "model_fingerprint.json", "splits.json",
         "development_splits.json", "gate04_legacy_panel.json",
         "hook_audit.json", "structural_frame_preflight.json",
-        "first_order_coefficients.npy", "scientific_invariance_v133.json",
-        "manual_tail_root_cause_reproduction_v133.json",
-        "manual_tail_stage_trace_v133.json",
-        "manual_tail_equivalence_v133.json",
-        "manual_tail_derivative_v133.json",
-        "manual_tail_batch_equivalence_v133.json",
-        "path_target_equivalence_v133.json", "hardware_batch_plan.json",
-        "manual_tail_throughput_v133.json", "tail_audit.json",
+        "first_order_coefficients.npy", "scientific_invariance_v134.json",
+        "manual_tail_root_cause_reproduction_v134.json",
+        "manual_tail_stage_trace_v134.json",
+        "manual_tail_equivalence_v134.json",
+        "manual_tail_derivative_v134.json",
+        "manual_tail_batch_equivalence_v134.json",
+        "path_target_equivalence_v134.json", "hardware_batch_plan.json",
+        "manual_tail_throughput_v134.json", "tail_audit.json",
         "prepare_result.json",
     )
     prepare_result = {
-        "schema_version": "green-bridge-prepare-v1.3.3",
+        "schema_version": "green-bridge-prepare-v1.3.4",
         "verdict": "PREPARE_PASS",
         "first_failed_gate": None,
         "development_started": False,
@@ -4025,7 +4199,7 @@ def prepare(output_root: Path, device: str) -> None:
     }
     write_json_atomic(output_root / "prepare_result.json", prepare_result)
     manifest = {
-        "schema_version": "green-bridge-manifest-v1.3.3",
+        "schema_version": "green-bridge-manifest-v1.3.4",
         "execution_commit": repository["commit"],
         "review_commit": REVIEW_COMMIT,
         "repository": {
@@ -4047,7 +4221,7 @@ def prepare(output_root: Path, device: str) -> None:
             "phase_all_allowed": False,
         },
         "binding_decision": {
-            "document": "analysis/CODEX_GREEN_V133_ANCHOR_RECENTER_DECISION_20260825.md",
+            "document": "analysis/CODEX_GREEN_V134_EXACT_BATCH1_MULTIGPU_DECISION_20260825.md",
             "fixed_rank_donor_pca_terminated": True,
             "rank_search_allowed": False, "donor_basis_allowed": False,
             "spectral_filter_allowed": False, "learned_alignment_allowed": False,
@@ -4144,14 +4318,11 @@ def development_phase(output_root: Path, device: str) -> None:
     epsilon_y = max(1e-7, float(noise["max_abs"]))
     noise["epsilon_y_dev"] = epsilon_y
     write_json_atomic(output_root / "noise_audit_dev.json", noise)
-    throughput = _development_throughput_preflight(
-        model, suffix_ids, development, output_root, device, epsilon_y,
-        plain, design,
-    )
-    payload, dev_sd = _run_split_v13(
-        model, suffix_ids, development, "development", output_root,
-        device, epsilon_y, plain, design,
-        precomputed=throughput["results"],
+    del tokenizer, model, plain, design
+    gc.collect()
+    torch_module().cuda.empty_cache()
+    payload, dev_sd = _run_split_v134_multigpu(
+        development, "development", output_root, epsilon_y
     )
     write_json_atomic(output_root / "dev_cells.json", payload)
     decision = development_decision(payload)
@@ -4180,6 +4351,22 @@ def development_phase(output_root: Path, device: str) -> None:
     manifest["confirmation_open"] = True
     manifest["frozen_analysis_sha256"] = sha256_file(output_root / "frozen_analysis.json")
     manifest["development_complete"] = True
+    for name in (
+        "development_structural_inputs.npz",
+        "development_structural_input_hashes.json",
+        "development_frames.npz",
+        "development_frame_audit.json",
+        "development_radii.json",
+        "development_target_vectors.npz",
+        "noise_audit_dev.json",
+        "development_multigpu_merge.json",
+        "dev_tensor_scores.parquet",
+        "dev_energy_targets.parquet",
+        "endpoint_ledger.jsonl",
+        "dev_cells.json",
+        "dev_result.json",
+    ):
+        manifest["artifact_sha256"][name] = sha256_file(output_root / name)
     manifest["artifact_sha256"]["run_ledger.json"] = sha256_file(
         output_root / "run_ledger.json"
     )
@@ -4220,9 +4407,14 @@ def confirmation_phase(output_root: Path, device: str) -> None:
     write_json_atomic(output_root / "noise_audit_confirm.json", noise)
     if noise["max_abs"] > permitted:
         raise GreenStop("18_CONFIRMATION_NOISE", f"{noise['max_abs']} > {permitted}")
-    payload, _ = _run_split_v13(
-        model, suffix_ids, confirmation, "confirmation", output_root,
-        device, dev_noise, plain, design,
+    del tokenizer, model, plain, design
+    gc.collect()
+    torch_module().cuda.empty_cache()
+    payload, _ = _run_split_v134_multigpu(
+        confirmation,
+        "confirmation",
+        output_root,
+        dev_noise,
         dev_sd=float(frozen["conditioning_dev_sd"]),
     )
     write_json_atomic(output_root / "confirm_cells.json", payload)
@@ -4245,9 +4437,25 @@ def confirmation_phase(output_root: Path, device: str) -> None:
         )
     else:
         result["first_failed_gate"] = None
-    result["schema_version"] = "green-bridge-terminal-v1.3.3"
+    result["schema_version"] = "green-bridge-terminal-v1.3.4"
     write_json_atomic(output_root / "result.json", result)
     manifest["confirmation_complete"] = True
+    for name in (
+        "confirmation_structural_inputs.npz",
+        "confirmation_structural_input_hashes.json",
+        "confirmation_frames.npz",
+        "confirmation_frame_audit.json",
+        "confirmation_radii.json",
+        "confirmation_target_vectors.npz",
+        "noise_audit_confirm.json",
+        "confirmation_multigpu_merge.json",
+        "confirm_tensor_scores.parquet",
+        "confirm_energy_targets.parquet",
+        "endpoint_ledger.jsonl",
+        "confirm_cells.json",
+        "result.json",
+    ):
+        manifest["artifact_sha256"][name] = sha256_file(output_root / name)
     manifest["artifact_sha256"]["run_ledger.json"] = sha256_file(
         output_root / "run_ledger.json"
     )
