@@ -236,17 +236,23 @@ def gate_certificate_decomposition(archive: Path, output: Path, script: Path) ->
 
 
 def uncertainty_decomposition(gates: pd.DataFrame, archive: Path, output: Path, script: Path) -> tuple[pd.DataFrame, dict]:
+    tensor = pd.read_parquet(
+        archive / "dev_tensor_scores.parquet",
+        columns=["pair_digest", "residual_radius"],
+    ).set_index("pair_digest")
     rows = []
     for _, gate in gates.iterrows():
-        h_x = float(pd.read_parquet(archive / "dev_tensor_scores.parquet")
-                    .set_index("pair_digest").loc[gate["pair_digest"], "residual_radius"]) * 0.5
+        h_x = float(tensor.loc[gate["pair_digest"], "residual_radius"]) * 0.5
+        raw_source = tensor_gate_lookup(
+            archive, gate["pair_digest"], gate["system"], int(gate["gate_slot"])
+        )
         objects = [
             ("G", gate["epsilon_G"], 10 * 3 * EPSILON_Y / FINE_H_Z,
-             _decode(gate["ad_matched_bypass"]), gate),
+             _decode(gate["ad_matched_bypass"]), raw_source),
             ("C", gate["epsilon_C"], 10 * 64 * EPSILON_Y / (3 * FINE_H_Z**2),
-             _decode(gate["ad_matched_bypass"]), gate),
+             _decode(gate["ad_matched_bypass"]), raw_source),
             ("J", gate["epsilon_J"], math.sqrt(500) * 3 * EPSILON_Y / h_x,
-             _decode(gate["ad_matched_bypass"]), gate),
+             _decode(gate["ad_matched_bypass"]), raw_source),
         ]
         route_map = {"G": "ad_route_radius_G", "C": "ad_route_radius_C", "J": "ad_route_radius_J"}
         for name, total, endpoint, _, raw in objects:
@@ -262,7 +268,6 @@ def uncertainty_decomposition(gates: pd.DataFrame, archive: Path, output: Path, 
                          "fraction_route": route / denom if denom else 0,
                          "fraction_endpoint": endpoint / denom if denom else 0})
         eps_h = _decode(gate["epsilon_delta_H"])
-        raw_source = tensor_gate_lookup(archive, gate["pair_digest"], gate["system"], int(gate["gate_slot"]))
         route_h = raw_source.get("ad_route_radius_delta_H") or []
         endpoint_h = 20 * 17 * EPSILON_Y / (3 * h_x * FINE_H_Z)
         for index, total in enumerate(eps_h or []):
@@ -290,16 +295,17 @@ def uncertainty_decomposition(gates: pd.DataFrame, archive: Path, output: Path, 
     return frame, summary
 
 
-_TENSOR_CACHE: dict[tuple[str, str, int], dict] = {}
+_TENSOR_AUDIT_CACHE: dict[str, dict[str, Any]] = {}
 
 
 def tensor_gate_lookup(archive: Path, digest: str, system: str, gate_slot: int) -> dict:
-    key = (digest, system, gate_slot)
-    if key not in _TENSOR_CACHE:
+    archive_key = str(archive.resolve())
+    if archive_key not in _TENSOR_AUDIT_CACHE:
         tensor = pd.read_parquet(archive / "dev_tensor_scores.parquet", columns=["pair_digest", "mixed_audit"])
-        value = tensor.loc[tensor["pair_digest"] == digest, "mixed_audit"].iloc[0]
-        _TENSOR_CACHE[key] = _decode(value)[system]["gates"][gate_slot]
-    return _TENSOR_CACHE[key]
+        _TENSOR_AUDIT_CACHE[archive_key] = {
+            row.pair_digest: _decode(row.mixed_audit) for row in tensor.itertuples(index=False)
+        }
+    return _TENSOR_AUDIT_CACHE[archive_key][digest][system]["gates"][gate_slot]
 
 
 def set_snr_geometry(archive: Path, output: Path, script: Path) -> dict:
