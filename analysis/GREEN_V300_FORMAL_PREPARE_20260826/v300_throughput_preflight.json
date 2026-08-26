@@ -1,0 +1,12 @@
+{
+  "actual_benchmark_strata": 40,
+  "actual_legacy_prepare_benchmark_seconds": 190.88491649599746,
+  "maximum_eight_gpu_seconds": 86400,
+  "maximum_peak_gib": 20.0,
+  "passed": true,
+  "peak_allocated_bytes": 8264350720,
+  "peak_allocated_gib": 7.696776390075684,
+  "projected_prepare_development_confirmation_seconds": 2023.380114857573,
+  "projection_is_conservative_single_gpu_equivalent": true,
+  "schema_version": "green-bridge-v3.0.0-throughput-preflight-v1"
+}

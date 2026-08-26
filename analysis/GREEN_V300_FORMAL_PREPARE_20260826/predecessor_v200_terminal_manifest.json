@@ -1,0 +1,18 @@
+{
+  "checks": {
+    "confirmation_closed": true,
+    "execution_commit": true,
+    "first_failed_gate": true,
+    "joint_composition": true,
+    "official_verdict": true,
+    "postmortem_commit": true,
+    "postmortem_complete": true,
+    "selected_archive_hashes": true,
+    "transport_theorem": true
+  },
+  "fixed_rank_donor_pca_terminated": true,
+  "hash_mismatches": {},
+  "schema_version": "green-bridge-v3.0.0-predecessor-manifest-v1",
+  "v200_development_parquets_diagnostic_only": true,
+  "v200_root_write_allowed": false
+}

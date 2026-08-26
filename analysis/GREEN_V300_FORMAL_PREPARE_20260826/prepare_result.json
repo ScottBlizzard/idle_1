@@ -1,0 +1,12 @@
+{
+  "attempt_index": 1,
+  "confirmation_started": false,
+  "development_started": false,
+  "first_failed_gate": null,
+  "formal_one_shot": true,
+  "retry_allowed": false,
+  "schema_version": "green-bridge-prepare-v3.0.0",
+  "selected_global_radius": 1.0,
+  "technical_corrigendum_id": "CODEX-GREEN-V300-CANONICAL-PAYLOAD-v1-20260826",
+  "verdict": "PREPARE_PASS"
+}

@@ -1,0 +1,18 @@
+{
+  "max_atom_residual": 1.2494914337557025e-15,
+  "max_gradient_residual": 2.162901736726871e-15,
+  "max_orthogonality_error": 5.773159728050814e-15,
+  "pair_digests": [
+    "000314403c0726b1f1dca388a4a133dc38fb002f00e992b6f1efd02f21022eaa",
+    "00087e4bfe5d0f7bf4527da6a47e60e0e0ba41d9a798bac0ae1abd96494bcfa5",
+    "0008ba3175029839314a1a92869c19ac4e009b50ceb02ae98c216cbb6acb484e",
+    "000248ce3788fb416bb3c7fab79e2c557f936abf149174385c05b24d6c1a8d1f",
+    "0009552c227b6a42065448d963f59e64e6d00907307a474921d1be5b17e82d42",
+    "000112769e76962942d6fd10c25bd52efca42be4b6843ce0f547d44130bd8d23",
+    "0006e232ec791217290ac4ca46468771bb366abe98af10c1a542fff86132753c",
+    "0001528c2984d0f95b3bcb7f6e5a8c4375c5f580166312c546af82410b0a36a1"
+  ],
+  "passed": true,
+  "repeated_frames_bitwise_equal": true,
+  "schema_version": "green-bridge-v3.0.0-structural-frame-preflight-v1"
+}

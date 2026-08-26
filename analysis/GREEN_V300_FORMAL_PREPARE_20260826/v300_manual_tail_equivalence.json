@@ -1,0 +1,349 @@
+{
+  "derivative": {
+    "estimator": "central_finite_difference",
+    "near_zero_not_silently_dropped": true,
+    "passed": true,
+    "records": [
+      {
+        "absolute_l2": 0.0,
+        "absolute_max": 0.0,
+        "l2_bound": null,
+        "max_bound": null,
+        "passed": true,
+        "reference_l2": 0.00017658047453684772,
+        "reference_norm_floor": 1e-05,
+        "relative": 0.0,
+        "relative_threshold": 0.0001,
+        "status": "RELATIVE_APPLICABLE",
+        "stencil": "path_dx_e0_at_z0",
+        "step": 0.4277208605856451
+      },
+      {
+        "absolute_l2": 0.0,
+        "absolute_max": 0.0,
+        "l2_bound": null,
+        "max_bound": null,
+        "passed": true,
+        "reference_l2": 3.718403847984558,
+        "reference_norm_floor": 1e-05,
+        "relative": 0.0,
+        "relative_threshold": 0.0001,
+        "status": "RELATIVE_APPLICABLE",
+        "stencil": "path_dx_e1_at_z0",
+        "step": 0.4277208605856451
+      },
+      {
+        "absolute_l2": 0.0,
+        "absolute_max": 0.0,
+        "l2_bound": null,
+        "max_bound": null,
+        "passed": true,
+        "reference_l2": 0.36093779509521534,
+        "reference_norm_floor": 1e-05,
+        "relative": 0.0,
+        "relative_threshold": 0.0001,
+        "status": "RELATIVE_APPLICABLE",
+        "stencil": "path_dx_e2_at_z0",
+        "step": 0.4277208605856451
+      },
+      {
+        "absolute_l2": 0.0,
+        "absolute_max": 0.0,
+        "l2_bound": null,
+        "max_bound": null,
+        "passed": true,
+        "reference_l2": 3.376133934267049,
+        "reference_norm_floor": 1e-05,
+        "relative": 0.0,
+        "relative_threshold": 0.0001,
+        "status": "RELATIVE_APPLICABLE",
+        "stencil": "path_dz_at_x0",
+        "step": 0.2
+      },
+      {
+        "absolute_l2": 0.0,
+        "absolute_max": 0.0,
+        "l2_bound": null,
+        "max_bound": null,
+        "passed": true,
+        "reference_l2": 0.3370520389032847,
+        "reference_norm_floor": 1e-05,
+        "relative": 0.0,
+        "relative_threshold": 0.0001,
+        "status": "RELATIVE_APPLICABLE",
+        "stencil": "control_dx_e2_at_z0",
+        "step": 0.4277208605856451
+      },
+      {
+        "absolute_l2": 0.0,
+        "absolute_max": 0.0,
+        "l2_bound": null,
+        "max_bound": null,
+        "passed": true,
+        "reference_l2": 3.376133934267049,
+        "reference_norm_floor": 1e-05,
+        "relative": 0.0,
+        "relative_threshold": 0.0001,
+        "status": "RELATIVE_APPLICABLE",
+        "stencil": "control_dz_at_x0",
+        "step": 0.2
+      }
+    ],
+    "schema_version": "green-bridge-tail-derivative-v1.3.6"
+  },
+  "passed": true,
+  "path_target": {
+    "code_isolated": true,
+    "mode": "joint",
+    "passed": true,
+    "records": [
+      {
+        "bitwise_equal": true,
+        "max_abs": 0.0,
+        "rms": 0.0,
+        "scale": 0.0,
+        "shape": [
+          1,
+          100
+        ]
+      },
+      {
+        "bitwise_equal": true,
+        "max_abs": 0.0,
+        "rms": 0.0,
+        "scale": 1.0,
+        "shape": [
+          1,
+          100
+        ]
+      },
+      {
+        "bitwise_equal": true,
+        "max_abs": 0.0,
+        "rms": 0.0,
+        "scale": -1.0,
+        "shape": [
+          1,
+          100
+        ]
+      },
+      {
+        "bitwise_equal": true,
+        "max_abs": 0.0,
+        "rms": 0.0,
+        "scale": 0.5,
+        "shape": [
+          1,
+          100
+        ]
+      },
+      {
+        "bitwise_equal": true,
+        "max_abs": 0.0,
+        "rms": 0.0,
+        "scale": -0.5,
+        "shape": [
+          1,
+          100
+        ]
+      }
+    ],
+    "schema_version": "green-bridge-path-target-equivalence-v1.3.6",
+    "subtract_residual_bypass": true
+  },
+  "raw": {
+    "center_retained": true,
+    "original_conditions": [
+      {
+        "bitwise_equal": true,
+        "condition": "center",
+        "max_abs": 0.0,
+        "rms": 0.0,
+        "shape": [
+          1,
+          100
+        ]
+      },
+      {
+        "bitwise_equal": true,
+        "condition": "x_only",
+        "max_abs": 0.0,
+        "rms": 0.0,
+        "shape": [
+          1,
+          100
+        ]
+      },
+      {
+        "bitwise_equal": true,
+        "condition": "z_only",
+        "max_abs": 0.0,
+        "rms": 0.0,
+        "shape": [
+          1,
+          100
+        ]
+      },
+      {
+        "bitwise_equal": true,
+        "condition": "path_x_plus_z",
+        "max_abs": 0.0,
+        "rms": 0.0,
+        "shape": [
+          1,
+          100
+        ]
+      },
+      {
+        "bitwise_equal": true,
+        "condition": "control_x_plus_z",
+        "max_abs": 0.0,
+        "rms": 0.0,
+        "shape": [
+          1,
+          100
+        ]
+      }
+    ],
+    "passed": true,
+    "quantity": "raw_100_dimensional_year_logits",
+    "schema_version": "green-bridge-tail-equivalence-v1.3.6",
+    "signed_endpoints": [
+      {
+        "bitwise_equal": true,
+        "max_abs": 0.0,
+        "rms": 0.0,
+        "shape": [
+          1,
+          100
+        ],
+        "sign": "plus",
+        "stencil": "path_dx_e0_at_z0"
+      },
+      {
+        "bitwise_equal": true,
+        "max_abs": 0.0,
+        "rms": 0.0,
+        "shape": [
+          1,
+          100
+        ],
+        "sign": "minus",
+        "stencil": "path_dx_e0_at_z0"
+      },
+      {
+        "bitwise_equal": true,
+        "max_abs": 0.0,
+        "rms": 0.0,
+        "shape": [
+          1,
+          100
+        ],
+        "sign": "plus",
+        "stencil": "path_dx_e1_at_z0"
+      },
+      {
+        "bitwise_equal": true,
+        "max_abs": 0.0,
+        "rms": 0.0,
+        "shape": [
+          1,
+          100
+        ],
+        "sign": "minus",
+        "stencil": "path_dx_e1_at_z0"
+      },
+      {
+        "bitwise_equal": true,
+        "max_abs": 0.0,
+        "rms": 0.0,
+        "shape": [
+          1,
+          100
+        ],
+        "sign": "plus",
+        "stencil": "path_dx_e2_at_z0"
+      },
+      {
+        "bitwise_equal": true,
+        "max_abs": 0.0,
+        "rms": 0.0,
+        "shape": [
+          1,
+          100
+        ],
+        "sign": "minus",
+        "stencil": "path_dx_e2_at_z0"
+      },
+      {
+        "bitwise_equal": true,
+        "max_abs": 0.0,
+        "rms": 0.0,
+        "shape": [
+          1,
+          100
+        ],
+        "sign": "plus",
+        "stencil": "path_dz_at_x0"
+      },
+      {
+        "bitwise_equal": true,
+        "max_abs": 0.0,
+        "rms": 0.0,
+        "shape": [
+          1,
+          100
+        ],
+        "sign": "minus",
+        "stencil": "path_dz_at_x0"
+      },
+      {
+        "bitwise_equal": true,
+        "max_abs": 0.0,
+        "rms": 0.0,
+        "shape": [
+          1,
+          100
+        ],
+        "sign": "plus",
+        "stencil": "control_dx_e2_at_z0"
+      },
+      {
+        "bitwise_equal": true,
+        "max_abs": 0.0,
+        "rms": 0.0,
+        "shape": [
+          1,
+          100
+        ],
+        "sign": "minus",
+        "stencil": "control_dx_e2_at_z0"
+      },
+      {
+        "bitwise_equal": true,
+        "max_abs": 0.0,
+        "rms": 0.0,
+        "shape": [
+          1,
+          100
+        ],
+        "sign": "plus",
+        "stencil": "control_dz_at_x0"
+      },
+      {
+        "bitwise_equal": true,
+        "max_abs": 0.0,
+        "rms": 0.0,
+        "shape": [
+          1,
+          100
+        ],
+        "sign": "minus",
+        "stencil": "control_dz_at_x0"
+      }
+    ],
+    "threshold": 2e-05
+  },
+  "schema_version": "green-bridge-v3.0.0-manual-tail-equivalence-v1",
+  "source_protocol": "green-bridge-v1.3.6-corrected-tail"
+}

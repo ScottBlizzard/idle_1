@@ -1,0 +1,392 @@
+{
+  "cases": 64,
+  "failures": 0,
+  "passed": true,
+  "rows": [
+    {
+      "bound": 4.092931899316975e-13,
+      "index": 0,
+      "passed": true,
+      "residual": 3.300587823160056e-15
+    },
+    {
+      "bound": 1.8450658183963582e-13,
+      "index": 1,
+      "passed": true,
+      "residual": 3.1886123928423115e-15
+    },
+    {
+      "bound": 1.078285234122016e-13,
+      "index": 2,
+      "passed": true,
+      "residual": 1.6985042580338893e-15
+    },
+    {
+      "bound": 2.4982108064901124e-14,
+      "index": 3,
+      "passed": true,
+      "residual": 1.1269429237603721e-15
+    },
+    {
+      "bound": 1.3764113865179484e-13,
+      "index": 4,
+      "passed": true,
+      "residual": 1.7876106579152786e-15
+    },
+    {
+      "bound": 4.0391411204445645e-14,
+      "index": 5,
+      "passed": true,
+      "residual": 6.821789235002613e-16
+    },
+    {
+      "bound": 3.5388948122771063e-13,
+      "index": 6,
+      "passed": true,
+      "residual": 4.650586257046052e-15
+    },
+    {
+      "bound": 5.300051228195897e-13,
+      "index": 7,
+      "passed": true,
+      "residual": 2.8404411141629056e-15
+    },
+    {
+      "bound": 8.134764498325217e-13,
+      "index": 8,
+      "passed": true,
+      "residual": 6.982389346362479e-15
+    },
+    {
+      "bound": 4.3564609527042565e-13,
+      "index": 9,
+      "passed": true,
+      "residual": 4.57674761213814e-15
+    },
+    {
+      "bound": 5.358225917026879e-13,
+      "index": 10,
+      "passed": true,
+      "residual": 2.4563292388799046e-15
+    },
+    {
+      "bound": 7.256885620172937e-14,
+      "index": 11,
+      "passed": true,
+      "residual": 9.848906857259851e-16
+    },
+    {
+      "bound": 1.3967943712866052e-13,
+      "index": 12,
+      "passed": true,
+      "residual": 2.218808469518639e-15
+    },
+    {
+      "bound": 9.116992488473087e-14,
+      "index": 13,
+      "passed": true,
+      "residual": 7.93110185386975e-16
+    },
+    {
+      "bound": 8.408737468565401e-14,
+      "index": 14,
+      "passed": true,
+      "residual": 2.4537330908142638e-15
+    },
+    {
+      "bound": 2.0451911669544938e-13,
+      "index": 15,
+      "passed": true,
+      "residual": 1.7104198086586571e-15
+    },
+    {
+      "bound": 6.5613608423472e-14,
+      "index": 16,
+      "passed": true,
+      "residual": 1.0233310078695606e-15
+    },
+    {
+      "bound": 2.3600754861619597e-13,
+      "index": 17,
+      "passed": true,
+      "residual": 2.3130155599546664e-15
+    },
+    {
+      "bound": 1.7812844157503372e-13,
+      "index": 18,
+      "passed": true,
+      "residual": 1.7199229945980468e-15
+    },
+    {
+      "bound": 5.2112888154182046e-14,
+      "index": 19,
+      "passed": true,
+      "residual": 3.1668450848952064e-15
+    },
+    {
+      "bound": 2.4245156284190207e-14,
+      "index": 20,
+      "passed": true,
+      "residual": 8.015149334325275e-16
+    },
+    {
+      "bound": 1.844095272132294e-13,
+      "index": 21,
+      "passed": true,
+      "residual": 1.1039003855079345e-15
+    },
+    {
+      "bound": 3.536174503307313e-13,
+      "index": 22,
+      "passed": true,
+      "residual": 5.120174971349763e-15
+    },
+    {
+      "bound": 1.2386810514760578e-13,
+      "index": 23,
+      "passed": true,
+      "residual": 1.789858058476629e-15
+    },
+    {
+      "bound": 2.631387247999116e-13,
+      "index": 24,
+      "passed": true,
+      "residual": 1.831290479805711e-15
+    },
+    {
+      "bound": 1.4781434520422182e-13,
+      "index": 25,
+      "passed": true,
+      "residual": 1.4514121466690463e-15
+    },
+    {
+      "bound": 8.162114411719191e-14,
+      "index": 26,
+      "passed": true,
+      "residual": 9.270924528963837e-16
+    },
+    {
+      "bound": 5.837814616869749e-14,
+      "index": 27,
+      "passed": true,
+      "residual": 7.042320372309997e-16
+    },
+    {
+      "bound": 1.0703042432827779e-13,
+      "index": 28,
+      "passed": true,
+      "residual": 7.342123612647688e-16
+    },
+    {
+      "bound": 8.342173729773906e-14,
+      "index": 29,
+      "passed": true,
+      "residual": 1.3036306256254282e-15
+    },
+    {
+      "bound": 1.3894178988307449e-13,
+      "index": 30,
+      "passed": true,
+      "residual": 3.0290715904063113e-15
+    },
+    {
+      "bound": 4.962014437851769e-13,
+      "index": 31,
+      "passed": true,
+      "residual": 3.940900794429958e-15
+    },
+    {
+      "bound": 4.644955468558636e-13,
+      "index": 32,
+      "passed": true,
+      "residual": 3.2861359068333176e-15
+    },
+    {
+      "bound": 7.76376173415777e-13,
+      "index": 33,
+      "passed": true,
+      "residual": 6.223398743682616e-15
+    },
+    {
+      "bound": 3.247864508298735e-14,
+      "index": 34,
+      "passed": true,
+      "residual": 1.5527080413338024e-15
+    },
+    {
+      "bound": 4.238638791621836e-13,
+      "index": 35,
+      "passed": true,
+      "residual": 2.6068092038048087e-15
+    },
+    {
+      "bound": 1.0853818959443765e-13,
+      "index": 36,
+      "passed": true,
+      "residual": 1.0242333917168134e-15
+    },
+    {
+      "bound": 3.924757306346737e-14,
+      "index": 37,
+      "passed": true,
+      "residual": 3.0543876053690606e-15
+    },
+    {
+      "bound": 3.7812346087139536e-13,
+      "index": 38,
+      "passed": true,
+      "residual": 3.0690724599340133e-15
+    },
+    {
+      "bound": 7.315861033214731e-14,
+      "index": 39,
+      "passed": true,
+      "residual": 1.1442076144686268e-15
+    },
+    {
+      "bound": 3.6818658480185263e-13,
+      "index": 40,
+      "passed": true,
+      "residual": 2.308474099923538e-15
+    },
+    {
+      "bound": 8.107106345207412e-13,
+      "index": 41,
+      "passed": true,
+      "residual": 4.791455718470958e-15
+    },
+    {
+      "bound": 1.0376525844165243e-13,
+      "index": 42,
+      "passed": true,
+      "residual": 6.479977347214442e-16
+    },
+    {
+      "bound": 3.456540738312867e-13,
+      "index": 43,
+      "passed": true,
+      "residual": 2.384113471475309e-15
+    },
+    {
+      "bound": 1.3253945733335775e-13,
+      "index": 44,
+      "passed": true,
+      "residual": 1.142224190709539e-15
+    },
+    {
+      "bound": 2.725329913458124e-13,
+      "index": 45,
+      "passed": true,
+      "residual": 1.9161400903847886e-15
+    },
+    {
+      "bound": 2.435195441003714e-13,
+      "index": 46,
+      "passed": true,
+      "residual": 1.8753123011113915e-15
+    },
+    {
+      "bound": 6.427506359603161e-14,
+      "index": 47,
+      "passed": true,
+      "residual": 4.955393680163129e-16
+    },
+    {
+      "bound": 1.4210854715202004e-14,
+      "index": 48,
+      "passed": true,
+      "residual": 1.6772761932992033e-15
+    },
+    {
+      "bound": 4.3091818232120607e-13,
+      "index": 49,
+      "passed": true,
+      "residual": 3.3537566479288056e-15
+    },
+    {
+      "bound": 3.316051216873945e-14,
+      "index": 50,
+      "passed": true,
+      "residual": 4.964530374751119e-16
+    },
+    {
+      "bound": 3.505546433097663e-13,
+      "index": 51,
+      "passed": true,
+      "residual": 3.275804733529747e-15
+    },
+    {
+      "bound": 2.5602051129918103e-13,
+      "index": 52,
+      "passed": true,
+      "residual": 2.251641669533115e-15
+    },
+    {
+      "bound": 5.618552964816885e-13,
+      "index": 53,
+      "passed": true,
+      "residual": 2.963127068396995e-15
+    },
+    {
+      "bound": 8.299042156833029e-13,
+      "index": 54,
+      "passed": true,
+      "residual": 5.526636244048097e-15
+    },
+    {
+      "bound": 4.848072307829675e-13,
+      "index": 55,
+      "passed": true,
+      "residual": 3.888363226817444e-15
+    },
+    {
+      "bound": 5.383008944078481e-14,
+      "index": 56,
+      "passed": true,
+      "residual": 4.0852369551123083e-16
+    },
+    {
+      "bound": 1.5230845058544524e-14,
+      "index": 57,
+      "passed": true,
+      "residual": 1.7767052137131424e-15
+    },
+    {
+      "bound": 1.1320705136521123e-13,
+      "index": 58,
+      "passed": true,
+      "residual": 9.199138984174546e-16
+    },
+    {
+      "bound": 2.743665536516368e-13,
+      "index": 59,
+      "passed": true,
+      "residual": 2.593810146238142e-15
+    },
+    {
+      "bound": 4.4949106090676526e-13,
+      "index": 60,
+      "passed": true,
+      "residual": 2.8116137803282743e-15
+    },
+    {
+      "bound": 1.008163501982059e-13,
+      "index": 61,
+      "passed": true,
+      "residual": 1.2397242313294191e-15
+    },
+    {
+      "bound": 2.890855945218106e-14,
+      "index": 62,
+      "passed": true,
+      "residual": 4.383036097725317e-16
+    },
+    {
+      "bound": 4.957575977519468e-13,
+      "index": 63,
+      "passed": true,
+      "residual": 5.497285870624612e-15
+    }
+  ],
+  "schema_version": "green-bridge-v3.0.0-synthetic-theorem-suite-v1"
+}

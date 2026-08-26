@@ -1,0 +1,11 @@
+{
+  "attempt_index": 1,
+  "confirmation_started": false,
+  "created_utc": "2026-08-26T03:56:08Z",
+  "development_started": false,
+  "execution_commit": "602e7c9c5e43f1aecf1485d4ad2fc6574b2fdaa1",
+  "formal_one_shot": true,
+  "prepare_started": true,
+  "protocol_run_id": "green-bridge-v3.0.0-one-shot",
+  "retry_allowed": false
+}

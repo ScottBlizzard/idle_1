@@ -1,0 +1,56 @@
+{
+  "composition_failures": 0,
+  "passed": true,
+  "records": [
+    {
+      "bound": 2.0505276522613843e-10,
+      "distance_bin": "near",
+      "gate_routes_passed": true,
+      "joint_route_passed": true,
+      "pair_digest": "00466685660871a3923d0c8edaa4966c69f42799079ed24c64e84441abe1e1c3",
+      "passed": true,
+      "prediction": -0.005408838177710201,
+      "residual": 1.249000902703301e-16,
+      "system": "tar",
+      "target": -0.005408838177710076
+    },
+    {
+      "bound": 1.8279465986304768e-10,
+      "distance_bin": "near",
+      "gate_routes_passed": true,
+      "joint_route_passed": true,
+      "pair_digest": "00466685660871a3923d0c8edaa4966c69f42799079ed24c64e84441abe1e1c3",
+      "passed": true,
+      "prediction": -0.00537617022628285,
+      "residual": 2.3071822230491534e-16,
+      "system": "pat",
+      "target": -0.005376170226282619
+    },
+    {
+      "bound": 1.601773664167074e-10,
+      "distance_bin": "far",
+      "gate_routes_passed": true,
+      "joint_route_passed": true,
+      "pair_digest": "005c2a725a9aa46b4a34677dc5944e2f38724481278416ef45b825a0e90347b9",
+      "passed": true,
+      "prediction": -0.007885970063329646,
+      "residual": 8.673617379884035e-17,
+      "system": "tar",
+      "target": -0.00788597006332956
+    },
+    {
+      "bound": 1.6182182192671632e-10,
+      "distance_bin": "far",
+      "gate_routes_passed": true,
+      "joint_route_passed": true,
+      "pair_digest": "005c2a725a9aa46b4a34677dc5944e2f38724481278416ef45b825a0e90347b9",
+      "passed": true,
+      "prediction": -0.0059366440980208575,
+      "residual": 4.3021142204224816e-16,
+      "system": "pat",
+      "target": -0.005936644098020427
+    }
+  ],
+  "route_failures": 0,
+  "schema_version": "green-bridge-v3.0.0-joint-composition-preflight-v1"
+}

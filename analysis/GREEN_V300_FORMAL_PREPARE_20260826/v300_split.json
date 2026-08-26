@@ -1,0 +1,102 @@
+{
+  "confirmation_groups": [
+    {
+      "century": 12,
+      "noun": "warfare"
+    },
+    {
+      "century": 14,
+      "noun": "campaign"
+    },
+    {
+      "century": 16,
+      "noun": "campaign"
+    },
+    {
+      "century": 14,
+      "noun": "expedition"
+    },
+    {
+      "century": 16,
+      "noun": "expedition"
+    },
+    {
+      "century": 12,
+      "noun": "treaty"
+    },
+    {
+      "century": 16,
+      "noun": "treaty"
+    }
+  ],
+  "confirmation_nouns": [
+    {
+      "noun": "warfare",
+      "rank_key": "9ecb254c9b50e23347e2ff87b974b0276cc0d68ef66309af56d188f25f09211b"
+    },
+    {
+      "noun": "campaign",
+      "rank_key": "a61597275b4c915e9c7817db66a23f6b606bc7dbcd90a4ce887f71c817bfc899"
+    },
+    {
+      "noun": "expedition",
+      "rank_key": "c321a47e8b081ed358bc3563699b7468de0d7b1e643ee885fa67eb7e9ea514b9"
+    },
+    {
+      "noun": "treaty",
+      "rank_key": "fbb0f0ca767e11356284380417c68e28eee578a4e8307418803ba458e4098edb"
+    }
+  ],
+  "development_groups": [
+    {
+      "century": 12,
+      "noun": "kingdom"
+    },
+    {
+      "century": 16,
+      "noun": "kingdom"
+    },
+    {
+      "century": 12,
+      "noun": "reign"
+    },
+    {
+      "century": 14,
+      "noun": "siege"
+    },
+    {
+      "century": 16,
+      "noun": "siege"
+    }
+  ],
+  "development_nouns": [
+    {
+      "noun": "kingdom",
+      "rank_key": "2cb603de8d771d6e31da85fcac4a8c92710acaf3f2247cf4a78536ab71bdb421"
+    },
+    {
+      "noun": "reign",
+      "rank_key": "444eba1462ed40d15dc1c16c7a6c8546577790ce8dcd4982c2d246f2c29fbe7e"
+    },
+    {
+      "noun": "siege",
+      "rank_key": "47348e3ba5e30dca846c17bc4f49a279cf1e4008e9ed23c8bdca07f07802a312"
+    }
+  ],
+  "distance_bins": [
+    "near",
+    "far"
+  ],
+  "orientations_per_role": {
+    "down": 4,
+    "up": 4
+  },
+  "records_per_role_per_cell": 8,
+  "roles": [
+    "transport",
+    "joint"
+  ],
+  "salt": "green-v300-transport-noun-split-20260825",
+  "schema": "green-bridge-v3.0.0-transport-split-v1",
+  "source_split": "green-bridge-v2.0.0-unopened-confirmation"
+}

@@ -1,0 +1,581 @@
+{
+  "behavioral_fields_present": false,
+  "candidate_payload": {
+    "candidates": [
+      "1",
+      "1/2",
+      "1/4",
+      "1/8",
+      "1/16",
+      "1/32",
+      "1/64"
+    ],
+    "schema": "green-bridge-v3.0.0-global-radius-candidates-v1"
+  },
+  "candidate_payload_sha256": "370173c38e04bf741145faf09d5cffc826810d206c684b97de65c07d13303d6c",
+  "records": [
+    {
+      "distance_bin": "near",
+      "gate_slot": 0,
+      "pair_digest": "009a9f13480c4cae4f1eb86f579710c54739d7e9927c21ee746c7edd09136ac2",
+      "population": "legacy_donor",
+      "prompt_metadata": {
+        "century": 17,
+        "noun": "reforms",
+        "y": 57,
+        "y_prime": 69
+      },
+      "selection_hash": "0022c6c8891d4db7c41cc019d7ad6665c324fa4afea87f16da12effe422f2152",
+      "system": "tar"
+    },
+    {
+      "distance_bin": "near",
+      "gate_slot": 1,
+      "pair_digest": "018283206b06fcd01ae341f52bffec7609b431ee591bfbdba91f9850e8c1cef1",
+      "population": "legacy_donor",
+      "prompt_metadata": {
+        "century": 13,
+        "noun": "outbreak",
+        "y": 72,
+        "y_prime": 88
+      },
+      "selection_hash": "006341be82204c5e2bb9903a7635d5d925ede634c98a865ef711792c3d90c30d",
+      "system": "tar"
+    },
+    {
+      "distance_bin": "near",
+      "gate_slot": 2,
+      "pair_digest": "010809780d84483faff34002d9d1949c0c98fa01e75b27f99c507671dfe4a806",
+      "population": "legacy_donor",
+      "prompt_metadata": {
+        "century": 17,
+        "noun": "hostility",
+        "y": 45,
+        "y_prime": 59
+      },
+      "selection_hash": "0025b5512c7e2861f11a8160c56e217a052db3df86f7e022da57b0210d18f9d3",
+      "system": "tar"
+    },
+    {
+      "distance_bin": "near",
+      "gate_slot": 3,
+      "pair_digest": "00dd374b942e3d1d1fa2d8b5b30976ffa0172fe7910f80f8c48fe773c106cdc5",
+      "population": "legacy_donor",
+      "prompt_metadata": {
+        "century": 17,
+        "noun": "journey",
+        "y": 83,
+        "y_prime": 75
+      },
+      "selection_hash": "0004c8c537e43cf8959ea7c1fdfc17f09ad4333e74edfb8cfc25f92b35f4fc4b",
+      "system": "tar"
+    },
+    {
+      "distance_bin": "near",
+      "gate_slot": 4,
+      "pair_digest": "005a5f4c6bee41263e0acda29f4d1401d6e599f56237d980e4b901c1b69ddafe",
+      "population": "legacy_donor",
+      "prompt_metadata": {
+        "century": 15,
+        "noun": "insurgency",
+        "y": 44,
+        "y_prime": 59
+      },
+      "selection_hash": "00668d31b0e2fea5055fadeace0e82611ac6768103910f83cb0912d63393c444",
+      "system": "tar"
+    },
+    {
+      "distance_bin": "near",
+      "gate_slot": 5,
+      "pair_digest": "010809780d84483faff34002d9d1949c0c98fa01e75b27f99c507671dfe4a806",
+      "population": "legacy_donor",
+      "prompt_metadata": {
+        "century": 17,
+        "noun": "hostility",
+        "y": 45,
+        "y_prime": 59
+      },
+      "selection_hash": "006258204a4ffbd940b89277e3d2ce823e329eeb59759dd30a7e8322d4148ec0",
+      "system": "tar"
+    },
+    {
+      "distance_bin": "near",
+      "gate_slot": 6,
+      "pair_digest": "001ac8d09c863deccee7e874d55aa7d1e9a0f968be522e5f60725f8d7b27c158",
+      "population": "legacy_donor",
+      "prompt_metadata": {
+        "century": 17,
+        "noun": "modernization",
+        "y": 43,
+        "y_prime": 56
+      },
+      "selection_hash": "00cfa40c779005db6b883060d9ba6882eb730d62d75076950b94af50f7af7544",
+      "system": "tar"
+    },
+    {
+      "distance_bin": "near",
+      "gate_slot": 7,
+      "pair_digest": "0212cafc4533f15ed9e3e84fe65b8cfbc93ba9e21a8e8ebdf85cece7e6950a43",
+      "population": "legacy_donor",
+      "prompt_metadata": {
+        "century": 17,
+        "noun": "outbreak",
+        "y": 78,
+        "y_prime": 67
+      },
+      "selection_hash": "0060fced311ad8c73f84bd3d25a7ab229eb96303a597dd4bb03a684330b5a609",
+      "system": "tar"
+    },
+    {
+      "distance_bin": "near",
+      "gate_slot": 8,
+      "pair_digest": "00301683417056d99456090b2a658ae7ad5727b2c2de2b9709da99df0782afd9",
+      "population": "legacy_donor",
+      "prompt_metadata": {
+        "century": 17,
+        "noun": "operation",
+        "y": 19,
+        "y_prime": 11
+      },
+      "selection_hash": "0015e42534f3aef9b4417aa6ec5e64344b0257852f7e5f28a9861f053281fd9e",
+      "system": "tar"
+    },
+    {
+      "distance_bin": "near",
+      "gate_slot": 9,
+      "pair_digest": "0314863bc031acfde952cb08e9862251a734c2a783aacddcdfd3d84b3b872c80",
+      "population": "legacy_donor",
+      "prompt_metadata": {
+        "century": 11,
+        "noun": "sanctions",
+        "y": 49,
+        "y_prime": 33
+      },
+      "selection_hash": "0020d39a94e89a14322ea93d21cc1f9d02c484d8599c4777c8ac382fb75fe6d7",
+      "system": "tar"
+    },
+    {
+      "distance_bin": "near",
+      "gate_slot": 0,
+      "pair_digest": "03be303a28500e3d85542e707d16e2306129a4b7694353f9e765c6e745cdb26c",
+      "population": "legacy_donor",
+      "prompt_metadata": {
+        "century": 11,
+        "noun": "domination",
+        "y": 64,
+        "y_prime": 48
+      },
+      "selection_hash": "00cc1facc048b641545dcd841221c64b6039f446f692021aedcea2c9b76766d5",
+      "system": "pat"
+    },
+    {
+      "distance_bin": "near",
+      "gate_slot": 1,
+      "pair_digest": "002c81fbabcfbd8e186141a2ef7f560fb5eb0d9708ff17e54130e4ee5a9ce54a",
+      "population": "legacy_donor",
+      "prompt_metadata": {
+        "century": 13,
+        "noun": "modernization",
+        "y": 63,
+        "y_prime": 48
+      },
+      "selection_hash": "00165c09bbc1cd5dcb4f8d811d809d3932e4049ad113485a20dba45319ba9354",
+      "system": "pat"
+    },
+    {
+      "distance_bin": "near",
+      "gate_slot": 2,
+      "pair_digest": "00e496150bffbb8e5b153808a2f0e0872ad6a102c8f89558a8c0f2e2d8d61472",
+      "population": "legacy_donor",
+      "prompt_metadata": {
+        "century": 15,
+        "noun": "relationship",
+        "y": 46,
+        "y_prime": 56
+      },
+      "selection_hash": "0214cd398e37bcfc560ad3c59bcd3507d9a414d194e2e18b9c59870b442676de",
+      "system": "pat"
+    },
+    {
+      "distance_bin": "near",
+      "gate_slot": 3,
+      "pair_digest": "009b17bf7b2f5d4e06dd0155ddc4926fa8262f7d606dc54710ed68f96cd4b090",
+      "population": "legacy_donor",
+      "prompt_metadata": {
+        "century": 11,
+        "noun": "outbreak",
+        "y": 39,
+        "y_prime": 48
+      },
+      "selection_hash": "00a9c12bd960b6beefe90e90d3a0db59aa045b8a9858a19810492f4b70cd43f7",
+      "system": "pat"
+    },
+    {
+      "distance_bin": "near",
+      "gate_slot": 4,
+      "pair_digest": "0034324f228171e2263c00591c10676c84f949bc3b7f0031d0151f5b288ddd42",
+      "population": "legacy_donor",
+      "prompt_metadata": {
+        "century": 17,
+        "noun": "confrontation",
+        "y": 9,
+        "y_prime": 24
+      },
+      "selection_hash": "002df112bcb68e9911804cc8ef9314b5d797c14e178879962b2ba9e66af67a54",
+      "system": "pat"
+    },
+    {
+      "distance_bin": "near",
+      "gate_slot": 5,
+      "pair_digest": "03e174cf5a764942dec99a18d97965316bbc64124ee71d83888e750a3e484829",
+      "population": "legacy_donor",
+      "prompt_metadata": {
+        "century": 11,
+        "noun": "insurgency",
+        "y": 67,
+        "y_prime": 75
+      },
+      "selection_hash": "010d254bf6c4b21c8c7f8e3e526cf910b7b10c5a1fbff310af570b328c2f208b",
+      "system": "pat"
+    },
+    {
+      "distance_bin": "near",
+      "gate_slot": 6,
+      "pair_digest": "0235b050009f6197ab9591944abdbab61deb3509139af6f751707863a38f099f",
+      "population": "legacy_donor",
+      "prompt_metadata": {
+        "century": 11,
+        "noun": "insurgency",
+        "y": 78,
+        "y_prime": 89
+      },
+      "selection_hash": "00a8726b0deefa0e7ff36294f4d9244e6b7ce5b330921cd600486a285e351f3d",
+      "system": "pat"
+    },
+    {
+      "distance_bin": "near",
+      "gate_slot": 7,
+      "pair_digest": "00dfae4588d8888ab5bbabddc6329f07bc2330e79668807fb2669656935d2a00",
+      "population": "legacy_donor",
+      "prompt_metadata": {
+        "century": 17,
+        "noun": "voyage",
+        "y": 53,
+        "y_prime": 67
+      },
+      "selection_hash": "009ca3a8bc17069ffd0ddf5e3e3eabfab38c2f6845ba77c8cb594469146dbe9c",
+      "system": "pat"
+    },
+    {
+      "distance_bin": "near",
+      "gate_slot": 8,
+      "pair_digest": "021a5b99f1077e3185c8141c2570718d1e89583f1819d6868840eaabf3d6b881",
+      "population": "legacy_donor",
+      "prompt_metadata": {
+        "century": 13,
+        "noun": "journey",
+        "y": 10,
+        "y_prime": 23
+      },
+      "selection_hash": "00a1be54d59d80e62f8bef940e8e9622018a613b25649bc6b2b728682f31081a",
+      "system": "pat"
+    },
+    {
+      "distance_bin": "near",
+      "gate_slot": 9,
+      "pair_digest": "01101133f2ebe93fa98834043bc493664c91fa49f4ba33fb3f3bb4a089a1abda",
+      "population": "legacy_donor",
+      "prompt_metadata": {
+        "century": 11,
+        "noun": "raids",
+        "y": 38,
+        "y_prime": 47
+      },
+      "selection_hash": "002985b0c0a4f0800bc56720c1b82697ea39c57b80def1b1b65fff016ba803e7",
+      "system": "pat"
+    },
+    {
+      "distance_bin": "far",
+      "gate_slot": 0,
+      "pair_digest": "0160bddd44730a8f41f85ac06d41372298f5502aa62d983969f8dcdc59dd2683",
+      "population": "legacy_donor",
+      "prompt_metadata": {
+        "century": 11,
+        "noun": "insurgency",
+        "y": 63,
+        "y_prime": 10
+      },
+      "selection_hash": "005d58ad1cc02cda99b5b9543db444876935b77fb09ffd13fed54acd72031eaf",
+      "system": "tar"
+    },
+    {
+      "distance_bin": "far",
+      "gate_slot": 1,
+      "pair_digest": "0042b77711d111849f8544f886075d9cff1356891084a6cdb0cfd32e26869f9d",
+      "population": "legacy_donor",
+      "prompt_metadata": {
+        "century": 15,
+        "noun": "operation",
+        "y": 61,
+        "y_prime": 13
+      },
+      "selection_hash": "01c1c7b55f03c9bb2f1981101c099e8c4548fb2461887aa960f4a99cfcee162b",
+      "system": "tar"
+    },
+    {
+      "distance_bin": "far",
+      "gate_slot": 2,
+      "pair_digest": "00fea5a393f65388626aecd014648fe29196f0ae85e9755e1a236b1e0f5d34da",
+      "population": "legacy_donor",
+      "prompt_metadata": {
+        "century": 11,
+        "noun": "confrontation",
+        "y": 65,
+        "y_prime": 12
+      },
+      "selection_hash": "00e412c28a039077bea84d43299c44a4cc9d190bd10100bee7f65322ea8c68b4",
+      "system": "tar"
+    },
+    {
+      "distance_bin": "far",
+      "gate_slot": 3,
+      "pair_digest": "006b2cd751426325d59259ff600d1a06ae3724b84ff731fc411f64b6a0183eb6",
+      "population": "legacy_donor",
+      "prompt_metadata": {
+        "century": 15,
+        "noun": "outbreak",
+        "y": 69,
+        "y_prime": 26
+      },
+      "selection_hash": "00e0dba543e28be941942c73ad41e38fa4711c9b14c8b92f07305e15d06c12d3",
+      "system": "tar"
+    },
+    {
+      "distance_bin": "far",
+      "gate_slot": 4,
+      "pair_digest": "031aa5d1379d04e3a43a04a0b792f4de9f5751c705ff20c8ffceda3a6be155fb",
+      "population": "legacy_donor",
+      "prompt_metadata": {
+        "century": 15,
+        "noun": "domination",
+        "y": 83,
+        "y_prime": 39
+      },
+      "selection_hash": "00dab030306563ab07afab26648c5450edbc55584bb1bf5054a3a25d5d9f64af",
+      "system": "tar"
+    },
+    {
+      "distance_bin": "far",
+      "gate_slot": 5,
+      "pair_digest": "009b38bc33be47a434b0c99a53c04fc0b5311c073d242c51fa74f290ee73a70c",
+      "population": "legacy_donor",
+      "prompt_metadata": {
+        "century": 13,
+        "noun": "sanctions",
+        "y": 38,
+        "y_prime": 84
+      },
+      "selection_hash": "0043bd8024259b37d63b30bf626adcfbef6b34d29fbf6a89d91303c1bd33eef9",
+      "system": "tar"
+    },
+    {
+      "distance_bin": "far",
+      "gate_slot": 6,
+      "pair_digest": "004dd2e435c20c0c9bb8891a04d3d7020fb231e5260d3225309c932129559613",
+      "population": "legacy_donor",
+      "prompt_metadata": {
+        "century": 13,
+        "noun": "domination",
+        "y": 63,
+        "y_prime": 19
+      },
+      "selection_hash": "008936f76ce489a947fa42831fcb4b3329eb4ae74326aab550917f1635c8597f",
+      "system": "tar"
+    },
+    {
+      "distance_bin": "far",
+      "gate_slot": 7,
+      "pair_digest": "008da7daf0ad9794159a72cf987796b94ca520f7afad89b52d92bf42310c7121",
+      "population": "legacy_donor",
+      "prompt_metadata": {
+        "century": 17,
+        "noun": "relationship",
+        "y": 15,
+        "y_prime": 63
+      },
+      "selection_hash": "006c7ede0ea40939b670ea39f9eff1e5e37ef1fcefad994699e48518756a53d0",
+      "system": "tar"
+    },
+    {
+      "distance_bin": "far",
+      "gate_slot": 8,
+      "pair_digest": "0117c2b28a39c9da88fe2a9348e9717b62a9bb4ae30b2a63e52954b3a984f79e",
+      "population": "legacy_donor",
+      "prompt_metadata": {
+        "century": 13,
+        "noun": "operation",
+        "y": 17,
+        "y_prime": 63
+      },
+      "selection_hash": "001109d34db450b2f6875956af90bcd0aea56465dbfd509546d1bee2944cf6e5",
+      "system": "tar"
+    },
+    {
+      "distance_bin": "far",
+      "gate_slot": 9,
+      "pair_digest": "01388c488ef1a6e80cea1a4ad21a6feba5621784cc926a99b39ca0eb3c68ae91",
+      "population": "legacy_donor",
+      "prompt_metadata": {
+        "century": 13,
+        "noun": "modernization",
+        "y": 83,
+        "y_prime": 35
+      },
+      "selection_hash": "00f46a11586e761f26bb5dbac62bf1ed9f3d12d0654bb760f5c0cec59935e9db",
+      "system": "tar"
+    },
+    {
+      "distance_bin": "far",
+      "gate_slot": 0,
+      "pair_digest": "013465ba1f594926902fdedb740b7c39b74716e426844efa3dd61e61caab1ab4",
+      "population": "legacy_donor",
+      "prompt_metadata": {
+        "century": 13,
+        "noun": "reforms",
+        "y": 73,
+        "y_prime": 18
+      },
+      "selection_hash": "004b2695d8a0a44251fa12c64eb1b94049cbea8df12abac3968c891374599749",
+      "system": "pat"
+    },
+    {
+      "distance_bin": "far",
+      "gate_slot": 1,
+      "pair_digest": "0050834df8683170d32ae40bb8474fbab4d22bf38af5e70eebc7640c16beb3f4",
+      "population": "legacy_donor",
+      "prompt_metadata": {
+        "century": 15,
+        "noun": "modernization",
+        "y": 41,
+        "y_prime": 90
+      },
+      "selection_hash": "00ed0302d4b9353d62cf4dbff83bbcf5248d588d3233dfa4b46d932f9449a90d",
+      "system": "pat"
+    },
+    {
+      "distance_bin": "far",
+      "gate_slot": 2,
+      "pair_digest": "01bd44331ec228862fa5be8085e9ac60c81b1ad82c9e06c55e11253a9d1bb783",
+      "population": "legacy_donor",
+      "prompt_metadata": {
+        "century": 13,
+        "noun": "operation",
+        "y": 21,
+        "y_prime": 63
+      },
+      "selection_hash": "0139cee14269585e93dfe15ae39ae16cbe1820af85bf95322961bd70d06aa4a7",
+      "system": "pat"
+    },
+    {
+      "distance_bin": "far",
+      "gate_slot": 3,
+      "pair_digest": "012648d0c9fe8a60e12090fcb3844d4a70cb7e2cc5794d1c44ae2ad07eb8c648",
+      "population": "legacy_donor",
+      "prompt_metadata": {
+        "century": 17,
+        "noun": "pilgrimage",
+        "y": 29,
+        "y_prime": 72
+      },
+      "selection_hash": "002ff23cf7c16574c5277df567af4187419fd49b1785e684a69678ab05f108a9",
+      "system": "pat"
+    },
+    {
+      "distance_bin": "far",
+      "gate_slot": 4,
+      "pair_digest": "02b9d7435fff2fccfe0ec8d9992339ae8acac5bc780fb28caa608b2a104e4077",
+      "population": "legacy_donor",
+      "prompt_metadata": {
+        "century": 13,
+        "noun": "rivalry",
+        "y": 20,
+        "y_prime": 70
+      },
+      "selection_hash": "000cdb8cea021c16e63284309e770132d6c7390094ee64b987c1bf4d12067cf3",
+      "system": "pat"
+    },
+    {
+      "distance_bin": "far",
+      "gate_slot": 5,
+      "pair_digest": "00db02b7a2671be5a7e009ef482ca7c5ff99191a925d60e732e3fe010e1165d1",
+      "population": "legacy_donor",
+      "prompt_metadata": {
+        "century": 17,
+        "noun": "hostility",
+        "y": 47,
+        "y_prime": 91
+      },
+      "selection_hash": "00259a572a4a9289269784c1ae818b0b1968c6a58e5552314bef38d8fcb316fc",
+      "system": "pat"
+    },
+    {
+      "distance_bin": "far",
+      "gate_slot": 6,
+      "pair_digest": "022f14f78320b927e28cdb53f966f993a4a4338a11ffb0467b1eb746ef0060d7",
+      "population": "legacy_donor",
+      "prompt_metadata": {
+        "century": 17,
+        "noun": "confrontation",
+        "y": 14,
+        "y_prime": 70
+      },
+      "selection_hash": "005712e717aaa9beb4073a4acc4fe11a387262382260cacdcaa0c5a177a07c0f",
+      "system": "pat"
+    },
+    {
+      "distance_bin": "far",
+      "gate_slot": 7,
+      "pair_digest": "00d2f43f5cf023682060f89f432fd11b84875edd5f5f952a1de4aa5d4c008a6a",
+      "population": "legacy_donor",
+      "prompt_metadata": {
+        "century": 11,
+        "noun": "hostility",
+        "y": 89,
+        "y_prime": 44
+      },
+      "selection_hash": "00dcd78923192b7b281aa0aab91136f44a9ecfb98fa8b42395bc1b6d067c2474",
+      "system": "pat"
+    },
+    {
+      "distance_bin": "far",
+      "gate_slot": 8,
+      "pair_digest": "009a45e2e5de54aa58214072535fce682f0bc711009658a60c7fdda1531e4c1c",
+      "population": "legacy_donor",
+      "prompt_metadata": {
+        "century": 15,
+        "noun": "outbreak",
+        "y": 77,
+        "y_prime": 24
+      },
+      "selection_hash": "007c23198514d28a6f75bedb87aea707666718566673c0fabfaf65021396097f",
+      "system": "pat"
+    },
+    {
+      "distance_bin": "far",
+      "gate_slot": 9,
+      "pair_digest": "01a618b54ab7220b947c5904e6b5678f303455e98b3bcdcb0c777fbb39be34fe",
+      "population": "legacy_donor",
+      "prompt_metadata": {
+        "century": 17,
+        "noun": "insurgency",
+        "y": 19,
+        "y_prime": 69
+      },
+      "selection_hash": "001cec541cc9f3a80ab8860e3002afe2cc89aac11535011b19db9955d9bd1f73",
+      "system": "pat"
+    }
+  ],
+  "required_strata": 40,
+  "schema_version": "green-bridge-v3.0.0-radius-candidate-panel-v1",
+  "selection_salt": "green-v300-radius-calibration-20260825"
+}

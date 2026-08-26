@@ -1,0 +1,23 @@
+{
+  "exact_endpoint_batch_size": 1,
+  "finite_response_mode": "float64_response_only",
+  "future_worker_physical_gpus": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7
+  ],
+  "isolated_float64_response_copy": true,
+  "lower_precision_fallback": false,
+  "passed": true,
+  "prepare_physical_gpu": 4,
+  "prepare_visible_device": "cuda:0",
+  "radius_fallback": false,
+  "reduced_gate_fallback": false,
+  "schema_version": "green-bridge-v3.0.0-hardware-plan-v1",
+  "selected_projection_fallback": false
+}
