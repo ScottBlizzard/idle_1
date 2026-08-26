@@ -189,7 +189,9 @@ def main() -> None:
     for (_, row), audit in zip(transport.iterrows(), audits):
         scalar_rows.append(
             {field: row[field] for field in identity_fields}
-            | {field: audit[field] for field in scalar_audit_fields}
+            # The byte-reused transport rows predate serialization of
+            # envelope_error. Preserve that historical absence explicitly.
+            | {field: audit.get(field) for field in scalar_audit_fields}
         )
     pd.DataFrame(scalar_rows).to_parquet(
         args.output_root / "dev_gate_scalar_audit.parquet", index=False
