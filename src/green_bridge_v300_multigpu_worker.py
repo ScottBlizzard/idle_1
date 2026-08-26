@@ -68,7 +68,7 @@ def deterministic_worker_assignment_v300(phase: str, role: str, worker_index: in
 def _clean_gate_for_json(row: dict) -> dict:
     return {key: value for key, value in row.items() if key not in {
         "gradient_hat", "coarse_gradient_hat", "gate_response",
-        "coarse_gate_response", "whitebox_gradient",
+        "coarse_gate_response", "whitebox_gradient", "probe_frame",
     }}
 
 

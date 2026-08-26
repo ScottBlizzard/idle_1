@@ -434,6 +434,8 @@ def evaluate_gate_v300(*, model, finite_tail, ad_tail, anchor, frame, suffix_ids
         "gate_response": np.asarray(response["fine"].G, dtype=np.float64),
         "coarse_gate_response": np.asarray(response["coarse"].G, dtype=np.float64),
         "whitebox_gradient": gradient,
+        "probe_frame": np.asarray(frame, dtype=np.float64),
+        "envelope_error": envelope_error,
         "baseline_errors": baseline_errors,
     }
 
@@ -454,7 +456,8 @@ def joint_scalar_v300(gates: Iterable[dict], *, direction: np.ndarray,
     bounds = []
     unresolved_bound = 0.0
     for row in gate_rows:
-        scale = float(np.linalg.norm(contrast)) * float(np.linalg.norm(direction))
+        contrast_norm = float(np.linalg.norm(contrast))
+        direction_norm = float(np.linalg.norm(direction))
         if row["gate_class"] == "recoverable":
             center_terms.append(
                 float(contrast @ row["gate_response"])
@@ -467,11 +470,18 @@ def joint_scalar_v300(gates: Iterable[dict], *, direction: np.ndarray,
                 )
             else:
                 coarse_terms.append(center_terms[-1])
-            bounds.append(scale * float(row["epsilon_P_F"]))
+            projected_norm = float(
+                np.linalg.norm(np.asarray(row["probe_frame"]).T @ direction)
+            )
+            bounds.append(contrast_norm * (
+                float(row["epsilon_P_F"]) * projected_norm
+                + (float(np.linalg.norm(row["gate_response"])) + float(row["epsilon_G"]))
+                * float(row["envelope_error"]) * direction_norm
+            ))
         else:
             center_terms.append(0.0)
             coarse_terms.append(0.0)
-            bound = scale * float(row["exact_operator_upper"])
+            bound = contrast_norm * direction_norm * float(row["exact_operator_upper"])
             bounds.append(bound)
             if row["gate_class"] == "unresolved":
                 unresolved_bound += bound

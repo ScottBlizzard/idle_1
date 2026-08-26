@@ -222,9 +222,13 @@ def merge_development_v300(worker_root: Path, output_root: Path) -> dict:
     cell_coarse = transport.groupby("cell_id")["coarse_direct_error"].mean()
     common = cell_fine.index.intersection(cell_coarse.index)
     coarse_fine_spearman = float(spearmanr(cell_fine.loc[common], cell_coarse.loc[common]).statistic)
+    # Inherit the v2 confirmatory radius-stability definition, including its
+    # frozen 0.05 scale floor. Without the floor, two near-zero errors can be
+    # almost identical scientifically while having an arbitrarily large
+    # relative change.
     symmetric = np.abs(cell_fine.loc[common] - cell_coarse.loc[common]) / np.maximum(
-        np.maximum(np.abs(cell_fine.loc[common]), np.abs(cell_coarse.loc[common])),
-        np.finfo(float).tiny,
+        (np.abs(cell_fine.loc[common]) + np.abs(cell_coarse.loc[common])) / 2.0,
+        0.05,
     )
     gate_slot_counts = (
         transport[transport["gate_class"] == "recoverable"]
