@@ -1,0 +1,42 @@
+{
+  "schema_version": "green-v400-formal-prepare-config-v1",
+  "protocol_id": "GREEN_V400_JOINT_WITNESS_BOUNDARY_TRANSITION_FORMAL_PREPARE_V1",
+  "binding_parent_commit": "48182844a43d391439704f27aa26d513d33adaa0",
+  "formal_prepare_only": true,
+  "real_row_certificate_authorized": false,
+  "development_authorized": false,
+  "confirmation_authorized": false,
+  "precision_bits": {
+    "local": 256,
+    "official": 384,
+    "audit": 512
+  },
+  "partition": {
+    "absolute_width_tolerance": "0x1p-80",
+    "relative_width_tolerance": "0x1p-40",
+    "max_depth": 24,
+    "max_cells": 262144
+  },
+  "static_resource_limits": {
+    "max_graph_nodes": 2000000,
+    "max_scalar_mpfr_operations_per_row": 100000000,
+    "max_memory_gib_per_worker": 64,
+    "max_formal_prepare_wall_hours": 24
+  },
+  "boundary_transition": {
+    "design": "attenuated_subtractive_dither_quantization",
+    "alpha_exponents": [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16],
+    "q_exponents": [-52, -50, -48, -46, -44, -42, -40, -38, -36, -34, -32, -30, -28, -26, -24, -22, -20, -18, -16, -14, -12],
+    "dither_replicates": 4,
+    "bootstrap_replicates": 100000,
+    "bootstrap_seed": 20260805,
+    "permutation_replicates": 100000,
+    "permutation_seed": 20260805,
+    "q_selection_authorized": false,
+    "outcome_replay_authorized": false
+  },
+  "candidate_nouns_path": "analysis/GREEN_V400_CANDIDATE_NOUNS_20260826.txt",
+  "output_root": "/mnt/sdb/outputs/green_bridge_v400_formal_prepare",
+  "terminal_success": "PREPARE_PASS_STATIC_THEOREM_ONLY",
+  "terminal_stop": "STOP_AFTER_FORMAL_PREPARE_RETURN_TO_GPTPRO"
+}
