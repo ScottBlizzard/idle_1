@@ -201,6 +201,254 @@ std::uint64_t mix_checksum(std::uint64_t state, mpfr_srcptr value) {
   return state;
 }
 
+struct IntervalMP {
+  explicit IntervalMP(mpfr_prec_t precision) : lower(precision), upper(precision), precision(precision) {}
+  MpfrValue lower;
+  MpfrValue upper;
+  mpfr_prec_t precision;
+};
+
+struct JetMP {
+  explicit JetMP(mpfr_prec_t precision) : value(precision), first(precision), second(precision) {}
+  IntervalMP value;
+  IntervalMP first;
+  IntervalMP second;
+};
+
+IntervalMP interval_point_float(float raw, mpfr_prec_t precision) {
+  IntervalMP result(precision);
+  mpfr_set_flt(result.lower.get(), raw, MPFR_RNDN);
+  mpfr_set(result.upper.get(), result.lower.get(), MPFR_RNDN);
+  return result;
+}
+
+IntervalMP interval_add(const IntervalMP& left, const IntervalMP& right) {
+  IntervalMP result(left.precision);
+  mpfr_add(result.lower.get(), left.lower.get(), right.lower.get(), MPFR_RNDD);
+  mpfr_add(result.upper.get(), left.upper.get(), right.upper.get(), MPFR_RNDU);
+  return result;
+}
+
+IntervalMP interval_neg(const IntervalMP& input) {
+  IntervalMP result(input.precision);
+  mpfr_neg(result.lower.get(), input.upper.get(), MPFR_RNDN);
+  mpfr_neg(result.upper.get(), input.lower.get(), MPFR_RNDN);
+  return result;
+}
+
+IntervalMP interval_mul(const IntervalMP& left, const IntervalMP& right) {
+  IntervalMP result(left.precision);
+  MpfrValue candidate(left.precision);
+  bool initialized = false;
+  mpfr_srcptr left_values[2] = {left.lower.get(), left.upper.get()};
+  mpfr_srcptr right_values[2] = {right.lower.get(), right.upper.get()};
+  for (mpfr_srcptr a : left_values) for (mpfr_srcptr b : right_values) {
+    mpfr_mul(candidate.get(), a, b, MPFR_RNDD);
+    if (!initialized || mpfr_less_p(candidate.get(), result.lower.get()))
+      mpfr_set(result.lower.get(), candidate.get(), MPFR_RNDN);
+    initialized = true;
+  }
+  initialized = false;
+  for (mpfr_srcptr a : left_values) for (mpfr_srcptr b : right_values) {
+    mpfr_mul(candidate.get(), a, b, MPFR_RNDU);
+    if (!initialized || mpfr_greater_p(candidate.get(), result.upper.get()))
+      mpfr_set(result.upper.get(), candidate.get(), MPFR_RNDN);
+    initialized = true;
+  }
+  return result;
+}
+
+IntervalMP interval_square(const IntervalMP& input) {
+  IntervalMP result(input.precision);
+  MpfrValue lower_square(input.precision), upper_square(input.precision),
+      lower_up(input.precision), upper_up(input.precision);
+  mpfr_mul(lower_square.get(), input.lower.get(), input.lower.get(), MPFR_RNDD);
+  mpfr_mul(upper_square.get(), input.upper.get(), input.upper.get(), MPFR_RNDD);
+  mpfr_mul(lower_up.get(), input.lower.get(), input.lower.get(), MPFR_RNDU);
+  mpfr_mul(upper_up.get(), input.upper.get(), input.upper.get(), MPFR_RNDU);
+  if (mpfr_sgn(input.lower.get()) <= 0 && mpfr_sgn(input.upper.get()) >= 0) {
+    mpfr_set_zero(result.lower.get(), 0);
+  } else {
+    mpfr_set(result.lower.get(), mpfr_less_p(lower_square.get(), upper_square.get())
+             ? lower_square.get() : upper_square.get(), MPFR_RNDN);
+  }
+  mpfr_set(result.upper.get(), mpfr_greater_p(lower_up.get(), upper_up.get())
+           ? lower_up.get() : upper_up.get(), MPFR_RNDN);
+  return result;
+}
+
+IntervalMP interval_tanh(const IntervalMP& input) {
+  IntervalMP result(input.precision);
+  mpfr_tanh(result.lower.get(), input.lower.get(), MPFR_RNDD);
+  mpfr_tanh(result.upper.get(), input.upper.get(), MPFR_RNDU);
+  return result;
+}
+
+IntervalMP interval_clone(const IntervalMP& input) {
+  IntervalMP result(input.precision);
+  mpfr_set(result.lower.get(), input.lower.get(), MPFR_RNDN);
+  mpfr_set(result.upper.get(), input.upper.get(), MPFR_RNDN);
+  return result;
+}
+
+IntervalMP interval_point_rational(unsigned long numerator, unsigned long denominator,
+                                   mpfr_prec_t precision) {
+  IntervalMP result(precision);
+  MpfrValue raw(precision);
+  mpfr_set_ui(raw.get(), numerator, MPFR_RNDN);
+  mpfr_div_ui(result.lower.get(), raw.get(), denominator, MPFR_RNDD);
+  mpfr_div_ui(result.upper.get(), raw.get(), denominator, MPFR_RNDU);
+  return result;
+}
+
+IntervalMP interval_reciprocal(const IntervalMP& input) {
+  IntervalMP result(input.precision);
+  MpfrValue one(input.precision), first(input.precision), second(input.precision);
+  mpfr_set_ui(one.get(), 1U, MPFR_RNDN);
+  mpfr_div(first.get(), one.get(), input.upper.get(), MPFR_RNDD);
+  mpfr_div(second.get(), one.get(), input.lower.get(), MPFR_RNDU);
+  mpfr_set(result.lower.get(), mpfr_less_p(first.get(), second.get())
+           ? first.get() : second.get(), MPFR_RNDN);
+  mpfr_set(result.upper.get(), mpfr_greater_p(first.get(), second.get())
+           ? first.get() : second.get(), MPFR_RNDN);
+  return result;
+}
+
+IntervalMP interval_inv_sqrt(const IntervalMP& input) {
+  IntervalMP roots(input.precision);
+  mpfr_sqrt(roots.lower.get(), input.lower.get(), MPFR_RNDD);
+  mpfr_sqrt(roots.upper.get(), input.upper.get(), MPFR_RNDU);
+  return interval_reciprocal(roots);
+}
+
+JetMP jet_constant(const IntervalMP& value) {
+  JetMP result(value.precision);
+  mpfr_set(result.value.lower.get(), value.lower.get(), MPFR_RNDN);
+  mpfr_set(result.value.upper.get(), value.upper.get(), MPFR_RNDN);
+  mpfr_set_zero(result.first.lower.get(), 0); mpfr_set_zero(result.first.upper.get(), 0);
+  mpfr_set_zero(result.second.lower.get(), 0); mpfr_set_zero(result.second.upper.get(), 0);
+  return result;
+}
+
+JetMP jet_add(const JetMP& left, const JetMP& right) {
+  JetMP result(left.value.precision);
+  result.value = interval_add(left.value, right.value);
+  result.first = interval_add(left.first, right.first);
+  result.second = interval_add(left.second, right.second);
+  return result;
+}
+
+JetMP jet_clone(const JetMP& input) {
+  JetMP result(input.value.precision);
+  result.value = interval_clone(input.value);
+  result.first = interval_clone(input.first);
+  result.second = interval_clone(input.second);
+  return result;
+}
+
+JetMP jet_sub(const JetMP& left, const JetMP& right) {
+  JetMP negated(right.value.precision);
+  negated.value = interval_neg(right.value);
+  negated.first = interval_neg(right.first);
+  negated.second = interval_neg(right.second);
+  return jet_add(left, negated);
+}
+
+JetMP jet_mul(const JetMP& x, const JetMP& y) {
+  const mpfr_prec_t precision = x.value.precision;
+  JetMP result(precision);
+  result.value = interval_mul(x.value, y.value);
+  result.first = interval_add(interval_mul(x.first, y.value), interval_mul(x.value, y.first));
+  const IntervalMP two = interval_point_float(2.0f, precision);
+  IntervalMP first_term = interval_mul(x.second, y.value);
+  IntervalMP middle_term = interval_mul(interval_mul(two, x.first), y.first);
+  IntervalMP last_term = interval_mul(x.value, y.second);
+  result.second = interval_add(interval_add(first_term, middle_term), last_term);
+  return result;
+}
+
+JetMP jet_scale_float(const JetMP& value, float scalar) {
+  return jet_mul(value, jet_constant(interval_point_float(scalar, value.value.precision)));
+}
+
+JetMP jet_scale_interval(const JetMP& value, const IntervalMP& scalar) {
+  return jet_mul(value, jet_constant(scalar));
+}
+
+JetMP jet_square(const JetMP& x) {
+  const mpfr_prec_t precision = x.value.precision;
+  JetMP result(precision);
+  const IntervalMP two = interval_point_float(2.0f, precision);
+  result.value = interval_square(x.value);
+  result.first = interval_mul(interval_mul(two, x.value), x.first);
+  result.second = interval_mul(
+      two, interval_add(interval_square(x.first), interval_mul(x.value, x.second)));
+  return result;
+}
+
+JetMP jet_inv_sqrt(const JetMP& x) {
+  const mpfr_prec_t precision = x.value.precision;
+  JetMP result(precision);
+  result.value = interval_inv_sqrt(x.value);
+  const IntervalMP inverse_sqrt = interval_inv_sqrt(x.value);
+  const IntervalMP inverse_value = interval_reciprocal(x.value);
+  const IntervalMP first_factor = interval_mul(
+      interval_point_float(-0.5f, precision),
+      interval_mul(inverse_sqrt, inverse_value));
+  const IntervalMP second_factor = interval_mul(
+      interval_point_float(0.75f, precision),
+      interval_mul(inverse_sqrt, interval_reciprocal(interval_square(x.value))));
+  result.first = interval_mul(first_factor, x.first);
+  result.second = interval_add(
+      interval_mul(second_factor, interval_square(x.first)),
+      interval_mul(first_factor, x.second));
+  return result;
+}
+
+JetMP jet_pairwise_sum(const std::vector<JetMP>& inputs) {
+  std::vector<JetMP> level;
+  level.reserve(inputs.size());
+  for (const JetMP& input : inputs) level.emplace_back(jet_clone(input));
+  while (level.size() > 1) {
+    std::vector<JetMP> next;
+    next.reserve((level.size() + 1U) / 2U);
+    std::size_t index = 0;
+    for (; index + 1 < level.size(); index += 2)
+      next.emplace_back(jet_add(level[index], level[index + 1]));
+    if (index < level.size()) next.emplace_back(std::move(level[index]));
+    level = std::move(next);
+  }
+  return std::move(level[0]);
+}
+
+JetMP jet_tanh(const JetMP& x) {
+  const mpfr_prec_t precision = x.value.precision;
+  JetMP result(precision);
+  result.value = interval_tanh(x.value);
+  const IntervalMP t = interval_tanh(x.value);
+  const IntervalMP one = interval_point_float(1.0f, precision);
+  const IntervalMP two = interval_point_float(2.0f, precision);
+  const IntervalMP first_factor = interval_add(one, interval_neg(interval_square(t)));
+  const IntervalMP second_factor = interval_mul(
+      interval_neg(interval_mul(two, t)), first_factor);
+  result.first = interval_mul(first_factor, x.first);
+  result.second = interval_add(
+      interval_mul(second_factor, interval_square(x.first)),
+      interval_mul(first_factor, x.second));
+  return result;
+}
+
+JetMP jet_gelu_new(const JetMP& x, float kappa, float lambda) {
+  const mpfr_prec_t precision = x.value.precision;
+  // Match the Python expression order exactly, including the nested x*x*x.
+  JetMP x3 = jet_mul(jet_mul(x, x), x);
+  JetMP inner = jet_add(x, jet_scale_float(x3, lambda));
+  JetMP u = jet_scale_float(inner, kappa);
+  JetMP tanh_u = jet_tanh(u);
+  JetMP one = jet_constant(interval_point_float(1.0f, precision));
+  return jet_scale_float(jet_mul(x, jet_add(one, tanh_u)), 0.5f);
+}
+
 }  // namespace
 
 extern "C" const char* green_v400_mpfr_backend_version() {
@@ -401,6 +649,97 @@ extern "C" int green_v400_interval_primitive_exact(
   stream << "\"operation\":\"" << operation << "\",\"precision_bits\":"
          << precision_bits << ",\"lower\":" << exact_binary(result_lower.get(), precision)
          << ",\"upper\":" << exact_binary(result_upper.get(), precision) << "}";
+  const std::string serialized = stream.str();
+  if (serialized.size() + 1 > output_capacity) return 4;
+  std::memcpy(output_json, serialized.c_str(), serialized.size() + 1);
+  return 0;
+}
+
+extern "C" int green_v400_gelu_new_jet2_exact(
+    std::uint32_t precision_bits, const char* const* endpoint_significands,
+    const std::int64_t* endpoint_exponents, std::uint32_t kappa_bits,
+    std::uint32_t lambda_bits, char* output_json, std::uint64_t output_capacity) {
+  if (precision_bits < 64 || precision_bits > 4096 || endpoint_significands == nullptr
+      || endpoint_exponents == nullptr || output_json == nullptr || output_capacity == 0) return 2;
+  const mpfr_prec_t precision = static_cast<mpfr_prec_t>(precision_bits);
+  JetMP input(precision);
+  IntervalMP* components[3] = {&input.value, &input.first, &input.second};
+  for (std::size_t component = 0; component < 3; ++component) {
+    int status = set_exact_binary(components[component]->lower.get(),
+                                  endpoint_significands[2 * component],
+                                  endpoint_exponents[2 * component]);
+    if (status != 0) return status;
+    status = set_exact_binary(components[component]->upper.get(),
+                              endpoint_significands[2 * component + 1],
+                              endpoint_exponents[2 * component + 1]);
+    if (status != 0 || mpfr_greater_p(components[component]->lower.get(),
+                                     components[component]->upper.get())) return 3;
+  }
+  JetMP result = jet_gelu_new(
+      input, float_from_bits(kappa_bits), float_from_bits(lambda_bits));
+  const std::string serialized = serialize_jet(
+      result.value.lower.get(), result.value.upper.get(),
+      result.first.lower.get(), result.first.upper.get(),
+      result.second.lower.get(), result.second.upper.get(), precision);
+  if (serialized.size() + 1 > output_capacity) return 4;
+  std::memcpy(output_json, serialized.c_str(), serialized.size() + 1);
+  return 0;
+}
+
+extern "C" int green_v400_layer_norm_jet2_exact(
+    std::uint32_t precision_bits, std::uint32_t width,
+    const char* const* endpoint_significands, const std::int64_t* endpoint_exponents,
+    std::uint32_t epsilon_bits, const std::uint32_t* gamma_bits,
+    const std::uint32_t* beta_bits, char* output_json, std::uint64_t output_capacity) {
+  if (precision_bits < 64 || precision_bits > 4096 || width == 0 || width > 1000000U
+      || endpoint_significands == nullptr || endpoint_exponents == nullptr
+      || gamma_bits == nullptr || beta_bits == nullptr || output_json == nullptr
+      || output_capacity == 0) return 2;
+  const mpfr_prec_t precision = static_cast<mpfr_prec_t>(precision_bits);
+  std::vector<JetMP> inputs;
+  inputs.reserve(width);
+  for (std::uint32_t index = 0; index < width; ++index) {
+    inputs.emplace_back(precision);
+    IntervalMP* components[3] = {&inputs.back().value, &inputs.back().first,
+                                 &inputs.back().second};
+    for (std::size_t component = 0; component < 3; ++component) {
+      const std::size_t offset = static_cast<std::size_t>(index) * 6U + 2U * component;
+      int status = set_exact_binary(components[component]->lower.get(),
+                                    endpoint_significands[offset], endpoint_exponents[offset]);
+      if (status != 0) return status;
+      status = set_exact_binary(components[component]->upper.get(),
+                                endpoint_significands[offset + 1], endpoint_exponents[offset + 1]);
+      if (status != 0 || mpfr_greater_p(components[component]->lower.get(),
+                                       components[component]->upper.get())) return 3;
+    }
+  }
+  const IntervalMP reciprocal_width = interval_point_rational(1U, width, precision);
+  JetMP mean = jet_scale_interval(jet_pairwise_sum(inputs), reciprocal_width);
+  std::vector<JetMP> centered;
+  centered.reserve(width);
+  for (const JetMP& input : inputs) centered.emplace_back(jet_sub(input, mean));
+  std::vector<JetMP> squares;
+  squares.reserve(width);
+  for (const JetMP& value : centered) squares.emplace_back(jet_square(value));
+  JetMP variance = jet_scale_interval(jet_pairwise_sum(squares), reciprocal_width);
+  variance = jet_add(variance, jet_constant(interval_point_float(
+      float_from_bits(epsilon_bits), precision)));
+  if (mpfr_sgn(variance.value.lower.get()) <= 0) return 5;
+  JetMP inverse_scale = jet_inv_sqrt(variance);
+  std::ostringstream stream;
+  stream << "{\"schema_version\":\"green-v400-compiled-layernorm-jet2-v1\",";
+  stream << "\"precision_bits\":" << precision_bits << ",\"outputs\":[";
+  for (std::uint32_t index = 0; index < width; ++index) {
+    JetMP normalized = jet_mul(centered[index], inverse_scale);
+    JetMP scaled = jet_scale_float(normalized, float_from_bits(gamma_bits[index]));
+    JetMP output = jet_add(scaled, jet_constant(interval_point_float(
+        float_from_bits(beta_bits[index]), precision)));
+    if (index) stream << ',';
+    stream << serialize_jet(output.value.lower.get(), output.value.upper.get(),
+                            output.first.lower.get(), output.first.upper.get(),
+                            output.second.lower.get(), output.second.upper.get(), precision);
+  }
+  stream << "]}";
   const std::string serialized = stream.str();
   if (serialized.size() + 1 > output_capacity) return 4;
   std::memcpy(output_json, serialized.c_str(), serialized.size() + 1);

@@ -82,6 +82,21 @@ class CompiledMPFRBackend:
             ctypes.c_char_p, ctypes.c_uint64,
         ]
         primitive.restype = ctypes.c_int
+        gelu = self.library.green_v400_gelu_new_jet2_exact
+        gelu.argtypes = [
+            ctypes.c_uint32, ctypes.POINTER(ctypes.c_char_p),
+            ctypes.POINTER(ctypes.c_int64), ctypes.c_uint32, ctypes.c_uint32,
+            ctypes.c_char_p, ctypes.c_uint64,
+        ]
+        gelu.restype = ctypes.c_int
+        layer_norm = self.library.green_v400_layer_norm_jet2_exact
+        layer_norm.argtypes = [
+            ctypes.c_uint32, ctypes.c_uint32,
+            ctypes.POINTER(ctypes.c_char_p), ctypes.POINTER(ctypes.c_int64),
+            ctypes.c_uint32, ctypes.POINTER(ctypes.c_uint32),
+            ctypes.POINTER(ctypes.c_uint32), ctypes.c_char_p, ctypes.c_uint64,
+        ]
+        layer_norm.restype = ctypes.c_int
 
     def affine_jet2(self, weights, bias, values: list[Jet2], precision_bits: int) -> dict:
         weights = np.asarray(weights, dtype="<f4").reshape(-1)
@@ -156,4 +171,47 @@ class CompiledMPFRBackend:
         )
         if status != 0:
             raise RuntimeError(f"compiled interval primitive failed with status {status}")
+        return json.loads(output.value.decode("ascii"))
+
+    def gelu_new_jet2(self, value: Jet2, kappa, lam) -> dict:
+        encoded = []
+        for component in (value.value, value.first, value.second):
+            encoded.extend((_binary_endpoint(component.lower), _binary_endpoint(component.upper)))
+        strings = (ctypes.c_char_p * 6)(*(item[0] for item in encoded))
+        exponents = np.asarray([item[1] for item in encoded], dtype="<i8")
+        output = ctypes.create_string_buffer(8192)
+        status = self.library.green_v400_gelu_new_jet2_exact(
+            value.precision_bits, strings,
+            exponents.ctypes.data_as(ctypes.POINTER(ctypes.c_int64)),
+            _bits_f32(kappa), _bits_f32(lam), output, len(output),
+        )
+        if status != 0:
+            raise RuntimeError(f"compiled GELU jet failed with status {status}")
+        return json.loads(output.value.decode("ascii"))
+
+    def layer_norm_jet2(self, values: list[Jet2], epsilon, gamma, beta) -> dict:
+        if not values:
+            raise ValueError("compiled LayerNorm requires values")
+        precision = values[0].precision_bits
+        if any(value.precision_bits != precision for value in values):
+            raise ValueError("compiled LayerNorm precision mismatch")
+        gamma_bits = np.asarray(gamma, dtype="<f4").reshape(-1).view("<u4")
+        beta_bits = np.asarray(beta, dtype="<f4").reshape(-1).view("<u4")
+        if gamma_bits.size != len(values) or beta_bits.size != len(values):
+            raise ValueError("compiled LayerNorm affine width mismatch")
+        encoded = []
+        for value in values:
+            for component in (value.value, value.first, value.second):
+                encoded.extend((_binary_endpoint(component.lower), _binary_endpoint(component.upper)))
+        strings = (ctypes.c_char_p * len(encoded))(*(item[0] for item in encoded))
+        exponents = np.asarray([item[1] for item in encoded], dtype="<i8")
+        output = ctypes.create_string_buffer(max(8192, 4096 * len(values)))
+        status = self.library.green_v400_layer_norm_jet2_exact(
+            precision, len(values), strings,
+            exponents.ctypes.data_as(ctypes.POINTER(ctypes.c_int64)),
+            _bits_f32(epsilon), gamma_bits.ctypes.data_as(ctypes.POINTER(ctypes.c_uint32)),
+            beta_bits.ctypes.data_as(ctypes.POINTER(ctypes.c_uint32)), output, len(output),
+        )
+        if status != 0:
+            raise RuntimeError(f"compiled LayerNorm jet failed with status {status}")
         return json.loads(output.value.decode("ascii"))
