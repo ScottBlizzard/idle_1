@@ -13,7 +13,9 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 
 from green_bridge_v400_compiled_mpfr import CompiledMPFRBackend
-from green_bridge_v400_interval import Interval, exp_interval
+from green_bridge_v400_interval import (
+    Interval, exp_interval, inv_sqrt_interval, sqrt_interval, tanh_interval,
+)
 from green_bridge_v400_interval_jet import Jet2
 from green_bridge_v400_transformer_ops import affine_map_jets
 
@@ -78,3 +80,20 @@ def test_compiled_affine_benchmark_is_deterministic():
     assert first["coefficient_terms"] == 256
     assert first["directed_mpfr_primitives"] == 3072
     assert first["elapsed_seconds"] > 0
+
+
+@pytest.mark.parametrize("precision", [384, 512])
+@pytest.mark.parametrize("operation,bounds,reference", [
+    ("exp", (-0.7, 0.9), exp_interval),
+    ("tanh", (-1.3, 0.4), tanh_interval),
+    ("sqrt", (0.125, 3.75), sqrt_interval),
+    ("inv_sqrt", (0.125, 3.75), inv_sqrt_interval),
+])
+def test_compiled_interval_primitives_are_bit_identical(
+        precision, operation, bounds, reference):
+    backend = _backend()
+    interval = Interval.from_bounds(*bounds, precision)
+    expected = reference(interval)
+    actual = backend.interval_primitive(operation, interval)
+    assert backend.exact_fraction(actual["lower"]) == _fraction(expected.lower)
+    assert backend.exact_fraction(actual["upper"]) == _fraction(expected.upper)

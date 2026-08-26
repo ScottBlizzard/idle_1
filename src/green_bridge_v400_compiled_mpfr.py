@@ -10,6 +10,7 @@ import numpy as np
 import gmpy2
 
 from green_bridge_v400_interval_jet import Jet2
+from green_bridge_v400_interval import Interval
 
 
 def _bits_f32(value) -> int:
@@ -74,6 +75,13 @@ class CompiledMPFRBackend:
             ctypes.POINTER(ctypes.c_double), ctypes.POINTER(ctypes.c_uint64),
         ]
         benchmark.restype = ctypes.c_int
+        primitive = self.library.green_v400_interval_primitive_exact
+        primitive.argtypes = [
+            ctypes.c_char_p, ctypes.c_uint32,
+            ctypes.c_char_p, ctypes.c_int64, ctypes.c_char_p, ctypes.c_int64,
+            ctypes.c_char_p, ctypes.c_uint64,
+        ]
+        primitive.restype = ctypes.c_int
 
     def affine_jet2(self, weights, bias, values: list[Jet2], precision_bits: int) -> dict:
         weights = np.asarray(weights, dtype="<f4").reshape(-1)
@@ -134,3 +142,18 @@ class CompiledMPFRBackend:
             "directed_mpfr_primitives_per_second": directed_mpfr_primitives / elapsed.value,
             "checksum": f"{checksum.value:016x}",
         }
+
+    def interval_primitive(self, operation: str, interval: Interval) -> dict:
+        if operation not in {"exp", "tanh", "sqrt", "inv_sqrt"}:
+            raise ValueError("unsupported compiled interval primitive")
+        lower_significand, lower_exponent = _binary_endpoint(interval.lower)
+        upper_significand, upper_exponent = _binary_endpoint(interval.upper)
+        output = ctypes.create_string_buffer(4096)
+        status = self.library.green_v400_interval_primitive_exact(
+            operation.encode("ascii"), interval.precision_bits,
+            lower_significand, lower_exponent, upper_significand, upper_exponent,
+            output, len(output),
+        )
+        if status != 0:
+            raise RuntimeError(f"compiled interval primitive failed with status {status}")
+        return json.loads(output.value.decode("ascii"))

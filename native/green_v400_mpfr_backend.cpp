@@ -361,3 +361,48 @@ extern "C" int green_v400_benchmark_affine_jet2_layer(
   *checksum = state;
   return 0;
 }
+
+extern "C" int green_v400_interval_primitive_exact(
+    const char* operation, std::uint32_t precision_bits,
+    const char* lower_significand, std::int64_t lower_exponent,
+    const char* upper_significand, std::int64_t upper_exponent,
+    char* output_json, std::uint64_t output_capacity) {
+  if (operation == nullptr || precision_bits < 64 || precision_bits > 4096
+      || output_json == nullptr || output_capacity == 0) return 2;
+  const mpfr_prec_t precision = static_cast<mpfr_prec_t>(precision_bits);
+  MpfrValue lower(precision), upper(precision), result_lower(precision), result_upper(precision);
+  int status = set_exact_binary(lower.get(), lower_significand, lower_exponent);
+  if (status != 0) return status;
+  status = set_exact_binary(upper.get(), upper_significand, upper_exponent);
+  if (status != 0 || mpfr_greater_p(lower.get(), upper.get())) return 3;
+  if (std::strcmp(operation, "exp") == 0) {
+    mpfr_exp(result_lower.get(), lower.get(), MPFR_RNDD);
+    mpfr_exp(result_upper.get(), upper.get(), MPFR_RNDU);
+  } else if (std::strcmp(operation, "tanh") == 0) {
+    mpfr_tanh(result_lower.get(), lower.get(), MPFR_RNDD);
+    mpfr_tanh(result_upper.get(), upper.get(), MPFR_RNDU);
+  } else if (std::strcmp(operation, "sqrt") == 0) {
+    if (mpfr_sgn(lower.get()) < 0) return 5;
+    mpfr_sqrt(result_lower.get(), lower.get(), MPFR_RNDD);
+    mpfr_sqrt(result_upper.get(), upper.get(), MPFR_RNDU);
+  } else if (std::strcmp(operation, "inv_sqrt") == 0) {
+    if (mpfr_sgn(lower.get()) <= 0) return 5;
+    MpfrValue sqrt_lower(precision), sqrt_upper(precision), one(precision);
+    mpfr_sqrt(sqrt_lower.get(), lower.get(), MPFR_RNDD);
+    mpfr_sqrt(sqrt_upper.get(), upper.get(), MPFR_RNDU);
+    mpfr_set_ui(one.get(), 1U, MPFR_RNDN);
+    mpfr_div(result_lower.get(), one.get(), sqrt_upper.get(), MPFR_RNDD);
+    mpfr_div(result_upper.get(), one.get(), sqrt_lower.get(), MPFR_RNDU);
+  } else {
+    return 6;
+  }
+  std::ostringstream stream;
+  stream << "{\"schema_version\":\"green-v400-compiled-interval-primitive-v1\",";
+  stream << "\"operation\":\"" << operation << "\",\"precision_bits\":"
+         << precision_bits << ",\"lower\":" << exact_binary(result_lower.get(), precision)
+         << ",\"upper\":" << exact_binary(result_upper.get(), precision) << "}";
+  const std::string serialized = stream.str();
+  if (serialized.size() + 1 > output_capacity) return 4;
+  std::memcpy(output_json, serialized.c_str(), serialized.size() + 1);
+  return 0;
+}
