@@ -258,6 +258,62 @@ def _finite_control_j(tail, anchor, frame, gate_slot: int, h_x: float) -> np.nda
     return torch.stack(rows).cpu().numpy()
 
 
+def _finite_gate_stencil_float64_v300(path_map, control_map, h_x: float,
+                                      h_z: float) -> tuple[GateJet, np.ndarray]:
+    """Evaluate the response-only stencil on the isolated float64 tail.
+
+    This uses only finite function values. Automatic derivatives remain a
+    separate target/audit and never enter the point estimate.
+    """
+    torch = legacy.torch_module()
+    device = getattr(path_map, "_green_device", None)
+    path_x, path_z = [], []
+    zero = torch.zeros(5, dtype=torch.float64, device=device)
+    for sign_z in (1.0, -1.0):
+        path_x.append(zero); path_z.append(sign_z * h_z)
+    for axis in range(5):
+        for sign_x in (1.0, -1.0):
+            value = zero.clone(); value[axis] = sign_x * h_x
+            path_x.append(value); path_z.append(0.0)
+    for axis in range(5):
+        for sign_x, sign_z in ((1, 1), (1, -1), (-1, 1), (-1, -1)):
+            value = zero.clone(); value[axis] = sign_x * h_x
+            path_x.append(value); path_z.append(sign_z * h_z)
+    control_x, control_z = [], []
+    for axis in range(5):
+        for sign_x in (1.0, -1.0):
+            value = zero.clone(); value[axis] = sign_x * h_x
+            control_x.append(value); control_z.append(0.0)
+    for axis in range(5):
+        for sign_x, sign_z in ((1, 1), (1, -1), (-1, 1), (-1, -1)):
+            value = zero.clone(); value[axis] = sign_x * h_x
+            control_x.append(value); control_z.append(sign_z * h_z)
+    path = torch.vmap(path_map)(
+        torch.stack(path_x), torch.as_tensor(path_z, dtype=torch.float64, device=device)
+    )
+    control = torch.vmap(control_map)(
+        torch.stack(control_x), torch.as_tensor(control_z, dtype=torch.float64, device=device)
+    )
+    center = path_map(zero, torch.zeros((), dtype=torch.float64, device=device))
+    G = (path[0] - path[1]) / (2.0 * h_z)
+    C = (path[0] - 2.0 * center + path[1]) / (h_z * h_z)
+    J_path, J_control, H_path, H_control = [], [], [], []
+    mixed_start = 12
+    control_mixed_start = 10
+    for axis in range(5):
+        J_path.append((path[2 + 2 * axis] - path[3 + 2 * axis]) / (2.0 * h_x))
+        J_control.append((control[2 * axis] - control[2 * axis + 1]) / (2.0 * h_x))
+        p = path[mixed_start + 4 * axis:mixed_start + 4 * axis + 4]
+        c = control[control_mixed_start + 4 * axis:control_mixed_start + 4 * axis + 4]
+        H_path.append((p[0] - p[1] - p[2] + p[3]) / (4.0 * h_x * h_z))
+        H_control.append((c[0] - c[1] - c[2] + c[3]) / (4.0 * h_x * h_z))
+    to_numpy = lambda value: value.detach().cpu().numpy()
+    return GateJet(
+        to_numpy(G), to_numpy(C), to_numpy(torch.stack(J_path)),
+        to_numpy(torch.stack(H_path)), to_numpy(torch.stack(H_control)),
+    ), to_numpy(torch.stack(J_control))
+
+
 def _route(left, right) -> dict:
     left = np.asarray(left, dtype=np.float64)
     right = np.asarray(right, dtype=np.float64)
@@ -324,7 +380,8 @@ def _endpoint_floors(epsilon_y: float, fine_h_x: float, fine_h_z: float) -> dict
 
 
 def _calibrate_radius_v300(model, tokenizer, suffix_ids, legacy_records, device: str,
-                           output_root: Path) -> tuple[dict, dict, dict, float, int]:
+                           output_root: Path, *, finite_mode: str = "float32"
+                           ) -> tuple[dict, dict, dict, float, int]:
     torch = legacy.torch_module()
     panel = select_radius_panel_v300(legacy_records)
     by_digest = {row.pair_digest: row for row in legacy_records}
@@ -361,6 +418,9 @@ def _calibrate_radius_v300(model, tokenizer, suffix_ids, legacy_records, device:
             )
             zero_delta = torch.zeros((1, 768), dtype=torch.float32, device=device)
             zero_z = torch.zeros(1, dtype=torch.float32, device=device)
+            path_map, control_map = build_ad_response_functions_v200(
+                ad_tail, anchor, frame, suffix_ids, gate_index
+            )
             with torch.inference_mode():
                 center = tail.evaluate_physical(
                     anchor, zero_delta, zero_z, mode="path", gate_slot=0
@@ -369,19 +429,22 @@ def _calibrate_radius_v300(model, tokenizer, suffix_ids, legacy_records, device:
                 control_j = {}
                 for exponent in range(9):
                     scale = 2.0 ** (-exponent)
-                    jets[scale] = legacy._jet_at_radius_physical(
-                        tail, anchor, frame, gate_slot,
-                        float(item["radius"]["h_x"]) * scale,
-                        float(legacy.GATE_RADIUS) * scale, center,
-                    )
-                    control_j[scale] = _finite_control_j(
-                        tail, anchor, frame, gate_slot,
-                        float(item["radius"]["h_x"]) * scale,
-                    )
+                    h_x = float(item["radius"]["h_x"]) * scale
+                    h_z = float(legacy.GATE_RADIUS) * scale
+                    if finite_mode == "float64_response_only":
+                        jets[scale], control_j[scale] = _finite_gate_stencil_float64_v300(
+                            path_map, control_map, h_x, h_z
+                        )
+                    elif finite_mode == "float32":
+                        jets[scale] = legacy._jet_at_radius_physical(
+                            tail, anchor, frame, gate_slot, h_x, h_z, center,
+                        )
+                        control_j[scale] = _finite_control_j(
+                            tail, anchor, frame, gate_slot, h_x,
+                        )
+                    else:
+                        raise ValueError(f"unsupported finite response mode: {finite_mode}")
                     finite_endpoint_calls += 62
-            path_map, control_map = build_ad_response_functions_v200(
-                ad_tail, anchor, frame, suffix_ids, gate_index
-            )
             ad_forward = response_gate_jet_forward_ad64(path_map, control_map)
             ad_reverse = response_gate_jet_reverse_ad64(path_map, control_map)
             certificate = legacy.ad_route_certificate_v200(ad_forward, ad_reverse)
@@ -490,6 +553,7 @@ def _calibrate_radius_v300(model, tokenizer, suffix_ids, legacy_records, device:
     diagnostic = {
         "schema_version": "green-bridge-v3.0.0-radius-calibration-diagnostic-v1",
         "selection_population": "legacy-donor-metadata-and-numerics-only",
+        "finite_response_mode": finite_mode,
         "epsilon_y": epsilon_y, "required_strata": 40,
         "completed_strata": len(panel), "candidates": candidate_summary,
         "theorem_rows": theorem_rows, "rows": detailed_rows,
@@ -519,6 +583,7 @@ def _calibrate_radius_v300(model, tokenizer, suffix_ids, legacy_records, device:
     calibration = {
         "schema_version": "green-bridge-v3.0.0-radius-calibration-v1",
         "selection_population": "legacy-donor-metadata-and-numerics-only",
+        "finite_response_mode": finite_mode,
         "behavioral_fields_read": False, "v2_development_records_read": False,
         "candidate_payload_sha256": radius_candidate_payload_sha256_v300(),
         "relative_fidelity_max": 0.10, "epsilon_y": epsilon_y,
@@ -672,6 +737,9 @@ def execute_prepare_v300(output_root: Path, device: str, *, formal: bool) -> dic
     """Execute a legacy-only dry run or the single formal prepare."""
     if output_root.exists():
         raise RuntimeError(f"PREPARE OUTPUT ROOT EXISTS: {output_root}")
+    finite_mode = os.environ.get("GREEN_V300_FINITE_MODE", "float32")
+    if formal and finite_mode != "float32":
+        raise RuntimeError("FORMAL_PREPARE_REQUIRES_FROZEN_FLOAT32_FINITE_MODE")
     repository = repository_state_v300(require_clean=formal)
     tests = verify_combined_contract_v300()
     predecessor = __import__("exp_green_bridge_v300").verify_v200_terminal_archive_v300()
@@ -812,7 +880,8 @@ def execute_prepare_v300(output_root: Path, device: str, *, formal: bool) -> dic
     started = time.perf_counter()
     radius_panel, radius_calibration, transport_theorem, selected_radius, endpoint_calls = (
         _calibrate_radius_v300(
-            model, tokenizer, suffix_ids, legacy_records, device, output_root
+            model, tokenizer, suffix_ids, legacy_records, device, output_root,
+            finite_mode=finite_mode,
         )
     )
     joint = _joint_composition_preflight_v300(
