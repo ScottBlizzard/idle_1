@@ -12,7 +12,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 
 from green_bridge_v400_tensor_store import (
-    TensorStoreReader, exact_dyadic_scalar, write_tensor_store,
+    TensorRef, TensorStoreReader, exact_dyadic_scalar, write_tensor_store,
 )
 
 
@@ -81,3 +81,13 @@ def test_exact_dyadic_decoder_preserves_ieee_values():
     assert exact_dyadic_scalar(np.asarray(0.1, dtype="<f4")) == Fraction(13421773, 134217728)
     assert exact_dyadic_scalar(np.asarray(-0.0, dtype="<f8")) == 0
     assert exact_dyadic_scalar(np.asarray(17, dtype="<i8")) == 17
+
+
+def test_tensor_reference_strict_round_trip_and_byte_validation(tmp_path):
+    write_tensor_store(tmp_path, "fixture", [("x", np.asarray([1.0, 2.0], dtype="<f4"))])
+    reference = TensorStoreReader(tmp_path / "fixture.json").tensor_ref("x")
+    assert TensorRef.from_dict(reference.to_dict()) == reference
+    payload = reference.to_dict()
+    payload["nbytes"] += 1
+    with pytest.raises(ValueError, match="byte count"):
+        TensorRef.from_dict(payload)

@@ -71,6 +71,7 @@ TEST_FILES = (
     "tests/test_green_bridge_v400_branch_semantics.py",
     "tests/test_green_bridge_v400_resource_plan.py",
     "tests/test_green_bridge_v400_tensor_program.py",
+    "tests/test_green_bridge_v400_gpt2_program.py",
 )
 INHERITED_LOCK_FILES = (
     "src/green_bridge_v300_prepare.py",

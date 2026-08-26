@@ -58,6 +58,13 @@ class TensorSpec:
     def to_dict(self) -> dict:
         return {"dtype": self.dtype, "shape": list(self.shape), "layout": self.layout}
 
+    @classmethod
+    def from_dict(cls, payload: dict) -> "TensorSpec":
+        if set(payload) != {"dtype", "shape", "layout"}:
+            raise ValueError("TensorSpec schema mismatch")
+        return cls(str(payload["dtype"]), tuple(int(value) for value in payload["shape"]),
+                   str(payload["layout"]))
+
 
 @dataclass(frozen=True)
 class TensorNode:
@@ -120,6 +127,46 @@ class TensorNode:
                                         self.output_spec, self.provenance_identity,
                                         self.dependency_mask_hash)}
 
+    @classmethod
+    def from_dict(cls, payload: dict) -> "TensorNode":
+        expected = {
+            "schema_version", "semantic_id", "kernel_id", "parent_semantic_ids",
+            "tensor_inputs", "exact_attrs", "output_spec", "provenance_identity",
+            "dependency_mask_hash",
+        }
+        if set(payload) != expected:
+            raise ValueError("TensorNode schema mismatch")
+        return cls(
+            str(payload["schema_version"]), str(payload["semantic_id"]),
+            str(payload["kernel_id"]),
+            tuple(str(value) for value in payload["parent_semantic_ids"]),
+            tuple(TensorRef.from_dict(value) for value in payload["tensor_inputs"]),
+            dict(payload["exact_attrs"]), TensorSpec.from_dict(payload["output_spec"]),
+            str(payload["provenance_identity"]), str(payload["dependency_mask_hash"]),
+        )
+
+
+def dependency_mask_hash(depends_on_t: bool, output_spec: TensorSpec) -> str:
+    return sha256_canonical({
+        "schema_version": "green-v400-dependency-mask-v1",
+        "depends_on_t": bool(depends_on_t),
+        "output_spec": output_spec.to_dict(),
+    })
+
+
+def scalarization_merkle_root(nodes: tuple[TensorNode, ...]) -> str:
+    """Commit to the deterministic scalar expansion of every Tensor-SSA node."""
+    leaves = [{
+        "semantic_id": node.semantic_id,
+        "kernel_id": node.kernel_id,
+        "scalar_output_count": __import__("math").prod(node.output_spec.shape),
+        "dependency_mask_hash": node.dependency_mask_hash,
+    } for node in nodes]
+    return sha256_canonical({
+        "schema_version": "green-v400-scalarization-merkle-v1",
+        "leaves": leaves,
+    })
+
 
 @dataclass(frozen=True)
 class TensorProgram:
@@ -131,6 +178,16 @@ class TensorProgram:
     output_root: str
     scalarization_merkle_root: str
     resource_formula: dict
+
+    @classmethod
+    def build(cls, model_manifest_hash: str, nodes: tuple[TensorNode, ...],
+              branch_roots: dict[str, str], output_root: str,
+              resource_formula: dict) -> "TensorProgram":
+        return cls(
+            PROGRAM_SCHEMA_VERSION, KERNEL_REGISTRY_HASH, model_manifest_hash,
+            nodes, dict(branch_roots), output_root,
+            scalarization_merkle_root(nodes), dict(resource_formula),
+        )
 
     def __post_init__(self):
         if self.schema_version != PROGRAM_SCHEMA_VERSION:
@@ -148,6 +205,18 @@ class TensorProgram:
             seen.add(node.semantic_id)
         if self.output_root not in seen or any(root not in seen for root in self.branch_roots.values()):
             raise ValueError("TensorProgram root is missing")
+        if self.scalarization_merkle_root != scalarization_merkle_root(self.nodes):
+            raise ValueError("TensorProgram scalarization closure mismatch")
+        by_id = {node.semantic_id: node for node in self.nodes}
+        for node in self.nodes:
+            parent_dependency = any(
+                by_id[parent].dependency_mask_hash == dependency_mask_hash(
+                    True, by_id[parent].output_spec
+                ) for parent in node.parent_semantic_ids
+            )
+            declared = node.exact_attrs.get("depends_on_t")
+            if declared is not None and bool(declared) != parent_dependency and node.kernel_id != "affine_scatter.v1":
+                raise ValueError("TensorProgram dependency declaration mismatch")
         _assert_exact_json(self.resource_formula, "resource_formula")
 
     def semantic_hash(self) -> str:
@@ -165,3 +234,19 @@ class TensorProgram:
             "resource_formula": self.resource_formula,
         }
 
+    @classmethod
+    def from_dict(cls, payload: dict) -> "TensorProgram":
+        expected = {
+            "schema_version", "kernel_registry_hash", "model_manifest_hash", "nodes",
+            "branch_roots", "output_root", "scalarization_merkle_root", "resource_formula",
+        }
+        if set(payload) != expected:
+            raise ValueError("TensorProgram schema mismatch")
+        return cls(
+            str(payload["schema_version"]), str(payload["kernel_registry_hash"]),
+            str(payload["model_manifest_hash"]),
+            tuple(TensorNode.from_dict(value) for value in payload["nodes"]),
+            {str(key): str(value) for key, value in payload["branch_roots"].items()},
+            str(payload["output_root"]), str(payload["scalarization_merkle_root"]),
+            dict(payload["resource_formula"]),
+        )

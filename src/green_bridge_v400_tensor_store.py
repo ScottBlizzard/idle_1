@@ -57,6 +57,24 @@ class TensorRef:
     layout: str
     nbytes: int
 
+    def __post_init__(self):
+        if self.schema_version != TENSOR_REF_SCHEMA_VERSION:
+            raise ValueError("unsupported tensor reference schema")
+        if len(self.tensor_sha256) != 64 or any(
+                character not in "0123456789abcdef" for character in self.tensor_sha256):
+            raise ValueError("invalid tensor semantic hash")
+        dtype = np.dtype(self.dtype)
+        if (self.layout != "C" or dtype.str != self.dtype
+                or (dtype.itemsize > 1 and not self.dtype.startswith("<"))
+                or (dtype.itemsize == 1 and not self.dtype.startswith("|"))):
+            raise ValueError("noncanonical tensor reference dtype/layout")
+        if len(self.shape) > 8 or any(
+                dimension < 0 or dimension > 10_000_000 for dimension in self.shape):
+            raise ValueError("tensor reference shape outside certified bounds")
+        expected = int(np.prod(self.shape, dtype=np.int64)) * dtype.itemsize
+        if self.nbytes != expected:
+            raise ValueError("tensor reference byte count mismatch")
+
     def to_dict(self) -> dict:
         return {
             "schema_version": self.schema_version,
@@ -66,6 +84,17 @@ class TensorRef:
             "layout": self.layout,
             "nbytes": self.nbytes,
         }
+
+    @classmethod
+    def from_dict(cls, payload: dict) -> "TensorRef":
+        expected = {"schema_version", "tensor_sha256", "dtype", "shape", "layout", "nbytes"}
+        if set(payload) != expected:
+            raise ValueError("tensor reference schema mismatch")
+        return cls(
+            str(payload["schema_version"]), str(payload["tensor_sha256"]),
+            str(payload["dtype"]), tuple(int(value) for value in payload["shape"]),
+            str(payload["layout"]), int(payload["nbytes"]),
+        )
 
 
 @dataclass(frozen=True)
@@ -246,6 +275,11 @@ class TensorStoreReader:
 
     def tensor_ref(self, name: str) -> TensorRef:
         return self._records[name].tensor_ref()
+
+    def validate_ref(self, reference: TensorRef) -> None:
+        record = self._semantic_records.get(reference.tensor_sha256)
+        if record is None or record.tensor_ref() != reference:
+            raise ValueError("tensor reference is outside the store closure")
 
     def _read_record(self, record: TensorRecord) -> np.ndarray:
         with self.blob_path.open("rb") as handle:

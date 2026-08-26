@@ -34,15 +34,16 @@ def test_tensor_program_semantic_hash_and_four_branch_roots():
                    tuple(node.semantic_id for node in roots),
                    {"weights": [1, -1, -1, 1],
                     "order": ["PAT_J", "PAT_B", "TAR_J", "TAR_B"]})
-    program = TensorProgram(
-        PROGRAM_SCHEMA_VERSION, KERNEL_REGISTRY_HASH, H, tuple(roots + [output]),
+    program = TensorProgram.build(
+        H, tuple(roots + [output]),
         {name: node.semantic_id for name, node in zip(
             ("PAT_J", "PAT_B", "TAR_J", "TAR_B"), roots)},
-        output.semantic_id, "d"*64,
+        output.semantic_id,
         {"formula_version": "fixture-v1", "coefficient_terms": 8},
     )
     assert len(program.semantic_hash()) == 64
     assert program.to_dict()["nodes"][-1]["exact_attrs"]["weights"] == [1, -1, -1, 1]
+    assert TensorProgram.from_dict(program.to_dict()) == program
 
 
 def test_tensor_node_rejects_ordinary_json_float_attrs():
@@ -63,8 +64,24 @@ def test_tensor_program_rejects_parent_after_child():
     parent = _node("affine_scatter.v1")
     child = _node("static_view.v1", (parent.semantic_id,))
     with pytest.raises(ValueError, match="topological"):
-        TensorProgram(PROGRAM_SCHEMA_VERSION, KERNEL_REGISTRY_HASH, H,
-                      (child, parent), {name: parent.semantic_id for name in
-                      ("PAT_J", "PAT_B", "TAR_J", "TAR_B")},
-                      child.semantic_id, "d"*64, {"terms": 1})
+        TensorProgram.build(H, (child, parent), {name: parent.semantic_id for name in
+                            ("PAT_J", "PAT_B", "TAR_J", "TAR_B")},
+                            child.semantic_id, {"terms": 1})
 
+
+def test_tensor_program_round_trip_rejects_scalarization_mutation():
+    roots = [_node("affine_scatter.v1", provenance=name)
+             for name in ("PAT_J", "PAT_B", "TAR_J", "TAR_B")]
+    output = _node("branch_linear_combination.v1",
+                   tuple(node.semantic_id for node in roots),
+                   {"weights": [1, -1, -1, 1]})
+    program = TensorProgram.build(
+        H, tuple(roots + [output]),
+        {name: node.semantic_id for name, node in zip(
+            ("PAT_J", "PAT_B", "TAR_J", "TAR_B"), roots)},
+        output.semantic_id, {"terms": 8},
+    )
+    payload = program.to_dict()
+    payload["scalarization_merkle_root"] = "0" * 64
+    with pytest.raises(ValueError, match="scalarization closure"):
+        TensorProgram.from_dict(payload)
