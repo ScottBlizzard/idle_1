@@ -86,6 +86,16 @@ def mul_jet(x: Jet2, y: Jet2) -> Jet2:
     )
 
 
+def square_jet(x: Jet2) -> Jet2:
+    """Dependency-aware square; unlike x*x its value is never spuriously negative."""
+    two = Interval.point(2, x.precision_bits)
+    return Jet2(
+        x.value.square(),
+        two * x.value * x.first,
+        two * (x.first.square() + x.value * x.second),
+    )
+
+
 def reciprocal_jet(x: Jet2) -> Jet2:
     inverse = x.value.reciprocal()
     inverse2, inverse3 = inverse.square(), inverse.square() * inverse

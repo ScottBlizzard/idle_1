@@ -21,6 +21,7 @@ import sys
 from typing import Any, Iterable
 
 from green_bridge_v400_mpfr import rounding_environment_manifest
+from green_bridge_v400_relational_graph import EXECUTABLE_OPERATIONS
 from green_bridge_v400_schemas import canonical_json, sha256_canonical
 from green_bridge_v400_spec import (
     ALPHA_EXPONENTS,
@@ -47,6 +48,7 @@ from green_bridge_v400_spec import (
     PROTOCOL_ID,
     Q_EXPONENTS,
     REAL_ROW_CERTIFICATE_AUTHORIZED,
+    SEALED_NOUN_HASHES_PATH,
     SUPPORTED_OPERATIONS,
     TRANSFORMER_LENS_COMMIT,
     TRANSFORMER_SEMANTICS_FLAGS,
@@ -216,7 +218,7 @@ def _run_theorem_tests() -> dict:
     collection_command = [sys.executable, "-m", "pytest", "--collect-only", "-q", *TEST_FILES]
     collection = subprocess.check_output(collection_command, cwd=PROJECT_ROOT, text=True)
     tests = sorted(line for line in collection.splitlines() if "::test_" in line)
-    if len(tests) != 70:
+    if len(tests) < 70:
         raise RuntimeError(f"PREPARE_STOP_THEOREM_TEST_COUNT: {len(tests)}")
     runs = []
     for _ in range(2):
@@ -224,16 +226,16 @@ def _run_theorem_tests() -> dict:
             command, cwd=PROJECT_ROOT, text=True, stdout=subprocess.PIPE,
             stderr=subprocess.STDOUT, check=False,
         )
-        if completed.returncode or "70 passed" not in completed.stdout:
+        if completed.returncode or f"{len(tests)} passed" not in completed.stdout:
             raise RuntimeError(f"PREPARE_STOP_THEOREM_TESTS: {completed.stdout[-4000:]}")
-        runs.append({"return_code": completed.returncode, "passed": 70})
+        runs.append({"return_code": completed.returncode, "passed": len(tests)})
     collection_hash = _sha256_bytes("\n".join(tests).encode("utf-8"))
     environment_hash = sha256_canonical(rounding_environment_manifest())
     return {
         "schema_version": "green-v400-theorem-test-report-v1",
         "command": command,
         "test_collection": tests,
-        "passed": 70,
+        "passed": len(tests),
         "failed": 0,
         "skipped": 0,
         "xfailed": 0,
@@ -308,20 +310,42 @@ def _write_synthetic_artifacts(output_root: Path) -> dict[str, str]:
         "test_status": "PASS",
     }
     _write_json(synthetic / "offgrid_curvature_counterexample.json", offgrid)
-    tiny_graph = {
-        "schema_version": "green-v400-tiny-transformer-graph-v1",
-        "exact_dyadic_weights": True, "tokens": 2, "heads": 1, "d_model": 2,
-        "operations": ["affine_control", "layernorm", "einsum", "softmax", "attention", "gelu_new", "residual_add", "contrast"],
-        "branch_order": ["PAT_J", "PAT_B", "TAR_J", "TAR_B"],
-        "graph_hash": sha256_canonical({"fixture": "tiny-transformer", "version": 1}),
+    from fractions import Fraction
+    from green_bridge_v400_certificate import DyadicCell, certify_cell
+    from green_bridge_v400_relational_graph import build_tiny_transformer_fixture_graph
+    official_graph = build_tiny_transformer_fixture_graph(384)
+    audit_graph = build_tiny_transformer_fixture_graph(512)
+    partition = [DyadicCell(Fraction(-1, 16), Fraction(0)),
+                 DyadicCell(Fraction(0), Fraction(1, 16))]
+    official_cells = [certify_cell(official_graph, cell, 384) for cell in partition]
+    audit_cells = [certify_cell(audit_graph, cell, 512) for cell in partition]
+    nested = all(
+        low.value.lower <= high.value.lower <= high.value.upper <= low.value.upper
+        and low.first.lower <= high.first.lower <= high.first.upper <= low.first.upper
+        and low.second.lower <= high.second.lower <= high.second.upper <= low.second.upper
+        for low, high in zip(official_cells, audit_cells)
+    )
+    if not nested:
+        raise RuntimeError("PREPARE_STOP_TINY_TRANSFORMER_PRECISION_NESTING")
+    tiny_graph = official_graph.to_payload() | {
+        "fixture_schema_version": "green-v400-tiny-transformer-graph-v2",
+        "exact_ieee_constants": True, "tokens": 2, "heads": 1, "d_model": 2,
+        "graph_hash": official_graph.semantic_hash(),
     }
     _write_json(synthetic / "tiny_transformer_graph.json", tiny_graph)
     tiny_certificate = {
         "schema_version": "green-v400-tiny-transformer-certificate-v1",
         "graph_hash": tiny_graph["graph_hash"], "precision_bits": 384,
         "partition": [["-1/16", "0"], ["0", "1/16"]],
+        "cell_certificates": [
+            {"value": certificate.value.canonical(),
+             "first": certificate.first.canonical(),
+             "second": certificate.second.canonical()}
+            for certificate in official_cells
+        ],
+        "audit_precision_bits": 512, "precision_nested": nested,
         "expected_analytic_property": "interval jets contain independently evaluated tiny-transformer values and derivatives",
-        "test_status": "PASS", "proof_source": "mandatory tiny-transformer theorem fixture",
+        "test_status": "PASS", "proof_source": "executed serialized relational graph",
     }
     _write_json(synthetic / "tiny_transformer_certificate.json", tiny_certificate)
     by_key = {(row["fixture"], row["precision_bits"]): row for row in records}
@@ -357,15 +381,22 @@ def _write_synthetic_artifacts(output_root: Path) -> dict[str, str]:
     return {path.name: _sha256_file(path) for path in sorted(synthetic.iterdir()) if path.is_file()}
 
 
-def _forbidden_nouns() -> set[str]:
-    from green_bridge_spec import DONOR_NOUNS, EVALUATION_NOUNS
-    from green_bridge_v300_spec import CONFIRMATION_NOUNS, DEVELOPMENT_NOUNS
-    return set(DONOR_NOUNS) | set(EVALUATION_NOUNS) | set(CONFIRMATION_NOUNS) | set(DEVELOPMENT_NOUNS)
+def _sealed_noun_oracle() -> tuple[str, set[str], dict]:
+    payload = json.loads(SEALED_NOUN_HASHES_PATH.read_text(encoding="utf-8"))
+    if (payload.get("schema_version") != "green-v400-sealed-noun-hashes-v1"
+            or payload.get("count") != len(payload.get("hashes", []))
+            or len(set(payload.get("hashes", []))) != payload.get("count")):
+        raise RuntimeError("PREPARE_STOP_SEALED_HASH_ORACLE_INVALID")
+    return payload["salt"], set(payload["hashes"]), payload
+
+
+def _sealed_noun_hash(noun: str, salt: str) -> str:
+    return _sha256_bytes(f"{salt}|{noun}".encode("utf-8"))
 
 
 def _eligible_nouns(tokenizer) -> tuple[list[dict], dict]:
     from green_bridge_spec import PROMPT
-    forbidden = _forbidden_nouns()
+    sealed_salt, forbidden_hashes, sealed_payload = _sealed_noun_oracle()
     suffix_ids = {tokenizer.encode(f"{value:02d}", add_special_tokens=False)[0] for value in range(100)}
     reference_lengths = {
         len(tokenizer.encode(PROMPT.format(noun="campaign", cc=century, y=1), add_special_tokens=False))
@@ -377,7 +408,7 @@ def _eligible_nouns(tokenizer) -> tuple[list[dict], dict]:
     for noun in (line.strip() for line in CANDIDATE_NOUNS_PATH.read_text(encoding="utf-8").splitlines()):
         reason = None
         ids = tokenizer.encode(" " + noun, add_special_tokens=False)
-        if noun in forbidden:
+        if _sealed_noun_hash(noun, sealed_salt) in forbidden_hashes:
             reason = "inherited_noun"
         elif not (noun.isascii() and noun.isalpha() and noun.islower() and 4 <= len(noun) <= 12):
             reason = "lexical"
@@ -405,7 +436,9 @@ def _eligible_nouns(tokenizer) -> tuple[list[dict], dict]:
         raise RuntimeError(f"PREPARE_STOP_CANDIDATE_POOL: only {len(candidates)} eligible")
     audit = {
         "schema_version": "green-v400-sealed-exclusion-audit-v1",
-        "forbidden_namespace_salted_hash": sha256_canonical(sorted(forbidden)),
+        "forbidden_namespace_salted_hash": sha256_canonical(sorted(forbidden_hashes)),
+        "sealed_hash_oracle_sha256": _sha256_file(SEALED_NOUN_HASHES_PATH),
+        "sealed_hash_count": sealed_payload["count"],
         "candidate_file_sha256": _sha256_file(CANDIDATE_NOUNS_PATH),
         "eligible_pool_hash": sha256_canonical(candidates),
         "intersection_counts": {"inherited_nouns": 0},
@@ -701,10 +734,12 @@ def _model_and_static_manifests(rows: list[dict], device: str):
         plans.append({
             "schema_version": "green-v400-certificate-plan-v1", "row_hash": row["row_hash"],
             "exact_dyadic_amplitudes": [{"numerator": 1, "exponent": -index} for index in ALPHA_EXPONENTS],
-            "initial_partition": "[-h,0],[0,h]", "split_policy": "left-to-right dyadic bisection",
+            "initial_partition": "[-h,0],[0,h]",
+            "split_policy": "left-to-right dyadic bisection",
             "absolute_width_tolerance": "0x1p-80", "relative_width_tolerance": "0x1p-40",
             "max_depth": MAX_SUBDIVISION_DEPTH, "max_cells": MAX_CELLS_PER_ROW,
-            "official_precision": OFFICIAL_PRECISION_BITS, "audit_precision": AUDIT_PRECISION_BITS,
+            "official_precision": OFFICIAL_PRECISION_BITS,
+            "audit_precision": AUDIT_PRECISION_BITS,
             "expected_artifact_paths": [], "execution_authorized": False,
         })
         for cache in (clean_cache, corrupt_cache):
@@ -720,15 +755,15 @@ def _coverage_manifest() -> dict:
         "constant": "constant_jet", "affine_control": "affine_control_jet",
         "add": "add_jet", "sub": "sub_jet", "mul": "mul_jet",
         "reciprocal": "reciprocal_jet", "exp": "exp_primitive",
-        "sqrt": "sqrt_primitive", "inv_sqrt": "invsqrt_primitive",
+        "sqrt": "sqrt_primitive", "inv_sqrt": "inv_sqrt_primitive",
         "gelu_new": "gelu_new_jet", "layernorm": "layernorm_jets",
         "einsum": "affine_map_jets", "softmax": "softmax_jets",
-        "attention": "attention_jets", "reshape": "shared-reference tensor view",
+        "attention": "attention_head_jets", "reshape": "RelationalGraph scalar view",
         "transpose": "shared-reference tensor view", "slice": "shared-reference tensor view",
         "gather_static": "shared-reference tensor view", "residual_add": "add_jet",
-        "contrast": "contrast_jets",
+        "contrast": "contrast_jet",
     }
-    unsupported = sorted(set(GRAPH_OPERATIONS) - set(SUPPORTED_OPERATIONS))
+    unsupported = sorted(set(GRAPH_OPERATIONS) - set(EXECUTABLE_OPERATIONS))
     return {
         "schema_version": "green-v400-primitive-op-coverage-v1",
         "encountered_operations": list(GRAPH_OPERATIONS),
@@ -901,7 +936,8 @@ def run_formal_prepare(config_path: str) -> FormalPrepareSummary:
         "counts_by_feasibility": dict(Counter("feasible" if row["feasible"] else "infeasible" for row in feasibility)),
         "counts_by_failure_code": dict(Counter(code for row in feasibility for code in row["failure_codes"])),
         "scientific_response_counts": {}, "operation_coverage": coverage["coverage_status"],
-        "theorem_test_status": "PASS_70_OF_70_TWICE", "exclusion_status": "PASS_ZERO_INTERSECTION",
+        "theorem_test_status": f"PASS_{theorem_report['passed']}_OF_{theorem_report['passed']}_TWICE",
+        "exclusion_status": "PASS_ZERO_INTERSECTION",
         "next_authorized_action": "return immutable formal-prepare package for scientific authorization",
         "terminal_text": TERMINAL_TEXT,
     }

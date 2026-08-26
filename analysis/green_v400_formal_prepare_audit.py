@@ -7,12 +7,19 @@ import json
 from pathlib import Path
 import subprocess
 import sys
+from fractions import Fraction
 
 
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT / "src"))
 
 from green_bridge_v400_spec import BINDING_PARENT_COMMIT, BRANCH, PROTOCOL_ID
+from green_bridge_v400_certificate import DyadicCell, certify_cell
+from green_bridge_v400_relational_graph import (
+    EXECUTABLE_OPERATIONS, audit_dependency_completeness,
+    extract_joint_witness_graph,
+)
+from green_bridge_v400_schemas import CertificatePlan, JointWitnessRowSpec
 
 
 REQUIRED = (
@@ -99,9 +106,35 @@ def audit(output_root: Path) -> dict:
         raise RuntimeError("AUDIT_GRAPH_SCOPE")
     if any(not row["supported_operation_coverage"] for row in graphs):
         raise RuntimeError("AUDIT_GRAPH_COVERAGE")
+    for row in graphs:
+        for form in ("unreduced", "reduced"):
+            payload_key = f"{form}_graph_payload"
+            if payload_key not in row:
+                raise RuntimeError("AUDIT_GRAPH_NOT_REPLAYABLE")
+            payload = row[payload_key]
+            replay_spec = JointWitnessRowSpec(
+                "green-v400-row-v1", row["row_hash"], "formal_prepare_pool",
+                row["model_hash"], row["token_hash"], row["hook_spec_hash"],
+                row["control_ast_hash"], row["contrast_hash"],
+                ("PAT_J", "PAT_B", "TAR_J", "TAR_B"), payload,
+            )
+            replay = extract_joint_witness_graph(replay_spec)
+            if replay.semantic_hash() != row[f"{form}_semantic_hash"]:
+                raise RuntimeError("AUDIT_GRAPH_SEMANTIC_HASH")
+            if len(replay.nodes) != row[f"{form}_node_count"]:
+                raise RuntimeError("AUDIT_GRAPH_NODE_COUNT")
+            if not audit_dependency_completeness(replay).complete:
+                raise RuntimeError("AUDIT_GRAPH_DEPENDENCY_INCOMPLETE")
+            if {node.op for node in replay.nodes.values()} - EXECUTABLE_OPERATIONS:
+                raise RuntimeError("AUDIT_GRAPH_RUNTIME_COVERAGE")
     plans = read_jsonl(output_root / "certificate_plan.jsonl")
     if len(plans) != len(feasibility) or any(row["execution_authorized"] for row in plans):
         raise RuntimeError("AUDIT_REAL_CERTIFICATE_AUTHORIZATION")
+    parsed_plans = [CertificatePlan.from_dict(row) for row in plans]
+    if any(plan.to_dict() != row for plan, row in zip(parsed_plans, plans)):
+        raise RuntimeError("AUDIT_CERTIFICATE_PLAN_ROUNDTRIP")
+    if {plan.row_hash for plan in parsed_plans} != {row["row_hash"] for row in feasibility}:
+        raise RuntimeError("AUDIT_CERTIFICATE_PLAN_ROWS")
     boundary = read_json(output_root / "boundary_design_lock.json")
     if boundary["contains_observed_v4_outcome"] or boundary["q_selection_authorized"] or boundary["outcome_replay_authorized"]:
         raise RuntimeError("AUDIT_BOUNDARY_OUTCOME_SCOPE")
@@ -109,7 +142,7 @@ def audit(output_root: Path) -> dict:
     if coverage["coverage_status"] != "PASS" or coverage["unsupported_operations"]:
         raise RuntimeError("AUDIT_PRIMITIVE_COVERAGE")
     tests = read_json(output_root / "theorem_test_report.json")
-    if (tests["passed"], tests["failed"], tests["skipped"], tests["xfailed"]) != (70, 0, 0, 0):
+    if tests["passed"] < 70 or (tests["failed"], tests["skipped"], tests["xfailed"]) != (0, 0, 0):
         raise RuntimeError("AUDIT_THEOREM_BARRIER")
     synthetic_root = output_root / "synthetic"
     if any(not (synthetic_root / name).is_file() for name in SYNTHETIC_REQUIRED):
@@ -117,6 +150,32 @@ def audit(output_root: Path) -> dict:
     synthetic_hashes = {name: sha256_file(synthetic_root / name) for name in SYNTHETIC_REQUIRED}
     if tests["fixture_artifact_hashes"] != synthetic_hashes:
         raise RuntimeError("AUDIT_SYNTHETIC_HASHES")
+    tiny_payload = read_json(synthetic_root / "tiny_transformer_graph.json")
+    tiny_hash = tiny_payload.pop("graph_hash")
+    tiny_payload.pop("fixture_schema_version")
+    tiny_payload.pop("exact_ieee_constants")
+    tiny_payload.pop("tokens")
+    tiny_payload.pop("heads")
+    tiny_payload.pop("d_model")
+    tiny_spec = JointWitnessRowSpec(
+        "green-v400-row-v1", "0"*64, "synthetic", "1"*64, "2"*64,
+        "3"*64, "4"*64, "5"*64,
+        ("PAT_J", "PAT_B", "TAR_J", "TAR_B"), tiny_payload,
+    )
+    tiny_graph = extract_joint_witness_graph(tiny_spec)
+    if tiny_graph.semantic_hash() != tiny_hash or len(tiny_graph.nodes) < 35:
+        raise RuntimeError("AUDIT_TINY_GRAPH_REPLAY")
+    tiny_certificate = read_json(synthetic_root / "tiny_transformer_certificate.json")
+    cells = [DyadicCell(Fraction(-1, 16), Fraction(0)),
+             DyadicCell(Fraction(0), Fraction(1, 16))]
+    recomputed = [certify_cell(tiny_graph, cell, 384) for cell in cells]
+    canonical = [{"value": item.value.canonical(), "first": item.first.canonical(),
+                  "second": item.second.canonical()} for item in recomputed]
+    if (tiny_certificate.get("graph_hash") != tiny_hash
+            or tiny_certificate.get("cell_certificates") != canonical
+            or tiny_certificate.get("precision_nested") is not True
+            or tiny_certificate.get("proof_source") != "executed serialized relational graph"):
+        raise RuntimeError("AUDIT_TINY_CERTIFICATE_REPLAY")
     summary = read_json(output_root / "formal_prepare_summary.json")
     if summary["status"] != "PREPARE_PASS_STATIC_THEOREM_ONLY":
         raise RuntimeError("AUDIT_SUMMARY_STATUS")
@@ -140,7 +199,7 @@ def audit(output_root: Path) -> dict:
         "status": "PASS",
         "artifacts_verified": len(REQUIRED),
         "donor_rows_verified": len(feasibility),
-        "theorem_tests_verified": 70,
+        "theorem_tests_verified": tests["passed"],
         "read_only": True,
     }
 

@@ -83,26 +83,69 @@ class JointWitnessRowSpec:
 class CertificatePlan:
     schema_version: str
     row_hash: str
-    radii: tuple[Dyadic, ...]
-    official_precision_bits: int
-    audit_precision_bits: int
+    exact_dyadic_amplitudes: tuple[Dyadic, ...]
+    initial_partition: str
+    split_policy: str
+    absolute_width_tolerance: str
+    relative_width_tolerance: str
     max_depth: int
     max_cells: int
+    official_precision: int
+    audit_precision: int
+    expected_artifact_paths: tuple[str, ...]
     execution_authorized: bool = False
 
     def __post_init__(self):
         if self.execution_authorized:
             raise ValueError("real-row certificate execution is not authorized")
+        if (self.initial_partition != "[-h,0],[0,h]" or
+                self.split_policy != "left-to-right dyadic bisection"):
+            raise ValueError("unsupported frozen partition policy")
+        if not self.exact_dyadic_amplitudes or any(
+                radius.as_fraction() <= 0 for radius in self.exact_dyadic_amplitudes):
+            raise ValueError("certificate radii must be nonempty and positive")
+        if len({radius.as_fraction() for radius in self.exact_dyadic_amplitudes}) != len(
+                self.exact_dyadic_amplitudes):
+            raise ValueError("certificate radii must be unique")
+        if self.official_precision < 2 or self.audit_precision <= self.official_precision:
+            raise ValueError("audit precision must exceed valid official precision")
+        if self.max_depth < 0 or self.max_cells < 2:
+            raise ValueError("invalid certificate resource limits")
+        for name, value in (("absolute", self.absolute_width_tolerance),
+                            ("relative", self.relative_width_tolerance)):
+            try:
+                parsed = float.fromhex(value)
+            except (TypeError, ValueError) as error:
+                raise ValueError(f"invalid {name} width tolerance") from error
+            if not 0 < parsed < float("inf"):
+                raise ValueError(f"invalid {name} width tolerance")
+
+    @property
+    def radii(self) -> tuple[Dyadic, ...]:
+        return self.exact_dyadic_amplitudes
+
+    @property
+    def official_precision_bits(self) -> int:
+        return self.official_precision
+
+    @property
+    def audit_precision_bits(self) -> int:
+        return self.audit_precision
 
     def to_dict(self) -> dict:
         return {
             "schema_version": self.schema_version,
             "row_hash": self.row_hash,
-            "radii": [radius.to_dict() for radius in self.radii],
-            "official_precision_bits": self.official_precision_bits,
-            "audit_precision_bits": self.audit_precision_bits,
+            "exact_dyadic_amplitudes": [radius.to_dict() for radius in self.exact_dyadic_amplitudes],
+            "initial_partition": self.initial_partition,
+            "split_policy": self.split_policy,
+            "absolute_width_tolerance": self.absolute_width_tolerance,
+            "relative_width_tolerance": self.relative_width_tolerance,
             "max_depth": self.max_depth,
             "max_cells": self.max_cells,
+            "official_precision": self.official_precision,
+            "audit_precision": self.audit_precision,
+            "expected_artifact_paths": list(self.expected_artifact_paths),
             "execution_authorized": self.execution_authorized,
         }
 
@@ -110,4 +153,8 @@ class CertificatePlan:
     def from_dict(cls, payload: dict) -> "CertificatePlan":
         expected = {field.name for field in cls.__dataclass_fields__.values()}
         _strict_fields(payload, expected, "CertificatePlan")
-        return cls(**(payload | {"radii": tuple(Dyadic.from_dict(row) for row in payload["radii"])}))
+        return cls(**(payload | {
+            "exact_dyadic_amplitudes": tuple(
+                Dyadic.from_dict(row) for row in payload["exact_dyadic_amplitudes"]),
+            "expected_artifact_paths": tuple(payload["expected_artifact_paths"]),
+        }))

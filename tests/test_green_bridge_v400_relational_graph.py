@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import math
 from pathlib import Path
 import sys
 
@@ -11,6 +12,7 @@ sys.path.insert(0, str(ROOT / "src"))
 from green_bridge_v400_interval import Interval
 from green_bridge_v400_relational_graph import (
     GraphNode, RelationalGraph, audit_dependency_completeness,
+    build_tiny_transformer_fixture_graph,
     extract_joint_witness_graph, reduce_exact_shared_graph,
 )
 from green_bridge_v400_schemas import JointWitnessRowSpec
@@ -134,25 +136,60 @@ def test_reduced_and_unreduced_mpfr_singletons_agree():
 
 
 def test_tiny_transformer_end_to_end_interval_contains_symbolic_values():
-    payload = {
-        "precision_bits": 256,
-        "output_id": "out",
-        "nodes": [
-            {"node_id": "x", "op": "affine_control", "params": {"base": 0, "direction": 1},
-             "provenance": "hook", "depends_on_t": True},
-            {"node_id": "g", "op": "gelu_new", "parents": ["x"],
-             "params": {"kappa": 0.7978845608028654, "lambda": 0.044715},
-             "depends_on_t": True},
-            {"node_id": "res", "op": "add", "parents": ["x", "g"],
-             "depends_on_t": True},
-            {"node_id": "out", "op": "tanh", "parents": ["res"],
-             "depends_on_t": True},
-        ],
-    }
+    graph = build_tiny_transformer_fixture_graph(256)
+    payload = graph.to_payload()
     row = JointWitnessRowSpec("green-v400-row-v1", "0"*64, "synthetic", "1"*64,
                               "2"*64, "3"*64, "4"*64, "5"*64,
                               ("PAT_J", "PAT_B", "TAR_J", "TAR_B"), payload)
     graph = extract_joint_witness_graph(row)
-    result = graph.evaluate(Interval.from_bounds(-0.1, 0.1, 256))
-    assert result.value.contains(0.0)
-    assert result.first.contains(1.5)
+    operations = {node.op for node in graph.nodes.values()}
+    assert {"layernorm", "einsum", "attention", "residual_add",
+            "gelu_new", "contrast"} <= operations
+    assert len(graph.nodes) >= 35
+    assert audit_dependency_completeness(graph).complete
+
+    def layernorm(vector):
+        mean = sum(vector) / len(vector)
+        centered = [value - mean for value in vector]
+        variance = sum(value * value for value in centered) / len(vector)
+        scale = 1.0 / (variance + 1e-5) ** 0.5
+        return [value * scale for value in centered]
+
+    def reference(t):
+        tokens = [[1.0 + t, -1.0], [0.5, -0.5]]
+        normalized = [layernorm(token) for token in tokens]
+        queries = normalized
+        keys = [[0.5 * value for value in token] for token in normalized]
+        values = normalized
+        attended = []
+        for query_index, query in enumerate(queries):
+            allowed = range(query_index + 1)
+            scores = [sum(a*b for a, b in zip(query, keys[index])) / 2**0.5
+                      for index in allowed]
+            pivot = scores[0]
+            exponentials = [math.exp(score - pivot) for score in scores]
+            total = sum(exponentials)
+            weights = [value / total for value in exponentials]
+            attended.append([sum(weight * values[index][coordinate]
+                                 for weight, index in zip(weights, allowed))
+                              for coordinate in range(2)])
+        resid1 = [[tokens[i][j] + attended[i][j] for j in range(2)] for i in range(2)]
+        normalized2 = [layernorm(token) for token in resid1]
+        activated = []
+        for token in normalized2:
+            x = token[0] - token[1]
+            activated.append(0.5*x*(1 + math.tanh(0.7978845608028654*(x + 0.044715*x**3))))
+        resid2 = [[resid1[i][0] + 0.25*activated[i],
+                   resid1[i][1] - 0.25*activated[i]] for i in range(2)]
+        final = layernorm(resid2[1])
+        return final[0] - final[1]
+
+    result = graph.evaluate(Interval.point(0.0, 256))
+    expected = reference(0.0)
+    assert abs(float(result.value.midpoint()) - expected) < 1e-12
+    step = 1e-5
+    numerical_first = (reference(step) - reference(-step)) / (2 * step)
+    assert abs(float(result.first.midpoint()) - numerical_first) < 1e-5
+
+    replay = extract_joint_witness_graph(row)
+    assert replay.semantic_hash() == graph.semantic_hash()

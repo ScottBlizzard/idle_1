@@ -60,6 +60,9 @@ CONFIG_PATH = PROJECT_ROOT / "configs" / "green_bridge_v400_formal_prepare.json"
 CANDIDATE_NOUNS_PATH = (
     PROJECT_ROOT / "analysis" / "GREEN_V400_CANDIDATE_NOUNS_20260826.txt"
 )
+SEALED_NOUN_HASHES_PATH = (
+    PROJECT_ROOT / "analysis" / "GREEN_V400_SEALED_NOUN_HASHES_20260826.json"
+)
 
 
 class FailureCode(str, Enum):

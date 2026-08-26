@@ -7,11 +7,12 @@ from typing import Iterable, Sequence
 import gmpy2
 
 from green_bridge_v400_interval import (
-    Interval, erf_interval, exp_interval, inv_sqrt_interval, tanh_interval,
+    Interval, erf_interval, exp_interval, inv_sqrt_interval, sqrt_interval,
+    tanh_interval,
 )
 from green_bridge_v400_interval_jet import (
     CertifiedScalarPrimitive, Jet2, add_jet, compose_jet, constant_jet,
-    mul_jet, reciprocal_jet, sub_jet,
+    mul_jet, reciprocal_jet, square_jet, sub_jet,
 )
 from green_bridge_v400_mpfr import ROUND_DOWN, ROUND_UP, mpfr_context
 
@@ -29,10 +30,20 @@ def _constant(value, precision: int) -> Jet2:
 
 
 def sum_jets(values: Iterable[Jet2], *, precision_bits: int) -> Jet2:
-    result = _zero(precision_bits)
-    for value in values:
-        result = add_jet(result, value)
-    return result
+    level = list(values)
+    if not level:
+        return _zero(precision_bits)
+    if any(value.precision_bits != precision_bits for value in level):
+        raise ValueError("pairwise reduction precision mismatch")
+    # Frozen balanced binary tree: deterministic and materially tighter than a
+    # long left fold for Transformer affine and attention reductions.
+    while len(level) > 1:
+        next_level = [add_jet(level[index], level[index + 1])
+                      for index in range(0, len(level) - 1, 2)]
+        if len(level) % 2:
+            next_level.append(level[-1])
+        level = next_level
+    return level[0]
 
 
 def scale_jet(value: Jet2, scalar) -> Jet2:
@@ -41,6 +52,23 @@ def scale_jet(value: Jet2, scalar) -> Jet2:
 
 def exp_primitive() -> CertifiedScalarPrimitive:
     return CertifiedScalarPrimitive("exp", exp_interval, exp_interval, exp_interval)
+
+
+def sqrt_primitive() -> CertifiedScalarPrimitive:
+    def first(x: Interval):
+        return Interval.point(0.5, x.precision_bits) * inv_sqrt_interval(x)
+    def second(x: Interval):
+        return (-Interval.point(0.25, x.precision_bits)
+                * inv_sqrt_interval(x) / x)
+    return CertifiedScalarPrimitive("sqrt", sqrt_interval, first, second)
+
+
+def inv_sqrt_primitive() -> CertifiedScalarPrimitive:
+    def first(x: Interval):
+        return -Interval.point(0.5, x.precision_bits) * inv_sqrt_interval(x) / x
+    def second(x: Interval):
+        return Interval.point(0.75, x.precision_bits) * inv_sqrt_interval(x) / x.square()
+    return CertifiedScalarPrimitive("inv_sqrt", inv_sqrt_interval, first, second)
 
 
 def tanh_primitive() -> CertifiedScalarPrimitive:
@@ -131,16 +159,11 @@ def layernorm_jets(values: Sequence[Jet2], *, epsilon: float,
     mean = scale_jet(sum_jets(values, precision_bits=precision), reciprocal_dimension)
     centered = [sub_jet(value, mean) for value in values]
     variance = scale_jet(
-        sum_jets((mul_jet(value, value) for value in centered), precision_bits=precision),
+        sum_jets((square_jet(value) for value in centered), precision_bits=precision),
         reciprocal_dimension,
     )
     q = add_jet(variance, _constant(epsilon, precision))
-    inv_sqrt = CertifiedScalarPrimitive(
-        "inv_sqrt", inv_sqrt_interval,
-        lambda x: -Interval.point(0.5, precision) * inv_sqrt_interval(x) / x,
-        lambda x: Interval.point(0.75, precision) * inv_sqrt_interval(x) / x.square(),
-    )
-    scale = compose_jet(q, inv_sqrt)
+    scale = compose_jet(q, inv_sqrt_primitive())
     gamma = [1.0] * dimension if gamma is None else list(gamma)
     beta = [0.0] * dimension if beta is None else list(beta)
     if len(gamma) != dimension or len(beta) != dimension:
@@ -160,8 +183,12 @@ def softmax_jets(scores: Sequence[Jet2], *, pivot: int = 0) -> list[Jet2]:
     if not scores or not 0 <= pivot < len(scores):
         raise ValueError("invalid softmax pivot")
     precision = scores[0].precision_bits
-    shifted = [sub_jet(score, scores[pivot]) for score in scores]
-    exponentials = [compose_jet(score, exp_primitive()) for score in shifted]
+    shifted = [(_zero(precision) if index == pivot
+                else sub_jet(score, scores[pivot]))
+               for index, score in enumerate(scores)]
+    exponentials = [(_one(precision) if index == pivot
+                     else compose_jet(score, exp_primitive()))
+                    for index, score in enumerate(shifted)]
     denominator = sum_jets(exponentials, precision_bits=precision)
     inverse = reciprocal_jet(denominator)
     return [mul_jet(value, inverse) for value in exponentials]
@@ -206,4 +233,6 @@ OPERATION_COVERAGE = {
     "softmax": softmax_jets,
     "attention": attention_head_jets,
     "contrast": contrast_jet,
+    "sqrt": sqrt_primitive,
+    "inv_sqrt": inv_sqrt_primitive,
 }

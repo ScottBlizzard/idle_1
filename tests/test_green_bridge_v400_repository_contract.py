@@ -41,12 +41,15 @@ def test_v300_files_read_only_hashes():
 
 
 def test_v3_confirmation_ids_excluded():
-    from green_bridge_spec import DONOR_NOUNS, EVALUATION_NOUNS
-    from green_bridge_v300_spec import CONFIRMATION_NOUNS, DEVELOPMENT_NOUNS
-    forbidden = set(DONOR_NOUNS) | set(EVALUATION_NOUNS) | set(CONFIRMATION_NOUNS) | set(DEVELOPMENT_NOUNS)
+    payload = json.loads(spec.SEALED_NOUN_HASHES_PATH.read_text(encoding="utf-8"))
+    forbidden = set(payload["hashes"])
     candidates = {line.strip() for line in spec.CANDIDATE_NOUNS_PATH.read_text(encoding="utf-8").splitlines() if line.strip()}
     assert len(candidates) >= 40
-    assert not candidates & forbidden
+    candidate_hashes = {
+        hashlib.sha256(f"{payload['salt']}|{noun}".encode()).hexdigest()
+        for noun in candidates
+    }
+    assert not candidate_hashes & forbidden
 
 
 def test_model_tokenizer_config_hashes():
@@ -92,8 +95,9 @@ def test_no_development_entrypoint_import_or_launch():
 
 def test_no_confirmation_reader_import_or_open():
     source = inspect.getsource(prepare)
-    assert "confirmation_v300" not in source
-    assert "confirmation_artifact" not in source
+    assert "CONFIRMATION_NOUNS" not in source
+    assert "DEVELOPMENT_NOUNS" not in source
+    assert "green_bridge_v300_spec" not in source
     assert not spec.CONFIRMATION_AUTHORIZED
 
 
@@ -109,3 +113,28 @@ def test_prepare_artifact_hash_chain():
     second = first | {"upstream": schemas.sha256_canonical(first)}
     assert second["upstream"] == schemas.sha256_canonical(first)
     assert schemas.sha256_canonical(second) != second["upstream"]
+
+
+def test_synthetic_artifacts_are_executed_not_self_reported(tmp_path):
+    from green_bridge_v400_relational_graph import extract_joint_witness_graph
+    hashes = prepare._write_synthetic_artifacts(tmp_path)
+    graph_record = json.loads(
+        (tmp_path / "synthetic" / "tiny_transformer_graph.json").read_text(encoding="utf-8")
+    )
+    graph_hash = graph_record.pop("graph_hash")
+    for key in ("fixture_schema_version", "exact_ieee_constants", "tokens", "heads", "d_model"):
+        graph_record.pop(key)
+    row = schemas.JointWitnessRowSpec(
+        "green-v400-row-v1", "0"*64, "synthetic", "1"*64, "2"*64,
+        "3"*64, "4"*64, "5"*64,
+        ("PAT_J", "PAT_B", "TAR_J", "TAR_B"), graph_record,
+    )
+    graph = extract_joint_witness_graph(row)
+    certificate = json.loads(
+        (tmp_path / "synthetic" / "tiny_transformer_certificate.json").read_text(encoding="utf-8")
+    )
+    assert graph.semantic_hash() == graph_hash == certificate["graph_hash"]
+    assert len(graph.nodes) >= 35
+    assert certificate["precision_nested"] is True
+    assert certificate["proof_source"] == "executed serialized relational graph"
+    assert len(hashes) == 7

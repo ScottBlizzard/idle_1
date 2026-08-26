@@ -13,9 +13,20 @@ from green_bridge_v400_interval_jet import (
 )
 from green_bridge_v400_schemas import JointWitnessRowSpec, canonical_json
 from green_bridge_v400_transformer_ops import (
-    erf_primitive, exp_primitive, gelu_erf_jet, gelu_new_jet,
-    sigmoid_jet, tanh_primitive,
+    affine_map_jets, attention_head_jets, contrast_jet, erf_primitive,
+    exp_primitive, gelu_erf_jet, gelu_new_jet, inv_sqrt_primitive,
+    layernorm_jets, sigmoid_jet, softmax_jets, sqrt_primitive, tanh_primitive,
 )
+
+
+EXECUTABLE_OPERATIONS = frozenset({
+    "constant", "affine_control", "add", "sub", "mul", "reciprocal",
+    "exp", "sqrt", "inv_sqrt", "tanh", "erf", "sigmoid", "gelu_new",
+    "gelu_erf", "affine_component", "einsum", "layernorm_component",
+    "layernorm", "softmax_component", "softmax", "attention_component",
+    "attention", "contrast", "residual_add", "reshape", "transpose",
+    "slice", "gather_static", "identity",
+})
 
 
 @dataclass(frozen=True)
@@ -86,6 +97,26 @@ class RelationalGraph:
     def semantic_hash(self) -> str:
         return self.semantic_hashes()[self.output_id]
 
+    def to_payload(self) -> dict:
+        """Canonical replay payload; unlike a manifest, this is executable."""
+        return {
+            "schema_version": "green-v400-relational-graph-v1",
+            "precision_bits": self.precision_bits,
+            "output_id": self.output_id,
+            "nodes": [
+                {
+                    "node_id": node.node_id,
+                    "op": node.op,
+                    "parents": list(node.parents),
+                    "params": node.params,
+                    "provenance": node.provenance,
+                    "depends_on_t": node.depends_on_t,
+                }
+                for node_id in self.topological_order()
+                for node in (self.nodes[node_id],)
+            ],
+        }
+
     def evaluate(self, domain: Interval) -> Jet2:
         if domain.precision_bits != self.precision_bits:
             domain = Interval.from_bounds(domain.lower, domain.upper, self.precision_bits)
@@ -110,6 +141,10 @@ class RelationalGraph:
                 values[node_id] = reciprocal_jet(parents[0])
             elif node.op == "exp":
                 values[node_id] = compose_jet(parents[0], exp_primitive())
+            elif node.op == "sqrt":
+                values[node_id] = compose_jet(parents[0], sqrt_primitive())
+            elif node.op == "inv_sqrt":
+                values[node_id] = compose_jet(parents[0], inv_sqrt_primitive())
             elif node.op == "tanh":
                 values[node_id] = compose_jet(parents[0], tanh_primitive())
             elif node.op == "erf":
@@ -122,7 +157,49 @@ class RelationalGraph:
                 )
             elif node.op == "gelu_erf":
                 values[node_id] = gelu_erf_jet(parents[0])
-            elif node.op == "identity":
+            elif node.op in {"affine_component", "einsum"}:
+                weights = node.params["weights"]
+                bias = node.params.get("bias", 0)
+                values[node_id] = affine_map_jets([weights], parents, [bias])[0]
+            elif node.op in {"layernorm_component", "layernorm"}:
+                normalized = layernorm_jets(
+                    parents, epsilon=node.params["epsilon"],
+                    gamma=node.params.get("gamma"), beta=node.params.get("beta"),
+                )
+                values[node_id] = normalized[int(node.params["index"])]
+            elif node.op in {"softmax_component", "softmax"}:
+                weights = softmax_jets(parents, pivot=int(node.params.get("pivot", 0)))
+                values[node_id] = weights[int(node.params["index"])]
+            elif node.op in {"attention_component", "attention"}:
+                token_count = int(node.params["token_count"])
+                head_dim = int(node.params["head_dim"])
+                value_dim = int(node.params["value_dim"])
+                q_size = token_count * head_dim
+                k_size = token_count * head_dim
+                expected = q_size + k_size + token_count * value_dim
+                if len(parents) != expected:
+                    raise ValueError("attention_component parent shape mismatch")
+                offset = 0
+                queries = [parents[offset + i*head_dim:offset + (i+1)*head_dim]
+                           for i in range(token_count)]
+                offset += q_size
+                keys = [parents[offset + i*head_dim:offset + (i+1)*head_dim]
+                        for i in range(token_count)]
+                offset += k_size
+                vector_values = [parents[offset + i*value_dim:offset + (i+1)*value_dim]
+                                 for i in range(token_count)]
+                attended = attention_head_jets(
+                    queries, keys, vector_values,
+                    causal=bool(node.params.get("causal", True)),
+                )
+                values[node_id] = attended[int(node.params["query_index"])][int(node.params["coordinate"])]
+            elif node.op == "contrast":
+                values[node_id] = contrast_jet(parents, node.params["weights"])
+            elif node.op == "residual_add":
+                values[node_id] = add_jet(parents[0], parents[1])
+            elif node.op in {"identity", "reshape", "transpose", "slice", "gather_static"}:
+                if len(parents) != 1:
+                    raise ValueError(f"{node.op} scalar view needs exactly one parent")
                 values[node_id] = parents[0]
             else:
                 raise RuntimeError(f"UNSUPPORTED_PRIMITIVE:{node.op}")
@@ -204,3 +281,120 @@ def reduce_exact_shared_graph(graph: RelationalGraph) -> tuple[RelationalGraph, 
     proof = ReductionProof(old_hash, reduced.semantic_hash(), tuple(cancellations),
                            len(graph.nodes), len(reduced.nodes))
     return reduced, proof
+
+
+def build_tiny_transformer_fixture_graph(precision_bits: int = 256) -> RelationalGraph:
+    """A real 2-token/1-head/1-block pre-LN Transformer scalar fixture.
+
+    It contains LN, Q/K/V projections, causal softmax attention, residuals,
+    an MLP with GELU, final LN, and an unembedding contrast.  All constants are
+    serialized in the returned executable DAG.
+    """
+    nodes: dict[str, GraphNode] = {}
+
+    def put(node: GraphNode) -> str:
+        if node.node_id in nodes:
+            raise ValueError(f"duplicate tiny graph node {node.node_id}")
+        nodes[node.node_id] = node
+        return node.node_id
+
+    inputs = [
+        put(GraphNode("x00", "affine_control", params={"base": 1.0, "direction": 1.0},
+                      provenance="token0.coordinate0", depends_on_t=True)),
+        put(GraphNode("x01", "constant", params={"value": -1.0},
+                      provenance="token0.coordinate1")),
+        put(GraphNode("x10", "constant", params={"value": 0.5},
+                      provenance="token1.coordinate0")),
+        put(GraphNode("x11", "constant", params={"value": -0.5},
+                      provenance="token1.coordinate1")),
+    ]
+
+    ln1: list[str] = []
+    for token in range(2):
+        parents = tuple(inputs[token*2:(token+1)*2])
+        for coordinate in range(2):
+            ln1.append(put(GraphNode(
+                f"ln1_{token}_{coordinate}", "layernorm", parents,
+                {"epsilon": 1e-5, "index": coordinate},
+                provenance=f"block0.ln1.token{token}", depends_on_t=(token == 0),
+            )))
+
+    projections: dict[str, list[str]] = {"q": [], "k": [], "v": []}
+    matrices = {
+        "q": ((1.0, 0.0), (0.0, 1.0)),
+        "k": ((0.5, 0.0), (0.0, 0.5)),
+        "v": ((1.0, 0.0), (0.0, 1.0)),
+    }
+    for name, matrix in matrices.items():
+        for token in range(2):
+            parents = tuple(ln1[token*2:(token+1)*2])
+            for coordinate in range(2):
+                projections[name].append(put(GraphNode(
+                    f"{name}_{token}_{coordinate}", "einsum", parents,
+                    {"weights": list(matrix[coordinate]), "bias": 0.0},
+                    provenance=f"block0.attn.{name}", depends_on_t=(token == 0),
+                )))
+
+    attention_parents = tuple(projections["q"] + projections["k"] + projections["v"])
+    attended: list[str] = []
+    for token in range(2):
+        for coordinate in range(2):
+            attended.append(put(GraphNode(
+                f"attn_{token}_{coordinate}", "attention", attention_parents,
+                {"token_count": 2, "head_dim": 2, "value_dim": 2,
+                 "query_index": token, "coordinate": coordinate, "causal": True},
+                provenance="block0.causal_attention", depends_on_t=True,
+            )))
+
+    resid1 = [put(GraphNode(f"resid1_{token}_{coordinate}", "residual_add",
+                            (inputs[token*2 + coordinate], attended[token*2 + coordinate]),
+                            provenance="block0.attn_residual", depends_on_t=True))
+              for token in range(2) for coordinate in range(2)]
+
+    ln2: list[str] = []
+    for token in range(2):
+        parents = tuple(resid1[token*2:(token+1)*2])
+        for coordinate in range(2):
+            ln2.append(put(GraphNode(
+                f"ln2_{token}_{coordinate}", "layernorm", parents,
+                {"epsilon": 1e-5, "index": coordinate},
+                provenance=f"block0.ln2.token{token}", depends_on_t=True,
+            )))
+    hidden, activated = [], []
+    for token in range(2):
+        hidden.append(put(GraphNode(
+            f"mlp_pre_{token}", "einsum", tuple(ln2[token*2:(token+1)*2]),
+            {"weights": [1.0, -1.0], "bias": 0.0},
+            provenance="block0.mlp.in", depends_on_t=True,
+        )))
+        activated.append(put(GraphNode(
+            f"mlp_gelu_{token}", "gelu_new", (hidden[-1],),
+            {"kappa": 0.7978845608028654, "lambda": 0.044715},
+            provenance="block0.mlp.gelu", depends_on_t=True,
+        )))
+    projected: list[str] = []
+    for token in range(2):
+        for coordinate, weight in enumerate((0.25, -0.25)):
+            projected.append(put(GraphNode(
+                f"mlp_out_{token}_{coordinate}", "einsum", (activated[token],),
+                {"weights": [weight], "bias": 0.0},
+                provenance="block0.mlp.out", depends_on_t=True,
+            )))
+    resid2 = [put(GraphNode(f"resid2_{token}_{coordinate}", "residual_add",
+                            (resid1[token*2 + coordinate], projected[token*2 + coordinate]),
+                            provenance="block0.mlp_residual", depends_on_t=True))
+              for token in range(2) for coordinate in range(2)]
+
+    final = [put(GraphNode(
+        f"final_ln_1_{coordinate}", "layernorm", tuple(resid2[2:4]),
+        {"epsilon": 1e-5, "index": coordinate},
+        provenance="final_ln.token1", depends_on_t=True,
+    )) for coordinate in range(2)]
+    output = put(GraphNode("unembed_contrast", "contrast", tuple(final),
+                           {"weights": [1.0, -1.0]},
+                           provenance="unembedding.contrast", depends_on_t=True))
+    graph = RelationalGraph(nodes, output, precision_bits)
+    graph.topological_order()
+    if not audit_dependency_completeness(graph).complete:
+        raise RuntimeError("tiny Transformer dependency annotation failure")
+    return graph

@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from fractions import Fraction
 from pathlib import Path
-from types import SimpleNamespace
 import sys
 
 import pytest
@@ -17,7 +16,7 @@ from green_bridge_v400_certificate import (
 )
 from green_bridge_v400_interval import Interval
 from green_bridge_v400_relational_graph import GraphNode, RelationalGraph
-from green_bridge_v400_schemas import JointWitnessRowSpec
+from green_bridge_v400_schemas import CertificatePlan, Dyadic, JointWitnessRowSpec
 
 
 P = 256
@@ -45,6 +44,15 @@ def _certificate_parts(power: int, h=Fraction(1)):
     curvature = integrate_signed_curvature(certified, h)
     error = compute_epsilon_psi(endpoint, curvature)
     return graph, certified, endpoint, curvature, error
+
+
+def _plan(row_hash: str, *, radii=(Dyadic(1, 0),), max_depth=8,
+          max_cells=1024) -> CertificatePlan:
+    return CertificatePlan(
+        "green-v400-certificate-plan-v1", row_hash, tuple(radii),
+        "[-h,0],[0,h]", "left-to-right dyadic bisection",
+        "0x1p-80", "0x1p-40", max_depth, max_cells, 384, 512, (), False,
+    )
 
 
 def test_linear_endpoint_error_zero():
@@ -113,7 +121,7 @@ def test_384_official_512_audit_nested():
 
 
 def test_resource_cap_returns_inconclusive_not_success():
-    graph = _polynomial_graph(2)
+    graph = _polynomial_graph(3)
     payload = {
         "precision_bits": P, "output_id": graph.output_id,
         "nodes": [
@@ -126,8 +134,49 @@ def test_resource_cap_returns_inconclusive_not_success():
     row = JointWitnessRowSpec("green-v400-row-v1", "0"*64, "synthetic", "1"*64,
                               "2"*64, "3"*64, "4"*64, "5"*64,
                               ("PAT_J", "PAT_B", "TAR_J", "TAR_B"), payload)
-    plan = SimpleNamespace(h=Fraction(1), precision_bits=P, max_cells=1,
-                           execution_authorized=False)
+    plan = _plan(row.row_hash, max_depth=0, max_cells=2)
     result = certify_joint_witness(row, plan)
     assert result.status == "RESOURCE_INCONCLUSIVE"
     assert result.witness_interval is None
+
+
+def test_certificate_plan_round_trip_and_multi_radius_execution():
+    graph = _polynomial_graph(2)
+    payload = {
+        "precision_bits": P, "output_id": graph.output_id,
+        "nodes": [
+            {"node_id": node.node_id, "op": node.op, "parents": list(node.parents),
+             "params": node.params, "provenance": node.provenance,
+             "depends_on_t": node.depends_on_t}
+            for node in graph.nodes.values()
+        ],
+    }
+    row = JointWitnessRowSpec("green-v400-row-v1", "a"*64, "synthetic", "1"*64,
+                              "2"*64, "3"*64, "4"*64, "5"*64,
+                              ("PAT_J", "PAT_B", "TAR_J", "TAR_B"), payload)
+    plan = _plan(row.row_hash, radii=(Dyadic(1, 0), Dyadic(1, -1), Dyadic(1, -2)))
+    assert CertificatePlan.from_dict(plan.to_dict()) == plan
+    result = certify_joint_witness(row, plan)
+    assert result.status == "CERTIFIED"
+    assert result.audit_nested
+    assert len(result.radii) == 3
+    assert result.witness_interval is not None
+    assert result.witness_interval.contains(0.0)
+
+
+def test_legacy_plan_object_is_rejected_instead_of_silent_default():
+    graph = _polynomial_graph(2)
+    payload = {
+        "precision_bits": P, "output_id": graph.output_id,
+        "nodes": [
+            {"node_id": node.node_id, "op": node.op, "parents": list(node.parents),
+             "params": node.params, "provenance": node.provenance,
+             "depends_on_t": node.depends_on_t}
+            for node in graph.nodes.values()
+        ],
+    }
+    row = JointWitnessRowSpec("green-v400-row-v1", "b"*64, "synthetic", "1"*64,
+                              "2"*64, "3"*64, "4"*64, "5"*64,
+                              ("PAT_J", "PAT_B", "TAR_J", "TAR_B"), payload)
+    with pytest.raises(TypeError, match="validated CertificatePlan"):
+        certify_joint_witness(row, object())
