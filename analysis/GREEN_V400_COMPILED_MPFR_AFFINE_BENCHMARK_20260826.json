@@ -1,0 +1,193 @@
+{
+  "backend_version": "green-v400-compiled-mpfr-v1",
+  "cap_decision_authorized": false,
+  "contains_scientific_outcome": false,
+  "created_at_utc": "2026-08-26T15:40:33.827173Z",
+  "peak_rss_kib": 33808,
+  "rows": [
+    {
+      "checksum": "9f5b20b94e41b333",
+      "coefficient_terms": 7680,
+      "directed_mpfr_primitives": 92160,
+      "directed_mpfr_primitives_per_second": 15925237.094397638,
+      "elapsed_seconds": 0.005787041,
+      "input_width": 768,
+      "layer": "block10_selected_in",
+      "output_width": 10,
+      "precision_bits": 384,
+      "repeats": 1
+    },
+    {
+      "checksum": "9711989cb51e5745",
+      "coefficient_terms": 7680,
+      "directed_mpfr_primitives": 92160,
+      "directed_mpfr_primitives_per_second": 17194610.489645265,
+      "elapsed_seconds": 0.005359819,
+      "input_width": 10,
+      "layer": "block10_selected_out",
+      "output_width": 768,
+      "precision_bits": 384,
+      "repeats": 1
+    },
+    {
+      "checksum": "d7c4ebf56517b86d",
+      "coefficient_terms": 1769472,
+      "directed_mpfr_primitives": 21233664,
+      "directed_mpfr_primitives_per_second": 22830984.418596845,
+      "elapsed_seconds": 0.930037164,
+      "input_width": 768,
+      "layer": "block11_qkv",
+      "output_width": 2304,
+      "precision_bits": 384,
+      "repeats": 1
+    },
+    {
+      "checksum": "a7a99ba83eb7164d",
+      "coefficient_terms": 589824,
+      "directed_mpfr_primitives": 7077888,
+      "directed_mpfr_primitives_per_second": 23025307.35050782,
+      "elapsed_seconds": 0.307396027,
+      "input_width": 768,
+      "layer": "block11_attention_out",
+      "output_width": 768,
+      "precision_bits": 384,
+      "repeats": 1
+    },
+    {
+      "checksum": "a722d2b48905cb68",
+      "coefficient_terms": 2359296,
+      "directed_mpfr_primitives": 28311552,
+      "directed_mpfr_primitives_per_second": 22692407.242287684,
+      "elapsed_seconds": 1.247622242,
+      "input_width": 768,
+      "layer": "block11_mlp_in",
+      "output_width": 3072,
+      "precision_bits": 384,
+      "repeats": 1
+    },
+    {
+      "checksum": "4cc192ff410837f9",
+      "coefficient_terms": 2359296,
+      "directed_mpfr_primitives": 28311552,
+      "directed_mpfr_primitives_per_second": 20808134.160648208,
+      "elapsed_seconds": 1.360600224,
+      "input_width": 3072,
+      "layer": "block11_mlp_out",
+      "output_width": 768,
+      "precision_bits": 384,
+      "repeats": 1
+    },
+    {
+      "checksum": "eb5a6242fc93c04c",
+      "coefficient_terms": 768,
+      "directed_mpfr_primitives": 9216,
+      "directed_mpfr_primitives_per_second": 23326684.958135486,
+      "elapsed_seconds": 0.000395084,
+      "input_width": 768,
+      "layer": "final_exact_fused_contrast",
+      "output_width": 1,
+      "precision_bits": 384,
+      "repeats": 1
+    },
+    {
+      "checksum": "9f5b20b94e41b333",
+      "coefficient_terms": 7680,
+      "directed_mpfr_primitives": 92160,
+      "directed_mpfr_primitives_per_second": 19038848.050532278,
+      "elapsed_seconds": 0.004840629,
+      "input_width": 768,
+      "layer": "block10_selected_in",
+      "output_width": 10,
+      "precision_bits": 512,
+      "repeats": 1
+    },
+    {
+      "checksum": "9711989cb51e5745",
+      "coefficient_terms": 7680,
+      "directed_mpfr_primitives": 92160,
+      "directed_mpfr_primitives_per_second": 21081362.25493717,
+      "elapsed_seconds": 0.004371634,
+      "input_width": 10,
+      "layer": "block10_selected_out",
+      "output_width": 768,
+      "precision_bits": 512,
+      "repeats": 1
+    },
+    {
+      "checksum": "d7c4ebf56517b86d",
+      "coefficient_terms": 1769472,
+      "directed_mpfr_primitives": 21233664,
+      "directed_mpfr_primitives_per_second": 19152154.647388376,
+      "elapsed_seconds": 1.108682777,
+      "input_width": 768,
+      "layer": "block11_qkv",
+      "output_width": 2304,
+      "precision_bits": 512,
+      "repeats": 1
+    },
+    {
+      "checksum": "a7a99ba83eb7164d",
+      "coefficient_terms": 589824,
+      "directed_mpfr_primitives": 7077888,
+      "directed_mpfr_primitives_per_second": 19526146.12339353,
+      "elapsed_seconds": 0.362482589,
+      "input_width": 768,
+      "layer": "block11_attention_out",
+      "output_width": 768,
+      "precision_bits": 512,
+      "repeats": 1
+    },
+    {
+      "checksum": "a722d2b48905cb68",
+      "coefficient_terms": 2359296,
+      "directed_mpfr_primitives": 28311552,
+      "directed_mpfr_primitives_per_second": 19283579.04585845,
+      "elapsed_seconds": 1.46816895,
+      "input_width": 768,
+      "layer": "block11_mlp_in",
+      "output_width": 3072,
+      "precision_bits": 512,
+      "repeats": 1
+    },
+    {
+      "checksum": "4cc192ff410837f9",
+      "coefficient_terms": 2359296,
+      "directed_mpfr_primitives": 28311552,
+      "directed_mpfr_primitives_per_second": 17360487.65626034,
+      "elapsed_seconds": 1.630803959,
+      "input_width": 3072,
+      "layer": "block11_mlp_out",
+      "output_width": 768,
+      "precision_bits": 512,
+      "repeats": 1
+    },
+    {
+      "checksum": "eb5a6242fc93c04c",
+      "coefficient_terms": 768,
+      "directed_mpfr_primitives": 9216,
+      "directed_mpfr_primitives_per_second": 19327359.244353943,
+      "elapsed_seconds": 0.000476837,
+      "input_width": 768,
+      "layer": "final_exact_fused_contrast",
+      "output_width": 1,
+      "precision_bits": 512,
+      "repeats": 1
+    }
+  ],
+  "schema_version": "green-v400-compiled-mpfr-affine-benchmark-v1",
+  "scope": "tail-shaped affine kernels only; excludes nonlinear and orchestration overhead",
+  "totals": {
+    "384": {
+      "effective_directed_mpfr_primitives_per_second": 22069958.76434488,
+      "one_branch_one_cell_affine_seconds": 3.857197601,
+      "one_branch_one_cell_directed_mpfr_primitives": 85128192,
+      "projected_four_branch_two_cell_affine_seconds": 30.857580808
+    },
+    "512": {
+      "effective_directed_mpfr_primitives_per_second": 18587642.072426368,
+      "one_branch_one_cell_affine_seconds": 4.579827375,
+      "one_branch_one_cell_directed_mpfr_primitives": 85128192,
+      "projected_four_branch_two_cell_affine_seconds": 36.638619
+    }
+  }
+}
