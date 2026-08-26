@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import math
+import os
 from pathlib import Path
 import sys
 
@@ -14,6 +15,9 @@ from green_bridge_v400_gpt2_program import (
     GPT2TailDimensions, build_gpt2_joint_witness_program,
     execute_tensor_program_numpy, execute_tensor_program_torch, program_identity_payload,
 )
+from green_bridge_v400_compiled_mpfr import CompiledMPFRBackend
+from green_bridge_v400_interval import Interval
+from green_bridge_v400_mpfr_tensor_executor import execute_tensor_program_mpfr, jet_exact_payload
 from green_bridge_v400_tensor_program import TensorProgram
 from green_bridge_v400_tensor_store import TensorStoreReader, write_tensor_store
 
@@ -144,3 +148,19 @@ def test_gpt2_program_rejects_tensor_store_outside_closure(tmp_path):
     write_tensor_store(other, "fixture", [("x", np.asarray([1], dtype="<i4"))])
     with pytest.raises(ValueError, match="outside the store closure"):
         TensorStoreReader(other / "fixture.json").validate_ref(program.nodes[0].tensor_inputs[0])
+
+
+@pytest.mark.parametrize("precision", [384, 512])
+def test_complete_four_branch_mpfr_program_is_bit_identical_compiled(tmp_path, precision):
+    library = os.environ.get("GREEN_V400_MPFR_BACKEND")
+    if not library:
+        pytest.skip("compiled MPFR backend is not configured")
+    reader, _, program = _fixture(tmp_path)
+    domain = Interval.from_bounds(-2.0**-14, 2.0**-14, precision)
+    reference = execute_tensor_program_mpfr(program, reader, domain)
+    compiled = execute_tensor_program_mpfr(
+        program, reader, domain, CompiledMPFRBackend(Path(library))
+    )
+    assert set(reference) == set(compiled) == {"PAT_J", "PAT_B", "TAR_J", "TAR_B", "output"}
+    for name in reference:
+        assert jet_exact_payload(compiled[name]) == jet_exact_payload(reference[name])

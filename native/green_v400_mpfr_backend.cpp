@@ -401,11 +401,11 @@ JetMP jet_inv_sqrt(const JetMP& x) {
   const IntervalMP inverse_sqrt = interval_inv_sqrt(x.value);
   const IntervalMP inverse_value = interval_reciprocal(x.value);
   const IntervalMP first_factor = interval_mul(
-      interval_point_float(-0.5f, precision),
-      interval_mul(inverse_sqrt, inverse_value));
+      interval_mul(interval_point_float(-0.5f, precision), inverse_sqrt),
+      inverse_value);
   const IntervalMP second_factor = interval_mul(
-      interval_point_float(0.75f, precision),
-      interval_mul(inverse_sqrt, interval_reciprocal(interval_square(x.value))));
+      interval_mul(interval_point_float(0.75f, precision), inverse_sqrt),
+      interval_reciprocal(interval_square(x.value)));
   result.first = interval_mul(first_factor, x.first);
   result.second = interval_add(
       interval_mul(second_factor, interval_square(x.first)),

@@ -74,6 +74,23 @@ def test_compiled_affine_accepts_non_ieee_mpfr_intermediates(precision):
         assert backend.exact_fraction(compiled[component]["upper"]) == _fraction(interval.upper)
 
 
+@pytest.mark.parametrize("precision", [384, 512])
+def test_compiled_affine_accepts_noncontiguous_weight_column(precision):
+    backend = _backend()
+    matrix = np.arange(24, dtype="<f4").reshape(6, 4) / np.float32(17)
+    weights = matrix[:, 2]
+    assert not weights.flags.c_contiguous
+    values = [_jet(-0.3 + index/9, 2.0**(-11-index),
+                   0.2-index/13, -0.1+index/17, precision)
+              for index in range(weights.size)]
+    expected = affine_map_jets([weights], values, [np.float32(0.125)])[0]
+    actual = backend.affine_jet2(weights, np.float32(0.125), values, precision)
+    for component in ("value", "first", "second"):
+        interval = getattr(expected, component)
+        assert backend.exact_fraction(actual[component]["lower"]) == _fraction(interval.lower)
+        assert backend.exact_fraction(actual[component]["upper"]) == _fraction(interval.upper)
+
+
 def test_compiled_affine_benchmark_is_deterministic():
     backend = _backend()
     first = backend.benchmark_affine_layer(384, 32, 8)

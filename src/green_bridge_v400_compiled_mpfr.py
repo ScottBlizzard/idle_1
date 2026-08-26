@@ -134,7 +134,7 @@ class CompiledMPFRBackend:
         contrast.restype = ctypes.c_int
 
     def affine_jet2(self, weights, bias, values: list[Jet2], precision_bits: int) -> dict:
-        weights = np.asarray(weights, dtype="<f4").reshape(-1)
+        weights = np.ascontiguousarray(np.asarray(weights, dtype="<f4").reshape(-1))
         if len(values) != weights.size or not values:
             raise ValueError("compiled affine width mismatch")
         if any(value.precision_bits != precision_bits for value in values):

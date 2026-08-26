@@ -1,0 +1,114 @@
+{
+  "backend_sha256": "e92f85149b697180d17a8bae13a630948d14d022da80d1a2520f52f595eb0e53",
+  "backend_version": "green-v400-compiled-mpfr-v1",
+  "cap_decision_authorized": false,
+  "claim_scope": "end-to-end correctness only; JSON/FFI dispatcher is not a performance backend",
+  "contains_scientific_outcome": false,
+  "created_at_utc": "2026-08-26T16:26:50.475850Z",
+  "dependency_mask_closure_sha256": "240f229e2dda74dbd522b29e0af7f5e681d8998e00f74904f7ec67feca9082d3",
+  "dimensions": {
+    "contrast_width": 3,
+    "d_head": 2,
+    "d_mlp": 8,
+    "d_model": 4,
+    "final_position": 2,
+    "n_heads": 2,
+    "selected_gates": [
+      1,
+      6
+    ],
+    "sequence_length": 3
+  },
+  "fixture": "deterministic tiny Transformer; no noun, prompt, donor, or scientific outcome",
+  "program_node_count": 73,
+  "program_semantic_hash": "175d2bcc23b573ae87191c2432381fba11a11884d41117e24e9c38d1ad74403c",
+  "resident_buffer_executor": false,
+  "rows": [
+    {
+      "compiled_correctness_ffi_seconds": 88.39196722299675,
+      "domain": {
+        "lower": {
+          "exponent_2": -14,
+          "numerator": -1
+        },
+        "upper": {
+          "exponent_2": -14,
+          "numerator": 1
+        }
+      },
+      "precision_bits": 384,
+      "reference_seconds": 1.1361218550009653,
+      "roots": {
+        "PAT_B": {
+          "bit_identical": true,
+          "compiled_exact_payload_sha256": "d015f5f6a9c894a464106358e086770300e8501f7050a01227fbd6aea8f8cc2f",
+          "reference_exact_payload_sha256": "d015f5f6a9c894a464106358e086770300e8501f7050a01227fbd6aea8f8cc2f"
+        },
+        "PAT_J": {
+          "bit_identical": true,
+          "compiled_exact_payload_sha256": "d5e862952ec74eea5bbe5c8f0658957dcf6c31ba1755419ae65de050ad9cacec",
+          "reference_exact_payload_sha256": "d5e862952ec74eea5bbe5c8f0658957dcf6c31ba1755419ae65de050ad9cacec"
+        },
+        "TAR_B": {
+          "bit_identical": true,
+          "compiled_exact_payload_sha256": "43031ee67a59774a378ccb4ed09004c89aa6536b77af4fbec9257f8f034b1e70",
+          "reference_exact_payload_sha256": "43031ee67a59774a378ccb4ed09004c89aa6536b77af4fbec9257f8f034b1e70"
+        },
+        "TAR_J": {
+          "bit_identical": true,
+          "compiled_exact_payload_sha256": "7f3c777885d303c1477a25a49bed2d45602b247633becd0a7c35eea24c26122a",
+          "reference_exact_payload_sha256": "7f3c777885d303c1477a25a49bed2d45602b247633becd0a7c35eea24c26122a"
+        },
+        "output": {
+          "bit_identical": true,
+          "compiled_exact_payload_sha256": "698cc0864ee494b9d4497edbf5ffb97d687f3b67e99f7008e5774f9acde7b994",
+          "reference_exact_payload_sha256": "698cc0864ee494b9d4497edbf5ffb97d687f3b67e99f7008e5774f9acde7b994"
+        }
+      }
+    },
+    {
+      "compiled_correctness_ffi_seconds": 86.86387618799927,
+      "domain": {
+        "lower": {
+          "exponent_2": -14,
+          "numerator": -1
+        },
+        "upper": {
+          "exponent_2": -14,
+          "numerator": 1
+        }
+      },
+      "precision_bits": 512,
+      "reference_seconds": 1.4899396559922025,
+      "roots": {
+        "PAT_B": {
+          "bit_identical": true,
+          "compiled_exact_payload_sha256": "7c0a5b70449109742cf872bf9fe11ed6b63b0c5e29753815c20cea300c4fb38e",
+          "reference_exact_payload_sha256": "7c0a5b70449109742cf872bf9fe11ed6b63b0c5e29753815c20cea300c4fb38e"
+        },
+        "PAT_J": {
+          "bit_identical": true,
+          "compiled_exact_payload_sha256": "1746c93c1f88780c0b036aa0c98b00243b64b1212f2a9761cf60053b1ef8a367",
+          "reference_exact_payload_sha256": "1746c93c1f88780c0b036aa0c98b00243b64b1212f2a9761cf60053b1ef8a367"
+        },
+        "TAR_B": {
+          "bit_identical": true,
+          "compiled_exact_payload_sha256": "cec33b66901cc93ab37a565838ae781ee34c72f35334bf9589eb242af966eccb",
+          "reference_exact_payload_sha256": "cec33b66901cc93ab37a565838ae781ee34c72f35334bf9589eb242af966eccb"
+        },
+        "TAR_J": {
+          "bit_identical": true,
+          "compiled_exact_payload_sha256": "b556095d8bba1172e4f2a24a09cf2600757e130ad738c6dceb02cdf600a64805",
+          "reference_exact_payload_sha256": "b556095d8bba1172e4f2a24a09cf2600757e130ad738c6dceb02cdf600a64805"
+        },
+        "output": {
+          "bit_identical": true,
+          "compiled_exact_payload_sha256": "ccc4f42376bc6e7db2ff43c2b71fed806364d5b3034783dc587ad84c07c5513e",
+          "reference_exact_payload_sha256": "ccc4f42376bc6e7db2ff43c2b71fed806364d5b3034783dc587ad84c07c5513e"
+        }
+      }
+    }
+  ],
+  "schema_version": "green-v400-full-tensor-program-mpfr-parity-v1",
+  "status": "PASS"
+}
