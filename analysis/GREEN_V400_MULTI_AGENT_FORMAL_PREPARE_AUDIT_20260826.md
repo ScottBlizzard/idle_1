@@ -62,6 +62,10 @@ Required protocol closure: salted-hash-only exclusion, exact schema round-trip, 
 
 The remediation cross-check found one further blocker at the same boundary. The current donor feasibility loop hashes raw clean/corrupt cache differences at three hooks, but it does not yet serialize the fresh v4 held-out direction panel, a complete four-branch PAT/TAR × joint/bypass record, or the exact repository hook ordering used by the path target. Those hashes therefore do not yet identify the scientific intervention that the theorem is meant to certify. This is still outcome-blind and consumes no scientific trial, but exact direction/branch serialization and a composition-identity test are required before graph extraction can be considered meaningful.
 
+The branch-semantics follow-up resolved the official curve without reading outcomes: `J` keeps all selected-gate posts live; `B` uses the same anchor and residual control but freezes all selected-gate posts; both keep the direct residual bypass; and the scalar is `PAT_J-PAT_B-TAR_J+TAR_B`. The legacy internal subtraction curve has the same derivative at zero but generally different finite-radius curvature, so it is an adjudicator rather than the official endpoint curve.
+
+The shape-derived resource audit found that a literal GPT-2-small four-branch tail requires approximately 28.45 million dense coefficient terms per cell and conservatively more than 341 million low-level MPFR operations per cell. Even the mandatory two-cell initial partition therefore exceeds the frozen 100-million-operation per-row cap before adaptive refinement or multiple radii. This is now an explicit `RESOURCE_PLAN_INFEASIBLE` condition, not a hand-written 75-million estimate. Resolving it requires an outcome-blind resource corrigendum and/or a materially more relational certified kernel; it may not be hidden by tensor serialization or GPU throughput claims.
+
 ## Cross-review synthesis
 
 All three reviews agree on the decisive distinction:
