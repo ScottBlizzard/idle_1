@@ -25,6 +25,10 @@ validated-numerics additions are installed with `--target` below `/mnt/sdb/ccj`
 because the system Python has no `ensurepip`; this is recorded in the formal
 engineering-correction ledger.
 
+The server is run with `HF_HUB_OFFLINE=1` and `TRANSFORMERS_OFFLINE=1`. It
+reuses the exact pinned GPT-2 revision cache already stored below `/mnt/sdb`
+by the immutable v1.3.6 runtime; the cache path and correction are hash-logged.
+
 The run performs the inherited regression, the exact 70-test theorem barrier,
 model/token/hook static preflights, sealed-set exclusion, row-universe freezing,
 static causal-cone planning, and an independent read-only audit. It may hash

@@ -721,6 +721,26 @@ def run_formal_prepare(config_path: str) -> FormalPrepareSummary:
             "rationale": "server Python lacks ensurepip; no package is installed to the root disk or inherited environment",
             "scientific_semantics_changed": False,
             "storage_device_changed": False,
+        }, {
+            "schema_version": "green-v400-engineering-correction-v1",
+            "category": "model_cache_plumbing",
+            "before": "/mnt/sdb/ccj/green_v400_formal_prepare_runtime/cache/huggingface",
+            "after": os.environ.get("HF_HOME", ""),
+            "before_sha256": _sha256_bytes(b"/mnt/sdb/ccj/green_v400_formal_prepare_runtime/cache/huggingface"),
+            "after_sha256": _sha256_bytes(os.environ.get("HF_HOME", "").encode("utf-8")),
+            "rationale": "network is offline; reuse the exact pinned GPT-2 revision cache from the immutable v1.3.6 runtime",
+            "scientific_semantics_changed": False,
+            "storage_device_changed": False,
+        }, {
+            "schema_version": "green-v400-engineering-correction-v1",
+            "category": "pre_model_attempt_recovery",
+            "before": "/mnt/sdb/ccj/outputs/green_bridge_v400_formal_prepare",
+            "after": "/mnt/sdb/ccj/outputs/green_bridge_v400_formal_prepare_failed_pre_model_d5899bd",
+            "before_sha256": _sha256_bytes(b"/mnt/sdb/ccj/outputs/green_bridge_v400_formal_prepare"),
+            "after_sha256": _sha256_bytes(b"/mnt/sdb/ccj/outputs/green_bridge_v400_formal_prepare_failed_pre_model_d5899bd"),
+            "rationale": "the prior attempt stopped before model load due an empty isolated cache; partial theorem artifacts were preserved byte-for-byte",
+            "scientific_semantics_changed": False,
+            "storage_device_changed": False,
         }]
     _write_jsonl(output_root / "engineering_corrections.jsonl", corrections)
     theorem_report = _run_theorem_tests()
