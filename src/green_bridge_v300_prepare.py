@@ -474,7 +474,6 @@ def _calibrate_radius_v300(model, tokenizer, suffix_ids, legacy_records, device:
     integrity_after = active_model_integrity_hash_v200(model)
     if integrity_before != integrity_after or not ad_tail.active_model_unchanged:
         raise RuntimeError("PREPARE STOP 05_MODEL_INTEGRITY")
-    selected_radius = select_global_radius_v300(candidate_rows)
     candidate_summary = []
     for rho in RADIUS_CANDIDATES:
         rows = [row for row in detailed_rows if row["rho"] == float(rho)]
@@ -488,6 +487,35 @@ def _calibrate_radius_v300(model, tokenizer, suffix_ids, legacy_records, device:
                 for row in rows
             ),
         })
+    diagnostic = {
+        "schema_version": "green-bridge-v3.0.0-radius-calibration-diagnostic-v1",
+        "selection_population": "legacy-donor-metadata-and-numerics-only",
+        "epsilon_y": epsilon_y, "required_strata": 40,
+        "completed_strata": len(panel), "candidates": candidate_summary,
+        "theorem_rows": theorem_rows, "rows": detailed_rows,
+    }
+    write_json(output_root / "v300_radius_calibration_diagnostic.json", diagnostic)
+    if not any(row["eligible"] for row in candidate_summary):
+        failure_counts = {
+            float(rho): dict(Counter(
+                reason
+                for row in detailed_rows if row["rho"] == float(rho)
+                for reason, failed in (
+                    ("finite_fidelity", row["fine_ad_difference"] > row["eligibility_ceiling"]),
+                    ("endpoint_floor", not row["endpoint_floor_passed"]),
+                    ("ad_route", not row["ad_route_passed"]),
+                    ("theorem", not row["theorem_passed"]),
+                ) if failed
+            ))
+            for rho in RADIUS_CANDIDATES
+        }
+        diagnostic["failure_counts"] = failure_counts
+        write_json(output_root / "v300_radius_calibration_diagnostic.json", diagnostic)
+        raise RuntimeError(
+            "PREPARE STOP 08_RADIUS_LOCALITY: "
+            + canonical_json({"candidates": candidate_summary, "failure_counts": failure_counts})
+        )
+    selected_radius = select_global_radius_v300(candidate_rows)
     calibration = {
         "schema_version": "green-bridge-v3.0.0-radius-calibration-v1",
         "selection_population": "legacy-donor-metadata-and-numerics-only",
