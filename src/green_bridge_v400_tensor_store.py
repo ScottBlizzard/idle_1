@@ -1,0 +1,192 @@
+"""Bit-exact, hash-closed tensor blobs for replayable GREEN v4 graphs."""
+from __future__ import annotations
+
+from dataclasses import dataclass
+import hashlib
+import json
+import os
+from pathlib import Path
+from typing import Iterable
+
+import numpy as np
+
+from green_bridge_v400_schemas import canonical_json, sha256_canonical
+
+
+SCHEMA_VERSION = "green-v400-tensor-store-v1"
+
+
+def _sha256_bytes(value: bytes) -> str:
+    return hashlib.sha256(value).hexdigest()
+
+
+def _sha256_file(path: Path) -> str:
+    digest = hashlib.sha256()
+    with path.open("rb") as handle:
+        for block in iter(lambda: handle.read(1024 * 1024), b""):
+            digest.update(block)
+    return digest.hexdigest()
+
+
+def _as_exact_array(value) -> np.ndarray:
+    if hasattr(value, "detach") and hasattr(value, "cpu"):
+        value = value.detach().cpu().contiguous().numpy()
+    array = np.asarray(value)
+    if array.dtype.hasobject:
+        raise ValueError("object tensors are not serializable")
+    if not array.flags.c_contiguous:
+        array = np.ascontiguousarray(array)
+    if array.dtype.kind in "fc" and not np.isfinite(array).all():
+        raise ValueError("nonfinite tensor constant")
+    return array
+
+
+@dataclass(frozen=True)
+class TensorRecord:
+    name: str
+    dtype: str
+    shape: tuple[int, ...]
+    byte_order: str
+    offset: int
+    nbytes: int
+    data_sha256: str
+
+    def to_dict(self) -> dict:
+        return {
+            "name": self.name, "dtype": self.dtype, "shape": list(self.shape),
+            "byte_order": self.byte_order, "offset": self.offset,
+            "nbytes": self.nbytes, "data_sha256": self.data_sha256,
+        }
+
+    @classmethod
+    def from_dict(cls, payload: dict) -> "TensorRecord":
+        expected = {"name", "dtype", "shape", "byte_order", "offset", "nbytes", "data_sha256"}
+        if set(payload) != expected:
+            raise ValueError("tensor record schema mismatch")
+        return cls(
+            str(payload["name"]), str(payload["dtype"]),
+            tuple(int(value) for value in payload["shape"]),
+            str(payload["byte_order"]), int(payload["offset"]),
+            int(payload["nbytes"]), str(payload["data_sha256"]),
+        )
+
+
+@dataclass(frozen=True)
+class TensorStoreManifest:
+    schema_version: str
+    blob_name: str
+    blob_sha256: str
+    blob_nbytes: int
+    records: tuple[TensorRecord, ...]
+    record_closure_sha256: str
+
+    def to_dict(self) -> dict:
+        return {
+            "schema_version": self.schema_version,
+            "blob_name": self.blob_name,
+            "blob_sha256": self.blob_sha256,
+            "blob_nbytes": self.blob_nbytes,
+            "records": [record.to_dict() for record in self.records],
+            "record_closure_sha256": self.record_closure_sha256,
+        }
+
+    @classmethod
+    def from_dict(cls, payload: dict) -> "TensorStoreManifest":
+        expected = {"schema_version", "blob_name", "blob_sha256", "blob_nbytes",
+                    "records", "record_closure_sha256"}
+        if set(payload) != expected:
+            raise ValueError("tensor store manifest schema mismatch")
+        result = cls(
+            str(payload["schema_version"]), str(payload["blob_name"]),
+            str(payload["blob_sha256"]), int(payload["blob_nbytes"]),
+            tuple(TensorRecord.from_dict(row) for row in payload["records"]),
+            str(payload["record_closure_sha256"]),
+        )
+        if result.schema_version != SCHEMA_VERSION:
+            raise ValueError("unsupported tensor store schema")
+        if result.record_closure_sha256 != sha256_canonical(
+                [record.to_dict() for record in result.records]):
+            raise ValueError("tensor record closure mismatch")
+        names = [record.name for record in result.records]
+        if len(names) != len(set(names)):
+            raise ValueError("duplicate tensor name")
+        return result
+
+
+def write_tensor_store(root: Path, name: str,
+                       tensors: Iterable[tuple[str, object]]) -> TensorStoreManifest:
+    root = Path(root)
+    root.mkdir(parents=True, exist_ok=True)
+    blob_path = root / f"{name}.bin"
+    manifest_path = root / f"{name}.json"
+    if blob_path.exists() or manifest_path.exists():
+        raise FileExistsError("tensor store is immutable")
+    temporary_blob = blob_path.with_suffix(".bin.tmp")
+    records: list[TensorRecord] = []
+    offset = 0
+    with temporary_blob.open("xb") as handle:
+        for tensor_name, value in tensors:
+            if not tensor_name or any(record.name == tensor_name for record in records):
+                raise ValueError("tensor names must be nonempty and unique")
+            array = _as_exact_array(value)
+            raw = array.tobytes(order="C")
+            handle.write(raw)
+            records.append(TensorRecord(
+                tensor_name, array.dtype.str, tuple(array.shape),
+                array.dtype.byteorder, offset, len(raw), _sha256_bytes(raw),
+            ))
+            offset += len(raw)
+        handle.flush()
+        os.fsync(handle.fileno())
+    os.replace(temporary_blob, blob_path)
+    record_payload = [record.to_dict() for record in records]
+    manifest = TensorStoreManifest(
+        SCHEMA_VERSION, blob_path.name, _sha256_file(blob_path),
+        blob_path.stat().st_size, tuple(records), sha256_canonical(record_payload),
+    )
+    temporary_manifest = manifest_path.with_suffix(".json.tmp")
+    with temporary_manifest.open("x", encoding="utf-8", newline="\n") as handle:
+        handle.write(json.dumps(manifest.to_dict(), sort_keys=True, indent=2) + "\n")
+        handle.flush()
+        os.fsync(handle.fileno())
+    os.replace(temporary_manifest, manifest_path)
+    return manifest
+
+
+class TensorStoreReader:
+    def __init__(self, manifest_path: Path):
+        self.manifest_path = Path(manifest_path).resolve()
+        payload = json.loads(self.manifest_path.read_text(encoding="utf-8"))
+        self.manifest = TensorStoreManifest.from_dict(payload)
+        self.blob_path = (self.manifest_path.parent / self.manifest.blob_name).resolve()
+        if self.blob_path.parent != self.manifest_path.parent:
+            raise ValueError("tensor blob path escapes manifest directory")
+        if (not self.blob_path.is_file()
+                or self.blob_path.stat().st_size != self.manifest.blob_nbytes
+                or _sha256_file(self.blob_path) != self.manifest.blob_sha256):
+            raise ValueError("tensor blob closure mismatch")
+        self._records = {record.name: record for record in self.manifest.records}
+        cursor = 0
+        for record in sorted(self.manifest.records, key=lambda item: item.offset):
+            if record.offset != cursor or record.nbytes < 0:
+                raise ValueError("tensor records do not exactly partition blob")
+            dtype = np.dtype(record.dtype)
+            expected = int(np.prod(record.shape, dtype=np.int64)) * dtype.itemsize
+            if expected != record.nbytes or dtype.byteorder != record.byte_order:
+                raise ValueError("tensor record dtype/shape mismatch")
+            cursor += record.nbytes
+        if cursor != self.manifest.blob_nbytes:
+            raise ValueError("tensor records leave trailing or missing bytes")
+
+    def names(self) -> tuple[str, ...]:
+        return tuple(record.name for record in self.manifest.records)
+
+    def read(self, name: str) -> np.ndarray:
+        record = self._records[name]
+        with self.blob_path.open("rb") as handle:
+            handle.seek(record.offset)
+            raw = handle.read(record.nbytes)
+        if len(raw) != record.nbytes or _sha256_bytes(raw) != record.data_sha256:
+            raise ValueError("tensor payload hash mismatch")
+        return np.frombuffer(raw, dtype=np.dtype(record.dtype)).reshape(record.shape).copy()
+
