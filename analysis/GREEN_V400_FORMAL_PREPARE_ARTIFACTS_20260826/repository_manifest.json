@@ -1,0 +1,199 @@
+{
+  "binding_parent_commit": "48182844a43d391439704f27aa26d513d33adaa0",
+  "branch": "codex/green-v400-joint-witness-formal-prepare",
+  "clean": true,
+  "current_commit": "e799206f7635e97760d9340fb294af9ea7d9e8b9",
+  "files": [
+    {
+      "bytes": 6437,
+      "file_class": "v400_created",
+      "immutable_hash_match": true,
+      "path": "analysis/CODEX_GREEN_V400_EXECUTION_CONSISTENCY_LOCK_20260826.md",
+      "sha256": "edc0fce3bbdc1bc887b5eecdede618e434e72a459b6f1499c569e407d2b889f5"
+    },
+    {
+      "bytes": 112953,
+      "file_class": "v400_created",
+      "immutable_hash_match": true,
+      "path": "analysis/GPTPRO_GREEN_V400_BINDING_CORRIGENDUM_20260826.md",
+      "sha256": "0ace08cb81edcf687b8c9934207532e5e77337e4d270fb110fbc7f539b5f60c8"
+    },
+    {
+      "bytes": 996,
+      "file_class": "v400_created",
+      "immutable_hash_match": true,
+      "path": "analysis/GREEN_V400_CANDIDATE_NOUNS_20260826.txt",
+      "sha256": "85d60f35465121ddcd73f9435470504c0888291bb85ef84f1eac5b0d24933ecb"
+    },
+    {
+      "bytes": 1830,
+      "file_class": "v400_created",
+      "immutable_hash_match": true,
+      "path": "analysis/GREEN_V400_FORMAL_PREPARE_README.md",
+      "sha256": "0bfd725dc0c8a59586ddd86925c2c1cd1ecb2fc2683fd737ebb76effd4b11c0a"
+    },
+    {
+      "bytes": 14083,
+      "file_class": "inherited_read_only",
+      "immutable_hash_match": true,
+      "path": "analysis/green_v300_postcorrigendum_diagnostic.py",
+      "sha256": "860bd173add69374d1afa26351b774bf42f9a0d925d17bcdfc86b18fad0ffe69"
+    },
+    {
+      "bytes": 8209,
+      "file_class": "v400_created",
+      "immutable_hash_match": true,
+      "path": "analysis/green_v400_formal_prepare_audit.py",
+      "sha256": "83608c5bd0f739852b49a4aad16cbf48dc8ce6d676298c32b2436f6434b55c20"
+    },
+    {
+      "bytes": 1615,
+      "file_class": "v400_created",
+      "immutable_hash_match": true,
+      "path": "configs/green_bridge_v400_formal_prepare.json",
+      "sha256": "15d93a258a98bce32494ab3391ada26706ecc88c18296fe074ae9968bcd36f41"
+    },
+    {
+      "bytes": 28,
+      "file_class": "v400_created",
+      "immutable_hash_match": true,
+      "path": "requirements/green_v400_validated_numerics.lock",
+      "sha256": "c05a4c89ec337bbb978c631c220a76b8f6052c398f057e7ce647b98b8195511b"
+    },
+    {
+      "bytes": 3050,
+      "file_class": "v400_created",
+      "immutable_hash_match": true,
+      "path": "scripts/launch_green_bridge_v400_formal_prepare.sh",
+      "sha256": "05b57a20baeac8a6f78955787124d48ce3a3cceb92fa0689ffa56cd0e9af8c81"
+    },
+    {
+      "bytes": 13025,
+      "file_class": "inherited_read_only",
+      "immutable_hash_match": true,
+      "path": "src/exp_green_bridge_v300.py",
+      "sha256": "a0c28397ec760eb373389b33ade5ed02d0a0fd8c33fe2a258e8902f44bf31afa"
+    },
+    {
+      "bytes": 50023,
+      "file_class": "inherited_read_only",
+      "immutable_hash_match": true,
+      "path": "src/green_bridge_v300_prepare.py",
+      "sha256": "d9343bbcfe75b38c0066e68483327f7a706c0f914cfed3fcab084986a8df3941"
+    },
+    {
+      "bytes": 7547,
+      "file_class": "v400_created",
+      "immutable_hash_match": true,
+      "path": "src/green_bridge_v400_certificate.py",
+      "sha256": "f42bf0cb23e5da8ab80bdf48f4c1382f03abe1e9f03a1fdf4fa017e66b2989c7"
+    },
+    {
+      "bytes": 8244,
+      "file_class": "v400_created",
+      "immutable_hash_match": true,
+      "path": "src/green_bridge_v400_interval.py",
+      "sha256": "a2828cc1a2e58db84092706fdc45fdfa117fca785caf9dfebd49411dd5ecb3d8"
+    },
+    {
+      "bytes": 3856,
+      "file_class": "v400_created",
+      "immutable_hash_match": true,
+      "path": "src/green_bridge_v400_interval_jet.py",
+      "sha256": "652639784cec094062385ec4f9d4bb7bddb7d104bb0f248b6340d1174e2236ce"
+    },
+    {
+      "bytes": 5462,
+      "file_class": "v400_created",
+      "immutable_hash_match": true,
+      "path": "src/green_bridge_v400_mpfr.py",
+      "sha256": "3c3a8cc3f459874dc5d80632b42eb0840e68bcd4ddc54e22c2c2d3a3d5fa5c1c"
+    },
+    {
+      "bytes": 47876,
+      "file_class": "v400_created",
+      "immutable_hash_match": true,
+      "path": "src/green_bridge_v400_prepare.py",
+      "sha256": "0658bbe963df952def1441a51f5be53fd36b2cb81cef27336e0cc1451f099802"
+    },
+    {
+      "bytes": 8590,
+      "file_class": "v400_created",
+      "immutable_hash_match": true,
+      "path": "src/green_bridge_v400_relational_graph.py",
+      "sha256": "ad1c761e024a3c764e374d0a5df069428d95ebd8d1394979ade6f7189634d135"
+    },
+    {
+      "bytes": 3777,
+      "file_class": "v400_created",
+      "immutable_hash_match": true,
+      "path": "src/green_bridge_v400_schemas.py",
+      "sha256": "97f924cdd0e52cb942a40c1de1984ab1d1a03f13265186cd8a1fc90aa44dbfa8"
+    },
+    {
+      "bytes": 3326,
+      "file_class": "v400_created",
+      "immutable_hash_match": true,
+      "path": "src/green_bridge_v400_spec.py",
+      "sha256": "d43201de8f04e55fab20d97ece620b7fe922a461e7b6c674316dc337c87c5b48"
+    },
+    {
+      "bytes": 8422,
+      "file_class": "v400_created",
+      "immutable_hash_match": true,
+      "path": "src/green_bridge_v400_transformer_ops.py",
+      "sha256": "197caf37f1bf5b946964f542c6d63685e4977f7f5267d6e1a7b09a9ecb32c0aa"
+    },
+    {
+      "bytes": 15467,
+      "file_class": "inherited_read_only",
+      "immutable_hash_match": true,
+      "path": "tests/test_green_bridge_v300_contract.py",
+      "sha256": "88aa313d53c1fff335e92944b8a33a16ab8a74349e9a0f96c1fd45a2bc24d173"
+    },
+    {
+      "bytes": 5256,
+      "file_class": "v400_created",
+      "immutable_hash_match": true,
+      "path": "tests/test_green_bridge_v400_endpoint_certificate.py",
+      "sha256": "ab4a952dfae0bd8c8d3e433c5e859d291b24f272de2b0e1c517ef43fe901c9e7"
+    },
+    {
+      "bytes": 3413,
+      "file_class": "v400_created",
+      "immutable_hash_match": true,
+      "path": "tests/test_green_bridge_v400_interval_core.py",
+      "sha256": "b803d369bb8cc616cc3e4214fc01375d92b9f569dbb48c241d0c9dc3c0126806"
+    },
+    {
+      "bytes": 4353,
+      "file_class": "v400_created",
+      "immutable_hash_match": true,
+      "path": "tests/test_green_bridge_v400_interval_jet.py",
+      "sha256": "9486f8a8a35e9872a29e715633328b3828ac489c24a86621b583220768de9742"
+    },
+    {
+      "bytes": 6286,
+      "file_class": "v400_created",
+      "immutable_hash_match": true,
+      "path": "tests/test_green_bridge_v400_relational_graph.py",
+      "sha256": "0fe1b0808fd1e53ef5f005c5b95f518139c51ca70a45c95887e43c00fc3a80ee"
+    },
+    {
+      "bytes": 4776,
+      "file_class": "v400_created",
+      "immutable_hash_match": true,
+      "path": "tests/test_green_bridge_v400_repository_contract.py",
+      "sha256": "87cd690284db387e34f22e1be3bf131a667b798501b219b33b2960d8c17975fb"
+    },
+    {
+      "bytes": 5015,
+      "file_class": "v400_created",
+      "immutable_hash_match": true,
+      "path": "tests/test_green_bridge_v400_transformer_ops.py",
+      "sha256": "83d1ed21828d59bf1966ab258bfb0decbbbb9f5885b0e42b14f0ef17a2defd33"
+    }
+  ],
+  "repository_url": "https://github.com/ScottBlizzard/idle_1.git",
+  "schema_version": "green-v400-repository-manifest-v1"
+}

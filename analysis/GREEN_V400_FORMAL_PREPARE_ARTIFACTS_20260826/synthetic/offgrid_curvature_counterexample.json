@@ -1,0 +1,15 @@
+{
+  "analytic_width": "1/1000",
+  "certified_curvature_interval": {
+    "lower": "0",
+    "upper": "1"
+  },
+  "diagnostic_grid_misses_peak": true,
+  "exact_rational_fixture_parameters": {
+    "center": "1/32",
+    "diagnostic_grid_step": "1/16"
+  },
+  "expected_analytic_property": "finite grid is not an upper certificate",
+  "schema_version": "green-v400-offgrid-curvature-counterexample-v1",
+  "test_status": "PASS"
+}

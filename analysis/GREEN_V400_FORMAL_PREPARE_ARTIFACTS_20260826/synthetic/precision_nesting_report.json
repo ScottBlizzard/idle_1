@@ -1,0 +1,26 @@
+{
+  "audit_precision_bits": 512,
+  "fixtures": [
+    {
+      "audit_graph_hash": "2b8511dc01c4fab26946ed02da3f8d469efb8124a907a7359a751dbd3f9158bf",
+      "fixture": "linear",
+      "nested": true,
+      "official_graph_hash": "2b8511dc01c4fab26946ed02da3f8d469efb8124a907a7359a751dbd3f9158bf"
+    },
+    {
+      "audit_graph_hash": "dbf795607979cb2152679188d524ee1022d872278737bc457cf6719b357a2dd5",
+      "fixture": "quadratic",
+      "nested": true,
+      "official_graph_hash": "dbf795607979cb2152679188d524ee1022d872278737bc457cf6719b357a2dd5"
+    },
+    {
+      "audit_graph_hash": "78ada032449bff73351987cc4ba2a0eceabe37c26a2344f03f0f05b08fb2cf28",
+      "fixture": "cubic",
+      "nested": true,
+      "official_graph_hash": "78ada032449bff73351987cc4ba2a0eceabe37c26a2344f03f0f05b08fb2cf28"
+    }
+  ],
+  "official_precision_bits": 384,
+  "schema_version": "green-v400-precision-nesting-report-v1",
+  "test_status": "PASS"
+}

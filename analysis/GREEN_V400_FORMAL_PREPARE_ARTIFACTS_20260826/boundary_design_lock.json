@@ -1,0 +1,90 @@
+{
+  "amplitude_rule": {
+    "alpha": [
+      "2^-0",
+      "2^-1",
+      "2^-2",
+      "2^-3",
+      "2^-4",
+      "2^-5",
+      "2^-6",
+      "2^-7",
+      "2^-8",
+      "2^-9",
+      "2^-10",
+      "2^-11",
+      "2^-12",
+      "2^-13",
+      "2^-14",
+      "2^-15",
+      "2^-16"
+    ],
+    "dither_replicates": 4,
+    "q": [
+      "2^-52",
+      "2^-50",
+      "2^-48",
+      "2^-46",
+      "2^-44",
+      "2^-42",
+      "2^-40",
+      "2^-38",
+      "2^-36",
+      "2^-34",
+      "2^-32",
+      "2^-30",
+      "2^-28",
+      "2^-26",
+      "2^-24",
+      "2^-22",
+      "2^-20",
+      "2^-18",
+      "2^-16",
+      "2^-14",
+      "2^-12"
+    ]
+  },
+  "contains_observed_v4_outcome": false,
+  "design": "attenuated_subtractive_dither_quantization",
+  "exact_fallback_analysis": "familywise exact-binomial",
+  "exclusion_hash": "f5785d8198a9422d786a2a18001b962a156a2ab7793541ff205c52032e43101d",
+  "family_definitions": [
+    "transition",
+    "regime-separation",
+    "null-controls"
+  ],
+  "invalid_unresolved_treatment": "invalid separate; unresolved remains unresolved",
+  "null_controls": [
+    "zero-control",
+    "sign-reversal",
+    "branch-permutation",
+    "norm-matched-random",
+    "bypass-only"
+  ],
+  "numerical_gates": "unchanged P13 and inherited thresholds by content hash",
+  "outcome_replay_authorized": false,
+  "pool_hash": "203637b69d64b5d2b6a75272bc5212eda1a625d496c7c85159bd33fe7f59af93",
+  "primary_outcomes": [
+    "CERTIFIED_POSITIVE",
+    "CERTIFIED_NEGATIVE",
+    "UNRESOLVED",
+    "INVALID",
+    "RESOURCE_INCONCLUSIVE"
+  ],
+  "q_selection_authorized": false,
+  "randomization_bootstrap_seeds": {
+    "bootstrap": 20260805,
+    "bootstrap_replicates": 100000,
+    "permutation": 20260805,
+    "permutation_replicates": 100000
+  },
+  "row_groups": [
+    "distance",
+    "orientation",
+    "system",
+    "gate_slot"
+  ],
+  "schema_version": "green-v400-boundary-design-lock-v1",
+  "simultaneous_confidence_method": "row-cluster max-deviation bootstrap and Holm closure",
+  "transition_model": "frozen boundary-spanning preregistered analysis; no real outcomes in prepare"
+}

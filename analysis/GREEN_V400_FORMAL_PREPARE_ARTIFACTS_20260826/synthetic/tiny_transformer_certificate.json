@@ -1,0 +1,18 @@
+{
+  "expected_analytic_property": "interval jets contain independently evaluated tiny-transformer values and derivatives",
+  "graph_hash": "c5bf5093a3484571c11137de96afb305265fd60bf25528a72a60826826408fa6",
+  "partition": [
+    [
+      "-1/16",
+      "0"
+    ],
+    [
+      "0",
+      "1/16"
+    ]
+  ],
+  "precision_bits": 384,
+  "proof_source": "mandatory tiny-transformer theorem fixture",
+  "schema_version": "green-v400-tiny-transformer-certificate-v1",
+  "test_status": "PASS"
+}

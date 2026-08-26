@@ -1,0 +1,269 @@
+{
+  "coverage_status": "PASS",
+  "encountered_operations": [
+    "constant",
+    "affine_control",
+    "add",
+    "sub",
+    "mul",
+    "reciprocal",
+    "exp",
+    "sqrt",
+    "inv_sqrt",
+    "gelu_new",
+    "layernorm",
+    "einsum",
+    "softmax",
+    "attention",
+    "reshape",
+    "transpose",
+    "slice",
+    "gather_static",
+    "residual_add",
+    "contrast"
+  ],
+  "operations": [
+    {
+      "certified_implementation": "constant_jet",
+      "fixture_tests": [
+        "tests/test_green_bridge_v400_interval_core.py",
+        "tests/test_green_bridge_v400_interval_jet.py",
+        "tests/test_green_bridge_v400_transformer_ops.py",
+        "tests/test_green_bridge_v400_relational_graph.py",
+        "tests/test_green_bridge_v400_endpoint_certificate.py"
+      ],
+      "operation": "constant",
+      "theorem_clause": "corrigendum-4-through-10"
+    },
+    {
+      "certified_implementation": "affine_control_jet",
+      "fixture_tests": [
+        "tests/test_green_bridge_v400_interval_core.py",
+        "tests/test_green_bridge_v400_interval_jet.py",
+        "tests/test_green_bridge_v400_transformer_ops.py",
+        "tests/test_green_bridge_v400_relational_graph.py",
+        "tests/test_green_bridge_v400_endpoint_certificate.py"
+      ],
+      "operation": "affine_control",
+      "theorem_clause": "corrigendum-4-through-10"
+    },
+    {
+      "certified_implementation": "add_jet",
+      "fixture_tests": [
+        "tests/test_green_bridge_v400_interval_core.py",
+        "tests/test_green_bridge_v400_interval_jet.py",
+        "tests/test_green_bridge_v400_transformer_ops.py",
+        "tests/test_green_bridge_v400_relational_graph.py",
+        "tests/test_green_bridge_v400_endpoint_certificate.py"
+      ],
+      "operation": "add",
+      "theorem_clause": "corrigendum-4-through-10"
+    },
+    {
+      "certified_implementation": "sub_jet",
+      "fixture_tests": [
+        "tests/test_green_bridge_v400_interval_core.py",
+        "tests/test_green_bridge_v400_interval_jet.py",
+        "tests/test_green_bridge_v400_transformer_ops.py",
+        "tests/test_green_bridge_v400_relational_graph.py",
+        "tests/test_green_bridge_v400_endpoint_certificate.py"
+      ],
+      "operation": "sub",
+      "theorem_clause": "corrigendum-4-through-10"
+    },
+    {
+      "certified_implementation": "mul_jet",
+      "fixture_tests": [
+        "tests/test_green_bridge_v400_interval_core.py",
+        "tests/test_green_bridge_v400_interval_jet.py",
+        "tests/test_green_bridge_v400_transformer_ops.py",
+        "tests/test_green_bridge_v400_relational_graph.py",
+        "tests/test_green_bridge_v400_endpoint_certificate.py"
+      ],
+      "operation": "mul",
+      "theorem_clause": "corrigendum-4-through-10"
+    },
+    {
+      "certified_implementation": "reciprocal_jet",
+      "fixture_tests": [
+        "tests/test_green_bridge_v400_interval_core.py",
+        "tests/test_green_bridge_v400_interval_jet.py",
+        "tests/test_green_bridge_v400_transformer_ops.py",
+        "tests/test_green_bridge_v400_relational_graph.py",
+        "tests/test_green_bridge_v400_endpoint_certificate.py"
+      ],
+      "operation": "reciprocal",
+      "theorem_clause": "corrigendum-4-through-10"
+    },
+    {
+      "certified_implementation": "exp_primitive",
+      "fixture_tests": [
+        "tests/test_green_bridge_v400_interval_core.py",
+        "tests/test_green_bridge_v400_interval_jet.py",
+        "tests/test_green_bridge_v400_transformer_ops.py",
+        "tests/test_green_bridge_v400_relational_graph.py",
+        "tests/test_green_bridge_v400_endpoint_certificate.py"
+      ],
+      "operation": "exp",
+      "theorem_clause": "corrigendum-4-through-10"
+    },
+    {
+      "certified_implementation": "sqrt_primitive",
+      "fixture_tests": [
+        "tests/test_green_bridge_v400_interval_core.py",
+        "tests/test_green_bridge_v400_interval_jet.py",
+        "tests/test_green_bridge_v400_transformer_ops.py",
+        "tests/test_green_bridge_v400_relational_graph.py",
+        "tests/test_green_bridge_v400_endpoint_certificate.py"
+      ],
+      "operation": "sqrt",
+      "theorem_clause": "corrigendum-4-through-10"
+    },
+    {
+      "certified_implementation": "invsqrt_primitive",
+      "fixture_tests": [
+        "tests/test_green_bridge_v400_interval_core.py",
+        "tests/test_green_bridge_v400_interval_jet.py",
+        "tests/test_green_bridge_v400_transformer_ops.py",
+        "tests/test_green_bridge_v400_relational_graph.py",
+        "tests/test_green_bridge_v400_endpoint_certificate.py"
+      ],
+      "operation": "inv_sqrt",
+      "theorem_clause": "corrigendum-4-through-10"
+    },
+    {
+      "certified_implementation": "gelu_new_jet",
+      "fixture_tests": [
+        "tests/test_green_bridge_v400_interval_core.py",
+        "tests/test_green_bridge_v400_interval_jet.py",
+        "tests/test_green_bridge_v400_transformer_ops.py",
+        "tests/test_green_bridge_v400_relational_graph.py",
+        "tests/test_green_bridge_v400_endpoint_certificate.py"
+      ],
+      "operation": "gelu_new",
+      "theorem_clause": "corrigendum-4-through-10"
+    },
+    {
+      "certified_implementation": "layernorm_jets",
+      "fixture_tests": [
+        "tests/test_green_bridge_v400_interval_core.py",
+        "tests/test_green_bridge_v400_interval_jet.py",
+        "tests/test_green_bridge_v400_transformer_ops.py",
+        "tests/test_green_bridge_v400_relational_graph.py",
+        "tests/test_green_bridge_v400_endpoint_certificate.py"
+      ],
+      "operation": "layernorm",
+      "theorem_clause": "corrigendum-4-through-10"
+    },
+    {
+      "certified_implementation": "affine_map_jets",
+      "fixture_tests": [
+        "tests/test_green_bridge_v400_interval_core.py",
+        "tests/test_green_bridge_v400_interval_jet.py",
+        "tests/test_green_bridge_v400_transformer_ops.py",
+        "tests/test_green_bridge_v400_relational_graph.py",
+        "tests/test_green_bridge_v400_endpoint_certificate.py"
+      ],
+      "operation": "einsum",
+      "theorem_clause": "corrigendum-4-through-10"
+    },
+    {
+      "certified_implementation": "softmax_jets",
+      "fixture_tests": [
+        "tests/test_green_bridge_v400_interval_core.py",
+        "tests/test_green_bridge_v400_interval_jet.py",
+        "tests/test_green_bridge_v400_transformer_ops.py",
+        "tests/test_green_bridge_v400_relational_graph.py",
+        "tests/test_green_bridge_v400_endpoint_certificate.py"
+      ],
+      "operation": "softmax",
+      "theorem_clause": "corrigendum-4-through-10"
+    },
+    {
+      "certified_implementation": "attention_jets",
+      "fixture_tests": [
+        "tests/test_green_bridge_v400_interval_core.py",
+        "tests/test_green_bridge_v400_interval_jet.py",
+        "tests/test_green_bridge_v400_transformer_ops.py",
+        "tests/test_green_bridge_v400_relational_graph.py",
+        "tests/test_green_bridge_v400_endpoint_certificate.py"
+      ],
+      "operation": "attention",
+      "theorem_clause": "corrigendum-4-through-10"
+    },
+    {
+      "certified_implementation": "shared-reference tensor view",
+      "fixture_tests": [
+        "tests/test_green_bridge_v400_interval_core.py",
+        "tests/test_green_bridge_v400_interval_jet.py",
+        "tests/test_green_bridge_v400_transformer_ops.py",
+        "tests/test_green_bridge_v400_relational_graph.py",
+        "tests/test_green_bridge_v400_endpoint_certificate.py"
+      ],
+      "operation": "reshape",
+      "theorem_clause": "corrigendum-4-through-10"
+    },
+    {
+      "certified_implementation": "shared-reference tensor view",
+      "fixture_tests": [
+        "tests/test_green_bridge_v400_interval_core.py",
+        "tests/test_green_bridge_v400_interval_jet.py",
+        "tests/test_green_bridge_v400_transformer_ops.py",
+        "tests/test_green_bridge_v400_relational_graph.py",
+        "tests/test_green_bridge_v400_endpoint_certificate.py"
+      ],
+      "operation": "transpose",
+      "theorem_clause": "corrigendum-4-through-10"
+    },
+    {
+      "certified_implementation": "shared-reference tensor view",
+      "fixture_tests": [
+        "tests/test_green_bridge_v400_interval_core.py",
+        "tests/test_green_bridge_v400_interval_jet.py",
+        "tests/test_green_bridge_v400_transformer_ops.py",
+        "tests/test_green_bridge_v400_relational_graph.py",
+        "tests/test_green_bridge_v400_endpoint_certificate.py"
+      ],
+      "operation": "slice",
+      "theorem_clause": "corrigendum-4-through-10"
+    },
+    {
+      "certified_implementation": "shared-reference tensor view",
+      "fixture_tests": [
+        "tests/test_green_bridge_v400_interval_core.py",
+        "tests/test_green_bridge_v400_interval_jet.py",
+        "tests/test_green_bridge_v400_transformer_ops.py",
+        "tests/test_green_bridge_v400_relational_graph.py",
+        "tests/test_green_bridge_v400_endpoint_certificate.py"
+      ],
+      "operation": "gather_static",
+      "theorem_clause": "corrigendum-4-through-10"
+    },
+    {
+      "certified_implementation": "add_jet",
+      "fixture_tests": [
+        "tests/test_green_bridge_v400_interval_core.py",
+        "tests/test_green_bridge_v400_interval_jet.py",
+        "tests/test_green_bridge_v400_transformer_ops.py",
+        "tests/test_green_bridge_v400_relational_graph.py",
+        "tests/test_green_bridge_v400_endpoint_certificate.py"
+      ],
+      "operation": "residual_add",
+      "theorem_clause": "corrigendum-4-through-10"
+    },
+    {
+      "certified_implementation": "contrast_jets",
+      "fixture_tests": [
+        "tests/test_green_bridge_v400_interval_core.py",
+        "tests/test_green_bridge_v400_interval_jet.py",
+        "tests/test_green_bridge_v400_transformer_ops.py",
+        "tests/test_green_bridge_v400_relational_graph.py",
+        "tests/test_green_bridge_v400_endpoint_certificate.py"
+      ],
+      "operation": "contrast",
+      "theorem_clause": "corrigendum-4-through-10"
+    }
+  ],
+  "schema_version": "green-v400-primitive-op-coverage-v1",
+  "unsupported_operations": []
+}

@@ -1,0 +1,24 @@
+{
+  "audit_precision_bits": 512,
+  "gmp": "GMP 6.3.0",
+  "gmpy2": "2.2.1",
+  "gpu_used_for_certificate": false,
+  "mpc": "MPC 1.3.1",
+  "mpfr": "MPFR 4.2.1",
+  "official_precision_bits": 384,
+  "pairwise_reduction_policy": "fixed balanced binary tree",
+  "platform": "Linux-5.15.0-67-generic-x86_64-with-glibc2.31",
+  "python": "3.11.13 (main, Jun  5 2025, 13:12:00) [GCC 11.2.0]",
+  "rounding_modes": {
+    "lower": "3",
+    "nearest": "0",
+    "upper": "2"
+  },
+  "rounding_self_test_hash": "dfcdeedda3d1f025e518a2c7fd111f0248ac46838ad960101935155b08b9ca90",
+  "schema_version": "green-v400-rounding-environment-v1",
+  "thread_counts": {
+    "MKL_NUM_THREADS": "8",
+    "OMP_NUM_THREADS": "8",
+    "OPENBLAS_NUM_THREADS": "8"
+  }
+}

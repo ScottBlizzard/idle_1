@@ -1,0 +1,18 @@
+{
+  "artifact_sha256": {
+    "fixture_certificates.jsonl": "c401553551057d22c6750239735174a55802718121aa93322f848027903351ec",
+    "offgrid_curvature_counterexample.json": "5c8bfe61dcf6398a5da03c70ef0e0d4186175df1d1ff5a0d315aab5375b23d22",
+    "precision_nesting_report.json": "cd49359db3b3ffcd2e793d4bfe52d39b817534817960142449b5dacc1829e436",
+    "tiny_transformer_certificate.json": "0bd407ff85f70cb0cbb8a23d99b28cab2c1114a3ac3901aba00081417db1b2e0",
+    "tiny_transformer_graph.json": "f5fa19def00a2d76d566dcafe184afa9a934ef0c69cbbbc29e5fe01d4fcce816"
+  },
+  "canonical_fixture_hash": "219e5b40944471e8ab9f775217e567d2edb7d75ae960123a28fb6b0e5adfd3d1",
+  "fixtures": [
+    "linear",
+    "quadratic",
+    "cubic",
+    "offgrid-curvature",
+    "tiny-transformer"
+  ],
+  "schema_version": "green-v400-synthetic-fixture-manifest-v1"
+}

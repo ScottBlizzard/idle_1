@@ -1,0 +1,9 @@
+{
+  "certificate_records": 6,
+  "failed": 0,
+  "fixture_manifest_sha256": "71d35b9dba0f4d9de7f8fcad99d2b9ad7bb849a7f166510a52e7af53ed487008",
+  "schema_version": "green-v400-synthetic-test-summary-v1",
+  "skipped": 0,
+  "status": "PASS",
+  "xfailed": 0
+}

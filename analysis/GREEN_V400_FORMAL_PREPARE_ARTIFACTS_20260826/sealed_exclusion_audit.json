@@ -1,0 +1,12 @@
+{
+  "candidate_file_sha256": "85d60f35465121ddcd73f9435470504c0888291bb85ef84f1eac5b0d24933ecb",
+  "confirmation_content_opened": false,
+  "eligible_pool_hash": "79599136897c6af29ce68f5e79c22060fdcc131c8668fc97bec38986a6e3f6fb",
+  "excluded_reason_counts": {},
+  "forbidden_namespace_salted_hash": "f5785d8198a9422d786a2a18001b962a156a2ab7793541ff205c52032e43101d",
+  "intersection_counts": {
+    "inherited_nouns": 0
+  },
+  "passed": true,
+  "schema_version": "green-v400-sealed-exclusion-audit-v1"
+}

@@ -1,0 +1,29 @@
+{
+  "counts_by_failure_code": {},
+  "counts_by_feasibility": {
+    "feasible": 64
+  },
+  "exclusion_status": "PASS_ZERO_INTERSECTION",
+  "next_authorized_action": "return immutable formal-prepare package for scientific authorization",
+  "operation_coverage": "PASS",
+  "schema_version": "green-v400-formal-prepare-summary-v1",
+  "scientific_response_counts": {},
+  "status": "PREPARE_PASS_STATIC_THEOREM_ONLY",
+  "terminal_text": "STOP_AFTER_FORMAL_PREPARE_RETURN_TO_GPTPRO",
+  "theorem_test_status": "PASS_70_OF_70_TWICE",
+  "upstream_artifact_hashes": {
+    "boundary_design_lock.json": "2672d4c4a38b10d751f74fabdbd399afcc4e093eb2266fe59b4ea48bd53fad85",
+    "certificate_plan.jsonl": "231864e6303801ffe1f8e6a5cb24306edc18d8fdffc4f4c2f57cca802293a1dc",
+    "donor_feasibility.jsonl": "e77fc6a6f389e0578121491d22c6dbd339fb6c73c63d546c074e7b996a20f4ff",
+    "engineering_corrections.jsonl": "fe810d071672af5ab4126b679a7febfa7621eb96df0fa09fe23808aec5277aa3",
+    "graph_manifest.jsonl": "67ab0758c8a1abbfa58d4a12c9503dfd73088264798a715eda29a49f33de4c17",
+    "model_manifest.json": "71911c429009bee92daaa07df9b8fcf9d7826cc601c84a2ded0863edb6469d87",
+    "primitive_op_coverage.json": "d74fcd010f4da855bdc47fae13e9ff427efdd5af77ccdc93535a7f8af65bb2ba",
+    "protocol_lock.json": "35257765904a1f49c13a629367e235258b4c046dca2ec4dc0b37ac76b13b0919",
+    "repository_manifest.json": "b43c29f3b46cb95aeb9487b06b7f16a0b3d502c95dff37d4a3cc5fd0639a0a31",
+    "rounding_environment.json": "5b6d7e53ac2e28dd84124d4e4fda00568d13c657e05ee66fba683add066fcf91",
+    "row_universe_manifest.json": "b7393987823f02b6a35c6e73e721aff01e936f84100f23d2182eb2d5500ceb37",
+    "sealed_exclusion_audit.json": "48c94ca12b3f28989068c38123278749edb4dd735d63148ea13bb11ce3329e91",
+    "theorem_test_report.json": "587acad69cb070c70e776c01e4b2fe1f9caa007a9270b589be0bc3ee077e20ac"
+  }
+}
