@@ -156,7 +156,7 @@ def test_template_graph_manifest_cannot_pass_internal_gate():
     row_hash = "a" * 64
     plan = schemas.CertificatePlan(
         "green-v400-certificate-plan-v1", row_hash, (schemas.Dyadic(1, 0),),
-        "[-h,0],[0,h]", "left-to-right dyadic bisection",
+        "[-h,0],[0,h]", "curvature-weighted width priority dyadic bisection",
         "0x1p-80", "0x1p-40", 24, 262144, 384, 512, (), False,
     ).to_dict()
     coverage = {"coverage_status": "PASS", "unsupported_operations": []}

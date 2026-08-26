@@ -4,16 +4,18 @@ from fractions import Fraction
 from pathlib import Path
 import sys
 
+import gmpy2
 import pytest
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 
 from green_bridge_v400_certificate import (
-    CurvatureCertificate, DyadicCell, EndpointCertificate, certify_cell,
+    CellCertificate, CurvatureCertificate, DyadicCell, EndpointCertificate, certify_cell,
     certify_endpoints_and_slope, certify_joint_witness, compute_epsilon_psi,
     compute_m2, integrate_signed_curvature, witness_interval,
 )
+import green_bridge_v400_certificate as certificate_module
 from green_bridge_v400_interval import Interval
 from green_bridge_v400_relational_graph import GraphNode, RelationalGraph
 from green_bridge_v400_schemas import CertificatePlan, Dyadic, JointWitnessRowSpec
@@ -50,9 +52,49 @@ def _plan(row_hash: str, *, radii=(Dyadic(1, 0),), max_depth=8,
           max_cells=1024) -> CertificatePlan:
     return CertificatePlan(
         "green-v400-certificate-plan-v1", row_hash, tuple(radii),
-        "[-h,0],[0,h]", "left-to-right dyadic bisection",
+        "[-h,0],[0,h]", "curvature-weighted width priority dyadic bisection",
         "0x1p-80", "0x1p-40", max_depth, max_cells, 384, 512, (), False,
     )
+
+
+def test_width_stop_requires_absolute_and_relative_tolerances():
+    cell = DyadicCell(Fraction(-1), Fraction(0))
+    certificate = CellCertificate(
+        cell,
+        Interval.point(0, P),
+        Interval.point(0, P),
+        Interval.from_bounds(-1, 1, P),
+    )
+    absolute = Fraction(1, 2**80)
+    relative = Fraction(1, 2**40)
+    tolerance = certificate_module._cell_tolerance(certificate, absolute, relative)
+    assert tolerance == gmpy2.mpfr(absolute.numerator) / absolute.denominator
+
+
+def test_subdivision_uses_curvature_weighted_width_priority(monkeypatch):
+    calls: list[DyadicCell] = []
+
+    def fake_certify_cell(graph, cell, precision_bits):
+        calls.append(cell)
+        width = 4 if cell.lower >= 0 else 1
+        zero = Interval.point(0, precision_bits)
+        return CellCertificate(
+            cell, zero, zero, Interval.from_bounds(0, width, precision_bits)
+        )
+
+    monkeypatch.setattr(certificate_module, "certify_cell", fake_certify_cell)
+    result = certificate_module._adaptive_cells(
+        object(), Fraction(1), P, _plan("f" * 64, max_depth=1, max_cells=4)
+    )
+    assert result is None
+    assert calls[:2] == [
+        DyadicCell(Fraction(-1), Fraction(0)),
+        DyadicCell(Fraction(0), Fraction(1)),
+    ]
+    assert calls[2:4] == [
+        DyadicCell(Fraction(0), Fraction(1, 2), 1),
+        DyadicCell(Fraction(1, 2), Fraction(1), 1),
+    ]
 
 
 def test_linear_endpoint_error_zero():

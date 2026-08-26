@@ -9,6 +9,7 @@ from typing import Iterable
 import gmpy2
 
 from green_bridge_v400_interval import EmptyIntersection, Interval
+from green_bridge_v400_mpfr import ROUND_UP, directed_binary
 from green_bridge_v400_relational_graph import RelationalGraph
 from green_bridge_v400_schemas import CertificatePlan
 
@@ -191,8 +192,23 @@ def _interval_nested(inner: Interval, outer: Interval) -> bool:
 def _cell_tolerance(certificate: CellCertificate, absolute: Fraction,
                     relative: Fraction) -> gmpy2.mpfr:
     scale = max(gmpy2.mpfr(1), certificate.second.magnitude())
-    return max(gmpy2.mpfr(absolute.numerator) / absolute.denominator,
+    # The binding protocol requires both the absolute and relative width
+    # criteria to hold.  Therefore the effective scalar threshold is the
+    # smaller limit, not the more permissive one.
+    return min(gmpy2.mpfr(absolute.numerator) / absolute.denominator,
                (gmpy2.mpfr(relative.numerator) / relative.denominator) * scale)
+
+
+def _cell_priority(certificate: CellCertificate, h: Fraction) -> gmpy2.mpfr:
+    """Return w(J) * wid(Q_J) with an exact curvature-kernel weight."""
+    weight = _weight(certificate.cell, h)
+    return directed_binary(
+        "mul",
+        gmpy2.mpq(weight.numerator, weight.denominator),
+        certificate.second.width(),
+        precision_bits=certificate.second.precision_bits,
+        rounding=ROUND_UP,
+    )
 
 
 def _hex_fraction(value: str) -> Fraction:
@@ -217,11 +233,15 @@ def _adaptive_cells(graph: RelationalGraph, h: Fraction, precision_bits: int,
                     plan: CertificatePlan) -> list[CellCertificate] | None:
     absolute = _hex_fraction(plan.absolute_width_tolerance)
     relative = _hex_fraction(plan.relative_width_tolerance)
-    pending = [DyadicCell(-h, Fraction(0)), DyadicCell(Fraction(0), h)]
+    pending: list[tuple[gmpy2.mpfr, Fraction, int, CellCertificate]] = []
+    for cell in (DyadicCell(-h, Fraction(0)), DyadicCell(Fraction(0), h)):
+        certificate = certify_cell(graph, cell, precision_bits)
+        heapq.heappush(pending, (-_cell_priority(certificate, h), cell.lower,
+                                 cell.depth, certificate))
     accepted: list[CellCertificate] = []
     while pending:
-        cell = pending.pop(0)
-        certificate = certify_cell(graph, cell, precision_bits)
+        _, _, _, certificate = heapq.heappop(pending)
+        cell = certificate.cell
         if certificate.second.width() <= _cell_tolerance(certificate, absolute, relative):
             accepted.append(certificate)
             continue
@@ -230,7 +250,13 @@ def _adaptive_cells(graph: RelationalGraph, h: Fraction, precision_bits: int,
         if len(accepted) + len(pending) + 2 > plan.max_cells:
             return None
         left, right = cell.bisect()
-        pending[0:0] = [left, right]
+        for child in (left, right):
+            child_certificate = certify_cell(graph, child, precision_bits)
+            heapq.heappush(
+                pending,
+                (-_cell_priority(child_certificate, h), child.lower,
+                 child.depth, child_certificate),
+            )
     accepted.sort(key=lambda item: item.cell.lower)
     _validate_partition(accepted, h)
     return accepted

@@ -99,7 +99,7 @@ class CertificatePlan:
         if self.execution_authorized:
             raise ValueError("real-row certificate execution is not authorized")
         if (self.initial_partition != "[-h,0],[0,h]" or
-                self.split_policy != "left-to-right dyadic bisection"):
+                self.split_policy != "curvature-weighted width priority dyadic bisection"):
             raise ValueError("unsupported frozen partition policy")
         if not self.exact_dyadic_amplitudes or any(
                 radius.as_fraction() <= 0 for radius in self.exact_dyadic_amplitudes):

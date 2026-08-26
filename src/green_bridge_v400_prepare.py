@@ -780,7 +780,7 @@ def _model_and_static_manifests(rows: list[dict], device: str):
             "schema_version": "green-v400-certificate-plan-v1", "row_hash": row["row_hash"],
             "exact_dyadic_amplitudes": [{"numerator": 1, "exponent": -index} for index in ALPHA_EXPONENTS],
             "initial_partition": "[-h,0],[0,h]",
-            "split_policy": "left-to-right dyadic bisection",
+            "split_policy": "curvature-weighted width priority dyadic bisection",
             "absolute_width_tolerance": "0x1p-80", "relative_width_tolerance": "0x1p-40",
             "max_depth": MAX_SUBDIVISION_DEPTH, "max_cells": MAX_CELLS_PER_ROW,
             "official_precision": OFFICIAL_PRECISION_BITS,
@@ -807,6 +807,14 @@ def _coverage_manifest() -> dict:
         "transpose": "shared-reference tensor view", "slice": "shared-reference tensor view",
         "gather_static": "shared-reference tensor view", "residual_add": "add_jet",
         "contrast": "contrast_jet",
+    }
+    unsupported = sorted(set(GRAPH_OPERATIONS) - set(EXECUTABLE_OPERATIONS))
+    return {
+        "schema_version": "green-v400-primitive-op-coverage-v1",
+        "encountered_operations": list(GRAPH_OPERATIONS),
+        "operations": [{"operation": op, "certified_implementation": functions[op], "theorem_clause": "corrigendum-4-through-10", "fixture_tests": TEST_FILES[:5]} for op in GRAPH_OPERATIONS],
+        "unsupported_operations": unsupported,
+        "coverage_status": "PASS" if not unsupported else "FAIL",
     }
 
 
@@ -843,16 +851,6 @@ def _validate_static_replayability(feasibility: list[dict], graph_rows: list[dic
                     or len(graph.nodes) != row[f"{form}_node_count"]
                     or not audit_dependency_completeness(graph).complete):
                 raise RuntimeError("PREPARE_STOP_GRAPH_REPLAY_MISMATCH")
-    unsupported = sorted(set(GRAPH_OPERATIONS) - set(EXECUTABLE_OPERATIONS))
-    return {
-        "schema_version": "green-v400-primitive-op-coverage-v1",
-        "encountered_operations": list(GRAPH_OPERATIONS),
-        "operations": [{"operation": op, "certified_implementation": functions[op], "theorem_clause": "corrigendum-4-through-10", "fixture_tests": TEST_FILES[:5]} for op in GRAPH_OPERATIONS],
-        "unsupported_operations": unsupported,
-        "coverage_status": "PASS" if not unsupported else "FAIL",
-    }
-
-
 def _boundary_lock(pool_hash: str, exclusion_hash: str) -> dict:
     return {
         "schema_version": "green-v400-boundary-design-lock-v1",
