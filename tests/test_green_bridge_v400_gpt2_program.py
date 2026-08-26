@@ -187,10 +187,16 @@ def test_complete_four_branch_mpfr_program_is_bit_identical_compiled(tmp_path, p
         pytest.skip("compiled MPFR backend is not configured")
     reader, _, program = _fixture(tmp_path)
     domain = Interval.from_bounds(-2.0**-14, 2.0**-14, precision)
-    reference = execute_tensor_program_mpfr(program, reader, domain)
+    reference = execute_tensor_program_mpfr(
+        program, reader, domain, return_dispatch_trace=True
+    )
     compiled = execute_tensor_program_mpfr(
         program, reader, domain, CompiledMPFRBackend(Path(library))
     )
-    assert set(reference) == set(compiled) == {"PAT_J", "PAT_B", "TAR_J", "TAR_B", "output"}
-    for name in reference:
+    assert set(reference) == {"PAT_J", "PAT_B", "TAR_J", "TAR_B", "output", "dispatch_trace"}
+    assert set(compiled) == {"PAT_J", "PAT_B", "TAR_J", "TAR_B", "output"}
+    assert len(reference["dispatch_trace"]["events"]) == 81
+    assert (reference["dispatch_trace"]["program_dispatch_signature_sha256"]
+            == program.resource_formula["dispatcher_signature_sha256"])
+    for name in ("PAT_J", "PAT_B", "TAR_J", "TAR_B", "output"):
         assert jet_exact_payload(compiled[name]) == jet_exact_payload(reference[name])

@@ -5,6 +5,7 @@
 - **GO:** the outcome-blind GPT-2 joint-witness TensorProgram is closed at 81 nodes, exact zero control, fixed softmax pivot 0, final unpadded causal position, element dependency masks, tensor-store references, semantic dispatcher signature, and exact final-contrast fusion.
 - **GO:** the frozen 100,000,000 MPFR-operation cap is infeasible. The dense coefficient-arithmetic lower bound is 341,397,504 operations per precision/cell at sequence length 12; two mandatory initial cells already require at least 682,795,008 at one precision.
 - **GO (narrow scope):** the native synthetic resident proxy executes the same ordered kernel-tag vector as the 81-node program and counts exactly 352,275,450 directed-enclosure arithmetic primitives per precision/cell under the frozen taxonomy.
+- **GO (correctness scope):** the actual Python MPFR TensorProgram dispatcher emits all 81 semantic events only after successful node completion at both 384 and 512 bits. The event vector matches the program dispatcher signature and all five compiled/reference roots remain bit-identical on the deterministic tiny fixture.
 - **BLOCK:** no numeric replacement cap is authorized. The observations are not formal wall-time bounds and exclude set/copy/comparison/serialization and full certificate orchestration.
 - **BLOCK:** real certificate, development rows, confirmation rows, and scientific outcome access remain unauthorized.
 
@@ -14,6 +15,7 @@
 - Exact final-contrast fusion hash: `bd734f457bd3baee252af47f1c048dbd606ec15bf6a1b6533751c7bb943319c1`.
 - Native one-cell ordered kernel tags: 81 events; FNV regression checksum `e0f23d0f4c4df894`. The complete 81-tag vector, not the FNV checksum alone, is checked.
 - Full regression: 443 tests passed on the server with the compiled 384/512-bit backend.
+- Successful actual-dispatch trace SHA-256 at both precisions: `6854f99c2a270b296bac6c1b1ed5ad34d6e18534611e2ef2af5df8e4fa6ff528`.
 
 ## Engineering observations (not formal upper bounds)
 
@@ -26,4 +28,4 @@
 
 ## Remaining minimum gate
 
-The next authorized work is outcome-blind implementation and measurement of the actual resident TensorProgram dispatcher, endpoint/center passes, multi-radius orchestration, adaptive queue, curvature integration, certificate serialization, and process-tree peak memory. Only after those components are hash-closed may a replacement numeric cap be proposed. A measured guardband must not be described as a formal runtime upper bound.
+The next authorized work is outcome-blind implementation and measurement of a performance-resident version of the now correctness-closed TensorProgram dispatcher, endpoint/center passes, multi-radius orchestration, adaptive queue, curvature integration, certificate serialization, and process-tree peak memory. Only after those components are hash-closed may a replacement numeric cap be proposed. A measured guardband must not be described as a formal runtime upper bound.

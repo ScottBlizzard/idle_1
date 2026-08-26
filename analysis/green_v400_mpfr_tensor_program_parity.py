@@ -44,7 +44,9 @@ def main() -> int:
     for precision in (384, 512):
         domain = Interval.from_bounds(-2.0**-14, 2.0**-14, precision)
         started = time.perf_counter()
-        reference = execute_tensor_program_mpfr(program, reader, domain)
+        reference = execute_tensor_program_mpfr(
+            program, reader, domain, return_dispatch_trace=True
+        )
         reference_seconds = time.perf_counter() - started
         started = time.perf_counter()
         compiled = execute_tensor_program_mpfr(program, reader, domain, backend)
@@ -67,6 +69,11 @@ def main() -> int:
             "reference_seconds": reference_seconds,
             "compiled_correctness_ffi_seconds": compiled_seconds,
             "roots": roots,
+            "successful_dispatch_trace_sha256": reference["dispatch_trace"]["trace_sha256"],
+            "program_dispatch_signature_sha256": reference["dispatch_trace"][
+                "program_dispatch_signature_sha256"
+            ],
+            "successful_dispatch_event_count": len(reference["dispatch_trace"]["events"]),
         })
     report = {
         "schema_version": "green-v400-full-tensor-program-mpfr-parity-v1",

@@ -13,6 +13,8 @@ from green_bridge_v400_interval_jet import (
     Jet2, add_jet, affine_control_jet, constant_jet, sub_jet,
 )
 from green_bridge_v400_tensor_program import TensorProgram
+from green_bridge_v400_tensor_program import tensor_program_dispatch_signature
+from green_bridge_v400_schemas import sha256_canonical
 from green_bridge_v400_tensor_store import TensorStoreReader
 from green_bridge_v400_transformer_ops import (
     affine_map_jets, attention_head_jets, gelu_new_jet, layernorm_jets,
@@ -64,15 +66,22 @@ def execute_tensor_program_mpfr(
     program: TensorProgram, reader: TensorStoreReader, domain: Interval,
     compiled_backend: CompiledMPFRBackend | Path | None = None,
     *, return_node_values: bool = False,
+    return_dispatch_trace: bool = False,
 ) -> dict[str, object]:
     """Replay all branch roots over one interval cell; never reads scientific labels/outcomes."""
     precision = domain.precision_bits
     if isinstance(compiled_backend, Path):
         compiled_backend = CompiledMPFRBackend(compiled_backend)
     values: dict[str, object] = {}
-    for node in program.nodes:
+    dispatch_events = []
+    tensor_cache: dict[str, np.ndarray] = {}
+    for ordinal, node in enumerate(program.nodes):
         parents = [values[parent] for parent in node.parent_semantic_ids]
-        tensors = [reader.read_semantic(ref.tensor_sha256) for ref in node.tensor_inputs]
+        tensors = []
+        for ref in node.tensor_inputs:
+            if ref.tensor_sha256 not in tensor_cache:
+                tensor_cache[ref.tensor_sha256] = reader.read_semantic(ref.tensor_sha256)
+            tensors.append(tensor_cache[ref.tensor_sha256])
         kernel = node.kernel_id
         shape = node.output_spec.shape
         if kernel == "affine_scatter.v1":
@@ -185,12 +194,32 @@ def execute_tensor_program_mpfr(
         else:
             raise RuntimeError(f"unsupported MPFR TensorProgram kernel: {kernel}")
         values[node.semantic_id] = output
+        dispatch_events.append({
+            "ordinal": ordinal,
+            "semantic_id": node.semantic_id,
+            "kernel_id": node.kernel_id,
+            "output_spec": node.output_spec.to_dict(),
+            "dependency_mask_hash": node.dependency_mask_hash,
+        })
     result = {
         **{name: values[root] for name, root in program.branch_roots.items()},
         "output": values[program.output_root],
     }
     if return_node_values:
         result["node_values"] = values
+    if return_dispatch_trace:
+        expected = tensor_program_dispatch_signature(program.nodes)
+        if dispatch_events != expected["ordered_nodes"]:
+            raise RuntimeError("successful dispatcher events disagree with TensorProgram signature")
+        payload = {
+            "schema_version": "green-v400-successful-mpfr-dispatch-trace-v1",
+            "events": dispatch_events,
+        }
+        result["dispatch_trace"] = {
+            **payload,
+            "trace_sha256": sha256_canonical(payload),
+            "program_dispatch_signature_sha256": sha256_canonical(expected),
+        }
     return result
 
 
