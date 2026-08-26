@@ -71,7 +71,16 @@ def test_transformerlens_semantics_flags_frozen():
 
 
 def test_control_ast_affine_and_hashed():
-    assert spec.CONTROL_AST == {"operation": "affine_control", "form": "A0_plus_t_times_D", "dynamic_hook_selection": False}
+    assert spec.CONTROL_AST["operation"] == "affine_control"
+    assert spec.CONTROL_AST["form"] == "A0_plus_t_times_D"
+    assert spec.CONTROL_AST["dynamic_hook_selection"] is False
+    assert spec.CONTROL_AST["branches"]["J"] == {
+        "selected_gate_posts": "live", "residual_bypass_kept": True,
+    }
+    assert spec.CONTROL_AST["branches"]["B"] == {
+        "selected_gate_posts": "frozen_to_anchor", "residual_bypass_kept": True,
+    }
+    assert spec.CONTROL_AST["internal_residual_subtraction_is_official_curve"] is False
     assert schemas.sha256_canonical(spec.CONTROL_AST) == schemas.sha256_canonical(dict(reversed(list(spec.CONTROL_AST.items()))))
 
 

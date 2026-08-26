@@ -16,11 +16,10 @@ TRANSFORMER_LENS_VERSION = "3.6.0"
 TRANSFORMER_LENS_RELEASE_TAG = "v3.6.0"
 BRANCH_ORDER = ("PAT_J", "PAT_B", "TAR_J", "TAR_B")
 BRANCH_CONTRAST = (1, -1, -1, 1)
-CONTROL_AST = {
-    "operation": "affine_control",
-    "form": "A0_plus_t_times_D",
-    "dynamic_hook_selection": False,
-}
+from green_bridge_v400_branch_semantics import binding_control_ast
+
+
+CONTROL_AST = binding_control_ast()
 TRANSFORMER_SEMANTICS_FLAGS = {
     "normalization_type": "LN",
     "activation_contains": "gelu",

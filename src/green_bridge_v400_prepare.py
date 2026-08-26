@@ -68,6 +68,7 @@ TEST_FILES = (
     "tests/test_green_bridge_v400_endpoint_certificate.py",
     "tests/test_green_bridge_v400_repository_contract.py",
     "tests/test_green_bridge_v400_tensor_store.py",
+    "tests/test_green_bridge_v400_branch_semantics.py",
 )
 INHERITED_LOCK_FILES = (
     "src/green_bridge_v300_prepare.py",
