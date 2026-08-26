@@ -21,6 +21,7 @@ REQUIRED = (
     "donor_feasibility.jsonl", "graph_manifest.jsonl", "certificate_plan.jsonl",
     "boundary_design_lock.json", "primitive_op_coverage.json", "theorem_test_report.json",
     "formal_prepare_summary.json",
+    "engineering_corrections.jsonl",
 )
 SYNTHETIC_REQUIRED = (
     "fixture_manifest.json", "fixture_certificates.jsonl",
@@ -63,6 +64,11 @@ def audit(output_root: Path) -> dict:
         raise RuntimeError("AUDIT_REPOSITORY_STATE")
     if any(row["file_class"] == "inherited_read_only" and not row["immutable_hash_match"] for row in repository["files"]):
         raise RuntimeError("AUDIT_IMMUTABLE_MISMATCH")
+    corrections = read_jsonl(output_root / "engineering_corrections.jsonl")
+    if len(corrections) != 1 or corrections[0]["category"] != "path_plumbing":
+        raise RuntimeError("AUDIT_ENGINEERING_CORRECTIONS")
+    if corrections[0]["scientific_semantics_changed"] or corrections[0]["storage_device_changed"]:
+        raise RuntimeError("AUDIT_ENGINEERING_CORRECTION_SCOPE")
     environment = read_json(output_root / "rounding_environment.json")
     if environment["official_precision_bits"] != 384 or environment["audit_precision_bits"] != 512:
         raise RuntimeError("AUDIT_PRECISION_POLICY")

@@ -2,8 +2,8 @@
 set -euo pipefail
 
 PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd -P)"
-STORAGE_ROOT="/mnt/sdb/green_v400_formal_prepare_runtime"
-OUTPUT_ROOT="/mnt/sdb/outputs/green_bridge_v400_formal_prepare"
+STORAGE_ROOT="/mnt/sdb/ccj/green_v400_formal_prepare_runtime"
+OUTPUT_ROOT="/mnt/sdb/ccj/outputs/green_bridge_v400_formal_prepare"
 VENV_ROOT="${STORAGE_ROOT}/venv"
 LOG_ROOT="${STORAGE_ROOT}/logs"
 TEMP_ROOT="${STORAGE_ROOT}/tmp"

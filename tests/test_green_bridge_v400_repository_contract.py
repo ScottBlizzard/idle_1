@@ -77,7 +77,7 @@ def test_contrast_and_branch_order_hashed():
 
 def test_outputs_resolve_under_mnt_sdb():
     payload = json.loads(spec.CONFIG_PATH.read_text(encoding="utf-8"))
-    assert payload["output_root"] == "/mnt/sdb/outputs/green_bridge_v400_formal_prepare"
+    assert payload["output_root"] == "/mnt/sdb/ccj/outputs/green_bridge_v400_formal_prepare"
     launch = (ROOT / "scripts/launch_green_bridge_v400_formal_prepare.sh").read_text(encoding="utf-8")
     assert "/mnt/sdb" in launch and "D:" not in launch
 

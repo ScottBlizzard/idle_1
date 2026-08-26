@@ -36,7 +36,7 @@
     "outcome_replay_authorized": false
   },
   "candidate_nouns_path": "analysis/GREEN_V400_CANDIDATE_NOUNS_20260826.txt",
-  "output_root": "/mnt/sdb/outputs/green_bridge_v400_formal_prepare",
+  "output_root": "/mnt/sdb/ccj/outputs/green_bridge_v400_formal_prepare",
   "terminal_success": "PREPARE_PASS_STATIC_THEOREM_ONLY",
   "terminal_stop": "STOP_AFTER_FORMAL_PREPARE_RETURN_TO_GPTPRO"
 }

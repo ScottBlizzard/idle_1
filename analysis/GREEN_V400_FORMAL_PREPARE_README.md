@@ -17,7 +17,7 @@ files, logs, and outputs are resolved below `/mnt/sdb`. The immutable formal
 package is written to:
 
 ```text
-/mnt/sdb/outputs/green_bridge_v400_formal_prepare/
+/mnt/sdb/ccj/outputs/green_bridge_v400_formal_prepare/
 ```
 
 The run performs the inherited regression, the exact 70-test theorem barrier,
