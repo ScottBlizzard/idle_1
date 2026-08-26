@@ -29,14 +29,16 @@ def test_bit_exact_tensor_store_round_trip(tmp_path):
     assert manifest.blob_nbytes == sum(value.nbytes for _, value in tensors)
 
 
-def test_tensor_store_records_dtype_shape_endianness_and_hash(tmp_path):
+def test_tensor_store_canonicalizes_endianness_and_binds_semantic_hash(tmp_path):
     write_tensor_store(tmp_path, "fixture", [("x", np.asarray([1, 2], dtype=">i2"))])
     payload = json.loads((tmp_path / "fixture.json").read_text(encoding="utf-8"))
     record = payload["records"][0]
-    assert record["dtype"] == ">i2"
-    assert record["byte_order"] == ">"
+    assert record["dtype"] == "<i2"
+    assert record["byte_order"] == "<"
     assert record["shape"] == [2]
     assert len(record["data_sha256"]) == 64
+    assert len(record["semantic_sha256"]) == 64
+    assert record["semantic_sha256"] != record["data_sha256"]
     assert len(payload["blob_sha256"]) == 64
 
 
@@ -59,3 +61,11 @@ def test_tensor_store_is_immutable(tmp_path):
     write_tensor_store(tmp_path, "fixture", [("x", np.asarray([1], dtype="<i4"))])
     with pytest.raises(FileExistsError):
         write_tensor_store(tmp_path, "fixture", [("x", np.asarray([2], dtype="<i4"))])
+
+
+def test_tensor_store_enforces_dtype_and_resource_guards(tmp_path):
+    with pytest.raises(ValueError, match="dtype"):
+        write_tensor_store(tmp_path, "complex", [("x", np.asarray([1+2j]))])
+    with pytest.raises(ValueError, match="byte resource"):
+        write_tensor_store(tmp_path, "large", [("x", np.arange(8, dtype="<i8"))],
+                           max_total_bytes=32)

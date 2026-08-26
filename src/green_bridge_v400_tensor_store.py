@@ -32,12 +32,17 @@ def _as_exact_array(value) -> np.ndarray:
     if hasattr(value, "detach") and hasattr(value, "cpu"):
         value = value.detach().cpu().contiguous().numpy()
     array = np.asarray(value)
-    if array.dtype.hasobject:
-        raise ValueError("object tensors are not serializable")
+    if (array.dtype.hasobject or array.dtype.kind not in "buif"
+            or array.dtype.itemsize not in {1, 2, 4, 8}):
+        raise ValueError("tensor dtype is outside the certified whitelist")
     if not array.flags.c_contiguous:
         array = np.ascontiguousarray(array)
-    if array.dtype.kind in "fc" and not np.isfinite(array).all():
+    if array.dtype.kind == "f" and not np.isfinite(array).all():
         raise ValueError("nonfinite tensor constant")
+    # Canonical persisted representation is little-endian.  This preserves
+    # the exact IEEE/integer value bits while making hashes architecture-neutral.
+    if array.dtype.itemsize > 1:
+        array = array.astype(array.dtype.newbyteorder("<"), copy=False)
     return array
 
 
@@ -50,17 +55,20 @@ class TensorRecord:
     offset: int
     nbytes: int
     data_sha256: str
+    semantic_sha256: str
 
     def to_dict(self) -> dict:
         return {
             "name": self.name, "dtype": self.dtype, "shape": list(self.shape),
             "byte_order": self.byte_order, "offset": self.offset,
             "nbytes": self.nbytes, "data_sha256": self.data_sha256,
+            "semantic_sha256": self.semantic_sha256,
         }
 
     @classmethod
     def from_dict(cls, payload: dict) -> "TensorRecord":
-        expected = {"name", "dtype", "shape", "byte_order", "offset", "nbytes", "data_sha256"}
+        expected = {"name", "dtype", "shape", "byte_order", "offset", "nbytes",
+                    "data_sha256", "semantic_sha256"}
         if set(payload) != expected:
             raise ValueError("tensor record schema mismatch")
         return cls(
@@ -68,6 +76,7 @@ class TensorRecord:
             tuple(int(value) for value in payload["shape"]),
             str(payload["byte_order"]), int(payload["offset"]),
             int(payload["nbytes"]), str(payload["data_sha256"]),
+            str(payload["semantic_sha256"]),
         )
 
 
@@ -114,7 +123,9 @@ class TensorStoreManifest:
 
 
 def write_tensor_store(root: Path, name: str,
-                       tensors: Iterable[tuple[str, object]]) -> TensorStoreManifest:
+                       tensors: Iterable[tuple[str, object]], *,
+                       max_tensors: int = 100_000,
+                       max_total_bytes: int = 2_147_483_648) -> TensorStoreManifest:
     root = Path(root)
     root.mkdir(parents=True, exist_ok=True)
     blob_path = root / f"{name}.bin"
@@ -126,14 +137,27 @@ def write_tensor_store(root: Path, name: str,
     offset = 0
     with temporary_blob.open("xb") as handle:
         for tensor_name, value in tensors:
+            if len(records) >= max_tensors:
+                raise ValueError("tensor count resource limit exceeded")
             if not tensor_name or any(record.name == tensor_name for record in records):
                 raise ValueError("tensor names must be nonempty and unique")
             array = _as_exact_array(value)
+            if array.ndim > 8 or any(dimension < 0 or dimension > 10_000_000
+                                     for dimension in array.shape):
+                raise ValueError("tensor shape resource limit exceeded")
             raw = array.tobytes(order="C")
+            if offset + len(raw) > max_total_bytes:
+                raise ValueError("tensor byte resource limit exceeded")
             handle.write(raw)
+            byte_order = "|" if array.dtype.itemsize == 1 else "<"
+            dtype = array.dtype.str
+            semantic = _sha256_bytes(canonical_json({
+                "dtype": dtype, "shape": list(array.shape),
+                "byte_order": byte_order,
+            }).encode("ascii") + b"\0" + raw)
             records.append(TensorRecord(
-                tensor_name, array.dtype.str, tuple(array.shape),
-                array.dtype.byteorder, offset, len(raw), _sha256_bytes(raw),
+                tensor_name, dtype, tuple(array.shape), byte_order,
+                offset, len(raw), _sha256_bytes(raw), semantic,
             ))
             offset += len(raw)
         handle.flush()
@@ -172,7 +196,9 @@ class TensorStoreReader:
                 raise ValueError("tensor records do not exactly partition blob")
             dtype = np.dtype(record.dtype)
             expected = int(np.prod(record.shape, dtype=np.int64)) * dtype.itemsize
-            if expected != record.nbytes or dtype.byteorder != record.byte_order:
+            canonical_order = "|" if dtype.itemsize == 1 else "<"
+            if (expected != record.nbytes or record.byte_order != canonical_order
+                    or dtype.str != record.dtype):
                 raise ValueError("tensor record dtype/shape mismatch")
             cursor += record.nbytes
         if cursor != self.manifest.blob_nbytes:
@@ -188,5 +214,10 @@ class TensorStoreReader:
             raw = handle.read(record.nbytes)
         if len(raw) != record.nbytes or _sha256_bytes(raw) != record.data_sha256:
             raise ValueError("tensor payload hash mismatch")
+        semantic = _sha256_bytes(canonical_json({
+            "dtype": record.dtype, "shape": list(record.shape),
+            "byte_order": record.byte_order,
+        }).encode("ascii") + b"\0" + raw)
+        if semantic != record.semantic_sha256:
+            raise ValueError("tensor semantic hash mismatch")
         return np.frombuffer(raw, dtype=np.dtype(record.dtype)).reshape(record.shape).copy()
-
