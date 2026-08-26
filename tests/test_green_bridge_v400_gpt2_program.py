@@ -18,7 +18,10 @@ from green_bridge_v400_gpt2_program import (
 from green_bridge_v400_compiled_mpfr import CompiledMPFRBackend
 from green_bridge_v400_interval import Interval
 from green_bridge_v400_mpfr_tensor_executor import execute_tensor_program_mpfr, jet_exact_payload
-from green_bridge_v400_tensor_program import TensorProgram
+from green_bridge_v400_schemas import sha256_canonical
+from green_bridge_v400_tensor_program import (
+    TensorProgram, tensor_program_dispatch_signature, tensor_program_native_trace,
+)
 from green_bridge_v400_tensor_store import TensorStoreReader, write_tensor_store
 
 
@@ -114,6 +117,25 @@ def test_gpt2_program_is_closed_replayable_and_four_branch(tmp_path):
             assert mask["kind"] == "dense"
             assert mask["dependent_scalar_count"] == 1
     assert len(program.resource_formula["dependency_mask_closure_sha256"]) == 64
+    signature = tensor_program_dispatch_signature(program.nodes)
+    assert signature["node_count"] == 81
+    assert signature["kernel_counts"] == {
+        "affine_scatter.v1": 4,
+        "branch_linear_combination.v1": 1,
+        "causal_attention.v1": 4,
+        "final_contrast.v1": 4,
+        "gelu_new.v1": 8,
+        "layer_norm.v1": 16,
+        "pairwise_affine.v1": 30,
+        "residual_add.v1": 10,
+        "static_view.v1": 4,
+    }
+    assert program.resource_formula["dispatcher_signature_sha256"] == sha256_canonical(signature)
+    assert program.resource_formula["directed_arithmetic_dominates_dense_lower_bound"] is True
+    assert len(program.resource_formula["exact_final_contrast_fusion_sha256"]) == 64
+    assert tensor_program_native_trace(program.nodes) == {
+        "event_count": 81, "fnv1a_u64": "e0f23d0f4c4df894",
+    }
 
 
 def test_gpt2_program_zero_control_joint_equals_bypass(tmp_path):

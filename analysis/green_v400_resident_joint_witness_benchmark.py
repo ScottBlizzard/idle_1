@@ -17,20 +17,23 @@ sys.path.insert(0, str(ROOT / "src"))
 
 from green_bridge_v400_compiled_mpfr import CompiledMPFRBackend
 from green_bridge_v400_schemas import sha256_canonical
+from green_bridge_v400_resident_resources import (
+    PRIMITIVE_TAXONOMY, gpt2_joint_witness_cell_jet2,
+)
+from green_bridge_v400_gpt2_program import (
+    GPT2TailDimensions, validate_gpt2_joint_witness_program,
+)
+from green_bridge_v400_tensor_program import (
+    TensorProgram, tensor_program_dispatch_signature, tensor_program_native_tags,
+    tensor_program_native_trace,
+)
+from green_bridge_v400_tensor_store import TensorStoreReader
 
 
 DIMENSIONS = {
     "d_model": 768, "d_mlp": 3072, "sequence_length": 12,
     "n_heads": 12, "d_head": 64, "selected_gates": 10,
 }
-PROGRAM_CALL_VECTOR = {
-    "affine_scatter.v1": 4, "static_view.v1": 4, "pairwise_affine.v1": 30,
-    "layer_norm.v1": 16, "gelu_new.v1": 8, "causal_attention.v1": 4,
-    "residual_add.v1": 10, "final_contrast.v1": 4,
-    "branch_linear_combination.v1": 1,
-}
-
-
 def sha256_file(path: Path) -> str:
     digest = hashlib.sha256()
     with path.open("rb") as handle:
@@ -42,15 +45,41 @@ def sha256_file(path: Path) -> str:
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--library", required=True)
+    parser.add_argument("--program", required=True)
+    parser.add_argument("--tensor-store", required=True)
     parser.add_argument("--output", required=True)
     parser.add_argument("--repetitions", type=int, default=3)
     args = parser.parse_args()
-    library, output = Path(args.library).resolve(), Path(args.output).resolve()
+    library = Path(args.library).resolve()
+    program_path = Path(args.program).resolve()
+    tensor_store_path = Path(args.tensor_store).resolve()
+    output = Path(args.output).resolve()
     if args.repetitions < 3:
         raise RuntimeError("at least three fixed repetitions are required")
     if "/mnt/sdb/" not in output.as_posix() or output.exists():
         raise RuntimeError("benchmark output must be a new file on /mnt/sdb")
+    program = TensorProgram.from_dict(json.loads(program_path.read_text(encoding="utf-8")))
+    reader = TensorStoreReader(tensor_store_path)
+    dims_payload = program.resource_formula.get("dimensions", {})
+    dims = GPT2TailDimensions(
+        int(dims_payload["sequence_length"]), int(dims_payload["d_model"]),
+        int(dims_payload["d_mlp"]), int(dims_payload["n_heads"]),
+        int(dims_payload["d_head"]), tuple(dims_payload["selected_gates"]),
+        int(dims_payload["final_position"]), int(dims_payload["contrast_width"]),
+    )
+    validate_gpt2_joint_witness_program(program, reader, dims)
+    signature = tensor_program_dispatch_signature(program.nodes)
+    expected_native_trace = tensor_program_native_trace(program.nodes)
+    expected_native_tags = tensor_program_native_tags(program.nodes)
+    program_dims = program.resource_formula.get("dimensions", {})
+    for key, value in DIMENSIONS.items():
+        expected = len(program_dims.get("selected_gates", [])) if key == "selected_gates" else program_dims.get(key)
+        if key == "sequence_length" and isinstance(expected, int) and value >= expected:
+            continue
+        if expected != value:
+            raise RuntimeError(f"resident dimensions disagree with TensorProgram at {key}")
     backend = CompiledMPFRBackend(library)
+    expected_primitive_count = gpt2_joint_witness_cell_jet2(**DIMENSIONS)
     rows, summaries = [], {}
     for precision in (384, 512):
         precision_rows = []
@@ -59,6 +88,14 @@ def main() -> int:
                 precision, **DIMENSIONS,
             )
             row = {"repetition": repetition, **result}
+            if ({"event_count": result["dispatch_event_count"],
+                 "fnv1a_u64": result["dispatch_trace_fnv1a_u64"]}
+                    != expected_native_trace):
+                raise RuntimeError("native runtime dispatch trace disagrees with TensorProgram")
+            if result["dispatch_tags"] != expected_native_tags:
+                raise RuntimeError("native runtime event vector disagrees with TensorProgram")
+            if result["mpfr_primitive_count"] != expected_primitive_count:
+                raise RuntimeError("native primitive count disagrees with the exact resource formula")
             rows.append(row); precision_rows.append(row)
         checksums = {row["checksum"] for row in precision_rows}
         if len(checksums) != 1:
@@ -70,11 +107,11 @@ def main() -> int:
         summaries[str(precision)] = {
             "elapsed_seconds": [row["elapsed_seconds"] for row in precision_rows],
             "maximum_seconds": maximum,
-            "timing_upper_1p25x_seconds": 1.25 * maximum,
+            "guardbanded_observed_max_1p25x_seconds": 1.25 * maximum,
             "mpfr_primitive_count_per_cell": next(iter(primitive_counts)),
             "checksum": next(iter(checksums)),
         }
-    paired_upper = sum(row["timing_upper_1p25x_seconds"] for row in summaries.values())
+    paired_upper = sum(row["guardbanded_observed_max_1p25x_seconds"] for row in summaries.values())
     paired_primitives = sum(row["mpfr_primitive_count_per_cell"] for row in summaries.values())
     report = {
         "schema_version": "green-v400-resident-joint-witness-cell-benchmark-v1",
@@ -82,10 +119,25 @@ def main() -> int:
         "contains_scientific_outcome": False,
         "input_policy": "native deterministic exact-dyadic synthetic jets; public shapes only",
         "dimensions": DIMENSIONS,
-        "program_call_vector": PROGRAM_CALL_VECTOR,
-        "program_call_vector_sha256": sha256_canonical(PROGRAM_CALL_VECTOR),
+        "shape_binding": {
+            "tensor_program_dimensions": program_dims,
+            "benchmark_relation": "same architecture and gate count; sequence_length is a conservative upper bound",
+        },
+        "tensor_program_path": str(program_path),
+        "tensor_program_sha256": sha256_file(program_path),
+        "tensor_store_manifest_path": str(tensor_store_path),
+        "tensor_store_manifest_sha256": sha256_file(tensor_store_path),
+        "tensor_program_semantic_hash": program.semantic_hash(),
+        "tensor_program_scalarization_merkle_root": program.scalarization_merkle_root,
+        "program_dispatch_signature": signature,
+        "program_dispatch_signature_sha256": sha256_canonical(signature),
+        "native_runtime_dispatch_trace": expected_native_trace,
+        "native_runtime_dispatch_tags": expected_native_tags,
+        "primitive_taxonomy": PRIMITIVE_TAXONOMY,
+        "exact_primitive_formula_result_per_precision_cell": expected_primitive_count,
         "backend_version": backend.version,
         "backend_sha256": sha256_file(library),
+        "benchmark_script_sha256": sha256_file(Path(__file__).resolve()),
         "host": {"hostname": socket.gethostname(), "platform": platform.platform(),
                  "logical_cpu_count": os.cpu_count()},
         "repetitions": args.repetitions,
@@ -98,11 +150,11 @@ def main() -> int:
         "peak_rss_kib": resource.getrusage(resource.RUSAGE_SELF).ru_maxrss,
         "coverage": "resident four-branch dynamic call vector with native affine/LN/GELU/attention/residual/contrast",
         "known_exclusions": [
-            "actual TensorProgram JSON dispatcher", "real tensor-store decode and model weights",
+            "actual TensorProgram JSON dispatcher timing", "real tensor-store decode and model weights",
             "exact final-contrast static fusion startup",
             "adaptive priority queue", "endpoint and multi-radius certificate orchestration",
         ],
-        "claim_status": "PASS_RESIDENT_SYNTHETIC_DYNAMIC_CELL_ONLY",
+        "claim_status": "PASS_PROGRAM_KERNEL_ORDER_CHECKED_SYNTHETIC_DYNAMIC_CELL_ONLY",
         "full_tail_equivalent": False,
         "cap_decision_authorized": False,
     }

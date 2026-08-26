@@ -1,0 +1,93 @@
+{
+  "benchmark_script_sha256": "670d190a4191c3cca8005a44e6c027da8099d01219b723de06abe44a8a3a9df9",
+  "cap_decision_authorized": false,
+  "contains_scientific_outcome": false,
+  "created_at_utc": "2026-08-26T17:54:18.941094Z",
+  "exact_final_contrast_fused_weight_count": 768,
+  "exact_final_contrast_fusion_sha256": "bd734f457bd3baee252af47f1c048dbd606ec15bf6a1b6533751c7bb943319c1",
+  "formal_wall_time_upper_bound": false,
+  "peak_rss_kib": 494136,
+  "program_file_sha256": "d80d30337a25d8590a052f081155ef0c46aeb5448e35b26c60b8e6345dd75e9c",
+  "program_semantic_hash": "38f40999524d465b8ee58fcc8d2d1822caf9af6c36897a72bd404a8fff34fe62",
+  "schema_version": "green-v400-static-startup-benchmark-v1",
+  "stages": {
+    "decode_and_hash_all_unique_program_tensors": {
+      "guardbanded_observed_max_1p25x_seconds": 1.6997956562772742,
+      "observed_max_seconds": 1.3598365250218194,
+      "rows": [
+        {
+          "elapsed_seconds": 1.3411874099983834,
+          "repetition": 0
+        },
+        {
+          "elapsed_seconds": 1.3598365250218194,
+          "repetition": 1
+        },
+        {
+          "elapsed_seconds": 1.3269816990068648,
+          "repetition": 2
+        }
+      ]
+    },
+    "exact_rational_final_contrast_fusion": {
+      "guardbanded_observed_max_1p25x_seconds": 0.894639591278974,
+      "observed_max_seconds": 0.7157116730231792,
+      "rows": [
+        {
+          "elapsed_seconds": 0.7155585319851525,
+          "repetition": 0
+        },
+        {
+          "elapsed_seconds": 0.7157116730231792,
+          "repetition": 1
+        },
+        {
+          "elapsed_seconds": 0.7153436799999326,
+          "repetition": 2
+        }
+      ]
+    },
+    "program_parse_validate_schema": {
+      "guardbanded_observed_max_1p25x_seconds": 0.009101923751586583,
+      "observed_max_seconds": 0.007281539001269266,
+      "rows": [
+        {
+          "elapsed_seconds": 0.007281539001269266,
+          "repetition": 0
+        },
+        {
+          "elapsed_seconds": 0.006007635005516931,
+          "repetition": 1
+        },
+        {
+          "elapsed_seconds": 0.005888315994525328,
+          "repetition": 2
+        }
+      ]
+    },
+    "tensor_store_manifest_and_full_blob_hash_validate": {
+      "guardbanded_observed_max_1p25x_seconds": 0.17610904873436084,
+      "observed_max_seconds": 0.14088723898748867,
+      "rows": [
+        {
+          "elapsed_seconds": 0.14088723898748867,
+          "repetition": 0
+        },
+        {
+          "elapsed_seconds": 0.13868787497631274,
+          "repetition": 1
+        },
+        {
+          "elapsed_seconds": 0.13869504499598406,
+          "repetition": 2
+        }
+      ]
+    }
+  },
+  "status": "PASS_STATIC_STARTUP_OBSERVATION_ONLY",
+  "tensor_store_blob_nbytes": 183109640,
+  "tensor_store_blob_sha256": "96b54eb84ebbfd208d009a9223052c90321a5a91ee24384836d9a2340f527e8c",
+  "tensor_store_manifest_sha256": "6fb609cd31f0e24006661a150d0014af829e3f0fcaf51e91cd04ea26620c1707",
+  "unique_program_tensor_count": 36,
+  "unique_program_tensor_nbytes": 183109560
+}

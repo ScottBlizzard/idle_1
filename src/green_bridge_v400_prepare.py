@@ -738,7 +738,7 @@ def _model_and_static_manifests(rows: list[dict], device: str):
             frozen_mpfr_ops_cap_per_row=MAX_SCALAR_MPFR_OPERATIONS_PER_ROW,
         )
         feasible = (finite and nonzero and softmax_valid and min(ln_margins) > 0
-                    and resource_plan.feasible_under_frozen_cap)
+                    and not resource_plan.cap_infeasibility_proved)
         token_hash = _sha256_bytes(clean.detach().cpu().numpy().tobytes() + corrupt.detach().cpu().numpy().tobytes())
         hook_spec_hash = sha256_canonical({"hooks": controlled_hooks, "selected_gates": SELECTED_GATES})
         feasibility.append({
@@ -756,7 +756,7 @@ def _model_and_static_manifests(rows: list[dict], device: str):
             "layernorm_static_margins": ln_margins, "softmax_static_records": [softmax_record],
             "feasible": feasible,
             "failure_codes": ([] if feasible else [
-                "RESOURCE_PLAN_INFEASIBLE" if not resource_plan.feasible_under_frozen_cap
+                "RESOURCE_PLAN_INFEASIBLE" if resource_plan.cap_infeasibility_proved
                 else "INVALID_DOMAIN"
             ]),
             "contains_response_outcome": False,

@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from collections import Counter
 from typing import Any
 
 from green_bridge_v400_schemas import sha256_canonical
@@ -23,6 +24,56 @@ KERNEL_REGISTRY = {
     "branch_linear_combination.v1": {"scalar_semantics": "PAT_J-PAT_B-TAR_J+TAR_B"},
 }
 KERNEL_REGISTRY_HASH = sha256_canonical(KERNEL_REGISTRY)
+NATIVE_DISPATCH_KERNEL_TAGS = {
+    "affine_scatter.v1": 1,
+    "static_view.v1": 2,
+    "pairwise_affine.v1": 3,
+    "layer_norm.v1": 4,
+    "gelu_new.v1": 5,
+    "causal_attention.v1": 6,
+    "residual_add.v1": 7,
+    "final_contrast.v1": 8,
+    "branch_linear_combination.v1": 9,
+}
+
+
+def tensor_program_dispatch_signature(nodes: tuple["TensorNode", ...]) -> dict:
+    """Canonical native-dispatch trace derived from the actual Tensor-SSA order."""
+    ordered_kernel_ids = [node.kernel_id for node in nodes]
+    kernel_counts = dict(sorted(Counter(ordered_kernel_ids).items()))
+    return {
+        "schema_version": "green-v400-tensor-dispatch-signature-v2-semantic-nodes",
+        "node_count": len(ordered_kernel_ids),
+        "ordered_kernel_ids": ordered_kernel_ids,
+        "ordered_nodes": [
+            {
+                "ordinal": ordinal,
+                "semantic_id": node.semantic_id,
+                "kernel_id": node.kernel_id,
+                "output_spec": node.output_spec.to_dict(),
+                "dependency_mask_hash": node.dependency_mask_hash,
+            }
+            for ordinal, node in enumerate(nodes)
+        ],
+        "kernel_counts": kernel_counts,
+    }
+
+
+def tensor_program_dispatch_signature_hash(nodes: tuple["TensorNode", ...]) -> str:
+    return sha256_canonical(tensor_program_dispatch_signature(nodes))
+
+
+def tensor_program_native_trace(nodes: tuple["TensorNode", ...]) -> dict:
+    """Mirror the backend's runtime FNV-1a event trace over ordered kernels."""
+    state = 14695981039346656037
+    for node in nodes:
+        state ^= NATIVE_DISPATCH_KERNEL_TAGS[node.kernel_id]
+        state = (state * 1099511628211) & ((1 << 64) - 1)
+    return {"event_count": len(nodes), "fnv1a_u64": f"{state:016x}"}
+
+
+def tensor_program_native_tags(nodes: tuple["TensorNode", ...]) -> list[int]:
+    return [NATIVE_DISPATCH_KERNEL_TAGS[node.kernel_id] for node in nodes]
 
 
 def _assert_exact_json(value: Any, path: str = "attrs") -> None:

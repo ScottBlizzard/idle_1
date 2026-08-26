@@ -99,7 +99,9 @@ class CompiledMPFRBackend:
             ctypes.c_uint32, ctypes.c_uint32, ctypes.c_uint32, ctypes.c_uint32,
             ctypes.c_uint32, ctypes.c_uint32, ctypes.c_uint32, ctypes.c_uint32,
             ctypes.POINTER(ctypes.c_double), ctypes.POINTER(ctypes.c_uint64),
+            ctypes.POINTER(ctypes.c_uint64), ctypes.POINTER(ctypes.c_uint64),
             ctypes.POINTER(ctypes.c_uint64),
+            ctypes.POINTER(ctypes.c_uint8), ctypes.c_uint64,
         ]
         benchmark_joint.restype = ctypes.c_int
         primitive = self.library.green_v400_interval_primitive_exact
@@ -264,10 +266,16 @@ class CompiledMPFRBackend:
         elapsed = ctypes.c_double()
         checksum = ctypes.c_uint64()
         primitive_count = ctypes.c_uint64()
+        dispatch_trace = ctypes.c_uint64()
+        dispatch_events = ctypes.c_uint64()
+        tag_capacity = 81 * int(repeats)
+        dispatch_tags = (ctypes.c_uint8 * tag_capacity)()
         status = self.library.green_v400_benchmark_gpt2_joint_witness_cell(
             precision_bits, d_model, d_mlp, sequence_length, n_heads,
             d_head, selected_gates, repeats,
             ctypes.byref(elapsed), ctypes.byref(checksum), ctypes.byref(primitive_count),
+            ctypes.byref(dispatch_trace), ctypes.byref(dispatch_events),
+            dispatch_tags, tag_capacity,
         )
         if status != 0:
             raise RuntimeError(f"compiled joint-witness benchmark failed with status {status}")
@@ -280,6 +288,10 @@ class CompiledMPFRBackend:
             "cells_per_second": int(repeats) / elapsed.value,
             "mpfr_primitive_count": int(primitive_count.value),
             "mpfr_primitives_per_second": int(primitive_count.value) / elapsed.value,
+            "dispatch_trace_fnv1a_u64": f"{dispatch_trace.value:016x}",
+            "dispatch_event_count": int(dispatch_events.value),
+            "dispatch_tags": [int(dispatch_tags[index])
+                              for index in range(dispatch_events.value)],
             "checksum": f"{checksum.value:016x}",
         }
 

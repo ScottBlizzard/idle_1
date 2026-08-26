@@ -1,0 +1,76 @@
+{
+  "contains_scientific_outcome": false,
+  "created_at_utc": "2026-08-26T17:53:58.843471Z",
+  "executable_nodes_bit_identical": true,
+  "node_count": 81,
+  "rebound_program_file_sha256": "d80d30337a25d8590a052f081155ef0c46aeb5448e35b26c60b8e6345dd75e9c",
+  "rebound_program_semantic_hash": "38f40999524d465b8ee58fcc8d2d1822caf9af6c36897a72bd404a8fff34fe62",
+  "resource_formula": {
+    "cap_infeasibility_proved": true,
+    "coefficient_terms_four_branch_cell": 28419072,
+    "coefficient_terms_per_branch_cell": 7104768,
+    "dense_arithmetic_mpfr_ops_lower_bound_per_precision_cell": 341028864,
+    "dependency_mask_closure_sha256": "fcbde3c117c71c5b82335599dc5a1f35bba54bd9a30ddc0e76484cb852a46c93",
+    "dependent_scalar_outputs_total": 66113,
+    "dimensions": {
+      "contrast_width": 100,
+      "d_head": 64,
+      "d_mlp": 3072,
+      "d_model": 768,
+      "final_position": 6,
+      "n_heads": 12,
+      "selected_gates": [
+        2326,
+        1138,
+        2287,
+        606,
+        2848,
+        2305,
+        46,
+        2659,
+        946,
+        1616
+      ],
+      "sequence_length": 7
+    },
+    "directed_arithmetic_dominates_dense_lower_bound": true,
+    "directed_enclosure_arithmetic_primitive_taxonomy": {
+      "excluded": [
+        "mpfr_set/copy",
+        "mpfr_neg",
+        "comparison",
+        "serialization",
+        "synthetic fixture initialization div_2ui"
+      ],
+      "included": [
+        "mpfr_add/sub",
+        "mpfr_mul",
+        "mpfr_div/div_ui",
+        "mpfr_sqrt",
+        "mpfr_tanh",
+        "mpfr_exp"
+      ],
+      "schema_version": "green-v400-directed-enclosure-arithmetic-v1"
+    },
+    "directed_enclosure_arithmetic_primitives_per_precision_cell": 350146650,
+    "dispatcher_signature_sha256": "eb4c907ab4a86f3aac2fda445deed67099f2831c41e9712463688cccf1b6f008",
+    "exact_final_contrast_fusion_sha256": "bd734f457bd3baee252af47f1c048dbd606ec15bf6a1b6533751c7bb943319c1",
+    "formula_version": "green-v400-gpt2-tail-resource-v2-lower-bound",
+    "frozen_mpfr_ops_cap_per_row": 100000000,
+    "minimum_cells": 2,
+    "minimum_dense_arithmetic_mpfr_ops_lower_bound_per_precision_row_radius": 682057728,
+    "proof_assumptions": {
+      "cap_scope": "the cap covers the entire row across radii; one mandatory radius lower bound already exceeds it",
+      "mandatory_initial_cells": 2,
+      "mpfr_ops_per_dense_coefficient_term_lower_bound": 12,
+      "scope": "one precision; dense coefficient arithmetic only"
+    },
+    "tensor_store_closure": "d3b5131e08fd57358c84b6ba9c482c2f1b2fe2c100ab573490eb9fe8e053e9fb"
+  },
+  "schema_version": "green-v400-program-resource-rebind-v1",
+  "source_program_file_sha256": "126415b4da03e11ecd8b9c3b3c08873174e522af7d47210d60a222752d3630f2",
+  "source_program_semantic_hash": "1906fb35d926c1d258c54a400b8444e81ec25de942bc72edee8466314b189bf2",
+  "status": "PASS_RESOURCE_ONLY_REBIND",
+  "tensor_store_manifest_sha256": "6fb609cd31f0e24006661a150d0014af829e3f0fcaf51e91cd04ea26620c1707",
+  "tensor_store_record_closure_sha256": "d3b5131e08fd57358c84b6ba9c482c2f1b2fe2c100ab573490eb9fe8e053e9fb"
+}

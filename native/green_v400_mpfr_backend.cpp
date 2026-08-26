@@ -46,6 +46,25 @@ double double_from_bits(std::uint64_t bits) {
 }
 
 thread_local std::uint64_t* active_primitive_counter = nullptr;
+thread_local std::uint64_t* active_dispatch_trace = nullptr;
+thread_local std::uint64_t* active_dispatch_events = nullptr;
+thread_local std::uint8_t* active_dispatch_tags = nullptr;
+thread_local std::uint64_t active_dispatch_tag_capacity = 0;
+
+enum DispatchKernel : std::uint64_t {
+  kAffineScatter = 1U, kStaticView = 2U, kPairwiseAffine = 3U,
+  kLayerNorm = 4U, kGeluNew = 5U, kCausalAttention = 6U,
+  kResidualAdd = 7U, kFinalContrast = 8U, kBranchLinearCombination = 9U,
+};
+
+void record_dispatch(DispatchKernel kernel) {
+  if (active_dispatch_trace == nullptr || active_dispatch_events == nullptr) return;
+  if (active_dispatch_tags != nullptr && *active_dispatch_events < active_dispatch_tag_capacity)
+    active_dispatch_tags[*active_dispatch_events] = static_cast<std::uint8_t>(kernel);
+  *active_dispatch_trace ^= static_cast<std::uint64_t>(kernel);
+  *active_dispatch_trace *= 1099511628211ULL;
+  ++(*active_dispatch_events);
+}
 
 void count_primitive() {
   if (active_primitive_counter != nullptr) ++(*active_primitive_counter);
@@ -747,10 +766,15 @@ JetMP synthetic_gpt2_tail(
     std::uint32_t d_mlp, std::uint32_t sequence_length,
     std::uint32_t n_heads, std::uint32_t d_head, std::uint32_t salt) {
   const mpfr_prec_t precision = resid_post[0].value.precision;
+  record_dispatch(kLayerNorm);
   std::vector<JetMP> ln1 = layer_norm_identity(resid_post);
+  record_dispatch(kPairwiseAffine);
   std::vector<JetMP> q = synthetic_affine_layer(ln1, d_model, salt + 101U);
+  record_dispatch(kPairwiseAffine);
   std::vector<JetMP> k_final = synthetic_affine_layer(ln1, d_model, salt + 103U);
+  record_dispatch(kPairwiseAffine);
   std::vector<JetMP> v_final = synthetic_affine_layer(ln1, d_model, salt + 107U);
+  record_dispatch(kCausalAttention);
   std::vector<JetMP> attention;
   attention.reserve(d_model);
   for (std::uint32_t head = 0; head < n_heads; ++head) {
@@ -777,14 +801,23 @@ JetMP synthetic_gpt2_tail(
         query, keys, values, sequence_length, d_head, 0U);
     for (JetMP& value : head_output) attention.emplace_back(std::move(value));
   }
+  record_dispatch(kPairwiseAffine);
   std::vector<JetMP> attention_out = synthetic_affine_layer(attention, d_model, salt + 109U);
+  record_dispatch(kResidualAdd);
   std::vector<JetMP> resid_mid = add_vectors(resid_post, attention_out);
+  record_dispatch(kLayerNorm);
   std::vector<JetMP> ln2 = layer_norm_identity(resid_mid);
+  record_dispatch(kPairwiseAffine);
   std::vector<JetMP> pre = synthetic_affine_layer(ln2, d_mlp, salt + 113U);
+  record_dispatch(kGeluNew);
   std::vector<JetMP> post = gelu_vector(pre);
+  record_dispatch(kPairwiseAffine);
   std::vector<JetMP> mlp_out = synthetic_affine_layer(post, d_model, salt + 127U);
+  record_dispatch(kResidualAdd);
   std::vector<JetMP> resid_final = add_vectors(resid_mid, mlp_out);
+  record_dispatch(kLayerNorm);
   std::vector<JetMP> normalized = layer_norm_identity(resid_final);
+  record_dispatch(kFinalContrast);
   std::vector<JetMP> contrast = synthetic_affine_layer(normalized, 1U, salt + 131U);
   return std::move(contrast[0]);
 }
@@ -796,6 +829,8 @@ JetMP synthetic_joint_witness_cell(
   std::vector<JetMP> roots;
   roots.reserve(4);
   for (std::uint32_t condition = 0; condition < 2; ++condition) {
+    record_dispatch(kAffineScatter);
+    record_dispatch(kAffineScatter);
     std::vector<JetMP> base, controlled;
     base.reserve(d_model); controlled.reserve(d_model);
     for (std::uint32_t coordinate = 0; coordinate < d_model; ++coordinate) {
@@ -804,24 +839,34 @@ JetMP synthetic_joint_witness_cell(
       controlled.emplace_back(synthetic_jet(
           repeat * 10000079ULL + condition * 100019ULL + coordinate, precision));
     }
+    record_dispatch(kStaticView);
+    record_dispatch(kLayerNorm);
     std::vector<JetMP> ln10 = layer_norm_identity(controlled);
     std::vector<JetMP> zero_control;
     zero_control.reserve(d_model);
     for (const JetMP& value : controlled)
       zero_control.emplace_back(jet_constant(value.value));
+    record_dispatch(kLayerNorm);
     std::vector<JetMP> zero_ln10 = layer_norm_identity(zero_control);
+    record_dispatch(kPairwiseAffine);
     std::vector<JetMP> selected_pre = synthetic_affine_layer(
         ln10, selected_gates, 211U + condition + repeat * 17U);
+    record_dispatch(kPairwiseAffine);
     std::vector<JetMP> zero_pre = synthetic_affine_layer(
         zero_ln10, selected_gates, 211U + condition + repeat * 17U);
+    record_dispatch(kGeluNew);
     std::vector<JetMP> selected_live = gelu_vector(selected_pre);
+    record_dispatch(kGeluNew);
     std::vector<JetMP> zero_live = gelu_vector(zero_pre);
+    record_dispatch(kStaticView);
     std::vector<JetMP> selected_delta;
     selected_delta.reserve(selected_gates);
     for (std::size_t index = 0; index < selected_live.size(); ++index)
       selected_delta.emplace_back(jet_sub(selected_live[index], zero_live[index]));
+    record_dispatch(kPairwiseAffine);
     std::vector<JetMP> delta_out = synthetic_affine_layer(
         selected_delta, d_model, 223U + condition + repeat * 19U);
+    record_dispatch(kResidualAdd);
     std::vector<JetMP> joint = add_vectors(base, delta_out);
     roots.emplace_back(synthetic_gpt2_tail(
         joint, d_model, d_mlp, sequence_length, n_heads, d_head,
@@ -830,6 +875,7 @@ JetMP synthetic_joint_witness_cell(
         base, d_model, d_mlp, sequence_length, n_heads, d_head,
         308U + condition * 2U + repeat * 23U));
   }
+  record_dispatch(kBranchLinearCombination);
   return jet_add(jet_sub(jet_sub(roots[0], roots[1]), roots[2]), roots[3]);
 }
 
@@ -1108,17 +1154,27 @@ extern "C" int green_v400_benchmark_gpt2_joint_witness_cell(
     std::uint32_t sequence_length, std::uint32_t n_heads,
     std::uint32_t d_head, std::uint32_t selected_gates, std::uint32_t repeats,
     double* elapsed_seconds, std::uint64_t* checksum,
-    std::uint64_t* primitive_count) {
+    std::uint64_t* primitive_count, std::uint64_t* dispatch_trace,
+    std::uint64_t* dispatch_events, std::uint8_t* dispatch_tags,
+    std::uint64_t dispatch_tag_capacity) {
   if (precision_bits < 64 || precision_bits > 4096 || d_model == 0 || d_mlp == 0
       || sequence_length == 0 || n_heads == 0 || d_head == 0 || selected_gates == 0
       || n_heads * d_head != d_model || selected_gates > d_mlp || repeats == 0
       || d_model > 100000U || d_mlp > 100000U || sequence_length > 4096U
       || elapsed_seconds == nullptr || checksum == nullptr
-      || primitive_count == nullptr) return 2;
+      || primitive_count == nullptr || dispatch_trace == nullptr
+      || dispatch_events == nullptr || dispatch_tags == nullptr
+      || dispatch_tag_capacity < 81ULL * repeats) return 2;
   const mpfr_prec_t precision = static_cast<mpfr_prec_t>(precision_bits);
   std::uint64_t state = 0x510e527fade682d1ULL;
   *primitive_count = 0;
+  *dispatch_trace = 14695981039346656037ULL;
+  *dispatch_events = 0;
   active_primitive_counter = primitive_count;
+  active_dispatch_trace = dispatch_trace;
+  active_dispatch_events = dispatch_events;
+  active_dispatch_tags = dispatch_tags;
+  active_dispatch_tag_capacity = dispatch_tag_capacity;
   const auto start = std::chrono::steady_clock::now();
   for (std::uint32_t repeat = 0; repeat < repeats; ++repeat) {
     JetMP output = synthetic_joint_witness_cell(
@@ -1133,6 +1189,10 @@ extern "C" int green_v400_benchmark_gpt2_joint_witness_cell(
   }
   const auto stop = std::chrono::steady_clock::now();
   active_primitive_counter = nullptr;
+  active_dispatch_trace = nullptr;
+  active_dispatch_events = nullptr;
+  active_dispatch_tags = nullptr;
+  active_dispatch_tag_capacity = 0;
   *elapsed_seconds = std::chrono::duration<double>(stop - start).count();
   *checksum = state;
   return 0;

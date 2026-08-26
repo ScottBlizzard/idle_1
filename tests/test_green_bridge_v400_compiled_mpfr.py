@@ -13,6 +13,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 
 from green_bridge_v400_compiled_mpfr import CompiledMPFRBackend
+from green_bridge_v400_resident_resources import gpt2_joint_witness_cell_jet2
 from green_bridge_v400_interval import (
     Interval, exp_interval, inv_sqrt_interval, sqrt_interval, tanh_interval,
 )
@@ -185,7 +186,13 @@ def test_resident_joint_witness_cell_benchmark_is_live(precision):
     )
     assert result["elapsed_seconds"] > 0 and result["cells_per_second"] > 0
     assert result["mpfr_primitive_count"] > 0
+    assert result["mpfr_primitive_count"] == gpt2_joint_witness_cell_jet2(
+        d_model=4, d_mlp=8, sequence_length=3,
+        n_heads=2, d_head=2, selected_gates=2,
+    )
     assert result["mpfr_primitives_per_second"] > 0
+    assert result["dispatch_event_count"] == 81
+    assert result["dispatch_trace_fnv1a_u64"] == "e0f23d0f4c4df894"
     assert len(result["checksum"]) == 16
 
 

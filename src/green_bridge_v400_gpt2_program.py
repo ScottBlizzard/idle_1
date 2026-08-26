@@ -10,9 +10,14 @@ import numpy as np
 
 from green_bridge_v400_branch_semantics import BRANCH_ORDER, BRANCH_WEIGHTS
 from green_bridge_v400_resource_plan import TailShape, plan_gpt2_tail_resources
+from green_bridge_v400_resident_resources import (
+    PRIMITIVE_TAXONOMY, gpt2_joint_witness_cell_jet2,
+)
+from green_bridge_v400_final_contrast_fusion import fuse_final_contrast_exact
 from green_bridge_v400_schemas import sha256_canonical
 from green_bridge_v400_tensor_program import (
     TensorNode, TensorProgram, TensorSpec, dependency_mask_hash, dependency_mask_spec,
+    tensor_program_dispatch_signature, tensor_program_dispatch_signature_hash,
 )
 from green_bridge_v400_tensor_store import TensorRef, TensorStoreReader, write_tensor_store
 
@@ -282,6 +287,12 @@ def build_gpt2_joint_witness_program(reader: TensorStoreReader,
     )
     nodes.append(output)
     plan = _resource_plan(dims)
+    directed_primitives = gpt2_joint_witness_cell_jet2(
+        dims.d_model, dims.d_mlp, dims.sequence_length,
+        dims.n_heads, dims.d_head, len(dims.selected_gates),
+    )
+    if directed_primitives < plan.dense_arithmetic_mpfr_ops_lower_bound_per_precision_cell:
+        raise ValueError("directed arithmetic count is below the proved dense lower bound")
     dependency_masks = [
         {"semantic_id": node.semantic_id, "dependency_mask_hash": node.dependency_mask_hash,
          "dependent_scalar_count": node.exact_attrs["dependency_mask_spec"]["dependent_scalar_count"]}
@@ -294,6 +305,14 @@ def build_gpt2_joint_witness_program(reader: TensorStoreReader,
         "dependent_scalar_outputs_total": sum(
             row["dependent_scalar_count"] for row in dependency_masks
         ),
+        "dispatcher_signature_sha256": tensor_program_dispatch_signature_hash(tuple(nodes)),
+        "directed_enclosure_arithmetic_primitives_per_precision_cell": directed_primitives,
+        "directed_arithmetic_dominates_dense_lower_bound": True,
+        "directed_enclosure_arithmetic_primitive_taxonomy": PRIMITIVE_TAXONOMY,
+        "exact_final_contrast_fusion_sha256": fuse_final_contrast_exact(
+            reader.read("unembed.W_U_full"), reader.read("unembed.b_U_full"),
+            reader.read("unembed.suffix_ids"), reader.read("contrast.coefficients"),
+        ).semantic_hash(),
     }
     program = TensorProgram.build(
         model_manifest_hash, tuple(nodes), roots, output.semantic_id, resource_formula,
@@ -339,6 +358,28 @@ def validate_gpt2_joint_witness_program(program: TensorProgram, reader: TensorSt
     if program.resource_formula.get("dependent_scalar_outputs_total") != sum(
             row["dependent_scalar_count"] for row in dependency_masks):
         raise ValueError("TensorProgram dependent scalar count mismatch")
+    dispatch_signature = tensor_program_dispatch_signature(program.nodes)
+    if (program.resource_formula.get("dispatcher_signature_sha256")
+            != sha256_canonical(dispatch_signature)):
+        raise ValueError("TensorProgram dispatcher-signature resource closure mismatch")
+    expected_primitives = gpt2_joint_witness_cell_jet2(
+        dims.d_model, dims.d_mlp, dims.sequence_length,
+        dims.n_heads, dims.d_head, len(dims.selected_gates),
+    )
+    if (program.resource_formula.get("directed_enclosure_arithmetic_primitives_per_precision_cell")
+            != expected_primitives
+            or program.resource_formula.get(
+                "directed_enclosure_arithmetic_primitive_taxonomy") != PRIMITIVE_TAXONOMY
+            or program.resource_formula.get("directed_arithmetic_dominates_dense_lower_bound") is not True
+            or expected_primitives
+                < expected["dense_arithmetic_mpfr_ops_lower_bound_per_precision_cell"]):
+        raise ValueError("TensorProgram directed-arithmetic resource closure mismatch")
+    expected_fusion_hash = fuse_final_contrast_exact(
+        reader.read("unembed.W_U_full"), reader.read("unembed.b_U_full"),
+        reader.read("unembed.suffix_ids"), reader.read("contrast.coefficients"),
+    ).semantic_hash()
+    if program.resource_formula.get("exact_final_contrast_fusion_sha256") != expected_fusion_hash:
+        raise ValueError("TensorProgram exact final-contrast fusion closure mismatch")
 
 
 def execute_tensor_program_numpy(program: TensorProgram, reader: TensorStoreReader,
@@ -583,11 +624,14 @@ def materialize_gpt2_joint_witness_store(root: Path, name: str, model,
 
 def program_identity_payload(program: TensorProgram, dims: GPT2TailDimensions,
                              reader: TensorStoreReader) -> dict:
+    dispatch_signature = tensor_program_dispatch_signature(program.nodes)
     return {
         "schema_version": "green-v400-gpt2-program-identity-v1",
         "program_semantic_hash": program.semantic_hash(),
         "tensor_store_manifest_hash": sha256_canonical(reader.manifest.to_dict()),
         "dimensions": dims.to_dict(),
         "branch_order": list(BRANCH_ORDER),
+        "dispatcher_signature": dispatch_signature,
+        "dispatcher_signature_sha256": sha256_canonical(dispatch_signature),
         "contains_scientific_outcome": False,
     }
