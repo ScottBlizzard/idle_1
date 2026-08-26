@@ -644,13 +644,26 @@ def _model_and_static_manifests(rows: list[dict], device: str):
             value = clean_cache[name].float()
             ln_margins.append(float(value.var(dim=-1, unbiased=False).min()) + float(model.cfg.eps))
         scores = clean_cache[score_hook].float()
+        finite_scores = torch.isfinite(scores)
+        has_unmasked_key = bool(finite_scores.any(dim=-1).all())
+        mask_is_negative_infinity = bool((finite_scores | torch.isneginf(scores)).all())
+        finite_max = scores.masked_fill(~finite_scores, -torch.inf).max(dim=-1).values
+        finite_min = scores.masked_fill(~finite_scores, torch.inf).min(dim=-1).values
         softmax_record = {
             "hook": score_hook,
-            "finite": bool(torch.isfinite(scores).all()),
+            "finite_unmasked": bool(torch.isfinite(scores[finite_scores]).all()),
+            "has_unmasked_key_per_query": has_unmasked_key,
+            "masked_entries_are_negative_infinity": mask_is_negative_infinity,
+            "masked_entry_count": int((~finite_scores).sum()),
             "fixed_pivot_hash": _sha256_bytes(scores.argmax(dim=-1).cpu().numpy().tobytes()),
-            "score_span_upper": float((scores.max(dim=-1).values - scores.min(dim=-1).values).max()),
+            "score_span_upper": float((finite_max - finite_min).max()),
         }
-        feasible = finite and nonzero and softmax_record["finite"] and min(ln_margins) > 0
+        softmax_valid = (
+            softmax_record["finite_unmasked"]
+            and has_unmasked_key
+            and mask_is_negative_infinity
+        )
+        feasible = finite and nonzero and softmax_valid and min(ln_margins) > 0
         token_hash = _sha256_bytes(clean.detach().cpu().numpy().tobytes() + corrupt.detach().cpu().numpy().tobytes())
         hook_spec_hash = sha256_canonical({"hooks": controlled_hooks, "selected_gates": SELECTED_GATES})
         feasibility.append({
@@ -817,6 +830,17 @@ def run_formal_prepare(config_path: str) -> FormalPrepareSummary:
             "after_sha256": _sha256_bytes(b"legacy token_pair_allowed enforced during eligibility and every row pairing"),
             "rationale": "first donor exposed clean/corrupt sequence lengths 13/12 before any response or derivative was read",
             "failed_attempt_archive": "/mnt/sdb/ccj/outputs/green_bridge_v400_formal_prepare_failed_shape_bc4566a",
+            "scientific_semantics_changed": False,
+            "storage_device_changed": False,
+        }, {
+            "schema_version": "green-v400-engineering-correction-v1",
+            "category": "causal_mask_static_feasibility",
+            "before": "require every attention-score entry finite",
+            "after": "require finite unmasked entries and exact negative-infinity causal-mask entries",
+            "before_sha256": _sha256_bytes(b"require every attention-score entry finite"),
+            "after_sha256": _sha256_bytes(b"require finite unmasked entries and exact negative-infinity causal-mask entries"),
+            "rationale": "TransformerLens serializes valid causal-mask exclusions as -inf; no response, endpoint, derivative, or sign was inspected",
+            "failed_attempt_archive": "/mnt/sdb/ccj/outputs/green_bridge_v400_formal_prepare_failed_softmax_46c42b6",
             "scientific_semantics_changed": False,
             "storage_device_changed": False,
         }]
