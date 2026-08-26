@@ -44,8 +44,17 @@ V200_FIRST_FAILED_GATE = "12_DEVELOPMENT_SURVIVAL"
 V300_SPLIT_SALT = "green-v300-transport-noun-split-20260825"
 V300_PAIR_SALT = "green-v300-transport-pairs-20260825"
 V300_SPLIT_SHA256 = "509f791b614db58e0e7b47c1106364ef549c156e2c42a48a51e705a196da0bc7"
-V300_COEFFICIENT_SHA256 = "1b5cc44b98b74ae7793957d68087a17d8ce9684ebee822b46a67492e4a7892e5"
-V300_RADIUS_CANDIDATE_SHA256 = "50251164fb42f9ecd97c7725a093ff15084b9f6662b364d3d52be1210c98feb9"
+V300_TECHNICAL_CORRIGENDUM_ID = "CODEX-GREEN-V300-CANONICAL-PAYLOAD-v1-20260826"
+# The external decision supplied these two identifiers without the bytes that
+# produced them.  They remain immutable provenance, but cannot be used as
+# reproducibility checks because SHA-256 does not encode its input.
+V300_DECLARED_COEFFICIENT_HASH_ID = "1b5cc44b98b74ae7793957d68087a17d8ce9684ebee822b46a67492e4a7892e5"
+V300_DECLARED_RADIUS_CANDIDATE_HASH_ID = "50251164fb42f9ecd97c7725a093ff15084b9f6662b364d3d52be1210c98feb9"
+# Reproducible semantic hashes use UTF-8 canonical JSON, no trailing newline,
+# and exact symbolic numbers.  The hash itself is deliberately excluded from
+# the payload, avoiding a circular definition.
+V300_COEFFICIENT_SHA256 = "71d1f91b7a7da68e1d73079e42b116e09cf3544b890f53aac1d58afae4bf4cfa"
+V300_RADIUS_CANDIDATE_SHA256 = "370173c38e04bf741145faf09d5cffc826810d206c684b97de65c07d13303d6c"
 
 DEVELOPMENT_NOUNS = ("kingdom", "reign", "siege")
 CONFIRMATION_NOUNS = ("warfare", "campaign", "expedition", "treaty")
@@ -64,6 +73,7 @@ ORIENTATIONS_PER_ROLE = {"down": 4, "up": 4}
 
 HELMERT_COEFFICIENT_HASH_ID = V300_COEFFICIENT_SHA256
 RADIUS_CANDIDATES = (1.0, 0.5, 0.25, 0.125, 0.0625, 0.03125, 0.015625)
+RADIUS_CANDIDATE_SYMBOLS = ("1", "1/2", "1/4", "1/8", "1/16", "1/32", "1/64")
 RADIUS_RELATIVE_FIDELITY_MAX = 0.10
 RECOVERABLE_RELATIVE_WIDTH_MAX = 0.25
 DIRECT_NONNULL_SNR_MIN = 4.0
@@ -160,8 +170,11 @@ FROZEN_SPEC = {
         "all_gate_frame_dim": ALL_GATE_FRAME_DIM,
     },
     "split_sha256": V300_SPLIT_SHA256,
-    "coefficient_hash_id": V300_COEFFICIENT_SHA256,
-    "radius_candidate_hash_id": V300_RADIUS_CANDIDATE_SHA256,
+    "technical_corrigendum_id": V300_TECHNICAL_CORRIGENDUM_ID,
+    "declared_coefficient_hash_id": V300_DECLARED_COEFFICIENT_HASH_ID,
+    "declared_radius_candidate_hash_id": V300_DECLARED_RADIUS_CANDIDATE_HASH_ID,
+    "coefficient_payload_sha256": V300_COEFFICIENT_SHA256,
+    "radius_candidate_payload_sha256": V300_RADIUS_CANDIDATE_SHA256,
     "radius_candidates": RADIUS_CANDIDATES,
     "thresholds": asdict(THRESHOLDS),
     "tail_fixed_batch_size": TAIL_FIXED_BATCH_SIZE,
@@ -175,8 +188,7 @@ def frozen_spec_sha256() -> str:
 def radius_candidate_payload_v300() -> dict:
     return {
         "schema": "green-bridge-v3.0.0-global-radius-candidates-v1",
-        "candidates": list(RADIUS_CANDIDATES),
-        "binding_hash_id": V300_RADIUS_CANDIDATE_SHA256,
+        "candidates": list(RADIUS_CANDIDATE_SYMBOLS),
     }
 
 
@@ -185,5 +197,8 @@ def computed_radius_candidate_payload_sha256_v300() -> str:
 
 
 def radius_candidate_payload_sha256_v300() -> str:
-    """Return the binding hash supplied by the external protocol decision."""
-    return V300_RADIUS_CANDIDATE_SHA256
+    """Return the reproducible hash of the exact semantic payload."""
+    computed = computed_radius_candidate_payload_sha256_v300()
+    if computed != V300_RADIUS_CANDIDATE_SHA256:
+        raise AssertionError("radius candidate canonical payload hash changed")
+    return computed

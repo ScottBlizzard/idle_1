@@ -39,7 +39,9 @@ from green_bridge_v300_spec import (
     V200_EXECUTION_COMMIT,
     V200_FIRST_FAILED_GATE,
     V200_VERDICT,
+    V300_DECLARED_RADIUS_CANDIDATE_HASH_ID,
     V300_RADIUS_CANDIDATE_SHA256,
+    V300_TECHNICAL_CORRIGENDUM_ID,
     V300_SPLIT_SHA256,
     computed_radius_candidate_payload_sha256_v300,
     radius_candidate_payload_v300,
@@ -230,9 +232,12 @@ def _protocol_serializer_status_v300() -> dict:
     return {
         "coefficient": coefficient,
         "radius": {
-            "binding_sha256": V300_RADIUS_CANDIDATE_SHA256,
-            "computed_typed_payload_sha256": radius_computed,
-            "byte_serializer_specified_by_decision": False,
+            "technical_corrigendum_id": V300_TECHNICAL_CORRIGENDUM_ID,
+            "declared_hash_id": V300_DECLARED_RADIUS_CANDIDATE_HASH_ID,
+            "canonical_payload_sha256": V300_RADIUS_CANDIDATE_SHA256,
+            "computed_canonical_payload_sha256": radius_computed,
+            "serialization": "UTF-8 canonical JSON; sorted keys; compact separators; no trailing newline",
+            "byte_serializer_specified": True,
             "resolved": radius_computed == V300_RADIUS_CANDIDATE_SHA256,
         },
         "all_resolved": coefficient["resolved"] and radius_computed == V300_RADIUS_CANDIDATE_SHA256,
@@ -240,12 +245,7 @@ def _protocol_serializer_status_v300() -> dict:
 
 
 def prepare_v300(output_root: Path, device: str = "cuda:0") -> None:
-    """Run the sole authorized phase after every byte-level protocol hash resolves.
-
-    The external decision gives two binding hashes without their canonical byte
-    serializers.  Failing closed here prevents burning the one-shot with a
-    guessed serialization.  No formal root is created before this check.
-    """
+    """Run the sole authorized phase after reproducible payload checks pass."""
     if AUTHORIZED_PHASES != ("prepare",) or RETRY_ALLOWED or RESUME_ALLOWED or PHASE_ALL_ALLOWED:
         raise RuntimeError("V300_PHASE_IDENTITY_FAILURE")
     if device != "cuda:0":
@@ -256,10 +256,16 @@ def prepare_v300(output_root: Path, device: str = "cuda:0") -> None:
     status = _protocol_serializer_status_v300()
     if not status["all_resolved"]:
         raise RuntimeError(f"{PREPARE_SERIALIZER_STOP}: {json.dumps(status, sort_keys=True)}")
-    raise RuntimeError(
-        "PREPARE_IMPLEMENTATION_AWAITS_BINDING_SERIALIZER_CORRIGENDUM; "
-        "formal root was not created"
-    )
+    from green_bridge_v300_prepare import execute_prepare_v300
+    execute_prepare_v300(output_root, device, formal=True)
+
+
+def dry_run_prepare_v300(output_root: Path, device: str = "cuda:0") -> None:
+    """Run the same legacy-only evidence path without claiming the one-shot."""
+    if output_root.exists():
+        raise RuntimeError("DRY_RUN_ROOT_ALREADY_EXISTS")
+    from green_bridge_v300_prepare import execute_prepare_v300
+    execute_prepare_v300(output_root, device, formal=False)
 
 
 def synthetic_gate_class_v300(values: Mapping) -> str:
@@ -281,10 +287,14 @@ def main() -> None:
     parser.add_argument("--phase", required=True, choices=("prepare", "development", "confirmation"))
     parser.add_argument("--output-root", type=Path, required=True)
     parser.add_argument("--device", default="cuda:0")
+    parser.add_argument("--dry-run", action="store_true")
     args = parser.parse_args()
     if args.phase != "prepare":
         raise RuntimeError(UNAUTHORIZED_PHASE)
-    prepare_v300(args.output_root, args.device)
+    if args.dry_run:
+        dry_run_prepare_v300(args.output_root, args.device)
+    else:
+        prepare_v300(args.output_root, args.device)
 
 
 if __name__ == "__main__":

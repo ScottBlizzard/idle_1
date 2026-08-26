@@ -19,6 +19,7 @@ import exp_green_bridge_v300 as exp
 import green_bridge_v300_dataset as dataset
 import green_bridge_v300_directions as directions
 import green_bridge_v300_numerics as numerics
+import green_bridge_v300_prepare as prepare
 import green_bridge_v300_spec as spec
 import green_bridge_v300_transport as transport
 
@@ -147,6 +148,14 @@ class V300DirectionTests(unittest.TestCase):
     def test_helmert_coefficients_are_orthonormal(self):
         a = directions.helmert_coefficients_v300()
         np.testing.assert_allclose(a @ a.T, np.eye(4), atol=1e-15, rtol=0)
+        self.assertEqual(
+            directions.computed_coefficient_payload_sha256_v300(),
+            spec.V300_COEFFICIENT_SHA256,
+        )
+        self.assertNotEqual(
+            spec.V300_COEFFICIENT_SHA256,
+            spec.V300_DECLARED_COEFFICIENT_HASH_ID,
+        )
 
     def test_in_frame_directions_are_unit_norm(self):
         panel = directions.heldout_direction_panel_v300(self.frame)
@@ -181,6 +190,7 @@ class V300TransportTheoryTests(unittest.TestCase):
         g = np.array([1.0, -2.0, 0.5]); G = np.array([3.0, -1.0])
         u = np.array([0.2, 0.4, -0.1])
         np.testing.assert_allclose(np.outer(G, g) @ u, G * (g @ u))
+        self.assertTrue(prepare.synthetic_theorem_suite_v300()["passed"])
 
     def test_matched_bypass_factorization_on_synthetic_map(self):
         g = np.array([0.3, -0.7]); G = np.array([1.1, 0.2, -0.4])
@@ -228,6 +238,10 @@ class V300RadiusTests(unittest.TestCase):
 
     def test_candidate_radius_payload_hash_is_exact(self):
         self.assertEqual(spec.radius_candidate_payload_sha256_v300(), spec.V300_RADIUS_CANDIDATE_SHA256)
+        self.assertNotEqual(
+            spec.V300_RADIUS_CANDIDATE_SHA256,
+            spec.V300_DECLARED_RADIUS_CANDIDATE_HASH_ID,
+        )
 
     def test_largest_eligible_radius_is_selected(self):
         self.assertEqual(numerics.select_global_radius_v300({0.5: self._eligible(), 1.0: self._eligible()}), 1.0)
@@ -302,6 +316,7 @@ class V300LauncherTests(unittest.TestCase):
     def test_prepare_is_the_only_authorized_phase(self):
         self.assertEqual(spec.AUTHORIZED_PHASES, ("prepare",))
         self.assertIn('[[ "$PHASE" == "prepare" ]]', self.source)
+        self.assertIn("execute_prepare_v300", inspect.getsource(exp.prepare_v300))
 
     def test_phase_all_retry_and_resume_are_forbidden(self):
         self.assertFalse(spec.PHASE_ALL_ALLOWED)

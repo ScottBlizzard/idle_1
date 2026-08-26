@@ -6,7 +6,12 @@ import json
 import math
 import numpy as np
 
-from green_bridge_v300_spec import V300_COEFFICIENT_SHA256, canonical_json
+from green_bridge_v300_spec import (
+    V300_COEFFICIENT_SHA256,
+    V300_DECLARED_COEFFICIENT_HASH_ID,
+    V300_TECHNICAL_CORRIGENDUM_ID,
+    canonical_json,
+)
 
 
 def helmert_coefficients_v300() -> np.ndarray:
@@ -19,16 +24,19 @@ def helmert_coefficients_v300() -> np.ndarray:
 
 
 def coefficient_payload_v300() -> dict:
-    """Typed payload; its protocol hash is frozen separately by Pro.
+    """Exact semantic payload, serialized as canonical UTF-8 JSON.
 
-    The decision supplies an identifier but omits the byte serializer that
-    generated it.  We preserve both the typed values and the binding hash ID;
-    prepare refuses to claim the one-shot until the serializer is resolved.
+    Symbolic entries avoid platform-dependent libm and float rendering.  The
+    payload contains no digest field, so its digest is not self-referential.
     """
     return {
         "schema": "green-bridge-v3.0.0-helmert-coefficients-v1",
-        "rows": helmert_coefficients_v300().tolist(),
-        "binding_hash_id": V300_COEFFICIENT_SHA256,
+        "rows": [
+            ["1/sqrt(5)"] * 5,
+            ["1/sqrt(2)", "-1/sqrt(2)", "0", "0", "0"],
+            ["1/sqrt(6)", "1/sqrt(6)", "-2/sqrt(6)", "0", "0"],
+            ["1/sqrt(12)", "1/sqrt(12)", "1/sqrt(12)", "-3/sqrt(12)", "0"],
+        ],
     }
 
 
@@ -37,16 +45,21 @@ def computed_coefficient_payload_sha256_v300() -> str:
 
 
 def coefficient_payload_sha256_v300() -> str:
-    """Return the binding hash supplied by the external protocol decision."""
-    return V300_COEFFICIENT_SHA256
+    computed = computed_coefficient_payload_sha256_v300()
+    if computed != V300_COEFFICIENT_SHA256:
+        raise AssertionError("coefficient canonical payload hash changed")
+    return computed
 
 
 def coefficient_serializer_status_v300() -> dict:
     computed = computed_coefficient_payload_sha256_v300()
     return {
-        "binding_sha256": V300_COEFFICIENT_SHA256,
-        "computed_typed_payload_sha256": computed,
-        "byte_serializer_specified_by_decision": False,
+        "technical_corrigendum_id": V300_TECHNICAL_CORRIGENDUM_ID,
+        "declared_hash_id": V300_DECLARED_COEFFICIENT_HASH_ID,
+        "canonical_payload_sha256": V300_COEFFICIENT_SHA256,
+        "computed_canonical_payload_sha256": computed,
+        "serialization": "UTF-8 canonical JSON; sorted keys; compact separators; no trailing newline",
+        "byte_serializer_specified": True,
         "resolved": computed == V300_COEFFICIENT_SHA256,
     }
 
