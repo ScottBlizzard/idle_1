@@ -1,0 +1,172 @@
+{
+  "backend_sha256": "0cf619c0b06053f922de4f15c9968688c6237779054751525d85f10e220d801d",
+  "backend_version": "green-v400-compiled-mpfr-v1",
+  "cap_decision_authorized": false,
+  "claim_status": "PASS_RESIDENT_SYNTHETIC_DYNAMIC_CELL_ONLY",
+  "contains_scientific_outcome": false,
+  "coverage": "resident four-branch dynamic call vector with native affine/LN/GELU/attention/residual/contrast",
+  "created_at_utc": "2026-08-26T16:59:31.869647Z",
+  "dimensions": {
+    "d_head": 64,
+    "d_mlp": 3072,
+    "d_model": 768,
+    "n_heads": 12,
+    "selected_gates": 10,
+    "sequence_length": 12
+  },
+  "full_tail_equivalent": false,
+  "host": {
+    "hostname": "ubuntu",
+    "logical_cpu_count": 256,
+    "platform": "Linux-5.15.0-67-generic-x86_64-with-glibc2.31"
+  },
+  "input_policy": "native deterministic exact-dyadic synthetic jets; public shapes only",
+  "known_exclusions": [
+    "actual TensorProgram JSON dispatcher",
+    "real tensor-store decode and model weights",
+    "exact final-contrast static fusion startup",
+    "adaptive priority queue",
+    "endpoint and multi-radius certificate orchestration"
+  ],
+  "mandatory_two_initial_cells_mpfr_primitives": 1409101800,
+  "mandatory_two_initial_cells_upper_seconds": 109.32129736249999,
+  "paired_384_plus_512_one_cell_mpfr_primitives": 704550900,
+  "paired_384_plus_512_one_cell_upper_seconds": 54.660648681249995,
+  "peak_rss_kib": 52468,
+  "program_call_vector": {
+    "affine_scatter.v1": 4,
+    "branch_linear_combination.v1": 1,
+    "causal_attention.v1": 4,
+    "final_contrast.v1": 4,
+    "gelu_new.v1": 8,
+    "layer_norm.v1": 16,
+    "pairwise_affine.v1": 30,
+    "residual_add.v1": 10,
+    "static_view.v1": 4
+  },
+  "program_call_vector_sha256": "b55cc7f235a1e5431874cbe4f87b0225a9d8036dab2d3d445062761266ccefbe",
+  "repetitions": 3,
+  "rows": [
+    {
+      "cells_per_second": 0.04986073339967775,
+      "checksum": "7d956be7f22ee797",
+      "d_head": 64,
+      "d_mlp": 3072,
+      "d_model": 768,
+      "elapsed_seconds": 20.055862235,
+      "mpfr_primitive_count": 352275450,
+      "mpfr_primitives_per_second": 17564712.295701507,
+      "n_heads": 12,
+      "precision_bits": 384,
+      "repeats": 1,
+      "repetition": 0,
+      "selected_gates": 10,
+      "sequence_length": 12
+    },
+    {
+      "cells_per_second": 0.04951780074430598,
+      "checksum": "7d956be7f22ee797",
+      "d_head": 64,
+      "d_mlp": 3072,
+      "d_model": 768,
+      "elapsed_seconds": 20.194757945,
+      "mpfr_primitive_count": 352275450,
+      "mpfr_primitives_per_second": 17443905.540210724,
+      "n_heads": 12,
+      "precision_bits": 384,
+      "repeats": 1,
+      "repetition": 1,
+      "selected_gates": 10,
+      "sequence_length": 12
+    },
+    {
+      "cells_per_second": 0.049542649596558616,
+      "checksum": "7d956be7f22ee797",
+      "d_head": 64,
+      "d_mlp": 3072,
+      "d_model": 768,
+      "elapsed_seconds": 20.184628964,
+      "mpfr_primitive_count": 352275450,
+      "mpfr_primitives_per_second": 17452659.180820003,
+      "n_heads": 12,
+      "precision_bits": 384,
+      "repeats": 1,
+      "repetition": 2,
+      "selected_gates": 10,
+      "sequence_length": 12
+    },
+    {
+      "cells_per_second": 0.04327618766169847,
+      "checksum": "7d956be7f22ee797",
+      "d_head": 64,
+      "d_mlp": 3072,
+      "d_model": 768,
+      "elapsed_seconds": 23.107395869,
+      "mpfr_primitive_count": 352275450,
+      "mpfr_primitives_per_second": 15245138.482809275,
+      "n_heads": 12,
+      "precision_bits": 512,
+      "repeats": 1,
+      "repetition": 0,
+      "selected_gates": 10,
+      "sequence_length": 12
+    },
+    {
+      "cells_per_second": 0.04249214564556851,
+      "checksum": "7d956be7f22ee797",
+      "d_head": 64,
+      "d_mlp": 3072,
+      "d_model": 768,
+      "elapsed_seconds": 23.533761,
+      "mpfr_primitive_count": 352275450,
+      "mpfr_primitives_per_second": 14968939.728758188,
+      "n_heads": 12,
+      "precision_bits": 512,
+      "repeats": 1,
+      "repetition": 1,
+      "selected_gates": 10,
+      "sequence_length": 12
+    },
+    {
+      "cells_per_second": 0.04288894365541082,
+      "checksum": "7d956be7f22ee797",
+      "d_head": 64,
+      "d_mlp": 3072,
+      "d_model": 768,
+      "elapsed_seconds": 23.316032403,
+      "mpfr_primitive_count": 352275450,
+      "mpfr_primitives_per_second": 15108721.926234491,
+      "n_heads": 12,
+      "precision_bits": 512,
+      "repeats": 1,
+      "repetition": 2,
+      "selected_gates": 10,
+      "sequence_length": 12
+    }
+  ],
+  "schema_version": "green-v400-resident-joint-witness-cell-benchmark-v1",
+  "summaries": {
+    "384": {
+      "checksum": "7d956be7f22ee797",
+      "elapsed_seconds": [
+        20.055862235,
+        20.194757945,
+        20.184628964
+      ],
+      "maximum_seconds": 20.194757945,
+      "mpfr_primitive_count_per_cell": 352275450,
+      "timing_upper_1p25x_seconds": 25.243447431249997
+    },
+    "512": {
+      "checksum": "7d956be7f22ee797",
+      "elapsed_seconds": [
+        23.107395869,
+        23.533761,
+        23.316032403
+      ],
+      "maximum_seconds": 23.533761,
+      "mpfr_primitive_count_per_cell": 352275450,
+      "timing_upper_1p25x_seconds": 29.417201249999998
+    }
+  }
+}

@@ -45,6 +45,48 @@ double double_from_bits(std::uint64_t bits) {
   return result;
 }
 
+thread_local std::uint64_t* active_primitive_counter = nullptr;
+
+void count_primitive() {
+  if (active_primitive_counter != nullptr) ++(*active_primitive_counter);
+}
+
+int counted_add(mpfr_ptr result, mpfr_srcptr left, mpfr_srcptr right, mpfr_rnd_t rounding) {
+  count_primitive();
+  return mpfr_add(result, left, right, rounding);
+}
+
+int counted_mul(mpfr_ptr result, mpfr_srcptr left, mpfr_srcptr right, mpfr_rnd_t rounding) {
+  count_primitive();
+  return mpfr_mul(result, left, right, rounding);
+}
+
+int counted_div(mpfr_ptr result, mpfr_srcptr left, mpfr_srcptr right, mpfr_rnd_t rounding) {
+  count_primitive();
+  return mpfr_div(result, left, right, rounding);
+}
+
+int counted_div_ui(mpfr_ptr result, mpfr_srcptr left, unsigned long right,
+                   mpfr_rnd_t rounding) {
+  count_primitive();
+  return mpfr_div_ui(result, left, right, rounding);
+}
+
+int counted_sqrt(mpfr_ptr result, mpfr_srcptr input, mpfr_rnd_t rounding) {
+  count_primitive();
+  return mpfr_sqrt(result, input, rounding);
+}
+
+int counted_tanh(mpfr_ptr result, mpfr_srcptr input, mpfr_rnd_t rounding) {
+  count_primitive();
+  return mpfr_tanh(result, input, rounding);
+}
+
+int counted_exp(mpfr_ptr result, mpfr_srcptr input, mpfr_rnd_t rounding) {
+  count_primitive();
+  return mpfr_exp(result, input, rounding);
+}
+
 void pairwise_sum(std::vector<MpfrValue*>& terms, mpfr_ptr output,
                   mpfr_rnd_t rounding) {
   if (terms.empty()) {
@@ -55,7 +97,7 @@ void pairwise_sum(std::vector<MpfrValue*>& terms, mpfr_ptr output,
   while (count > 1) {
     std::size_t next = 0;
     for (std::size_t index = 0; index + 1 < count; index += 2) {
-      mpfr_add(terms[next]->get(), terms[index]->get(), terms[index + 1]->get(), rounding);
+      counted_add(terms[next]->get(), terms[index]->get(), terms[index + 1]->get(), rounding);
       ++next;
     }
     if (count & 1U) {
@@ -226,8 +268,8 @@ IntervalMP interval_point_float(float raw, mpfr_prec_t precision) {
 
 IntervalMP interval_add(const IntervalMP& left, const IntervalMP& right) {
   IntervalMP result(left.precision);
-  mpfr_add(result.lower.get(), left.lower.get(), right.lower.get(), MPFR_RNDD);
-  mpfr_add(result.upper.get(), left.upper.get(), right.upper.get(), MPFR_RNDU);
+  counted_add(result.lower.get(), left.lower.get(), right.lower.get(), MPFR_RNDD);
+  counted_add(result.upper.get(), left.upper.get(), right.upper.get(), MPFR_RNDU);
   return result;
 }
 
@@ -245,14 +287,14 @@ IntervalMP interval_mul(const IntervalMP& left, const IntervalMP& right) {
   mpfr_srcptr left_values[2] = {left.lower.get(), left.upper.get()};
   mpfr_srcptr right_values[2] = {right.lower.get(), right.upper.get()};
   for (mpfr_srcptr a : left_values) for (mpfr_srcptr b : right_values) {
-    mpfr_mul(candidate.get(), a, b, MPFR_RNDD);
+    counted_mul(candidate.get(), a, b, MPFR_RNDD);
     if (!initialized || mpfr_less_p(candidate.get(), result.lower.get()))
       mpfr_set(result.lower.get(), candidate.get(), MPFR_RNDN);
     initialized = true;
   }
   initialized = false;
   for (mpfr_srcptr a : left_values) for (mpfr_srcptr b : right_values) {
-    mpfr_mul(candidate.get(), a, b, MPFR_RNDU);
+    counted_mul(candidate.get(), a, b, MPFR_RNDU);
     if (!initialized || mpfr_greater_p(candidate.get(), result.upper.get()))
       mpfr_set(result.upper.get(), candidate.get(), MPFR_RNDN);
     initialized = true;
@@ -264,10 +306,10 @@ IntervalMP interval_square(const IntervalMP& input) {
   IntervalMP result(input.precision);
   MpfrValue lower_square(input.precision), upper_square(input.precision),
       lower_up(input.precision), upper_up(input.precision);
-  mpfr_mul(lower_square.get(), input.lower.get(), input.lower.get(), MPFR_RNDD);
-  mpfr_mul(upper_square.get(), input.upper.get(), input.upper.get(), MPFR_RNDD);
-  mpfr_mul(lower_up.get(), input.lower.get(), input.lower.get(), MPFR_RNDU);
-  mpfr_mul(upper_up.get(), input.upper.get(), input.upper.get(), MPFR_RNDU);
+  counted_mul(lower_square.get(), input.lower.get(), input.lower.get(), MPFR_RNDD);
+  counted_mul(upper_square.get(), input.upper.get(), input.upper.get(), MPFR_RNDD);
+  counted_mul(lower_up.get(), input.lower.get(), input.lower.get(), MPFR_RNDU);
+  counted_mul(upper_up.get(), input.upper.get(), input.upper.get(), MPFR_RNDU);
   if (mpfr_sgn(input.lower.get()) <= 0 && mpfr_sgn(input.upper.get()) >= 0) {
     mpfr_set_zero(result.lower.get(), 0);
   } else {
@@ -281,15 +323,15 @@ IntervalMP interval_square(const IntervalMP& input) {
 
 IntervalMP interval_tanh(const IntervalMP& input) {
   IntervalMP result(input.precision);
-  mpfr_tanh(result.lower.get(), input.lower.get(), MPFR_RNDD);
-  mpfr_tanh(result.upper.get(), input.upper.get(), MPFR_RNDU);
+  counted_tanh(result.lower.get(), input.lower.get(), MPFR_RNDD);
+  counted_tanh(result.upper.get(), input.upper.get(), MPFR_RNDU);
   return result;
 }
 
 IntervalMP interval_exp(const IntervalMP& input) {
   IntervalMP result(input.precision);
-  mpfr_exp(result.lower.get(), input.lower.get(), MPFR_RNDD);
-  mpfr_exp(result.upper.get(), input.upper.get(), MPFR_RNDU);
+  counted_exp(result.lower.get(), input.lower.get(), MPFR_RNDD);
+  counted_exp(result.upper.get(), input.upper.get(), MPFR_RNDU);
   return result;
 }
 
@@ -305,8 +347,8 @@ IntervalMP interval_point_rational(unsigned long numerator, unsigned long denomi
   IntervalMP result(precision);
   MpfrValue raw(precision);
   mpfr_set_ui(raw.get(), numerator, MPFR_RNDN);
-  mpfr_div_ui(result.lower.get(), raw.get(), denominator, MPFR_RNDD);
-  mpfr_div_ui(result.upper.get(), raw.get(), denominator, MPFR_RNDU);
+  counted_div_ui(result.lower.get(), raw.get(), denominator, MPFR_RNDD);
+  counted_div_ui(result.upper.get(), raw.get(), denominator, MPFR_RNDU);
   return result;
 }
 
@@ -314,8 +356,8 @@ IntervalMP interval_reciprocal(const IntervalMP& input) {
   IntervalMP result(input.precision);
   MpfrValue one(input.precision), first(input.precision), second(input.precision);
   mpfr_set_ui(one.get(), 1U, MPFR_RNDN);
-  mpfr_div(first.get(), one.get(), input.upper.get(), MPFR_RNDD);
-  mpfr_div(second.get(), one.get(), input.lower.get(), MPFR_RNDU);
+  counted_div(first.get(), one.get(), input.upper.get(), MPFR_RNDD);
+  counted_div(second.get(), one.get(), input.lower.get(), MPFR_RNDU);
   mpfr_set(result.lower.get(), mpfr_less_p(first.get(), second.get())
            ? first.get() : second.get(), MPFR_RNDN);
   mpfr_set(result.upper.get(), mpfr_greater_p(first.get(), second.get())
@@ -325,8 +367,8 @@ IntervalMP interval_reciprocal(const IntervalMP& input) {
 
 IntervalMP interval_inv_sqrt(const IntervalMP& input) {
   IntervalMP roots(input.precision);
-  mpfr_sqrt(roots.lower.get(), input.lower.get(), MPFR_RNDD);
-  mpfr_sqrt(roots.upper.get(), input.upper.get(), MPFR_RNDU);
+  counted_sqrt(roots.lower.get(), input.lower.get(), MPFR_RNDD);
+  counted_sqrt(roots.upper.get(), input.upper.get(), MPFR_RNDU);
   return interval_reciprocal(roots);
 }
 
@@ -589,11 +631,11 @@ IntervalMP interval_scale_known_float(const IntervalMP& input, float scalar) {
   MpfrValue weight(input.precision);
   mpfr_set_flt(weight.get(), scalar, MPFR_RNDN);
   if (mpfr_sgn(weight.get()) >= 0) {
-    mpfr_mul(result.lower.get(), input.lower.get(), weight.get(), MPFR_RNDD);
-    mpfr_mul(result.upper.get(), input.upper.get(), weight.get(), MPFR_RNDU);
+    counted_mul(result.lower.get(), input.lower.get(), weight.get(), MPFR_RNDD);
+    counted_mul(result.upper.get(), input.upper.get(), weight.get(), MPFR_RNDU);
   } else {
-    mpfr_mul(result.lower.get(), input.upper.get(), weight.get(), MPFR_RNDD);
-    mpfr_mul(result.upper.get(), input.lower.get(), weight.get(), MPFR_RNDU);
+    counted_mul(result.lower.get(), input.upper.get(), weight.get(), MPFR_RNDD);
+    counted_mul(result.upper.get(), input.lower.get(), weight.get(), MPFR_RNDU);
   }
   return result;
 }
@@ -637,11 +679,11 @@ std::vector<JetMP> synthetic_affine_layer(
             &inputs[index].value, &inputs[index].first, &inputs[index].second};
         const IntervalMP& source = *source_components[component];
         if (mpfr_sgn(weight_value.get()) >= 0) {
-          mpfr_mul(lower_terms[index].get(), source.lower.get(), weight_value.get(), MPFR_RNDD);
-          mpfr_mul(upper_terms[index].get(), source.upper.get(), weight_value.get(), MPFR_RNDU);
+          counted_mul(lower_terms[index].get(), source.lower.get(), weight_value.get(), MPFR_RNDD);
+          counted_mul(upper_terms[index].get(), source.upper.get(), weight_value.get(), MPFR_RNDU);
         } else {
-          mpfr_mul(lower_terms[index].get(), source.upper.get(), weight_value.get(), MPFR_RNDD);
-          mpfr_mul(upper_terms[index].get(), source.lower.get(), weight_value.get(), MPFR_RNDU);
+          counted_mul(lower_terms[index].get(), source.upper.get(), weight_value.get(), MPFR_RNDD);
+          counted_mul(upper_terms[index].get(), source.lower.get(), weight_value.get(), MPFR_RNDU);
         }
       }
       pairwise_sum(lower_pointers, target_components[component]->lower.get(), MPFR_RNDD);
@@ -649,10 +691,10 @@ std::vector<JetMP> synthetic_affine_layer(
     }
     const float bias = (static_cast<int>((output + salt * 13U) % 257U) - 128) / 8192.0f;
     mpfr_set_flt(weight_value.get(), bias, MPFR_RNDN);
-    mpfr_add(outputs.back().value.lower.get(), outputs.back().value.lower.get(),
-             weight_value.get(), MPFR_RNDD);
-    mpfr_add(outputs.back().value.upper.get(), outputs.back().value.upper.get(),
-             weight_value.get(), MPFR_RNDU);
+    counted_add(outputs.back().value.lower.get(), outputs.back().value.lower.get(),
+                weight_value.get(), MPFR_RNDD);
+    counted_add(outputs.back().value.upper.get(), outputs.back().value.upper.get(),
+                weight_value.get(), MPFR_RNDU);
   }
   return outputs;
 }
@@ -1065,14 +1107,18 @@ extern "C" int green_v400_benchmark_gpt2_joint_witness_cell(
     std::uint32_t precision_bits, std::uint32_t d_model, std::uint32_t d_mlp,
     std::uint32_t sequence_length, std::uint32_t n_heads,
     std::uint32_t d_head, std::uint32_t selected_gates, std::uint32_t repeats,
-    double* elapsed_seconds, std::uint64_t* checksum) {
+    double* elapsed_seconds, std::uint64_t* checksum,
+    std::uint64_t* primitive_count) {
   if (precision_bits < 64 || precision_bits > 4096 || d_model == 0 || d_mlp == 0
       || sequence_length == 0 || n_heads == 0 || d_head == 0 || selected_gates == 0
       || n_heads * d_head != d_model || selected_gates > d_mlp || repeats == 0
       || d_model > 100000U || d_mlp > 100000U || sequence_length > 4096U
-      || elapsed_seconds == nullptr || checksum == nullptr) return 2;
+      || elapsed_seconds == nullptr || checksum == nullptr
+      || primitive_count == nullptr) return 2;
   const mpfr_prec_t precision = static_cast<mpfr_prec_t>(precision_bits);
   std::uint64_t state = 0x510e527fade682d1ULL;
+  *primitive_count = 0;
+  active_primitive_counter = primitive_count;
   const auto start = std::chrono::steady_clock::now();
   for (std::uint32_t repeat = 0; repeat < repeats; ++repeat) {
     JetMP output = synthetic_joint_witness_cell(
@@ -1086,6 +1132,7 @@ extern "C" int green_v400_benchmark_gpt2_joint_witness_cell(
     state = mix_checksum(state, output.second.upper.get());
   }
   const auto stop = std::chrono::steady_clock::now();
+  active_primitive_counter = nullptr;
   *elapsed_seconds = std::chrono::duration<double>(stop - start).count();
   *checksum = state;
   return 0;

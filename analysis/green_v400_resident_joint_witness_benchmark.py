@@ -63,14 +63,19 @@ def main() -> int:
         checksums = {row["checksum"] for row in precision_rows}
         if len(checksums) != 1:
             raise RuntimeError("resident benchmark checksum is not deterministic")
+        primitive_counts = {row["mpfr_primitive_count"] for row in precision_rows}
+        if len(primitive_counts) != 1:
+            raise RuntimeError("resident benchmark primitive count is not deterministic")
         maximum = max(row["elapsed_seconds"] for row in precision_rows)
         summaries[str(precision)] = {
             "elapsed_seconds": [row["elapsed_seconds"] for row in precision_rows],
             "maximum_seconds": maximum,
             "timing_upper_1p25x_seconds": 1.25 * maximum,
+            "mpfr_primitive_count_per_cell": next(iter(primitive_counts)),
             "checksum": next(iter(checksums)),
         }
     paired_upper = sum(row["timing_upper_1p25x_seconds"] for row in summaries.values())
+    paired_primitives = sum(row["mpfr_primitive_count_per_cell"] for row in summaries.values())
     report = {
         "schema_version": "green-v400-resident-joint-witness-cell-benchmark-v1",
         "created_at_utc": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
@@ -87,12 +92,14 @@ def main() -> int:
         "rows": rows,
         "summaries": summaries,
         "paired_384_plus_512_one_cell_upper_seconds": paired_upper,
+        "paired_384_plus_512_one_cell_mpfr_primitives": paired_primitives,
         "mandatory_two_initial_cells_upper_seconds": 2 * paired_upper,
+        "mandatory_two_initial_cells_mpfr_primitives": 2 * paired_primitives,
         "peak_rss_kib": resource.getrusage(resource.RUSAGE_SELF).ru_maxrss,
         "coverage": "resident four-branch dynamic call vector with native affine/LN/GELU/attention/residual/contrast",
         "known_exclusions": [
             "actual TensorProgram JSON dispatcher", "real tensor-store decode and model weights",
-            "exact final-contrast static fusion startup", "MPFR primitive operation counter",
+            "exact final-contrast static fusion startup",
             "adaptive priority queue", "endpoint and multi-radius certificate orchestration",
         ],
         "claim_status": "PASS_RESIDENT_SYNTHETIC_DYNAMIC_CELL_ONLY",

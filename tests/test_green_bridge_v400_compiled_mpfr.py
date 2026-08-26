@@ -184,6 +184,8 @@ def test_resident_joint_witness_cell_benchmark_is_live(precision):
         n_heads=2, d_head=2, selected_gates=2,
     )
     assert result["elapsed_seconds"] > 0 and result["cells_per_second"] > 0
+    assert result["mpfr_primitive_count"] > 0
+    assert result["mpfr_primitives_per_second"] > 0
     assert len(result["checksum"]) == 16
 
 
