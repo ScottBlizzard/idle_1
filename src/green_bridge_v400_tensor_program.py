@@ -112,6 +112,11 @@ class TensorNode:
         _assert_exact_json(self.exact_attrs)
         if len(self.dependency_mask_hash) != 64:
             raise ValueError("invalid dependency mask hash")
+        mask = self.exact_attrs.get("dependency_mask_spec")
+        if mask is not None:
+            validate_dependency_mask_spec(mask, self.output_spec)
+            if sha256_canonical(mask) != self.dependency_mask_hash:
+                raise ValueError("TensorNode dependency mask closure mismatch")
         expected = sha256_canonical(self.semantic_payload(
             self.kernel_id, self.parent_semantic_ids, self.tensor_inputs,
             self.exact_attrs, self.output_spec, self.provenance_identity,
@@ -146,12 +151,63 @@ class TensorNode:
         )
 
 
-def dependency_mask_hash(depends_on_t: bool, output_spec: TensorSpec) -> str:
-    return sha256_canonical({
-        "schema_version": "green-v400-dependency-mask-v1",
-        "depends_on_t": bool(depends_on_t),
+def dependency_mask_spec(depends_on_t: bool, output_spec: TensorSpec,
+                         axis0_indices: tuple[int, ...] | None = None) -> dict:
+    """Canonical exact element mask; axis-0 rows are dense in remaining axes."""
+    import math
+    scalar_count = math.prod(output_spec.shape)
+    if not depends_on_t:
+        if axis0_indices:
+            raise ValueError("empty dependency mask cannot declare rows")
+        kind, indices, dependent_count = "empty", [], 0
+    elif not output_spec.shape:
+        if axis0_indices is not None:
+            raise ValueError("scalar dependency mask cannot declare axis-0 rows")
+        kind, indices, dependent_count = "dense", [], 1
+    elif axis0_indices is None:
+        kind, indices, dependent_count = "dense", [], scalar_count
+    else:
+        indices = sorted(set(int(index) for index in axis0_indices))
+        if not indices or indices != list(axis0_indices):
+            raise ValueError("dependency row indices must be nonempty sorted unique integers")
+        if indices[0] < 0 or indices[-1] >= output_spec.shape[0]:
+            raise ValueError("dependency row is outside output shape")
+        kind = "axis0_rows"
+        dependent_count = len(indices) * math.prod(output_spec.shape[1:])
+    return {
+        "schema_version": "green-v400-dependency-mask-v2",
+        "kind": kind,
         "output_spec": output_spec.to_dict(),
-    })
+        "axis0_indices": indices,
+        "dependent_scalar_count": dependent_count,
+    }
+
+
+def dependency_mask_hash(depends_on_t: bool, output_spec: TensorSpec,
+                         axis0_indices: tuple[int, ...] | None = None) -> str:
+    return sha256_canonical(dependency_mask_spec(depends_on_t, output_spec, axis0_indices))
+
+
+def validate_dependency_mask_spec(payload: dict, output_spec: TensorSpec) -> None:
+    expected_keys = {
+        "schema_version", "kind", "output_spec", "axis0_indices",
+        "dependent_scalar_count",
+    }
+    if set(payload) != expected_keys or payload.get("schema_version") != "green-v400-dependency-mask-v2":
+        raise ValueError("dependency mask schema mismatch")
+    kind = payload.get("kind")
+    if kind == "empty":
+        expected = dependency_mask_spec(False, output_spec)
+    elif kind == "dense":
+        expected = dependency_mask_spec(True, output_spec)
+    elif kind == "axis0_rows":
+        expected = dependency_mask_spec(
+            True, output_spec, tuple(payload.get("axis0_indices", ()))
+        )
+    else:
+        raise ValueError("unknown dependency mask kind")
+    if payload != expected:
+        raise ValueError("dependency mask content mismatch")
 
 
 def scalarization_merkle_root(nodes: tuple[TensorNode, ...]) -> str:
@@ -209,10 +265,18 @@ class TensorProgram:
             raise ValueError("TensorProgram scalarization closure mismatch")
         by_id = {node.semantic_id: node for node in self.nodes}
         for node in self.nodes:
+            mask = node.exact_attrs.get("dependency_mask_spec")
+            if mask is not None:
+                if mask.get("output_spec") != node.output_spec.to_dict():
+                    raise ValueError("TensorProgram dependency mask output mismatch")
+                if sha256_canonical(mask) != node.dependency_mask_hash:
+                    raise ValueError("TensorProgram dependency mask closure mismatch")
+                mask_depends = mask.get("kind") != "empty"
+                if bool(node.exact_attrs.get("depends_on_t", False)) != mask_depends:
+                    raise ValueError("TensorProgram dependency mask boolean mismatch")
             parent_dependency = any(
-                by_id[parent].dependency_mask_hash == dependency_mask_hash(
-                    True, by_id[parent].output_spec
-                ) for parent in node.parent_semantic_ids
+                bool(by_id[parent].exact_attrs.get("depends_on_t", False))
+                for parent in node.parent_semantic_ids
             )
             declared = node.exact_attrs.get("depends_on_t")
             if declared is not None and bool(declared) != parent_dependency and node.kernel_id != "affine_scatter.v1":

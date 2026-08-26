@@ -97,6 +97,16 @@ def test_gpt2_program_is_closed_replayable_and_four_branch(tmp_path):
     assert set(program.branch_roots) == {"PAT_J", "PAT_B", "TAR_J", "TAR_B"}
     assert len(program.nodes) > 50
     assert program.nodes[-1].exact_attrs["weights"] == [1, -1, -1, 1]
+    for node in program.nodes:
+        mask = node.exact_attrs["dependency_mask_spec"]
+        if node.output_spec.shape:
+            assert mask["kind"] == "axis0_rows"
+            assert mask["axis0_indices"] == [dims.final_position]
+            assert mask["dependent_scalar_count"] == math.prod(node.output_spec.shape[1:])
+        else:
+            assert mask["kind"] == "dense"
+            assert mask["dependent_scalar_count"] == 1
+    assert len(program.resource_formula["dependency_mask_closure_sha256"]) == 64
 
 
 def test_gpt2_program_zero_control_joint_equals_bypass(tmp_path):

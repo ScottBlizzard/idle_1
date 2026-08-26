@@ -1,0 +1,276 @@
+{
+  "contains_scientific_outcome": false,
+  "derivative_parity_at_zero": {
+    "absolute_error": 1.4006218407303095e-10,
+    "manual_transformerlens": -6.828523510193918e-06,
+    "passed": true,
+    "tensor_program_replay": -6.828383448009845e-06
+  },
+  "fixture": "synthetic tokens/direction/contrast; no scientific row or outcome",
+  "identity": {
+    "branch_order": [
+      "PAT_J",
+      "PAT_B",
+      "TAR_J",
+      "TAR_B"
+    ],
+    "contains_scientific_outcome": false,
+    "dimensions": {
+      "contrast_width": 100,
+      "d_head": 64,
+      "d_mlp": 3072,
+      "d_model": 768,
+      "final_position": 6,
+      "n_heads": 12,
+      "selected_gates": [
+        2326,
+        1138,
+        2287,
+        606,
+        2848,
+        2305,
+        46,
+        2659,
+        946,
+        1616
+      ],
+      "sequence_length": 7
+    },
+    "program_semantic_hash": "ad7c3bdb6350fa346d00923181792ced935e77f0843c4006f26914e9041f8967",
+    "schema_version": "green-v400-gpt2-program-identity-v1",
+    "tensor_store_manifest_hash": "623e7b29154e3f28f24385cbf81f0a08c2b853a7c76248dbd813f1c47cd2bb3a"
+  },
+  "rows": [
+    {
+      "absolute_error": {
+        "PAT_B": 5.340576178625156e-06,
+        "PAT_J": 4.119873050711931e-06,
+        "TAR_B": 1.9836425826369464e-06,
+        "TAR_J": 3.509521486755318e-06,
+        "output": 2.746582032031597e-06
+      },
+      "dyadic_t": {
+        "exponent": 0,
+        "numerator": 0
+      },
+      "manual": {
+        "PAT_B": 0.7931649780273418,
+        "PAT_J": 0.7931649780273418,
+        "TAR_B": 0.781160736083983,
+        "TAR_J": 0.781160736083983,
+        "output": 0.0
+      },
+      "max_absolute_error": 5.340576178625156e-06,
+      "numpy_audit_replay": {
+        "PAT_B": 0.7931668090820438,
+        "PAT_J": 0.7931643676757765,
+        "TAR_B": 0.7811611938476551,
+        "TAR_J": 0.7811607360839793,
+        "output": -1.9836425915187306e-06
+      },
+      "replay": {
+        "PAT_B": 0.7931703186035204,
+        "PAT_J": 0.7931690979003925,
+        "TAR_B": 0.7811627197265656,
+        "TAR_J": 0.7811642456054697,
+        "output": -2.746582032031597e-06
+      },
+      "stage_max_absolute_error": {
+        "PAT_B": {
+          "block10_resid_post": 0.0,
+          "block11_resid_post": 1.52587890625e-05,
+          "ln_final": 1.52587890625e-05
+        },
+        "PAT_J": {
+          "block10_resid_post": 1.4901161193847656e-08,
+          "block11_resid_post": 1.52587890625e-05,
+          "ln_final": 1.52587890625e-05
+        },
+        "TAR_B": {
+          "block10_resid_post": 0.0,
+          "block11_resid_post": 1.52587890625e-05,
+          "ln_final": 1.52587890625e-05
+        },
+        "TAR_J": {
+          "block10_resid_post": 5.960464477539063e-08,
+          "block11_resid_post": 1.52587890625e-05,
+          "ln_final": 1.52587890625e-05
+        }
+      }
+    },
+    {
+      "absolute_error": {
+        "PAT_B": 4.5776367674221774e-07,
+        "PAT_J": 1.5258789147765128e-06,
+        "TAR_B": 6.103515621802558e-07,
+        "TAR_J": 9.155273366090455e-07,
+        "output": 4.577636927294293e-07
+      },
+      "dyadic_t": {
+        "exponent": -8,
+        "numerator": 1
+      },
+      "manual": {
+        "PAT_B": 0.7931666564941366,
+        "PAT_J": 0.793170013427738,
+        "TAR_B": 0.7811669921874991,
+        "TAR_J": 0.7811682128906252,
+        "output": 2.1362304751804118e-06
+      },
+      "max_absolute_error": 1.5258789147765128e-06,
+      "numpy_audit_replay": {
+        "PAT_B": 0.7931663513183526,
+        "PAT_J": 0.7931678771972671,
+        "TAR_B": 0.7811695861816348,
+        "TAR_J": 0.7811708068847713,
+        "output": 3.051757780925257e-07
+      },
+      "replay": {
+        "PAT_B": 0.7931671142578134,
+        "PAT_J": 0.7931684875488232,
+        "TAR_B": 0.7811676025390613,
+        "TAR_J": 0.7811672973632886,
+        "output": 1.6784667824509825e-06
+      },
+      "stage_max_absolute_error": {
+        "PAT_B": {
+          "block10_resid_post": 3.814697265625e-06,
+          "block11_resid_post": 3.0517578125e-05,
+          "ln_final": 1.52587890625e-05
+        },
+        "PAT_J": {
+          "block10_resid_post": 1.52587890625e-05,
+          "block11_resid_post": 3.0517578125e-05,
+          "ln_final": 1.52587890625e-05
+        },
+        "TAR_B": {
+          "block10_resid_post": 1.52587890625e-05,
+          "block11_resid_post": 1.52587890625e-05,
+          "ln_final": 1.52587890625e-05
+        },
+        "TAR_J": {
+          "block10_resid_post": 1.52587890625e-05,
+          "block11_resid_post": 3.0517578125e-05,
+          "ln_final": 3.0517578125e-05
+        }
+      }
+    },
+    {
+      "absolute_error": {
+        "PAT_B": 7.629394547237212e-07,
+        "PAT_J": 9.155273410499376e-07,
+        "TAR_B": 4.5776367230132564e-07,
+        "TAR_J": 1.0681152327052246e-06,
+        "output": 1.0681152353697598e-06
+      },
+      "dyadic_t": {
+        "exponent": -8,
+        "numerator": -1
+      },
+      "manual": {
+        "PAT_B": 0.7931678771972601,
+        "PAT_J": 0.7931669616699173,
+        "TAR_B": 0.7811613464355478,
+        "TAR_J": 0.7811604309082032,
+        "output": 1.7763568394002505e-15
+      },
+      "max_absolute_error": 1.0681152353697598e-06,
+      "numpy_audit_replay": {
+        "PAT_B": 0.7931648254394468,
+        "PAT_J": 0.7931607055664177,
+        "TAR_B": 0.7811625671386978,
+        "TAR_J": 0.7811587524413903,
+        "output": -3.0517572158217376e-07
+      },
+      "replay": {
+        "PAT_B": 0.7931671142578054,
+        "PAT_J": 0.7931678771972583,
+        "TAR_B": 0.7811618041992201,
+        "TAR_J": 0.7811614990234359,
+        "output": 1.0681152371461167e-06
+      },
+      "stage_max_absolute_error": {
+        "PAT_B": {
+          "block10_resid_post": 9.5367431640625e-07,
+          "block11_resid_post": 1.52587890625e-05,
+          "ln_final": 1.52587890625e-05
+        },
+        "PAT_J": {
+          "block10_resid_post": 7.62939453125e-06,
+          "block11_resid_post": 1.52587890625e-05,
+          "ln_final": 1.52587890625e-05
+        },
+        "TAR_B": {
+          "block10_resid_post": 1.52587890625e-05,
+          "block11_resid_post": 1.52587890625e-05,
+          "ln_final": 1.52587890625e-05
+        },
+        "TAR_J": {
+          "block10_resid_post": 7.62939453125e-06,
+          "block11_resid_post": 1.52587890625e-05,
+          "ln_final": 1.52587890625e-05
+        }
+      }
+    },
+    {
+      "absolute_error": {
+        "PAT_B": 7.324218746163069e-06,
+        "PAT_J": 5.49316406051048e-06,
+        "TAR_B": 3.051757813565814e-06,
+        "TAR_J": 3.3569335995409233e-06,
+        "output": 2.136230471627698e-06
+      },
+      "dyadic_t": {
+        "exponent": -5,
+        "numerator": 1
+      },
+      "manual": {
+        "PAT_B": 0.7931719970703108,
+        "PAT_J": 0.7931774902343776,
+        "TAR_B": 0.7811759948730437,
+        "TAR_J": 0.7811787414550775,
+        "output": 2.7465820329197754e-06
+      },
+      "max_absolute_error": 7.324218746163069e-06,
+      "numpy_audit_replay": {
+        "PAT_B": 0.7931794738769624,
+        "PAT_J": 0.7931831359863242,
+        "TAR_B": 0.7811773681640555,
+        "TAR_J": 0.7811819458007813,
+        "output": -9.155273640315542e-07
+      },
+      "replay": {
+        "PAT_B": 0.793179321289057,
+        "PAT_J": 0.7931829833984381,
+        "TAR_B": 0.7811790466308572,
+        "TAR_J": 0.781182098388677,
+        "output": 6.103515612920773e-07
+      },
+      "stage_max_absolute_error": {
+        "PAT_B": {
+          "block10_resid_post": 1.52587890625e-05,
+          "block11_resid_post": 3.0517578125e-05,
+          "ln_final": 1.52587890625e-05
+        },
+        "PAT_J": {
+          "block10_resid_post": 1.52587890625e-05,
+          "block11_resid_post": 1.52587890625e-05,
+          "ln_final": 1.52587890625e-05
+        },
+        "TAR_B": {
+          "block10_resid_post": 1.52587890625e-05,
+          "block11_resid_post": 1.52587890625e-05,
+          "ln_final": 1.52587890625e-05
+        },
+        "TAR_J": {
+          "block10_resid_post": 1.52587890625e-05,
+          "block11_resid_post": 3.0517578125e-05,
+          "ln_final": 1.52587890625e-05
+        }
+      }
+    }
+  ],
+  "schema_version": "green-v400-gpt2-synthetic-program-parity-v1",
+  "status": "PASS",
+  "tolerance": 0.0003
+}

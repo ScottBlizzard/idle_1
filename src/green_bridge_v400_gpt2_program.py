@@ -12,7 +12,7 @@ from green_bridge_v400_branch_semantics import BRANCH_ORDER, BRANCH_WEIGHTS
 from green_bridge_v400_resource_plan import TailShape, plan_gpt2_tail_resources
 from green_bridge_v400_schemas import sha256_canonical
 from green_bridge_v400_tensor_program import (
-    TensorNode, TensorProgram, TensorSpec, dependency_mask_hash,
+    TensorNode, TensorProgram, TensorSpec, dependency_mask_hash, dependency_mask_spec,
 )
 from green_bridge_v400_tensor_store import TensorRef, TensorStoreReader, write_tensor_store
 
@@ -71,23 +71,33 @@ def _resource_plan(dims: GPT2TailDimensions):
 
 def _node(kernel: str, parents: Iterable[TensorNode], tensors: Iterable[TensorRef],
           attrs: dict, shape: tuple[int, ...], provenance: str,
-          *, depends_on_t: bool = True, dtype: str = "<f4") -> TensorNode:
+          *, depends_on_t: bool = True, dtype: str = "<f4",
+          dynamic_axis0_indices: tuple[int, ...] | None = None) -> TensorNode:
     output_spec = _spec(shape, dtype)
-    exact_attrs = dict(attrs) | {"depends_on_t": depends_on_t}
+    if depends_on_t and shape and dynamic_axis0_indices is None:
+        raise ValueError("dynamic tensor node requires an exact axis-0 dependency mask")
+    mask = dependency_mask_spec(depends_on_t, output_spec, dynamic_axis0_indices)
+    exact_attrs = dict(attrs) | {
+        "depends_on_t": depends_on_t,
+        "dependency_mask_spec": mask,
+    }
     return TensorNode.build(
         kernel, tuple(parent.semantic_id for parent in parents), tuple(tensors), exact_attrs,
-        output_spec, provenance, dependency_mask_hash(depends_on_t, output_spec),
+        output_spec, provenance,
+        dependency_mask_hash(depends_on_t, output_spec, dynamic_axis0_indices),
     )
 
 
 def _tail_nodes(prefix: str, resid_post: TensorNode, refs: dict[str, TensorRef],
                 dims: GPT2TailDimensions) -> tuple[list[TensorNode], TensorNode]:
     s, d, m = dims.sequence_length, dims.d_model, dims.d_mlp
+    dynamic_rows = (dims.final_position,)
     nodes: list[TensorNode] = []
 
     ln1 = _node("layer_norm.v1", (resid_post,),
                 (refs["block11.ln1.w"], refs["block11.ln1.b"], refs["layer_norm.eps"]),
-                {"axis": -1}, (s, d), f"{prefix}.block11.ln1")
+                {"axis": -1}, (s, d), f"{prefix}.block11.ln1",
+                dynamic_axis0_indices=dynamic_rows)
     nodes.append(ln1)
     qkv = []
     for name in ("q", "k", "v"):
@@ -95,7 +105,7 @@ def _tail_nodes(prefix: str, resid_post: TensorNode, refs: dict[str, TensorRef],
             "pairwise_affine.v1", (ln1,),
             (refs[f"block11.attn.W_{name.upper()}"], refs[f"block11.attn.b_{name.upper()}"]),
             {"weight_layout": "input_output", "torch_float_kernel": "linear"}, (s, d),
-            f"{prefix}.block11.attn.{name}",
+            f"{prefix}.block11.attn.{name}", dynamic_axis0_indices=dynamic_rows,
         )
         nodes.append(projection)
         qkv.append(projection)
@@ -105,41 +115,45 @@ def _tail_nodes(prefix: str, resid_post: TensorNode, refs: dict[str, TensorRef],
          "score_scale": "inverse_sqrt_d_head", "mask": "causal_delete_future",
          "softmax_pivot": "row_max_first_index"},
         (s, d), f"{prefix}.block11.attn.pattern_value",
+        dynamic_axis0_indices=dynamic_rows,
     )
     nodes.append(attention)
     attn_out = _node(
         "pairwise_affine.v1", (attention,),
         (refs["block11.attn.W_O"], refs["block11.attn.b_O"]),
         {"weight_layout": "input_output", "torch_float_kernel": "linear"},
-        (s, d), f"{prefix}.block11.attn.out",
+        (s, d), f"{prefix}.block11.attn.out", dynamic_axis0_indices=dynamic_rows,
     )
     nodes.append(attn_out)
     resid_mid = _node("residual_add.v1", (resid_post, attn_out), (), {}, (s, d),
-                      f"{prefix}.block11.resid_mid")
+                      f"{prefix}.block11.resid_mid", dynamic_axis0_indices=dynamic_rows)
     nodes.append(resid_mid)
     ln2 = _node("layer_norm.v1", (resid_mid,),
                 (refs["block11.ln2.w"], refs["block11.ln2.b"], refs["layer_norm.eps"]),
-                {"axis": -1}, (s, d), f"{prefix}.block11.ln2")
+                {"axis": -1}, (s, d), f"{prefix}.block11.ln2",
+                dynamic_axis0_indices=dynamic_rows)
     nodes.append(ln2)
     pre = _node("pairwise_affine.v1", (ln2,),
                 (refs["block11.mlp.W_in"], refs["block11.mlp.b_in"]),
-                {"weight_layout": "input_output"}, (s, m), f"{prefix}.block11.mlp.pre")
+                {"weight_layout": "input_output"}, (s, m), f"{prefix}.block11.mlp.pre",
+                dynamic_axis0_indices=dynamic_rows)
     nodes.append(pre)
     post = _node("gelu_new.v1", (pre,),
                  (refs["gelu.kappa"], refs["gelu.lambda"]), {}, (s, m),
-                 f"{prefix}.block11.mlp.post")
+                 f"{prefix}.block11.mlp.post", dynamic_axis0_indices=dynamic_rows)
     nodes.append(post)
     mlp_out = _node("pairwise_affine.v1", (post,),
                     (refs["block11.mlp.W_out"], refs["block11.mlp.b_out"]),
                     {"weight_layout": "input_output"}, (s, d),
-                    f"{prefix}.block11.mlp.out")
+                    f"{prefix}.block11.mlp.out", dynamic_axis0_indices=dynamic_rows)
     nodes.append(mlp_out)
     resid_final = _node("residual_add.v1", (resid_mid, mlp_out), (), {}, (s, d),
-                        f"{prefix}.block11.resid_post")
+                        f"{prefix}.block11.resid_post", dynamic_axis0_indices=dynamic_rows)
     nodes.append(resid_final)
     normalized = _node("layer_norm.v1", (resid_final,),
                        (refs["ln_final.w"], refs["ln_final.b"], refs["layer_norm.eps"]),
-                       {"axis": -1}, (s, d), f"{prefix}.ln_final")
+                       {"axis": -1}, (s, d), f"{prefix}.ln_final",
+                       dynamic_axis0_indices=dynamic_rows)
     nodes.append(normalized)
     contrast = _node(
         "final_contrast.v1", (normalized,),
@@ -166,11 +180,13 @@ def build_gpt2_joint_witness_program(reader: TensorStoreReader,
     s, d = dims.sequence_length, dims.d_model
 
     for condition in ("PAT", "TAR"):
+        dynamic_rows = (dims.final_position,)
         base = _node(
             "affine_scatter.v1", (),
             (refs[f"{condition}.resid_post"], refs["physical_direction"]),
             {"final_position": dims.final_position, "control": "same_t_times_physical_direction"},
             (s, d), f"{condition}.shared_residual_bypass",
+            dynamic_axis0_indices=dynamic_rows,
         )
         nodes.append(base)
 
@@ -178,12 +194,13 @@ def build_gpt2_joint_witness_program(reader: TensorStoreReader,
             "affine_scatter.v1", (),
             (refs[f"{condition}.resid_mid"], refs["physical_direction"]),
             {"final_position": dims.final_position, "control": "same_t_times_physical_direction"},
-            (s, d), f"{condition}.J.resid_mid",
+            (s, d), f"{condition}.J.resid_mid", dynamic_axis0_indices=dynamic_rows,
         )
         nodes.append(controlled_mid)
         ln2 = _node("layer_norm.v1", (controlled_mid,),
                     (refs["block10.ln2.w"], refs["block10.ln2.b"], refs["layer_norm.eps"]),
-                    {"axis": -1}, (s, d), f"{condition}.J.block10.ln2")
+                    {"axis": -1}, (s, d), f"{condition}.J.block10.ln2",
+                    dynamic_axis0_indices=dynamic_rows)
         nodes.append(ln2)
         selected_pre = _node(
             "pairwise_affine.v1", (ln2,),
@@ -191,28 +208,32 @@ def build_gpt2_joint_witness_program(reader: TensorStoreReader,
                 {"weight_layout": "input_output", "torch_float_kernel": "batch_addmm",
                  "selected_gates": list(dims.selected_gates)},
             (s, k), f"{condition}.J.block10.selected_pre",
+            dynamic_axis0_indices=dynamic_rows,
         )
         nodes.append(selected_pre)
         selected_live = _node("gelu_new.v1", (selected_pre,),
                               (refs["gelu.kappa"], refs["gelu.lambda"]), {}, (s, k),
-                              f"{condition}.J.block10.selected_live")
+                              f"{condition}.J.block10.selected_live",
+                              dynamic_axis0_indices=dynamic_rows)
         nodes.append(selected_live)
         selected_delta = _node(
             "static_view.v1", (selected_live,), (refs[f"{condition}.selected_post"],),
             {"operation": "subtract_anchor_at_final_position",
              "final_position": dims.final_position},
             (s, k), f"{condition}.J.block10.selected_delta",
+            dynamic_axis0_indices=dynamic_rows,
         )
         nodes.append(selected_delta)
         delta_out = _node(
             "pairwise_affine.v1", (selected_delta,),
             (refs["block10.mlp.W_out_selected"], refs["zero.d_model"]),
             {"weight_layout": "input_output", "torch_float_kernel": "batch_addmm"}, (s, d),
-            f"{condition}.J.block10.selected_out_delta",
+            f"{condition}.J.block10.selected_out_delta", dynamic_axis0_indices=dynamic_rows,
         )
         nodes.append(delta_out)
         joint_resid = _node("residual_add.v1", (base, delta_out), (), {}, (s, d),
-                            f"{condition}.J.block10.resid_post")
+                            f"{condition}.J.block10.resid_post",
+                            dynamic_axis0_indices=dynamic_rows)
         nodes.append(joint_resid)
 
         j_nodes, j_root = _tail_nodes(f"{condition}.J", joint_resid, refs, dims)
@@ -231,9 +252,18 @@ def build_gpt2_joint_witness_program(reader: TensorStoreReader,
     )
     nodes.append(output)
     plan = _resource_plan(dims)
+    dependency_masks = [
+        {"semantic_id": node.semantic_id, "dependency_mask_hash": node.dependency_mask_hash,
+         "dependent_scalar_count": node.exact_attrs["dependency_mask_spec"]["dependent_scalar_count"]}
+        for node in nodes
+    ]
     resource_formula = plan.to_dict() | {
         "dimensions": dims.to_dict(),
         "tensor_store_closure": reader.manifest.record_closure_sha256,
+        "dependency_mask_closure_sha256": sha256_canonical(dependency_masks),
+        "dependent_scalar_outputs_total": sum(
+            row["dependent_scalar_count"] for row in dependency_masks
+        ),
     }
     program = TensorProgram.build(
         model_manifest_hash, tuple(nodes), roots, output.semantic_id, resource_formula,
@@ -249,6 +279,15 @@ def validate_gpt2_joint_witness_program(program: TensorProgram, reader: TensorSt
     for node in program.nodes:
         for reference in node.tensor_inputs:
             reader.validate_ref(reference)
+        mask = node.exact_attrs.get("dependency_mask_spec")
+        if mask is None:
+            raise ValueError("GPT-2 TensorProgram node lacks an exact dependency mask")
+        if node.output_spec.shape:
+            if (mask["kind"] != "axis0_rows"
+                    or mask["axis0_indices"] != [dims.final_position]):
+                raise ValueError("GPT-2 dynamic cone is not closed to the final causal row")
+        elif mask["kind"] != "dense" or mask["dependent_scalar_count"] != 1:
+            raise ValueError("GPT-2 scalar root dependency mask mismatch")
     expected = _resource_plan(dims).to_dict()
     for key, value in expected.items():
         if program.resource_formula.get(key) != value:
@@ -257,6 +296,16 @@ def validate_gpt2_joint_witness_program(program: TensorProgram, reader: TensorSt
         raise ValueError("TensorProgram dimension closure mismatch")
     if program.resource_formula.get("tensor_store_closure") != reader.manifest.record_closure_sha256:
         raise ValueError("TensorProgram tensor-store closure mismatch")
+    dependency_masks = [
+        {"semantic_id": node.semantic_id, "dependency_mask_hash": node.dependency_mask_hash,
+         "dependent_scalar_count": node.exact_attrs["dependency_mask_spec"]["dependent_scalar_count"]}
+        for node in program.nodes
+    ]
+    if program.resource_formula.get("dependency_mask_closure_sha256") != sha256_canonical(dependency_masks):
+        raise ValueError("TensorProgram dependency-mask resource closure mismatch")
+    if program.resource_formula.get("dependent_scalar_outputs_total") != sum(
+            row["dependent_scalar_count"] for row in dependency_masks):
+        raise ValueError("TensorProgram dependent scalar count mismatch")
 
 
 def execute_tensor_program_numpy(program: TensorProgram, reader: TensorStoreReader,
