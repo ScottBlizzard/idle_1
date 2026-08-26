@@ -83,6 +83,8 @@ GRAPH_OPERATIONS = (
     "softmax", "attention", "reshape", "transpose", "slice",
     "gather_static", "residual_add", "contrast",
 )
+_TOKEN_PAIR_POOL_CACHE: dict[tuple[int, str, int, str], tuple[tuple[int, int], ...]] = {}
+_YEAR_TOKEN_CACHE: dict[tuple[int, int], tuple[int | None, frozenset[int]]] = {}
 
 
 @dataclass(frozen=True)
@@ -390,6 +392,8 @@ def _eligible_nouns(tokenizer) -> tuple[list[dict], dict]:
             }
             if lengths != reference_lengths:
                 reason = "prompt_length"
+            elif not _noun_pair_contract(tokenizer, noun):
+                reason = "pair_token_contract"
         if reason:
             reasons[reason] += 1
             continue
@@ -413,14 +417,24 @@ def _eligible_nouns(tokenizer) -> tuple[list[dict], dict]:
 
 
 def _select_pairs(noun: str, century: int, distance: str, role: str, count: int,
-                  excluded: set[tuple[int, int]] | None = None) -> list[dict]:
+                  excluded: set[tuple[int, int]] | None = None,
+                  tokenizer=None, verify_legacy: bool = True) -> list[dict]:
     from green_bridge_dataset import _candidate_pairs
+    from green_bridge_spec import PROMPT
+    import exp_green_bridge_gpt2 as legacy
     salt = "green-v400-jwbt-pairs-20260826"
     ranked = []
     excluded = set() if excluded is None else excluded
-    for first, second in _candidate_pairs(distance):
+    pairs = (_token_pair_pool(tokenizer, noun, century, distance)
+             if tokenizer is not None else tuple(_candidate_pairs(distance)))
+    for first, second in pairs:
         if tuple(sorted((first, second))) in excluded:
             continue
+        if tokenizer is not None and verify_legacy:
+            first_prompt = PROMPT.format(noun=noun, cc=century, y=first)
+            second_prompt = PROMPT.format(noun=noun, cc=century, y=second)
+            if not legacy.token_pair_allowed(tokenizer, first_prompt, second_prompt):
+                continue
         pair_key = _sha256_bytes(f"{salt}|pair|{noun}|{century}|{distance}|{role}|{first}|{second}".encode())
         orientation_key = _sha256_bytes(f"{salt}|orient|{noun}|{century}|{distance}|{role}|{first}|{second}".encode())
         ranked.append((pair_key, orientation_key, first, second))
@@ -442,7 +456,60 @@ def _select_pairs(noun: str, century: int, distance: str, role: str, count: int,
     return selected
 
 
-def _row_universe(candidates: list[dict]) -> tuple[dict, list[dict]]:
+def _token_pair_pool(tokenizer, noun: str, century: int, distance: str) -> tuple[tuple[int, int], ...]:
+    from green_bridge_dataset import _candidate_pairs
+    from green_bridge_spec import PROMPT
+    key = (id(tokenizer), noun, century, distance)
+    if key in _TOKEN_PAIR_POOL_CACHE:
+        return _TOKEN_PAIR_POOL_CACHE[key]
+    year_key = (id(tokenizer), century)
+    if year_key not in _YEAR_TOKEN_CACHE:
+        century_ids = tokenizer.encode(f" {century:02d}", add_special_tokens=False)
+        valid_suffixes = set()
+        if len(century_ids) == 1:
+            for suffix in range(100):
+                suffix_ids = tokenizer.encode(f"{suffix:02d}", add_special_tokens=False)
+                year_ids = tokenizer.encode(f" {century:02d}{suffix:02d}", add_special_tokens=False)
+                if len(suffix_ids) == 1 and len(year_ids) == 2 and year_ids[1] == suffix_ids[0]:
+                    valid_suffixes.add(suffix)
+        _YEAR_TOKEN_CACHE[year_key] = (
+            century_ids[0] if len(century_ids) == 1 else None,
+            frozenset(valid_suffixes),
+        )
+    century_id, valid_suffixes = _YEAR_TOKEN_CACHE[year_key]
+    valid: dict[int, tuple[int, ...]] = {}
+    if century_id is not None:
+        for suffix in valid_suffixes:
+            prompt_ids = tuple(tokenizer.encode(
+                PROMPT.format(noun=noun, cc=century, y=suffix), add_special_tokens=False
+            ))
+            if prompt_ids[-1] == century_id:
+                valid[suffix] = prompt_ids
+    result = tuple(
+        (first, second) for first, second in _candidate_pairs(distance)
+        if first in valid and second in valid and len(valid[first]) == len(valid[second])
+    )
+    _TOKEN_PAIR_POOL_CACHE[key] = result
+    return result
+
+
+def _noun_pair_contract(tokenizer, noun: str) -> bool:
+    for century in (12, 14, 16):
+        for distance in ("near", "far"):
+            used: set[tuple[int, int]] = set()
+            try:
+                for role in ("transport", "joint"):
+                    selected = _select_pairs(
+                        noun, century, distance, role, 12,
+                        excluded=used, tokenizer=tokenizer, verify_legacy=False,
+                    )
+                    used.update(tuple(sorted((row["y"], row["y_prime"]))) for row in selected)
+            except RuntimeError:
+                return False
+    return True
+
+
+def _row_universe(candidates: list[dict], tokenizer) -> tuple[dict, list[dict]]:
     from green_bridge_spec import PROMPT
     phases = (("formal_prepare_pool", 0, 4, 4), ("development_sealed", 4, 16, 12), ("confirmation_sealed", 16, 32, 12))
     rows = []
@@ -456,7 +523,7 @@ def _row_universe(candidates: list[dict]) -> tuple[dict, list[dict]]:
                 for role in ("transport", "joint"):
                     selected = _select_pairs(
                         candidate["noun"], century, distance, role,
-                        per_role_cell, excluded=used_pairs,
+                        per_role_cell, excluded=used_pairs, tokenizer=tokenizer,
                     )
                     for item in selected:
                         pair = tuple(sorted((item["y"], item["y_prime"])))
@@ -741,6 +808,17 @@ def run_formal_prepare(config_path: str) -> FormalPrepareSummary:
             "rationale": "the prior attempt stopped before model load due an empty isolated cache; partial theorem artifacts were preserved byte-for-byte",
             "scientific_semantics_changed": False,
             "storage_device_changed": False,
+        }, {
+            "schema_version": "green-v400-engineering-correction-v1",
+            "category": "paired_tokenization_contract",
+            "before": "candidate-level prompt-length check only",
+            "after": "legacy token_pair_allowed enforced during eligibility and every row pairing",
+            "before_sha256": _sha256_bytes(b"candidate-level prompt-length check only"),
+            "after_sha256": _sha256_bytes(b"legacy token_pair_allowed enforced during eligibility and every row pairing"),
+            "rationale": "first donor exposed clean/corrupt sequence lengths 13/12 before any response or derivative was read",
+            "failed_attempt_archive": "/mnt/sdb/ccj/outputs/green_bridge_v400_formal_prepare_failed_shape_bc4566a",
+            "scientific_semantics_changed": False,
+            "storage_device_changed": False,
         }]
     _write_jsonl(output_root / "engineering_corrections.jsonl", corrections)
     theorem_report = _run_theorem_tests()
@@ -758,8 +836,11 @@ def run_formal_prepare(config_path: str) -> FormalPrepareSummary:
         "pairwise_reduction_policy": "fixed balanced binary tree",
         "rounding_self_test_hash": theorem_report["deterministic_rerun_hash"],
     }
-    candidates, exclusion = _eligible_nouns(__import__("transformers").AutoTokenizer.from_pretrained("openai-community/gpt2", revision="607a30d783dfa663caf39e06633721c8d4cfcd7e"))
-    universe, rows = _row_universe(candidates)
+    tokenizer = __import__("transformers").AutoTokenizer.from_pretrained(
+        "openai-community/gpt2", revision="607a30d783dfa663caf39e06633721c8d4cfcd7e"
+    )
+    candidates, exclusion = _eligible_nouns(tokenizer)
+    universe, rows = _row_universe(candidates, tokenizer)
     model_manifest, feasibility, graph_rows, plans = _model_and_static_manifests(rows, os.environ.get("GREEN_V400_DEVICE", "cuda:0"))
     coverage = _coverage_manifest()
     boundary = _boundary_lock(universe["pool_hash"], exclusion["forbidden_namespace_salted_hash"])

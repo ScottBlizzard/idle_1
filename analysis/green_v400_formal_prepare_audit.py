@@ -68,8 +68,9 @@ def audit(output_root: Path) -> dict:
     expected_corrections = {
         "path_plumbing", "environment_plumbing", "model_cache_plumbing",
         "pre_model_attempt_recovery",
+        "paired_tokenization_contract",
     }
-    if len(corrections) != 4 or {row["category"] for row in corrections} != expected_corrections:
+    if len(corrections) != 5 or {row["category"] for row in corrections} != expected_corrections:
         raise RuntimeError("AUDIT_ENGINEERING_CORRECTIONS")
     if any(row["scientific_semantics_changed"] or row["storage_device_changed"] for row in corrections):
         raise RuntimeError("AUDIT_ENGINEERING_CORRECTION_SCOPE")
