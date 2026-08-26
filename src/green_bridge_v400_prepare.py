@@ -701,18 +701,28 @@ def run_formal_prepare(config_path: str) -> FormalPrepareSummary:
         raise RuntimeError("PREPARE_STOP_ONE_SHOT_OUTPUT_EXISTS")
     output_root.mkdir(parents=True, exist_ok=True)
     repository = _repository_preflight()
-    path_correction = {
-        "schema_version": "green-v400-engineering-correction-v1",
-        "category": "path_plumbing",
-        "before": "/mnt/sdb/outputs/green_bridge_v400_formal_prepare",
-        "after": str(output_root),
-        "before_sha256": _sha256_bytes(b"/mnt/sdb/outputs/green_bridge_v400_formal_prepare"),
-        "after_sha256": _sha256_bytes(str(output_root).encode("utf-8")),
-        "rationale": "server account has no create permission at /mnt/sdb root; writable namespace is /mnt/sdb/ccj",
-        "scientific_semantics_changed": False,
-        "storage_device_changed": False,
-    }
-    _write_jsonl(output_root / "engineering_corrections.jsonl", [path_correction])
+    corrections = [{
+            "schema_version": "green-v400-engineering-correction-v1",
+            "category": "path_plumbing",
+            "before": "/mnt/sdb/outputs/green_bridge_v400_formal_prepare",
+            "after": str(output_root),
+            "before_sha256": _sha256_bytes(b"/mnt/sdb/outputs/green_bridge_v400_formal_prepare"),
+            "after_sha256": _sha256_bytes(str(output_root).encode("utf-8")),
+            "rationale": "server account has no create permission at /mnt/sdb root; writable namespace is /mnt/sdb/ccj",
+            "scientific_semantics_changed": False,
+            "storage_device_changed": False,
+        }, {
+            "schema_version": "green-v400-engineering-correction-v1",
+            "category": "environment_plumbing",
+            "before": "new python venv via ensurepip",
+            "after": f"existing frozen model environment {sys.executable}; pinned additions from /mnt/sdb via PYTHONPATH",
+            "before_sha256": _sha256_bytes(b"new python venv via ensurepip"),
+            "after_sha256": _sha256_bytes(sys.executable.encode("utf-8")),
+            "rationale": "server Python lacks ensurepip; no package is installed to the root disk or inherited environment",
+            "scientific_semantics_changed": False,
+            "storage_device_changed": False,
+        }]
+    _write_jsonl(output_root / "engineering_corrections.jsonl", corrections)
     theorem_report = _run_theorem_tests()
     synthetic_hashes = _write_synthetic_artifacts(output_root)
     theorem_report["fixture_artifact_hashes"] = synthetic_hashes

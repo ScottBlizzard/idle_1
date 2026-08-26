@@ -20,6 +20,11 @@ package is written to:
 /mnt/sdb/ccj/outputs/green_bridge_v400_formal_prepare/
 ```
 
+The server's existing frozen-model Python is reused read-only. Pinned
+validated-numerics additions are installed with `--target` below `/mnt/sdb/ccj`
+because the system Python has no `ensurepip`; this is recorded in the formal
+engineering-correction ledger.
+
 The run performs the inherited regression, the exact 70-test theorem barrier,
 model/token/hook static preflights, sealed-set exclusion, row-universe freezing,
 static causal-cone planning, and an independent read-only audit. It may hash

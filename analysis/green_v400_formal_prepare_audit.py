@@ -65,9 +65,9 @@ def audit(output_root: Path) -> dict:
     if any(row["file_class"] == "inherited_read_only" and not row["immutable_hash_match"] for row in repository["files"]):
         raise RuntimeError("AUDIT_IMMUTABLE_MISMATCH")
     corrections = read_jsonl(output_root / "engineering_corrections.jsonl")
-    if len(corrections) != 1 or corrections[0]["category"] != "path_plumbing":
+    if len(corrections) != 2 or {row["category"] for row in corrections} != {"path_plumbing", "environment_plumbing"}:
         raise RuntimeError("AUDIT_ENGINEERING_CORRECTIONS")
-    if corrections[0]["scientific_semantics_changed"] or corrections[0]["storage_device_changed"]:
+    if any(row["scientific_semantics_changed"] or row["storage_device_changed"] for row in corrections):
         raise RuntimeError("AUDIT_ENGINEERING_CORRECTION_SCOPE")
     environment = read_json(output_root / "rounding_environment.json")
     if environment["official_precision_bits"] != 384 or environment["audit_precision_bits"] != 512:
