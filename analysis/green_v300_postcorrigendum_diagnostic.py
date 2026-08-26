@@ -6,6 +6,7 @@ import hashlib
 import json
 import math
 from pathlib import Path
+import shutil
 
 import numpy as np
 import pandas as pd
@@ -161,6 +162,54 @@ def main() -> None:
     }
     json_path = args.output_root / "POSTCORRIGENDUM_DIAGNOSTIC.json"
     json_path.write_text(json.dumps(diagnostic, indent=2, sort_keys=True) + "\n")
+
+    # Keep every scalar needed to reproduce the terminal statistics and audit
+    # the numerical classifications, without duplicating the large nested
+    # prediction/target arrays stored in gate_audit. The immutable full table
+    # remains identified above by SHA-256 on the server evidence volume.
+    transport.drop(columns=["gate_audit"]).to_parquet(
+        args.output_root / "dev_transport_scores_core.parquet", index=False
+    )
+    scalar_audit_fields = (
+        "numerical_valid", "structural_valid", "ad_route_passed",
+        "factorization_passed", "direct_theorem_passed", "curvature_norm",
+        "epsilon_C", "response_norm", "epsilon_G", "operator_norm",
+        "epsilon_P_F", "curvature_relative_width", "response_relative_width",
+        "operator_relative_width", "exact_operator_upper",
+        "direct_numerical_floor", "direct_error", "coarse_direct_error",
+        "null_leakage", "nonnull", "unresolved_bound", "target_signal_norm",
+        "target_signal_bound", "envelope_error",
+    )
+    identity_fields = (
+        "pair_digest", "cell_id", "noun", "century", "noun_century_group",
+        "distance_bin", "orientation", "item_index", "y", "y_prime",
+        "system", "gate_slot", "gate_index", "gate_class",
+    )
+    scalar_rows = []
+    for (_, row), audit in zip(transport.iterrows(), audits):
+        scalar_rows.append(
+            {field: row[field] for field in identity_fields}
+            | {field: audit[field] for field in scalar_audit_fields}
+        )
+    pd.DataFrame(scalar_rows).to_parquet(
+        args.output_root / "dev_gate_scalar_audit.parquet", index=False
+    )
+
+    evidence_copies = {
+        args.current_root / "dev_result.json": "dev_result_postcorrigendum.json",
+        args.current_root / "dev_cells.json": "dev_cells_postcorrigendum.json",
+        args.current_root / "dev_joint_targets.parquet": "dev_joint_targets_postcorrigendum.parquet",
+        args.current_root / "frozen_analysis.json": "frozen_analysis.json",
+        args.current_root / "run_ledger.json": "run_ledger_postcorrigendum.json",
+        args.current_root / "sha256sums.txt": "official_sha256sums_postcorrigendum.txt",
+        args.initial_root / "dev_result.json": "dev_result_initial.json",
+        args.initial_root / "dev_cells.json": "dev_cells_initial.json",
+        args.initial_root / "dev_joint_targets.parquet": "dev_joint_targets_initial.parquet",
+        args.initial_root / "archive_manifest.json": "initial_archive_manifest.json",
+        args.initial_root / "archive_sha256sums.txt": "initial_archive_sha256sums.txt",
+    }
+    for source, name in evidence_copies.items():
+        shutil.copy2(source, args.output_root / name)
 
     j = diagnostic["joint"]
     t = diagnostic["transport_saturation"]
