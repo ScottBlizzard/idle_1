@@ -58,6 +58,10 @@ However:
 
 Required protocol closure: salted-hash-only exclusion, exact schema round-trip, replay-based audit, implementation-derived coverage, immutable versioned remediation artifacts, and continued prohibition on all real outcomes.
 
+### Lead-auditor integration addendum
+
+The remediation cross-check found one further blocker at the same boundary. The current donor feasibility loop hashes raw clean/corrupt cache differences at three hooks, but it does not yet serialize the fresh v4 held-out direction panel, a complete four-branch PAT/TAR × joint/bypass record, or the exact repository hook ordering used by the path target. Those hashes therefore do not yet identify the scientific intervention that the theorem is meant to certify. This is still outcome-blind and consumes no scientific trial, but exact direction/branch serialization and a composition-identity test are required before graph extraction can be considered meaningful.
+
 ## Cross-review synthesis
 
 All three reviews agree on the decisive distinction:
