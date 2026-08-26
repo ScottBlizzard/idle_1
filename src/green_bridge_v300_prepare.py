@@ -23,6 +23,7 @@ import numpy as np
 
 import exp_green_bridge_gpt2 as legacy
 from green_bridge_numerics import ad_matched_bypass_compatibility_v200
+from green_bridge_spec import AD_ROUTE_GAMMA
 from green_bridge_response_ad import (
     active_model_integrity_hash_v200,
     build_ad_response_functions_v200,
@@ -262,7 +263,7 @@ def _route(left, right) -> dict:
     right = np.asarray(right, dtype=np.float64)
     difference = float(np.linalg.norm(left - right))
     scale = max(1.0, float(np.linalg.norm(left)), float(np.linalg.norm(right)))
-    gamma = float(legacy.AD_ROUTE_GAMMA)
+    gamma = float(AD_ROUTE_GAMMA)
     guard = float(np.nextafter(2.0 * gamma * scale, math.inf))
     radius = float(np.nextafter(difference / 2.0 + gamma * scale, math.inf))
     return {"midpoint": 0.5 * (left + right), "difference": difference,
