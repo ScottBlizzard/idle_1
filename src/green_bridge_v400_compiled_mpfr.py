@@ -123,6 +123,15 @@ class CompiledMPFRBackend:
             ctypes.c_char_p, ctypes.c_uint64,
         ]
         attention.restype = ctypes.c_int
+        contrast = self.library.green_v400_final_contrast_jet2_exact
+        contrast.argtypes = [
+            ctypes.c_uint32, ctypes.c_uint32, ctypes.c_uint32, ctypes.c_uint32,
+            ctypes.POINTER(ctypes.c_char_p), ctypes.POINTER(ctypes.c_int64),
+            ctypes.POINTER(ctypes.c_uint32), ctypes.POINTER(ctypes.c_uint32),
+            ctypes.POINTER(ctypes.c_int64), ctypes.POINTER(ctypes.c_uint64),
+            ctypes.c_char_p, ctypes.c_uint64,
+        ]
+        contrast.restype = ctypes.c_int
 
     def affine_jet2(self, weights, bias, values: list[Jet2], precision_bits: int) -> dict:
         weights = np.asarray(weights, dtype="<f4").reshape(-1)
@@ -321,4 +330,39 @@ class CompiledMPFRBackend:
         )
         if status != 0:
             raise RuntimeError(f"compiled attention jet failed with status {status}")
+        return json.loads(output.value.decode("ascii"))
+
+    def final_contrast_jet2(self, values: list[Jet2], unembed, bias,
+                            suffix_ids, coefficients) -> dict:
+        if not values:
+            raise ValueError("compiled final contrast requires residual values")
+        precision = values[0].precision_bits
+        if any(value.precision_bits != precision for value in values):
+            raise ValueError("compiled final contrast precision mismatch")
+        unembed = np.asarray(unembed, dtype="<f4", order="C")
+        bias = np.asarray(bias, dtype="<f4").reshape(-1)
+        suffix_ids = np.asarray(suffix_ids, dtype="<i8").reshape(-1)
+        coefficients = np.asarray(coefficients, dtype="<f8").reshape(-1)
+        if (unembed.ndim != 2 or unembed.shape[0] != len(values)
+                or unembed.shape[1] != bias.size or suffix_ids.size == 0
+                or suffix_ids.size != coefficients.size):
+            raise ValueError("compiled final contrast shape mismatch")
+        encoded = []
+        for value in values:
+            for component in (value.value, value.first, value.second):
+                encoded.extend((_binary_endpoint(component.lower), _binary_endpoint(component.upper)))
+        strings = (ctypes.c_char_p * len(encoded))(*(item[0] for item in encoded))
+        exponents = np.asarray([item[1] for item in encoded], dtype="<i8")
+        output = ctypes.create_string_buffer(8192)
+        status = self.library.green_v400_final_contrast_jet2_exact(
+            precision, unembed.shape[0], unembed.shape[1], suffix_ids.size,
+            strings, exponents.ctypes.data_as(ctypes.POINTER(ctypes.c_int64)),
+            unembed.view("<u4").ctypes.data_as(ctypes.POINTER(ctypes.c_uint32)),
+            bias.view("<u4").ctypes.data_as(ctypes.POINTER(ctypes.c_uint32)),
+            suffix_ids.ctypes.data_as(ctypes.POINTER(ctypes.c_int64)),
+            coefficients.view("<u8").ctypes.data_as(ctypes.POINTER(ctypes.c_uint64)),
+            output, len(output),
+        )
+        if status != 0:
+            raise RuntimeError(f"compiled final contrast failed with status {status}")
         return json.loads(output.value.decode("ascii"))

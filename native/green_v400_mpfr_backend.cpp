@@ -555,6 +555,34 @@ std::vector<JetMP> attention_final_head(
   return output;
 }
 
+IntervalMP fused_contrast_scalar(
+    const std::uint32_t* source_bits, std::size_t stride,
+    const std::int64_t* suffix_ids, const std::uint64_t* coefficient_bits,
+    std::uint32_t contrast_width, std::uint32_t vocabulary_size,
+    mpfr_prec_t precision) {
+  std::vector<MpfrValue> lower_terms, upper_terms;
+  lower_terms.reserve(contrast_width); upper_terms.reserve(contrast_width);
+  for (std::uint32_t index = 0; index < contrast_width; ++index) {
+    lower_terms.emplace_back(precision); upper_terms.emplace_back(precision);
+  }
+  std::vector<MpfrValue*> lower_pointers, upper_pointers;
+  lower_pointers.reserve(contrast_width); upper_pointers.reserve(contrast_width);
+  MpfrValue coefficient(precision), source(precision);
+  for (std::uint32_t index = 0; index < contrast_width; ++index) {
+    const std::size_t source_index = stride * static_cast<std::size_t>(suffix_ids[index]);
+    mpfr_set_d(coefficient.get(), double_from_bits(coefficient_bits[index]), MPFR_RNDN);
+    mpfr_set_flt(source.get(), float_from_bits(source_bits[source_index]), MPFR_RNDN);
+    mpfr_mul(lower_terms[index].get(), coefficient.get(), source.get(), MPFR_RNDD);
+    mpfr_mul(upper_terms[index].get(), coefficient.get(), source.get(), MPFR_RNDU);
+    lower_pointers.push_back(&lower_terms[index]);
+    upper_pointers.push_back(&upper_terms[index]);
+  }
+  IntervalMP result(precision);
+  pairwise_sum(lower_pointers, result.lower.get(), MPFR_RNDD);
+  pairwise_sum(upper_pointers, result.upper.get(), MPFR_RNDU);
+  return result;
+}
+
 }  // namespace
 
 extern "C" const char* green_v400_mpfr_backend_version() {
@@ -1012,6 +1040,61 @@ extern "C" int green_v400_causal_attention_final_head_jet2_exact(
   }
   stream << "]}";
   const std::string serialized = stream.str();
+  if (serialized.size() + 1 > output_capacity) return 4;
+  std::memcpy(output_json, serialized.c_str(), serialized.size() + 1);
+  return 0;
+}
+
+extern "C" int green_v400_final_contrast_jet2_exact(
+    std::uint32_t precision_bits, std::uint32_t d_model,
+    std::uint32_t vocabulary_size, std::uint32_t contrast_width,
+    const char* const* endpoint_significands, const std::int64_t* endpoint_exponents,
+    const std::uint32_t* unembed_bits, const std::uint32_t* bias_bits,
+    const std::int64_t* suffix_ids, const std::uint64_t* coefficient_bits,
+    char* output_json, std::uint64_t output_capacity) {
+  if (precision_bits < 64 || precision_bits > 4096 || d_model == 0
+      || vocabulary_size == 0 || contrast_width == 0 || d_model > 1000000U
+      || vocabulary_size > 1000000U || contrast_width > vocabulary_size
+      || endpoint_significands == nullptr || endpoint_exponents == nullptr
+      || unembed_bits == nullptr || bias_bits == nullptr || suffix_ids == nullptr
+      || coefficient_bits == nullptr || output_json == nullptr || output_capacity == 0) return 2;
+  for (std::uint32_t index = 0; index < contrast_width; ++index)
+    if (suffix_ids[index] < 0 || suffix_ids[index] >= vocabulary_size) return 3;
+  const mpfr_prec_t precision = static_cast<mpfr_prec_t>(precision_bits);
+  std::vector<JetMP> inputs;
+  inputs.reserve(d_model);
+  for (std::uint32_t index = 0; index < d_model; ++index) {
+    inputs.emplace_back(precision);
+    IntervalMP* components[3] = {&inputs.back().value, &inputs.back().first,
+                                 &inputs.back().second};
+    for (std::size_t component = 0; component < 3; ++component) {
+      const std::size_t offset = static_cast<std::size_t>(index) * 6U + component * 2U;
+      int status = set_exact_binary(components[component]->lower.get(),
+                                    endpoint_significands[offset], endpoint_exponents[offset]);
+      if (status != 0) return status;
+      status = set_exact_binary(components[component]->upper.get(),
+                                endpoint_significands[offset + 1], endpoint_exponents[offset + 1]);
+      if (status != 0 || mpfr_greater_p(components[component]->lower.get(),
+                                       components[component]->upper.get())) return 3;
+    }
+  }
+  std::vector<JetMP> terms;
+  terms.reserve(d_model);
+  for (std::uint32_t coordinate = 0; coordinate < d_model; ++coordinate) {
+    const IntervalMP fused_weight = fused_contrast_scalar(
+        unembed_bits + static_cast<std::size_t>(coordinate) * vocabulary_size,
+        1U, suffix_ids, coefficient_bits, contrast_width, vocabulary_size, precision);
+    terms.emplace_back(jet_scale_interval(inputs[coordinate], fused_weight));
+  }
+  JetMP result = jet_pairwise_sum(terms);
+  const IntervalMP fused_bias = fused_contrast_scalar(
+      bias_bits, 1U, suffix_ids, coefficient_bits,
+      contrast_width, vocabulary_size, precision);
+  result = jet_add(result, jet_constant(fused_bias));
+  const std::string serialized = serialize_jet(
+      result.value.lower.get(), result.value.upper.get(),
+      result.first.lower.get(), result.first.upper.get(),
+      result.second.lower.get(), result.second.upper.get(), precision);
   if (serialized.size() + 1 > output_capacity) return 4;
   std::memcpy(output_json, serialized.c_str(), serialized.size() + 1);
   return 0;

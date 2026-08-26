@@ -178,3 +178,40 @@ def test_compiled_causal_attention_final_head_is_bit_identical(precision):
             interval = getattr(expected_jet, component)
             assert backend.exact_fraction(actual_jet[component]["lower"]) == _fraction(interval.lower)
             assert backend.exact_fraction(actual_jet[component]["upper"]) == _fraction(interval.upper)
+
+
+@pytest.mark.parametrize("precision", [384, 512])
+def test_compiled_final_contrast_is_bit_identical_to_exact_fusion(precision):
+    backend = _backend()
+    values = [_jet(-0.2 + index/7, 2.0**(-10-index),
+                   0.1-index/13, -0.05+index/17, precision)
+              for index in range(4)]
+    unembed = np.asarray([
+        [0.1, -0.2, 0.3, 0.4, -0.5, 0.6, -0.7],
+        [-0.3, 0.2, 0.1, -0.6, 0.5, -0.4, 0.7],
+        [0.25, -0.125, 0.375, -0.5, 0.625, -0.75, 0.875],
+        [-0.05, 0.15, -0.25, 0.35, -0.45, 0.55, -0.65],
+    ], dtype="<f4")
+    bias = np.asarray([0.01, -0.02, 0.03, -0.04, 0.05, -0.06, 0.07], dtype="<f4")
+    suffix_ids = np.asarray([0, 3, 6], dtype="<i8")
+    coefficients = np.asarray([0.1, -0.3, 0.2], dtype="<f8")
+
+    def exact(value):
+        fraction = Fraction.from_float(float(value))
+        return gmpy2.mpq(fraction.numerator, fraction.denominator)
+
+    fused_weights = [
+        sum((exact(coefficients[index]) * exact(unembed[coordinate, token])
+             for index, token in enumerate(suffix_ids)), gmpy2.mpq(0))
+        for coordinate in range(unembed.shape[0])
+    ]
+    fused_bias = sum((exact(coefficients[index]) * exact(bias[token])
+                      for index, token in enumerate(suffix_ids)), gmpy2.mpq(0))
+    expected = affine_map_jets([fused_weights], values, [fused_bias])[0]
+    actual = backend.final_contrast_jet2(
+        values, unembed, bias, suffix_ids, coefficients
+    )
+    for component in ("value", "first", "second"):
+        interval = getattr(expected, component)
+        assert backend.exact_fraction(actual[component]["lower"]) == _fraction(interval.lower)
+        assert backend.exact_fraction(actual[component]["upper"]) == _fraction(interval.upper)
