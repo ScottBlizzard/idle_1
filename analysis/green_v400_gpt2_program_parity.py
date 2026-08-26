@@ -58,11 +58,12 @@ def main() -> int:
     )
     direction = (raw_direction / torch.linalg.vector_norm(raw_direction)).to(model.W_U.dtype)
 
-    with torch.inference_mode():
-        tar = capture_tail_anchor(model, clean, suffix_ids, system="synthetic_TAR")
-        pat = capture_tail_anchor(
-            model, corrupt, suffix_ids, system="synthetic_PAT", block8_patch=tar.mlp8_out,
-        )
+    # Capture outside inference_mode so the detached anchors remain ordinary
+    # tensors and can be reused by the independent derivative-parity audit.
+    tar = capture_tail_anchor(model, clean, suffix_ids, system="synthetic_TAR")
+    pat = capture_tail_anchor(
+        model, corrupt, suffix_ids, system="synthetic_PAT", block8_patch=tar.mlp8_out,
+    )
     store_root = output_root / "tensor_store"
     reader, dims = materialize_gpt2_joint_witness_store(
         store_root, "gpt2_synthetic", model, pat, tar, direction,
@@ -138,13 +139,46 @@ def main() -> int:
         })
 
     tolerance = 3e-4
+    manual_t = torch.zeros((), dtype=model.W_U.dtype, device=args.device, requires_grad=True)
+    manual_delta = direction[None, :] * manual_t
+    manual_branches = {}
+    for condition, anchor in (("PAT", pat), ("TAR", tar)):
+        joint = tail.evaluate_physical(
+            anchor, manual_delta, torch.zeros((1, 10), device=args.device),
+            mode="joint", subtract_residual_bypass=False,
+        )
+        bypass = tail.evaluate_physical(
+            anchor, manual_delta, torch.zeros((1,), device=args.device),
+            mode="control", gate_slot=0, subtract_residual_bypass=False,
+        )
+        manual_branches[f"{condition}_J"] = (joint[0].double() * coefficients).sum()
+        manual_branches[f"{condition}_B"] = (bypass[0].double() * coefficients).sum()
+    manual_joint_witness = (
+        manual_branches["PAT_J"] - manual_branches["PAT_B"]
+        - manual_branches["TAR_J"] + manual_branches["TAR_B"]
+    )
+    manual_derivative = float(torch.autograd.grad(manual_joint_witness, manual_t)[0].item())
+
+    replay_t = torch.zeros((), dtype=model.W_U.dtype, device=args.device, requires_grad=True)
+    replay_for_derivative = execute_tensor_program_torch(program, reader, replay_t, args.device)
+    replay_derivative = float(torch.autograd.grad(
+        replay_for_derivative["output"], replay_t
+    )[0].item())
+    derivative_error = abs(replay_derivative - manual_derivative)
+    endpoint_max_error = max(row["max_absolute_error"] for row in rows)
     report = {
         "schema_version": "green-v400-gpt2-synthetic-program-parity-v1",
-        "status": "PASS" if max(row["max_absolute_error"] for row in rows) <= tolerance else "FAIL",
+        "status": "PASS" if max(endpoint_max_error, derivative_error) <= tolerance else "FAIL",
         "tolerance": tolerance,
         "fixture": "synthetic tokens/direction/contrast; no scientific row or outcome",
         "identity": program_identity_payload(program, dims, reader),
         "rows": rows,
+        "derivative_parity_at_zero": {
+            "manual_transformerlens": manual_derivative,
+            "tensor_program_replay": replay_derivative,
+            "absolute_error": derivative_error,
+            "passed": derivative_error <= tolerance,
+        },
         "contains_scientific_outcome": False,
     }
     (output_root / "parity_report.json").write_text(
@@ -152,7 +186,8 @@ def main() -> int:
     )
     print(json.dumps({
         "status": report["status"],
-        "max_absolute_error": max(row["max_absolute_error"] for row in rows),
+        "max_endpoint_absolute_error": endpoint_max_error,
+        "derivative_absolute_error": derivative_error,
         "output_root": str(output_root),
     }, sort_keys=True))
     return 0 if report["status"] == "PASS" else 2

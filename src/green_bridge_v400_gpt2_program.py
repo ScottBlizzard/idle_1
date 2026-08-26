@@ -348,7 +348,9 @@ def execute_tensor_program_torch(program: TensorProgram, reader: TensorStoreRead
         if kernel == "affine_scatter.v1":
             base, direction = tensors
             value = base.clone()
-            value[int(node.exact_attrs["final_position"])] += value.new_tensor(t) * direction
+            control = (t.to(device=value.device, dtype=value.dtype)
+                       if torch.is_tensor(t) else value.new_tensor(t))
+            value[int(node.exact_attrs["final_position"])] += control * direction
         elif kernel == "layer_norm.v1":
             x = parents[0]
             weight, bias, epsilon = tensors

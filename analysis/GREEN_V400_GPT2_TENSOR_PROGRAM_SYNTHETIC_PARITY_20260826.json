@@ -1,5 +1,11 @@
 {
   "contains_scientific_outcome": false,
+  "derivative_parity_at_zero": {
+    "absolute_error": 1.4006218407303095e-10,
+    "manual_transformerlens": -6.828523510193918e-06,
+    "passed": true,
+    "tensor_program_replay": -6.828383448009845e-06
+  },
   "fixture": "synthetic tokens/direction/contrast; no scientific row or outcome",
   "identity": {
     "branch_order": [
