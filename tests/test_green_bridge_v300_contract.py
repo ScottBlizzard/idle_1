@@ -227,6 +227,8 @@ class V300TransportTheoryTests(unittest.TestCase):
     def test_ad_is_audit_not_point_estimator(self):
         source = inspect.getsource(exp.transport_record_v300)
         self.assertNotIn("ad_midpoint", source)
+        self.assertFalse(spec.FROZEN_SPEC["finite_response_uses_automatic_derivatives"])
+        self.assertEqual(spec.V300_FINITE_RESPONSE_MODE, "float64_response_only")
 
 
 class V300RadiusTests(unittest.TestCase):

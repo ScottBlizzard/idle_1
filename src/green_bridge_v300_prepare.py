@@ -8,6 +8,7 @@ formal coordinator alone chooses the immutable formal output root.
 from __future__ import annotations
 
 from collections import Counter
+from contextlib import nullcontext
 import hashlib
 import json
 import math
@@ -56,6 +57,7 @@ from green_bridge_v300_spec import (
     RADIUS_CANDIDATES,
     SELECTED_GATES,
     V300_COEFFICIENT_SHA256,
+    V300_FINITE_RESPONSE_MODE,
     V300_RADIUS_CANDIDATE_SHA256,
     V300_SPLIT_SHA256,
     V300_TECHNICAL_CORRIGENDUM_ID,
@@ -92,6 +94,7 @@ V300_SOURCE_FILES = (
     "tests/test_green_bridge_v300_contract.py",
     "analysis/GPTPRO_GREEN_V21_POSTMORTEM_DECISION_20260825.md",
     "analysis/CODEX_GREEN_V300_CANONICAL_PAYLOAD_CORRIGENDUM_20260826.md",
+    "analysis/CODEX_GREEN_V300_FLOAT64_RESPONSE_CORRIGENDUM_20260826.md",
     "requirements-green-bridge.lock",
 )
 
@@ -400,7 +403,11 @@ def _calibrate_radius_v300(model, tokenizer, suffix_ids, legacy_records, device:
     theorem_rows = []
     integrity_before = active_model_integrity_hash_v200(model)
     finite_endpoint_calls = 0
-    with isolated_ad_tail_v200(model) as ad_tail:
+    finite_context = (
+        isolated_ad_tail_v200(model)
+        if finite_mode == "float64_response_only" else nullcontext(None)
+    )
+    with finite_context as finite_tail, isolated_ad_tail_v200(model) as ad_tail:
         for stratum_index, metadata in enumerate(panel):
             record = by_digest[metadata["pair_digest"]]
             item = design[record.pair_digest]
@@ -418,7 +425,12 @@ def _calibrate_radius_v300(model, tokenizer, suffix_ids, legacy_records, device:
             )
             zero_delta = torch.zeros((1, 768), dtype=torch.float32, device=device)
             zero_z = torch.zeros(1, dtype=torch.float32, device=device)
-            path_map, control_map = build_ad_response_functions_v200(
+            finite_path_map = finite_control_map = None
+            if finite_tail is not None:
+                finite_path_map, finite_control_map = build_ad_response_functions_v200(
+                    finite_tail, anchor, frame, suffix_ids, gate_index
+                )
+            ad_path_map, ad_control_map = build_ad_response_functions_v200(
                 ad_tail, anchor, frame, suffix_ids, gate_index
             )
             with torch.inference_mode():
@@ -433,7 +445,7 @@ def _calibrate_radius_v300(model, tokenizer, suffix_ids, legacy_records, device:
                     h_z = float(legacy.GATE_RADIUS) * scale
                     if finite_mode == "float64_response_only":
                         jets[scale], control_j[scale] = _finite_gate_stencil_float64_v300(
-                            path_map, control_map, h_x, h_z
+                            finite_path_map, finite_control_map, h_x, h_z
                         )
                     elif finite_mode == "float32":
                         jets[scale] = legacy._jet_at_radius_physical(
@@ -445,10 +457,10 @@ def _calibrate_radius_v300(model, tokenizer, suffix_ids, legacy_records, device:
                     else:
                         raise ValueError(f"unsupported finite response mode: {finite_mode}")
                     finite_endpoint_calls += 62
-            ad_forward = response_gate_jet_forward_ad64(path_map, control_map)
-            ad_reverse = response_gate_jet_reverse_ad64(path_map, control_map)
+            ad_forward = response_gate_jet_forward_ad64(ad_path_map, ad_control_map)
+            ad_reverse = response_gate_jet_reverse_ad64(ad_path_map, ad_control_map)
             certificate = legacy.ad_route_certificate_v200(ad_forward, ad_reverse)
-            control_route = _ad_control_j(path_map, control_map)
+            control_route = _ad_control_j(ad_path_map, ad_control_map)
             residual = legacy._selected_numpy(anchor, "resid_mid")
             gamma = model.blocks[10].ln2.w.detach().double().cpu().numpy()
             W_in = model.blocks[10].mlp.W_in.detach().double().cpu().numpy()
@@ -532,10 +544,12 @@ def _calibrate_radius_v300(model, tokenizer, suffix_ids, legacy_records, device:
                             and row["ad_route_passed"] and theorem_pass
                         ),
                     })
-            del path_map, control_map, tail
+            del finite_path_map, finite_control_map, ad_path_map, ad_control_map, tail
             torch.cuda.empty_cache()
     integrity_after = active_model_integrity_hash_v200(model)
-    if integrity_before != integrity_after or not ad_tail.active_model_unchanged:
+    finite_copy_unchanged = finite_tail is None or finite_tail.active_model_unchanged
+    if (integrity_before != integrity_after or not ad_tail.active_model_unchanged
+            or not finite_copy_unchanged):
         raise RuntimeError("PREPARE STOP 05_MODEL_INTEGRITY")
     candidate_summary = []
     for rho in RADIUS_CANDIDATES:
@@ -554,6 +568,8 @@ def _calibrate_radius_v300(model, tokenizer, suffix_ids, legacy_records, device:
         "schema_version": "green-bridge-v3.0.0-radius-calibration-diagnostic-v1",
         "selection_population": "legacy-donor-metadata-and-numerics-only",
         "finite_response_mode": finite_mode,
+        "point_estimator_uses_automatic_derivatives": False,
+        "finite_and_ad_model_copies_are_distinct": finite_tail is not ad_tail,
         "epsilon_y": epsilon_y, "required_strata": 40,
         "completed_strata": len(panel), "candidates": candidate_summary,
         "theorem_rows": theorem_rows, "rows": detailed_rows,
@@ -584,6 +600,8 @@ def _calibrate_radius_v300(model, tokenizer, suffix_ids, legacy_records, device:
         "schema_version": "green-bridge-v3.0.0-radius-calibration-v1",
         "selection_population": "legacy-donor-metadata-and-numerics-only",
         "finite_response_mode": finite_mode,
+        "point_estimator_uses_automatic_derivatives": False,
+        "finite_and_ad_model_copies_are_distinct": finite_tail is not ad_tail,
         "behavioral_fields_read": False, "v2_development_records_read": False,
         "candidate_payload_sha256": radius_candidate_payload_sha256_v300(),
         "relative_fidelity_max": 0.10, "epsilon_y": epsilon_y,
@@ -737,9 +755,9 @@ def execute_prepare_v300(output_root: Path, device: str, *, formal: bool) -> dic
     """Execute a legacy-only dry run or the single formal prepare."""
     if output_root.exists():
         raise RuntimeError(f"PREPARE OUTPUT ROOT EXISTS: {output_root}")
-    finite_mode = os.environ.get("GREEN_V300_FINITE_MODE", "float32")
-    if formal and finite_mode != "float32":
-        raise RuntimeError("FORMAL_PREPARE_REQUIRES_FROZEN_FLOAT32_FINITE_MODE")
+    finite_mode = os.environ.get("GREEN_V300_FINITE_MODE", V300_FINITE_RESPONSE_MODE)
+    if formal and finite_mode != V300_FINITE_RESPONSE_MODE:
+        raise RuntimeError("FORMAL_PREPARE_REQUIRES_FROZEN_FINITE_RESPONSE_MODE")
     repository = repository_state_v300(require_clean=formal)
     tests = verify_combined_contract_v300()
     predecessor = __import__("exp_green_bridge_v300").verify_v200_terminal_archive_v300()
@@ -915,6 +933,8 @@ def execute_prepare_v300(output_root: Path, device: str, *, formal: bool) -> dic
         "prepare_physical_gpu": PREPARE_GPU, "prepare_visible_device": "cuda:0",
         "future_worker_physical_gpus": list(range(8)),
         "exact_endpoint_batch_size": 1, "lower_precision_fallback": False,
+        "finite_response_mode": finite_mode,
+        "isolated_float64_response_copy": finite_mode == "float64_response_only",
         "selected_projection_fallback": False, "reduced_gate_fallback": False,
         "radius_fallback": False, "passed": True,
     }

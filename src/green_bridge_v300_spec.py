@@ -55,6 +55,7 @@ V300_DECLARED_RADIUS_CANDIDATE_HASH_ID = "50251164fb42f9ecd97c7725a093ff15084b9f
 # the payload, avoiding a circular definition.
 V300_COEFFICIENT_SHA256 = "71d1f91b7a7da68e1d73079e42b116e09cf3544b890f53aac1d58afae4bf4cfa"
 V300_RADIUS_CANDIDATE_SHA256 = "370173c38e04bf741145faf09d5cffc826810d206c684b97de65c07d13303d6c"
+V300_FINITE_RESPONSE_MODE = "float64_response_only"
 
 DEVELOPMENT_NOUNS = ("kingdom", "reign", "siege")
 CONFIRMATION_NOUNS = ("warfare", "campaign", "expedition", "treaty")
@@ -176,6 +177,9 @@ FROZEN_SPEC = {
     "coefficient_payload_sha256": V300_COEFFICIENT_SHA256,
     "radius_candidate_payload_sha256": V300_RADIUS_CANDIDATE_SHA256,
     "radius_candidates": RADIUS_CANDIDATES,
+    "finite_response_mode": V300_FINITE_RESPONSE_MODE,
+    "finite_response_uses_automatic_derivatives": False,
+    "ad_target_uses_independent_model_copy": True,
     "thresholds": asdict(THRESHOLDS),
     "tail_fixed_batch_size": TAIL_FIXED_BATCH_SIZE,
 }
