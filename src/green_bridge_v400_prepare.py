@@ -37,6 +37,8 @@ from green_bridge_v400_spec import (
     CONTROL_AST,
     DEVELOPMENT_AUTHORIZED,
     DITHER_REPLICATES,
+    GRAPH_TL_PARITY_MAX_ABS,
+    HF_TL_PARITY_MAX_ABS,
     MAX_CELLS_PER_ROW,
     MAX_GRAPH_NODES,
     MAX_SCALAR_MPFR_OPERATIONS_PER_ROW,
@@ -588,7 +590,13 @@ def _row_universe(candidates: list[dict], tokenizer) -> tuple[dict, list[dict]]:
 
 def _tensor_hash(tensor) -> str:
     array = tensor.detach().cpu().contiguous().numpy()
-    return _sha256_bytes(array.tobytes())
+    header = canonical_json({
+        "dtype": array.dtype.str,
+        "shape": list(array.shape),
+        "order": "C",
+        "endianness": array.dtype.byteorder,
+    }).encode("ascii")
+    return _sha256_bytes(header + b"\0" + array.tobytes(order="C"))
 
 
 def _model_and_static_manifests(rows: list[dict], device: str):
@@ -617,9 +625,7 @@ def _model_and_static_manifests(rows: list[dict], device: str):
         hf_logits = hf_model(parity_tokens).logits.float()
         tl_logits = model(parity_tokens, return_type="logits").float()
     parity_error = float((hf_logits - tl_logits).abs().max())
-    parity_scale = max(1.0, float(hf_logits.abs().max()), float(tl_logits.abs().max()))
-    parity_operation_count = 1_000_000
-    parity_tolerance = float(64 * torch.finfo(torch.float32).eps * parity_operation_count * parity_scale)
+    parity_tolerance = HF_TL_PARITY_MAX_ABS
     if parity_error > parity_tolerance:
         raise RuntimeError("PREPARE_STOP_GRAPH_PARITY")
     parity = {
@@ -628,7 +634,7 @@ def _model_and_static_manifests(rows: list[dict], device: str):
         "tl_logits_sha256": _tensor_hash(tl_logits),
         "max_abs_error": parity_error,
         "tolerance": parity_tolerance,
-        "operation_count_upper": parity_operation_count,
+        "tolerance_source": "inherited frozen raw-logit Gate-04 max-absolute limit",
         "passed": True,
         "engineering_diagnostic_only": True,
     }
@@ -763,6 +769,41 @@ def _coverage_manifest() -> dict:
         "gather_static": "shared-reference tensor view", "residual_add": "add_jet",
         "contrast": "contrast_jet",
     }
+
+
+def _validate_static_replayability(feasibility: list[dict], graph_rows: list[dict],
+                                   plans: list[dict], coverage: dict) -> None:
+    """Internal hard gate: a self-reported manifest can never authorize PASS."""
+    from green_bridge_v400_relational_graph import (
+        audit_dependency_completeness, extract_joint_witness_graph,
+    )
+    from green_bridge_v400_schemas import CertificatePlan, JointWitnessRowSpec
+
+    expected_rows = {row["row_hash"] for row in feasibility}
+    parsed_plans = [CertificatePlan.from_dict(row) for row in plans]
+    if ({plan.row_hash for plan in parsed_plans} != expected_rows
+            or any(plan.to_dict() != row for plan, row in zip(parsed_plans, plans))):
+        raise RuntimeError("PREPARE_STOP_CERTIFICATE_PLAN_NOT_REPLAYABLE")
+    if coverage["coverage_status"] != "PASS" or coverage["unsupported_operations"]:
+        raise RuntimeError("PREPARE_STOP_OPERATION_COVERAGE")
+    if {row["row_hash"] for row in graph_rows} != expected_rows:
+        raise RuntimeError("PREPARE_STOP_GRAPH_ROW_MISMATCH")
+    for row in graph_rows:
+        for form in ("unreduced", "reduced"):
+            payload = row.get(f"{form}_graph_payload")
+            if not isinstance(payload, dict) or "nodes" not in payload or "output_id" not in payload:
+                raise RuntimeError("PREPARE_STOP_GRAPH_NOT_REPLAYABLE")
+            spec = JointWitnessRowSpec(
+                "green-v400-row-v1", row["row_hash"], "formal_prepare_pool",
+                row["model_hash"], row["token_hash"], row["hook_spec_hash"],
+                row["control_ast_hash"], row["contrast_hash"], tuple(BRANCH_ORDER),
+                payload,
+            )
+            graph = extract_joint_witness_graph(spec)
+            if (graph.semantic_hash() != row[f"{form}_semantic_hash"]
+                    or len(graph.nodes) != row[f"{form}_node_count"]
+                    or not audit_dependency_completeness(graph).complete):
+                raise RuntimeError("PREPARE_STOP_GRAPH_REPLAY_MISMATCH")
     unsupported = sorted(set(GRAPH_OPERATIONS) - set(EXECUTABLE_OPERATIONS))
     return {
         "schema_version": "green-v400-primitive-op-coverage-v1",
@@ -902,6 +943,7 @@ def run_formal_prepare(config_path: str) -> FormalPrepareSummary:
     universe, rows = _row_universe(candidates, tokenizer)
     model_manifest, feasibility, graph_rows, plans = _model_and_static_manifests(rows, os.environ.get("GREEN_V400_DEVICE", "cuda:0"))
     coverage = _coverage_manifest()
+    _validate_static_replayability(feasibility, graph_rows, plans, coverage)
     boundary = _boundary_lock(universe["pool_hash"], exclusion["forbidden_namespace_salted_hash"])
 
     _write_json(output_root / "rounding_environment.json", environment)

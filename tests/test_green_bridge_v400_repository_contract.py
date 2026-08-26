@@ -6,6 +6,7 @@ import json
 from pathlib import Path
 import subprocess
 import sys
+import pytest
 
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -138,3 +139,19 @@ def test_synthetic_artifacts_are_executed_not_self_reported(tmp_path):
     assert certificate["precision_nested"] is True
     assert certificate["proof_source"] == "executed serialized relational graph"
     assert len(hashes) == 7
+
+
+def test_template_graph_manifest_cannot_pass_internal_gate():
+    row_hash = "a" * 64
+    plan = schemas.CertificatePlan(
+        "green-v400-certificate-plan-v1", row_hash, (schemas.Dyadic(1, 0),),
+        "[-h,0],[0,h]", "left-to-right dyadic bisection",
+        "0x1p-80", "0x1p-40", 24, 262144, 384, 512, (), False,
+    ).to_dict()
+    coverage = {"coverage_status": "PASS", "unsupported_operations": []}
+    with pytest.raises(RuntimeError, match="GRAPH_NOT_REPLAYABLE"):
+        prepare._validate_static_replayability(
+            [{"row_hash": row_hash}],
+            [{"row_hash": row_hash, "supported_operation_coverage": True}],
+            [plan], coverage,
+        )
