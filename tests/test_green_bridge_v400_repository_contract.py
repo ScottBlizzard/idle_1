@@ -56,6 +56,8 @@ def test_v3_confirmation_ids_excluded():
 def test_model_tokenizer_config_hashes():
     assert spec.MODEL_ID == "openai-community/gpt2"
     assert len(spec.MODEL_REVISION) == 40
+    assert spec.TRANSFORMER_LENS_VERSION == "3.6.0"
+    assert spec.TRANSFORMER_LENS_RELEASE_TAG == "v3.6.0"
     assert len(spec.TRANSFORMER_LENS_COMMIT) == 40
     payload = {"model": spec.MODEL_ID, "revision": spec.MODEL_REVISION}
     assert len(hashlib.sha256(schemas.canonical_json(payload).encode()).hexdigest()) == 64

@@ -53,6 +53,8 @@ from green_bridge_v400_spec import (
     SEALED_NOUN_HASHES_PATH,
     SUPPORTED_OPERATIONS,
     TRANSFORMER_LENS_COMMIT,
+    TRANSFORMER_LENS_RELEASE_TAG,
+    TRANSFORMER_LENS_VERSION,
     TRANSFORMER_SEMANTICS_FLAGS,
 )
 
@@ -599,10 +601,22 @@ def _tensor_hash(tensor) -> str:
     return _sha256_bytes(header + b"\0" + array.tobytes(order="C"))
 
 
+def _python_package_tree_hash(root: Path) -> tuple[str, int]:
+    records = []
+    for path in sorted(root.rglob("*.py")):
+        relative = path.relative_to(root).as_posix()
+        records.append({"path": relative, "sha256": _sha256_file(path),
+                        "size": path.stat().st_size})
+    if not records:
+        raise RuntimeError("PREPARE_STOP_EMPTY_PACKAGE_SOURCE")
+    return sha256_canonical(records), len(records)
+
+
 def _model_and_static_manifests(rows: list[dict], device: str):
     import torch
     import transformer_lens
     import transformers
+    from importlib.metadata import version as package_version
     import exp_green_bridge_gpt2 as legacy
     from green_bridge_spec import MODEL_ID, MODEL_REVISION, SELECTED_GATES
 
@@ -616,6 +630,9 @@ def _model_and_static_manifests(rows: list[dict], device: str):
     weight_hashes = {name: _tensor_hash(value) for name, value in model.state_dict().items()}
     tokenizer_payload = sorted(tokenizer.get_vocab().items())
     hook_names = sorted(model.hook_dict)
+    installed_tl_version = package_version("transformer-lens")
+    if installed_tl_version != TRANSFORMER_LENS_VERSION:
+        raise RuntimeError("PREPARE_STOP_TRANSFORMERLENS_VERSION")
     model_source = Path(inspect.getsourcefile(type(model)) or "")
     if not model_source.is_file():
         raise RuntimeError("PREPARE_STOP_TRANSFORMERLENS_SOURCE")
@@ -639,11 +656,17 @@ def _model_and_static_manifests(rows: list[dict], device: str):
         "engineering_diagnostic_only": True,
     }
     del hf_logits, tl_logits
+    package_root = Path(transformer_lens.__file__).resolve().parent
+    package_tree_hash, package_source_files = _python_package_tree_hash(package_root)
     model_manifest = {
         "schema_version": "green-v400-model-manifest-v1",
-        "transformer_lens_version": getattr(transformer_lens, "__version__", "unknown"),
+        "transformer_lens_version": installed_tl_version,
         "transformer_lens_commit": TRANSFORMER_LENS_COMMIT,
+        "transformer_lens_release_tag": TRANSFORMER_LENS_RELEASE_TAG,
+        "release_tag_commit_mapping": "v3.6.0 -> 4a4dc26c750475b29e6f54b362c2aab988702c9c",
         "transformer_lens_source_sha256": _sha256_file(model_source),
+        "transformer_lens_package_tree_sha256": package_tree_hash,
+        "transformer_lens_package_source_files": package_source_files,
         "transformers_version": transformers.__version__,
         "pytorch_version": torch.__version__,
         "model_name": MODEL_ID,
