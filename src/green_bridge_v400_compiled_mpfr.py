@@ -75,6 +75,25 @@ class CompiledMPFRBackend:
             ctypes.POINTER(ctypes.c_double), ctypes.POINTER(ctypes.c_uint64),
         ]
         benchmark.restype = ctypes.c_int
+        benchmark_gelu = self.library.green_v400_benchmark_gelu_jet2
+        benchmark_gelu.argtypes = [
+            ctypes.c_uint32, ctypes.c_uint32, ctypes.c_uint32,
+            ctypes.POINTER(ctypes.c_double), ctypes.POINTER(ctypes.c_uint64),
+        ]
+        benchmark_gelu.restype = ctypes.c_int
+        benchmark_layer_norm = self.library.green_v400_benchmark_layer_norm_jet2
+        benchmark_layer_norm.argtypes = [
+            ctypes.c_uint32, ctypes.c_uint32, ctypes.c_uint32, ctypes.c_uint32,
+            ctypes.POINTER(ctypes.c_double), ctypes.POINTER(ctypes.c_uint64),
+        ]
+        benchmark_layer_norm.restype = ctypes.c_int
+        benchmark_attention = self.library.green_v400_benchmark_causal_attention_jet2
+        benchmark_attention.argtypes = [
+            ctypes.c_uint32, ctypes.c_uint32, ctypes.c_uint32, ctypes.c_uint32,
+            ctypes.c_uint32, ctypes.c_uint32, ctypes.POINTER(ctypes.c_double),
+            ctypes.POINTER(ctypes.c_uint64),
+        ]
+        benchmark_attention.restype = ctypes.c_int
         primitive = self.library.green_v400_interval_primitive_exact
         primitive.argtypes = [
             ctypes.c_char_p, ctypes.c_uint32,
@@ -97,6 +116,13 @@ class CompiledMPFRBackend:
             ctypes.POINTER(ctypes.c_uint32), ctypes.c_char_p, ctypes.c_uint64,
         ]
         layer_norm.restype = ctypes.c_int
+        attention = self.library.green_v400_causal_attention_final_head_jet2_exact
+        attention.argtypes = [
+            ctypes.c_uint32, ctypes.c_uint32, ctypes.c_uint32, ctypes.c_uint32,
+            ctypes.POINTER(ctypes.c_char_p), ctypes.POINTER(ctypes.c_int64),
+            ctypes.c_char_p, ctypes.c_uint64,
+        ]
+        attention.restype = ctypes.c_int
 
     def affine_jet2(self, weights, bias, values: list[Jet2], precision_bits: int) -> dict:
         weights = np.asarray(weights, dtype="<f4").reshape(-1)
@@ -158,6 +184,61 @@ class CompiledMPFRBackend:
             "checksum": f"{checksum.value:016x}",
         }
 
+    def benchmark_gelu(self, precision_bits: int, count: int, repeats: int = 1) -> dict:
+        elapsed = ctypes.c_double()
+        checksum = ctypes.c_uint64()
+        status = self.library.green_v400_benchmark_gelu_jet2(
+            precision_bits, count, repeats, ctypes.byref(elapsed), ctypes.byref(checksum)
+        )
+        if status != 0:
+            raise RuntimeError(f"compiled GELU benchmark failed with status {status}")
+        return {
+            "precision_bits": int(precision_bits), "count": int(count),
+            "repeats": int(repeats), "elapsed_seconds": elapsed.value,
+            "jets_per_second": int(count) * int(repeats) / elapsed.value,
+            "checksum": f"{checksum.value:016x}",
+        }
+
+    def benchmark_layer_norm(self, precision_bits: int, width: int,
+                             vector_count: int, repeats: int = 1) -> dict:
+        elapsed = ctypes.c_double()
+        checksum = ctypes.c_uint64()
+        status = self.library.green_v400_benchmark_layer_norm_jet2(
+            precision_bits, width, vector_count, repeats,
+            ctypes.byref(elapsed), ctypes.byref(checksum),
+        )
+        if status != 0:
+            raise RuntimeError(f"compiled LayerNorm benchmark failed with status {status}")
+        return {
+            "precision_bits": int(precision_bits), "width": int(width),
+            "vector_count": int(vector_count), "repeats": int(repeats),
+            "elapsed_seconds": elapsed.value,
+            "vectors_per_second": int(vector_count) * int(repeats) / elapsed.value,
+            "checksum": f"{checksum.value:016x}",
+        }
+
+    def benchmark_causal_attention(self, precision_bits: int, sequence_length: int,
+                                   n_heads: int, head_dim: int,
+                                   branch_count: int = 1, repeats: int = 1) -> dict:
+        elapsed = ctypes.c_double()
+        checksum = ctypes.c_uint64()
+        status = self.library.green_v400_benchmark_causal_attention_jet2(
+            precision_bits, sequence_length, n_heads, head_dim, branch_count, repeats,
+            ctypes.byref(elapsed), ctypes.byref(checksum),
+        )
+        if status != 0:
+            raise RuntimeError(f"compiled attention benchmark failed with status {status}")
+        evaluations = int(n_heads) * int(branch_count) * int(repeats)
+        return {
+            "precision_bits": int(precision_bits),
+            "sequence_length": int(sequence_length), "n_heads": int(n_heads),
+            "head_dim": int(head_dim), "branch_count": int(branch_count),
+            "repeats": int(repeats), "head_evaluations": evaluations,
+            "elapsed_seconds": elapsed.value,
+            "head_evaluations_per_second": evaluations / elapsed.value,
+            "checksum": f"{checksum.value:016x}",
+        }
+
     def interval_primitive(self, operation: str, interval: Interval) -> dict:
         if operation not in {"exp", "tanh", "sqrt", "inv_sqrt"}:
             raise ValueError("unsupported compiled interval primitive")
@@ -214,4 +295,30 @@ class CompiledMPFRBackend:
         )
         if status != 0:
             raise RuntimeError(f"compiled LayerNorm jet failed with status {status}")
+        return json.loads(output.value.decode("ascii"))
+
+    def causal_attention_final_head_jet2(self, query: list[Jet2], keys: list[list[Jet2]],
+                                         values: list[list[Jet2]], pivot: int = 0) -> dict:
+        if not query or not keys or len(keys) != len(values):
+            raise ValueError("compiled attention shape mismatch")
+        head_dim, sequence_length = len(query), len(keys)
+        if any(len(row) != head_dim for row in keys + values):
+            raise ValueError("compiled attention head width mismatch")
+        jets = query + [jet for row in keys for jet in row] + [jet for row in values for jet in row]
+        precision = jets[0].precision_bits
+        if any(jet.precision_bits != precision for jet in jets):
+            raise ValueError("compiled attention precision mismatch")
+        encoded = []
+        for jet in jets:
+            for component in (jet.value, jet.first, jet.second):
+                encoded.extend((_binary_endpoint(component.lower), _binary_endpoint(component.upper)))
+        strings = (ctypes.c_char_p * len(encoded))(*(item[0] for item in encoded))
+        exponents = np.asarray([item[1] for item in encoded], dtype="<i8")
+        output = ctypes.create_string_buffer(max(8192, 4096 * head_dim))
+        status = self.library.green_v400_causal_attention_final_head_jet2_exact(
+            precision, sequence_length, head_dim, pivot, strings,
+            exponents.ctypes.data_as(ctypes.POINTER(ctypes.c_int64)), output, len(output),
+        )
+        if status != 0:
+            raise RuntimeError(f"compiled attention jet failed with status {status}")
         return json.loads(output.value.decode("ascii"))

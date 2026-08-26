@@ -17,7 +17,9 @@ from green_bridge_v400_interval import (
     Interval, exp_interval, inv_sqrt_interval, sqrt_interval, tanh_interval,
 )
 from green_bridge_v400_interval_jet import Jet2
-from green_bridge_v400_transformer_ops import affine_map_jets, gelu_new_jet, layernorm_jets
+from green_bridge_v400_transformer_ops import (
+    affine_map_jets, attention_head_jets, gelu_new_jet, layernorm_jets,
+)
 
 
 def _backend():
@@ -143,3 +145,36 @@ def test_compiled_layer_norm_rejects_nonpositive_variance():
         backend.layer_norm_jet2(
             values, np.float32(0.0), np.ones(3, dtype="<f4"), np.zeros(3, dtype="<f4")
         )
+
+
+@pytest.mark.parametrize("precision", [384, 512])
+def test_compiled_nonlinear_benchmarks_are_live(precision):
+    backend = _backend()
+    gelu = backend.benchmark_gelu(precision, 8)
+    layer_norm = backend.benchmark_layer_norm(precision, 8, 2)
+    attention = backend.benchmark_causal_attention(precision, 3, 2, 4)
+    assert gelu["elapsed_seconds"] > 0 and gelu["jets_per_second"] > 0
+    assert layer_norm["elapsed_seconds"] > 0 and layer_norm["vectors_per_second"] > 0
+    assert attention["elapsed_seconds"] > 0 and attention["head_evaluations"] == 2
+    assert len(gelu["checksum"]) == len(layer_norm["checksum"]) == len(attention["checksum"]) == 16
+
+
+@pytest.mark.parametrize("precision", [384, 512])
+def test_compiled_causal_attention_final_head_is_bit_identical(precision):
+    backend = _backend()
+    query = [_jet(-0.15 + coordinate/9, 2.0**(-10-coordinate),
+                  0.2-coordinate/11, -0.1+coordinate/13, precision)
+             for coordinate in range(3)]
+    keys = [[_jet(-0.3 + token/8 + coordinate/17, 2.0**(-11-token-coordinate),
+                  0.1+token/19-coordinate/23, -0.2+coordinate/29, precision)
+             for coordinate in range(3)] for token in range(3)]
+    values = [[_jet(0.25-token/7+coordinate/13, 2.0**(-12-token-coordinate),
+                    -0.15+token/17+coordinate/31, 0.05-token/37, precision)
+               for coordinate in range(3)] for token in range(3)]
+    expected = attention_head_jets([query, query, query], keys, values, causal=True)[-1]
+    actual = backend.causal_attention_final_head_jet2(query, keys, values, pivot=0)["outputs"]
+    for expected_jet, actual_jet in zip(expected, actual):
+        for component in ("value", "first", "second"):
+            interval = getattr(expected_jet, component)
+            assert backend.exact_fraction(actual_jet[component]["lower"]) == _fraction(interval.lower)
+            assert backend.exact_fraction(actual_jet[component]["upper"]) == _fraction(interval.upper)
