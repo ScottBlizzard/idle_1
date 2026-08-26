@@ -19,9 +19,9 @@ EXECUTION_COMMIT="$(git -C "$PROJECT_DIR" rev-parse HEAD)"
 
 export GREEN_BASE=/mnt/sdb/ccj
 export GREEN_RUNTIME_ROOT="/mnt/sdb/ccj/iclr_1_runs/green_bridge_v300_${EXECUTION_COMMIT}"
-export HF_HOME=/mnt/sdb/ccj/cache/huggingface
-export HF_HUB_CACHE=/mnt/sdb/ccj/cache/huggingface/hub
-export TRANSFORMERS_CACHE=/mnt/sdb/ccj/cache/huggingface/transformers
+export HF_HOME=/mnt/sdb/ccj/iclr_1_runs/green_bridge_v136_runtime/huggingface
+export HF_HUB_CACHE=/mnt/sdb/ccj/iclr_1_runs/green_bridge_v136_runtime/huggingface/hub
+export TRANSFORMERS_CACHE=/mnt/sdb/ccj/iclr_1_runs/green_bridge_v136_runtime/huggingface/transformers
 export TORCH_HOME=/mnt/sdb/ccj/cache/torch
 export XDG_CACHE_HOME=/mnt/sdb/ccj/cache
 export PIP_CACHE_DIR=/mnt/sdb/ccj/cache/pip

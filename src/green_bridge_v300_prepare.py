@@ -73,7 +73,9 @@ from matched_bypass_gate import GateJet, extrapolate_gate_jet
 
 
 RADIUS_SALT = "green-v300-radius-calibration-20260825"
-PREFLIGHT_SALT = "green-v300-prepare-structural-preflight-20260826"
+# Manual-tail equivalence is a byte-level regression against the v1.3.6
+# certificate, so it must reuse that certificate's exact frozen record panel.
+PREFLIGHT_SALT = "structural-preflight-v13"
 JOINT_SALT = "green-v300-prepare-joint-preflight-20260826"
 V300_SOURCE_FILES = (
     "src/green_bridge_v300_spec.py",
