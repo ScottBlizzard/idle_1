@@ -7,6 +7,7 @@
 #include <cstring>
 #include <sstream>
 #include <string>
+#include <utility>
 #include <vector>
 
 namespace {
@@ -583,6 +584,213 @@ IntervalMP fused_contrast_scalar(
   return result;
 }
 
+IntervalMP interval_scale_known_float(const IntervalMP& input, float scalar) {
+  IntervalMP result(input.precision);
+  MpfrValue weight(input.precision);
+  mpfr_set_flt(weight.get(), scalar, MPFR_RNDN);
+  if (mpfr_sgn(weight.get()) >= 0) {
+    mpfr_mul(result.lower.get(), input.lower.get(), weight.get(), MPFR_RNDD);
+    mpfr_mul(result.upper.get(), input.upper.get(), weight.get(), MPFR_RNDU);
+  } else {
+    mpfr_mul(result.lower.get(), input.upper.get(), weight.get(), MPFR_RNDD);
+    mpfr_mul(result.upper.get(), input.lower.get(), weight.get(), MPFR_RNDU);
+  }
+  return result;
+}
+
+JetMP jet_scale_known_float(const JetMP& input, float scalar) {
+  JetMP result(input.value.precision);
+  result.value = interval_scale_known_float(input.value, scalar);
+  result.first = interval_scale_known_float(input.first, scalar);
+  result.second = interval_scale_known_float(input.second, scalar);
+  return result;
+}
+
+std::vector<JetMP> synthetic_affine_layer(
+    const std::vector<JetMP>& inputs, std::uint32_t output_width, std::uint32_t salt) {
+  const mpfr_prec_t precision = inputs[0].value.precision;
+  std::vector<MpfrValue> lower_terms, upper_terms;
+  lower_terms.reserve(inputs.size()); upper_terms.reserve(inputs.size());
+  for (std::size_t index = 0; index < inputs.size(); ++index) {
+    lower_terms.emplace_back(precision); upper_terms.emplace_back(precision);
+  }
+  std::vector<MpfrValue*> lower_pointers, upper_pointers;
+  lower_pointers.reserve(inputs.size()); upper_pointers.reserve(inputs.size());
+  for (std::size_t index = 0; index < inputs.size(); ++index) {
+    lower_pointers.push_back(&lower_terms[index]);
+    upper_pointers.push_back(&upper_terms[index]);
+  }
+  MpfrValue weight_value(precision);
+  std::vector<JetMP> outputs;
+  outputs.reserve(output_width);
+  for (std::uint32_t output = 0; output < output_width; ++output) {
+    outputs.emplace_back(precision);
+    IntervalMP* target_components[3] = {
+        &outputs.back().value, &outputs.back().first, &outputs.back().second};
+    for (std::size_t component = 0; component < 3; ++component) {
+      for (std::uint32_t index = 0; index < inputs.size(); ++index) {
+        const std::uint32_t hash = (index + 1U) * 2654435761U
+            ^ (output + 17U) * 2246822519U ^ (salt + 31U) * 3266489917U;
+        const float weight = (static_cast<int>(hash % 2049U) - 1024) / 4096.0f;
+        mpfr_set_flt(weight_value.get(), weight, MPFR_RNDN);
+        const IntervalMP* source_components[3] = {
+            &inputs[index].value, &inputs[index].first, &inputs[index].second};
+        const IntervalMP& source = *source_components[component];
+        if (mpfr_sgn(weight_value.get()) >= 0) {
+          mpfr_mul(lower_terms[index].get(), source.lower.get(), weight_value.get(), MPFR_RNDD);
+          mpfr_mul(upper_terms[index].get(), source.upper.get(), weight_value.get(), MPFR_RNDU);
+        } else {
+          mpfr_mul(lower_terms[index].get(), source.upper.get(), weight_value.get(), MPFR_RNDD);
+          mpfr_mul(upper_terms[index].get(), source.lower.get(), weight_value.get(), MPFR_RNDU);
+        }
+      }
+      pairwise_sum(lower_pointers, target_components[component]->lower.get(), MPFR_RNDD);
+      pairwise_sum(upper_pointers, target_components[component]->upper.get(), MPFR_RNDU);
+    }
+    const float bias = (static_cast<int>((output + salt * 13U) % 257U) - 128) / 8192.0f;
+    mpfr_set_flt(weight_value.get(), bias, MPFR_RNDN);
+    mpfr_add(outputs.back().value.lower.get(), outputs.back().value.lower.get(),
+             weight_value.get(), MPFR_RNDD);
+    mpfr_add(outputs.back().value.upper.get(), outputs.back().value.upper.get(),
+             weight_value.get(), MPFR_RNDU);
+  }
+  return outputs;
+}
+
+std::vector<JetMP> layer_norm_identity(const std::vector<JetMP>& inputs) {
+  const mpfr_prec_t precision = inputs[0].value.precision;
+  const IntervalMP reciprocal_width = interval_point_rational(1U, inputs.size(), precision);
+  JetMP mean = jet_scale_interval(jet_pairwise_sum(inputs), reciprocal_width);
+  std::vector<JetMP> centered;
+  centered.reserve(inputs.size());
+  for (const JetMP& input : inputs) centered.emplace_back(jet_sub(input, mean));
+  std::vector<JetMP> squares;
+  squares.reserve(inputs.size());
+  for (const JetMP& value : centered) squares.emplace_back(jet_square(value));
+  JetMP variance = jet_scale_interval(jet_pairwise_sum(squares), reciprocal_width);
+  variance = jet_add(variance, jet_constant(interval_point_float(1.0e-5f, precision)));
+  JetMP inverse_scale = jet_inv_sqrt(variance);
+  std::vector<JetMP> output;
+  output.reserve(inputs.size());
+  for (const JetMP& value : centered) output.emplace_back(jet_mul(value, inverse_scale));
+  return output;
+}
+
+std::vector<JetMP> gelu_vector(const std::vector<JetMP>& inputs) {
+  std::vector<JetMP> output;
+  output.reserve(inputs.size());
+  for (const JetMP& value : inputs)
+    output.emplace_back(jet_gelu_new(value, 0.7978845834732056f, 0.044715f));
+  return output;
+}
+
+std::vector<JetMP> add_vectors(const std::vector<JetMP>& left,
+                               const std::vector<JetMP>& right) {
+  std::vector<JetMP> output;
+  output.reserve(left.size());
+  for (std::size_t index = 0; index < left.size(); ++index)
+    output.emplace_back(jet_add(left[index], right[index]));
+  return output;
+}
+
+JetMP synthetic_constant_jet(std::size_t index, mpfr_prec_t precision) {
+  JetMP result = synthetic_jet(index, precision);
+  mpfr_set_zero(result.first.lower.get(), 0); mpfr_set_zero(result.first.upper.get(), 0);
+  mpfr_set_zero(result.second.lower.get(), 0); mpfr_set_zero(result.second.upper.get(), 0);
+  return result;
+}
+
+JetMP synthetic_gpt2_tail(
+    const std::vector<JetMP>& resid_post, std::uint32_t d_model,
+    std::uint32_t d_mlp, std::uint32_t sequence_length,
+    std::uint32_t n_heads, std::uint32_t d_head, std::uint32_t salt) {
+  const mpfr_prec_t precision = resid_post[0].value.precision;
+  std::vector<JetMP> ln1 = layer_norm_identity(resid_post);
+  std::vector<JetMP> q = synthetic_affine_layer(ln1, d_model, salt + 101U);
+  std::vector<JetMP> k_final = synthetic_affine_layer(ln1, d_model, salt + 103U);
+  std::vector<JetMP> v_final = synthetic_affine_layer(ln1, d_model, salt + 107U);
+  std::vector<JetMP> attention;
+  attention.reserve(d_model);
+  for (std::uint32_t head = 0; head < n_heads; ++head) {
+    const std::uint32_t start = head * d_head;
+    std::vector<JetMP> query, keys, values;
+    query.reserve(d_head);
+    keys.reserve(static_cast<std::size_t>(sequence_length) * d_head);
+    values.reserve(static_cast<std::size_t>(sequence_length) * d_head);
+    for (std::uint32_t coordinate = 0; coordinate < d_head; ++coordinate)
+      query.emplace_back(jet_clone(q[start + coordinate]));
+    for (std::uint32_t token = 0; token < sequence_length; ++token) {
+      for (std::uint32_t coordinate = 0; coordinate < d_head; ++coordinate) {
+        if (token + 1U == sequence_length) {
+          keys.emplace_back(jet_clone(k_final[start + coordinate]));
+          values.emplace_back(jet_clone(v_final[start + coordinate]));
+        } else {
+          const std::size_t index = salt * 1000003ULL + token * d_model + start + coordinate;
+          keys.emplace_back(synthetic_constant_jet(index + 3001U, precision));
+          values.emplace_back(synthetic_constant_jet(index + 6007U, precision));
+        }
+      }
+    }
+    std::vector<JetMP> head_output = attention_final_head(
+        query, keys, values, sequence_length, d_head, 0U);
+    for (JetMP& value : head_output) attention.emplace_back(std::move(value));
+  }
+  std::vector<JetMP> attention_out = synthetic_affine_layer(attention, d_model, salt + 109U);
+  std::vector<JetMP> resid_mid = add_vectors(resid_post, attention_out);
+  std::vector<JetMP> ln2 = layer_norm_identity(resid_mid);
+  std::vector<JetMP> pre = synthetic_affine_layer(ln2, d_mlp, salt + 113U);
+  std::vector<JetMP> post = gelu_vector(pre);
+  std::vector<JetMP> mlp_out = synthetic_affine_layer(post, d_model, salt + 127U);
+  std::vector<JetMP> resid_final = add_vectors(resid_mid, mlp_out);
+  std::vector<JetMP> normalized = layer_norm_identity(resid_final);
+  std::vector<JetMP> contrast = synthetic_affine_layer(normalized, 1U, salt + 131U);
+  return std::move(contrast[0]);
+}
+
+JetMP synthetic_joint_witness_cell(
+    mpfr_prec_t precision, std::uint32_t d_model, std::uint32_t d_mlp,
+    std::uint32_t sequence_length, std::uint32_t n_heads,
+    std::uint32_t d_head, std::uint32_t selected_gates, std::uint32_t repeat) {
+  std::vector<JetMP> roots;
+  roots.reserve(4);
+  for (std::uint32_t condition = 0; condition < 2; ++condition) {
+    std::vector<JetMP> base, controlled;
+    base.reserve(d_model); controlled.reserve(d_model);
+    for (std::uint32_t coordinate = 0; coordinate < d_model; ++coordinate) {
+      base.emplace_back(synthetic_jet(
+          repeat * 10000019ULL + condition * 100003ULL + coordinate, precision));
+      controlled.emplace_back(synthetic_jet(
+          repeat * 10000079ULL + condition * 100019ULL + coordinate, precision));
+    }
+    std::vector<JetMP> ln10 = layer_norm_identity(controlled);
+    std::vector<JetMP> zero_control;
+    zero_control.reserve(d_model);
+    for (const JetMP& value : controlled)
+      zero_control.emplace_back(jet_constant(value.value));
+    std::vector<JetMP> zero_ln10 = layer_norm_identity(zero_control);
+    std::vector<JetMP> selected_pre = synthetic_affine_layer(
+        ln10, selected_gates, 211U + condition + repeat * 17U);
+    std::vector<JetMP> zero_pre = synthetic_affine_layer(
+        zero_ln10, selected_gates, 211U + condition + repeat * 17U);
+    std::vector<JetMP> selected_live = gelu_vector(selected_pre);
+    std::vector<JetMP> zero_live = gelu_vector(zero_pre);
+    std::vector<JetMP> selected_delta;
+    selected_delta.reserve(selected_gates);
+    for (std::size_t index = 0; index < selected_live.size(); ++index)
+      selected_delta.emplace_back(jet_sub(selected_live[index], zero_live[index]));
+    std::vector<JetMP> delta_out = synthetic_affine_layer(
+        selected_delta, d_model, 223U + condition + repeat * 19U);
+    std::vector<JetMP> joint = add_vectors(base, delta_out);
+    roots.emplace_back(synthetic_gpt2_tail(
+        joint, d_model, d_mlp, sequence_length, n_heads, d_head,
+        307U + condition * 2U + repeat * 23U));
+    roots.emplace_back(synthetic_gpt2_tail(
+        base, d_model, d_mlp, sequence_length, n_heads, d_head,
+        308U + condition * 2U + repeat * 23U));
+  }
+  return jet_add(jet_sub(jet_sub(roots[0], roots[1]), roots[2]), roots[3]);
+}
+
 }  // namespace
 
 extern "C" const char* green_v400_mpfr_backend_version() {
@@ -846,6 +1054,36 @@ extern "C" int green_v400_benchmark_causal_attention_jet2(
         }
       }
     }
+  }
+  const auto stop = std::chrono::steady_clock::now();
+  *elapsed_seconds = std::chrono::duration<double>(stop - start).count();
+  *checksum = state;
+  return 0;
+}
+
+extern "C" int green_v400_benchmark_gpt2_joint_witness_cell(
+    std::uint32_t precision_bits, std::uint32_t d_model, std::uint32_t d_mlp,
+    std::uint32_t sequence_length, std::uint32_t n_heads,
+    std::uint32_t d_head, std::uint32_t selected_gates, std::uint32_t repeats,
+    double* elapsed_seconds, std::uint64_t* checksum) {
+  if (precision_bits < 64 || precision_bits > 4096 || d_model == 0 || d_mlp == 0
+      || sequence_length == 0 || n_heads == 0 || d_head == 0 || selected_gates == 0
+      || n_heads * d_head != d_model || selected_gates > d_mlp || repeats == 0
+      || d_model > 100000U || d_mlp > 100000U || sequence_length > 4096U
+      || elapsed_seconds == nullptr || checksum == nullptr) return 2;
+  const mpfr_prec_t precision = static_cast<mpfr_prec_t>(precision_bits);
+  std::uint64_t state = 0x510e527fade682d1ULL;
+  const auto start = std::chrono::steady_clock::now();
+  for (std::uint32_t repeat = 0; repeat < repeats; ++repeat) {
+    JetMP output = synthetic_joint_witness_cell(
+        precision, d_model, d_mlp, sequence_length, n_heads,
+        d_head, selected_gates, repeat);
+    state = mix_checksum(state, output.value.lower.get());
+    state = mix_checksum(state, output.value.upper.get());
+    state = mix_checksum(state, output.first.lower.get());
+    state = mix_checksum(state, output.first.upper.get());
+    state = mix_checksum(state, output.second.lower.get());
+    state = mix_checksum(state, output.second.upper.get());
   }
   const auto stop = std::chrono::steady_clock::now();
   *elapsed_seconds = std::chrono::duration<double>(stop - start).count();

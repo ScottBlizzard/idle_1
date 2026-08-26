@@ -35,6 +35,8 @@ class GPT2TailDimensions:
             raise ValueError("invalid GPT-2 tail dimensions")
         if not 0 <= self.final_position < self.sequence_length:
             raise ValueError("final position is outside sequence")
+        if self.final_position != self.sequence_length - 1:
+            raise ValueError("certified GPT-2 control must be the final unpadded causal token")
         if (not self.selected_gates or len(set(self.selected_gates)) != len(self.selected_gates)
                 or min(self.selected_gates) < 0 or max(self.selected_gates) >= self.d_mlp):
             raise ValueError("invalid selected-gate panel")
@@ -113,7 +115,7 @@ def _tail_nodes(prefix: str, resid_post: TensorNode, refs: dict[str, TensorRef],
         "causal_attention.v1", tuple(qkv), (),
         {"n_heads": dims.n_heads, "d_head": dims.d_head,
          "score_scale": "inverse_sqrt_d_head", "mask": "causal_delete_future",
-         "softmax_pivot": "row_max_first_index"},
+         "softmax_pivot": {"kind": "fixed_index", "index": 0}},
         (s, d), f"{prefix}.block11.attn.pattern_value",
         dynamic_axis0_indices=dynamic_rows,
     )
@@ -197,11 +199,24 @@ def build_gpt2_joint_witness_program(reader: TensorStoreReader,
             (s, d), f"{condition}.J.resid_mid", dynamic_axis0_indices=dynamic_rows,
         )
         nodes.append(controlled_mid)
+        zero_mid = _node(
+            "static_view.v1", (), (refs[f"{condition}.resid_mid"],),
+            {"operation": "tensor_constant"}, (s, d),
+            f"{condition}.J.zero_control.resid_mid", depends_on_t=False,
+        )
+        nodes.append(zero_mid)
         ln2 = _node("layer_norm.v1", (controlled_mid,),
                     (refs["block10.ln2.w"], refs["block10.ln2.b"], refs["layer_norm.eps"]),
                     {"axis": -1}, (s, d), f"{condition}.J.block10.ln2",
                     dynamic_axis0_indices=dynamic_rows)
         nodes.append(ln2)
+        zero_ln2 = _node(
+            "layer_norm.v1", (zero_mid,),
+            (refs["block10.ln2.w"], refs["block10.ln2.b"], refs["layer_norm.eps"]),
+            {"axis": -1}, (s, d), f"{condition}.J.zero_control.block10.ln2",
+            depends_on_t=False,
+        )
+        nodes.append(zero_ln2)
         selected_pre = _node(
             "pairwise_affine.v1", (ln2,),
             (refs["block10.mlp.W_in_selected"], refs["block10.mlp.b_in_selected"]),
@@ -211,14 +226,29 @@ def build_gpt2_joint_witness_program(reader: TensorStoreReader,
             dynamic_axis0_indices=dynamic_rows,
         )
         nodes.append(selected_pre)
+        zero_pre = _node(
+            "pairwise_affine.v1", (zero_ln2,),
+            (refs["block10.mlp.W_in_selected"], refs["block10.mlp.b_in_selected"]),
+            {"weight_layout": "input_output", "torch_float_kernel": "batch_addmm",
+             "selected_gates": list(dims.selected_gates)},
+            (s, k), f"{condition}.J.zero_control.block10.selected_pre",
+            depends_on_t=False,
+        )
+        nodes.append(zero_pre)
         selected_live = _node("gelu_new.v1", (selected_pre,),
                               (refs["gelu.kappa"], refs["gelu.lambda"]), {}, (s, k),
                               f"{condition}.J.block10.selected_live",
                               dynamic_axis0_indices=dynamic_rows)
         nodes.append(selected_live)
+        zero_live = _node(
+            "gelu_new.v1", (zero_pre,), (refs["gelu.kappa"], refs["gelu.lambda"]),
+            {}, (s, k), f"{condition}.J.zero_control.block10.selected_live",
+            depends_on_t=False,
+        )
+        nodes.append(zero_live)
         selected_delta = _node(
-            "static_view.v1", (selected_live,), (refs[f"{condition}.selected_post"],),
-            {"operation": "subtract_anchor_at_final_position",
+            "static_view.v1", (selected_live, zero_live), (),
+            {"operation": "subtract_exact_parent_at_final_position",
              "final_position": dims.final_position},
             (s, k), f"{condition}.J.block10.selected_delta",
             dynamic_axis0_indices=dynamic_rows,
@@ -282,7 +312,10 @@ def validate_gpt2_joint_witness_program(program: TensorProgram, reader: TensorSt
         mask = node.exact_attrs.get("dependency_mask_spec")
         if mask is None:
             raise ValueError("GPT-2 TensorProgram node lacks an exact dependency mask")
-        if node.output_spec.shape:
+        if not bool(node.exact_attrs.get("depends_on_t", False)):
+            if mask["kind"] != "empty" or mask["dependent_scalar_count"] != 0:
+                raise ValueError("GPT-2 static node dependency mask mismatch")
+        elif node.output_spec.shape:
             if (mask["kind"] != "axis0_rows"
                     or mask["axis0_indices"] != [dims.final_position]):
                 raise ValueError("GPT-2 dynamic cone is not closed to the final causal row")
@@ -338,13 +371,15 @@ def execute_tensor_program_numpy(program: TensorProgram, reader: TensorStoreRead
                 np.asarray(1.0, dtype=x.dtype) + np.tanh(kappa * (x + lam * x * x * x))
             )
         elif kernel == "static_view.v1":
-            if node.exact_attrs.get("operation") != "subtract_anchor_at_final_position":
+            operation = node.exact_attrs.get("operation")
+            if operation == "tensor_constant":
+                value = tensors[0].copy()
+            elif operation == "subtract_exact_parent_at_final_position":
+                value = np.zeros_like(parents[0])
+                position = int(node.exact_attrs["final_position"])
+                value[position] = parents[0][position] - parents[1][position]
+            else:
                 raise ValueError("unsupported static view operation")
-            value = parents[0].copy()
-            position = int(node.exact_attrs["final_position"])
-            value[position] -= tensors[0]
-            value[:position] = 0
-            value[position + 1:] = 0
         elif kernel == "causal_attention.v1":
             q, k, v = (parent.reshape(parent.shape[0], int(node.exact_attrs["n_heads"]),
                                       int(node.exact_attrs["d_head"])) for parent in parents)
@@ -353,7 +388,8 @@ def execute_tensor_program_numpy(program: TensorProgram, reader: TensorStoreRead
             )
             mask = np.triu(np.ones((q.shape[0], q.shape[0]), dtype=bool), 1)
             scores = np.where(mask[None, :, :], -np.inf, scores)
-            pivot = np.max(scores, axis=-1, keepdims=True)
+            pivot_index = int(node.exact_attrs["softmax_pivot"]["index"])
+            pivot = scores[:, :, pivot_index:pivot_index + 1]
             exponentials = np.exp(scores - pivot)
             pattern = exponentials / np.sum(exponentials, axis=-1, keepdims=True)
             value = np.einsum("hqk,khd->qhd", pattern, v).reshape(q.shape[0], -1)
@@ -421,11 +457,15 @@ def execute_tensor_program_torch(program: TensorProgram, reader: TensorStoreRead
                 x.new_tensor(1.0) + torch.tanh(kappa * (x + lam * x * x * x))
             )
         elif kernel == "static_view.v1":
-            if node.exact_attrs.get("operation") != "subtract_anchor_at_final_position":
+            operation = node.exact_attrs.get("operation")
+            if operation == "tensor_constant":
+                value = tensors[0].clone()
+            elif operation == "subtract_exact_parent_at_final_position":
+                value = torch.zeros_like(parents[0])
+                position = int(node.exact_attrs["final_position"])
+                value[position] = parents[0][position] - parents[1][position]
+            else:
                 raise ValueError("unsupported static view operation")
-            value = torch.zeros_like(parents[0])
-            position = int(node.exact_attrs["final_position"])
-            value[position] = parents[0][position] - tensors[0]
         elif kernel == "causal_attention.v1":
             heads = int(node.exact_attrs["n_heads"])
             width = int(node.exact_attrs["d_head"])
@@ -435,7 +475,9 @@ def execute_tensor_program_torch(program: TensorProgram, reader: TensorStoreRead
                 (q.shape[0], q.shape[0]), dtype=torch.bool, device=q.device
             ), diagonal=1)
             scores = scores.masked_fill(mask[None, :, :], -torch.inf)
-            pattern = torch.softmax(scores, dim=-1)
+            pivot_index = int(node.exact_attrs["softmax_pivot"]["index"])
+            exponentials = torch.exp(scores - scores[:, :, pivot_index:pivot_index + 1])
+            pattern = exponentials / exponentials.sum(dim=-1, keepdim=True)
             value = torch.einsum("hqk,khd->qhd", pattern, v).reshape(q.shape[0], -1)
         elif kernel == "residual_add.v1":
             value = parents[0] + parents[1]

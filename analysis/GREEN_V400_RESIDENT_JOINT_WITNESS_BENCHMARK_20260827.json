@@ -1,0 +1,157 @@
+{
+  "backend_sha256": "5f1b54e15b32d8d9c922793ec1fa1546807d7c1c3d6bed2e7aacd1024e299530",
+  "backend_version": "green-v400-compiled-mpfr-v1",
+  "cap_decision_authorized": false,
+  "claim_status": "PASS_RESIDENT_SYNTHETIC_DYNAMIC_CELL_ONLY",
+  "contains_scientific_outcome": false,
+  "coverage": "resident four-branch dynamic call vector with native affine/LN/GELU/attention/residual/contrast",
+  "created_at_utc": "2026-08-26T16:48:52.991385Z",
+  "dimensions": {
+    "d_head": 64,
+    "d_mlp": 3072,
+    "d_model": 768,
+    "n_heads": 12,
+    "selected_gates": 10,
+    "sequence_length": 12
+  },
+  "full_tail_equivalent": false,
+  "host": {
+    "hostname": "ubuntu",
+    "logical_cpu_count": 256,
+    "platform": "Linux-5.15.0-67-generic-x86_64-with-glibc2.31"
+  },
+  "input_policy": "native deterministic exact-dyadic synthetic jets; public shapes only",
+  "known_exclusions": [
+    "actual TensorProgram JSON dispatcher",
+    "real tensor-store decode and model weights",
+    "exact final-contrast static fusion startup",
+    "MPFR primitive operation counter",
+    "adaptive priority queue",
+    "endpoint and multi-radius certificate orchestration"
+  ],
+  "mandatory_two_initial_cells_upper_seconds": 109.56016314749999,
+  "paired_384_plus_512_one_cell_upper_seconds": 54.780081573749996,
+  "peak_rss_kib": 52328,
+  "program_call_vector": {
+    "affine_scatter.v1": 4,
+    "branch_linear_combination.v1": 1,
+    "causal_attention.v1": 4,
+    "final_contrast.v1": 4,
+    "gelu_new.v1": 8,
+    "layer_norm.v1": 16,
+    "pairwise_affine.v1": 30,
+    "residual_add.v1": 10,
+    "static_view.v1": 4
+  },
+  "program_call_vector_sha256": "b55cc7f235a1e5431874cbe4f87b0225a9d8036dab2d3d445062761266ccefbe",
+  "repetitions": 3,
+  "rows": [
+    {
+      "cells_per_second": 0.047733791475364794,
+      "checksum": "7d956be7f22ee797",
+      "d_head": 64,
+      "d_mlp": 3072,
+      "d_model": 768,
+      "elapsed_seconds": 20.949519598,
+      "n_heads": 12,
+      "precision_bits": 384,
+      "repeats": 1,
+      "repetition": 0,
+      "selected_gates": 10,
+      "sequence_length": 12
+    },
+    {
+      "cells_per_second": 0.050827091092834044,
+      "checksum": "7d956be7f22ee797",
+      "d_head": 64,
+      "d_mlp": 3072,
+      "d_model": 768,
+      "elapsed_seconds": 19.674547146,
+      "n_heads": 12,
+      "precision_bits": 384,
+      "repeats": 1,
+      "repetition": 1,
+      "selected_gates": 10,
+      "sequence_length": 12
+    },
+    {
+      "cells_per_second": 0.05076085623293919,
+      "checksum": "7d956be7f22ee797",
+      "d_head": 64,
+      "d_mlp": 3072,
+      "d_model": 768,
+      "elapsed_seconds": 19.700219307,
+      "n_heads": 12,
+      "precision_bits": 384,
+      "repeats": 1,
+      "repetition": 2,
+      "selected_gates": 10,
+      "sequence_length": 12
+    },
+    {
+      "cells_per_second": 0.04448511795095391,
+      "checksum": "7d956be7f22ee797",
+      "d_head": 64,
+      "d_mlp": 3072,
+      "d_model": 768,
+      "elapsed_seconds": 22.479427864,
+      "n_heads": 12,
+      "precision_bits": 512,
+      "repeats": 1,
+      "repetition": 0,
+      "selected_gates": 10,
+      "sequence_length": 12
+    },
+    {
+      "cells_per_second": 0.04371671528781233,
+      "checksum": "7d956be7f22ee797",
+      "d_head": 64,
+      "d_mlp": 3072,
+      "d_model": 768,
+      "elapsed_seconds": 22.874545661,
+      "n_heads": 12,
+      "precision_bits": 512,
+      "repeats": 1,
+      "repetition": 1,
+      "selected_gates": 10,
+      "sequence_length": 12
+    },
+    {
+      "cells_per_second": 0.04371678723512865,
+      "checksum": "7d956be7f22ee797",
+      "d_head": 64,
+      "d_mlp": 3072,
+      "d_model": 768,
+      "elapsed_seconds": 22.874508015,
+      "n_heads": 12,
+      "precision_bits": 512,
+      "repeats": 1,
+      "repetition": 2,
+      "selected_gates": 10,
+      "sequence_length": 12
+    }
+  ],
+  "schema_version": "green-v400-resident-joint-witness-cell-benchmark-v1",
+  "summaries": {
+    "384": {
+      "checksum": "7d956be7f22ee797",
+      "elapsed_seconds": [
+        20.949519598,
+        19.674547146,
+        19.700219307
+      ],
+      "maximum_seconds": 20.949519598,
+      "timing_upper_1p25x_seconds": 26.186899497499997
+    },
+    "512": {
+      "checksum": "7d956be7f22ee797",
+      "elapsed_seconds": [
+        22.479427864,
+        22.874545661,
+        22.874508015
+      ],
+      "maximum_seconds": 22.874545661,
+      "timing_upper_1p25x_seconds": 28.59318207625
+    }
+  }
+}

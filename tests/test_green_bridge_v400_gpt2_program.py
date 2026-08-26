@@ -103,7 +103,10 @@ def test_gpt2_program_is_closed_replayable_and_four_branch(tmp_path):
     assert program.nodes[-1].exact_attrs["weights"] == [1, -1, -1, 1]
     for node in program.nodes:
         mask = node.exact_attrs["dependency_mask_spec"]
-        if node.output_spec.shape:
+        if not node.exact_attrs["depends_on_t"]:
+            assert mask["kind"] == "empty"
+            assert mask["dependent_scalar_count"] == 0
+        elif node.output_spec.shape:
             assert mask["kind"] == "axis0_rows"
             assert mask["axis0_indices"] == [dims.final_position]
             assert mask["dependent_scalar_count"] == math.prod(node.output_spec.shape[1:])
@@ -116,9 +119,14 @@ def test_gpt2_program_is_closed_replayable_and_four_branch(tmp_path):
 def test_gpt2_program_zero_control_joint_equals_bypass(tmp_path):
     reader, _, program = _fixture(tmp_path)
     replay = execute_tensor_program_numpy(program, reader, 0.0)
-    assert replay["PAT_J"] == pytest.approx(replay["PAT_B"], abs=2e-6)
-    assert replay["TAR_J"] == pytest.approx(replay["TAR_B"], abs=2e-6)
-    assert replay["output"] == pytest.approx(0.0, abs=4e-6)
+    assert replay["PAT_J"].tobytes() == replay["PAT_B"].tobytes()
+    assert replay["TAR_J"].tobytes() == replay["TAR_B"].tobytes()
+    assert float(replay["output"]) == 0.0
+
+
+def test_gpt2_dimensions_reject_nonfinal_causal_control():
+    with pytest.raises(ValueError, match="final unpadded causal token"):
+        GPT2TailDimensions(4, 4, 8, 2, 2, (1, 6), 2, 3)
 
 
 def test_gpt2_program_nonzero_control_is_deterministic(tmp_path):

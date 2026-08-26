@@ -94,6 +94,13 @@ class CompiledMPFRBackend:
             ctypes.POINTER(ctypes.c_uint64),
         ]
         benchmark_attention.restype = ctypes.c_int
+        benchmark_joint = self.library.green_v400_benchmark_gpt2_joint_witness_cell
+        benchmark_joint.argtypes = [
+            ctypes.c_uint32, ctypes.c_uint32, ctypes.c_uint32, ctypes.c_uint32,
+            ctypes.c_uint32, ctypes.c_uint32, ctypes.c_uint32, ctypes.c_uint32,
+            ctypes.POINTER(ctypes.c_double), ctypes.POINTER(ctypes.c_uint64),
+        ]
+        benchmark_joint.restype = ctypes.c_int
         primitive = self.library.green_v400_interval_primitive_exact
         primitive.argtypes = [
             ctypes.c_char_p, ctypes.c_uint32,
@@ -245,6 +252,30 @@ class CompiledMPFRBackend:
             "repeats": int(repeats), "head_evaluations": evaluations,
             "elapsed_seconds": elapsed.value,
             "head_evaluations_per_second": evaluations / elapsed.value,
+            "checksum": f"{checksum.value:016x}",
+        }
+
+    def benchmark_gpt2_joint_witness_cell(
+        self, precision_bits: int, d_model: int, d_mlp: int,
+        sequence_length: int, n_heads: int, d_head: int,
+        selected_gates: int, repeats: int = 1,
+    ) -> dict:
+        elapsed = ctypes.c_double()
+        checksum = ctypes.c_uint64()
+        status = self.library.green_v400_benchmark_gpt2_joint_witness_cell(
+            precision_bits, d_model, d_mlp, sequence_length, n_heads,
+            d_head, selected_gates, repeats,
+            ctypes.byref(elapsed), ctypes.byref(checksum),
+        )
+        if status != 0:
+            raise RuntimeError(f"compiled joint-witness benchmark failed with status {status}")
+        return {
+            "precision_bits": int(precision_bits), "d_model": int(d_model),
+            "d_mlp": int(d_mlp), "sequence_length": int(sequence_length),
+            "n_heads": int(n_heads), "d_head": int(d_head),
+            "selected_gates": int(selected_gates), "repeats": int(repeats),
+            "elapsed_seconds": elapsed.value,
+            "cells_per_second": int(repeats) / elapsed.value,
             "checksum": f"{checksum.value:016x}",
         }
 

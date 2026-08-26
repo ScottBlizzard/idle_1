@@ -177,6 +177,17 @@ def test_compiled_nonlinear_benchmarks_are_live(precision):
 
 
 @pytest.mark.parametrize("precision", [384, 512])
+def test_resident_joint_witness_cell_benchmark_is_live(precision):
+    backend = _backend()
+    result = backend.benchmark_gpt2_joint_witness_cell(
+        precision, d_model=4, d_mlp=8, sequence_length=3,
+        n_heads=2, d_head=2, selected_gates=2,
+    )
+    assert result["elapsed_seconds"] > 0 and result["cells_per_second"] > 0
+    assert len(result["checksum"]) == 16
+
+
+@pytest.mark.parametrize("precision", [384, 512])
 def test_compiled_causal_attention_final_head_is_bit_identical(precision):
     backend = _backend()
     query = [_jet(-0.15 + coordinate/9, 2.0**(-10-coordinate),

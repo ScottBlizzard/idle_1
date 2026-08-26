@@ -127,13 +127,18 @@ def execute_tensor_program_mpfr(
                         compiled_backend.gelu_new_jet2(jet, kappa, lam), precision
                     ) for jet in row])
         elif kernel == "static_view.v1":
-            source = parents[0]
-            final_position = int(node.exact_attrs["final_position"])
-            output = [[_zero(precision) for _ in row] for row in source]
-            output[final_position] = [
-                sub_jet(jet, _point_jet(anchor, precision))
-                for jet, anchor in zip(source[final_position], tensors[0])
-            ]
+            operation = node.exact_attrs.get("operation")
+            if operation == "tensor_constant":
+                output = [[_point_jet(value, precision) for value in row] for row in tensors[0]]
+            elif operation == "subtract_exact_parent_at_final_position":
+                final_position = int(node.exact_attrs["final_position"])
+                output = [[_zero(precision) for _ in row] for row in parents[0]]
+                output[final_position] = [
+                    sub_jet(left, right)
+                    for left, right in zip(parents[0][final_position], parents[1][final_position])
+                ]
+            else:
+                raise ValueError("unsupported MPFR static view operation")
         elif kernel == "causal_attention.v1":
             q, k, v = parents
             n_heads, d_head = int(node.exact_attrs["n_heads"]), int(node.exact_attrs["d_head"])
@@ -147,13 +152,17 @@ def execute_tensor_program_mpfr(
                 keys = [row[start:stop] for row in k[:final_position + 1]]
                 vectors = [row[start:stop] for row in v[:final_position + 1]]
                 if compiled_backend is None:
+                    pivot = int(node.exact_attrs["softmax_pivot"]["index"])
                     attended = attention_head_jets(
                         [query] * (final_position + 1), keys, vectors, causal=True,
-                    )[-1]
+                    )[-1] if pivot == 0 else None
+                    if attended is None:
+                        raise ValueError("Python MPFR attention currently requires fixed pivot zero")
                 else:
+                    pivot = int(node.exact_attrs["softmax_pivot"]["index"])
                     attended = [_decode_jet(item, precision) for item in
                                 compiled_backend.causal_attention_final_head_jet2(
-                                    query, keys, vectors, pivot=0,
+                                    query, keys, vectors, pivot=pivot,
                                 )["outputs"]]
                 output[final_position][start:stop] = attended
         elif kernel == "residual_add.v1":
