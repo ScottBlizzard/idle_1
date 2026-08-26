@@ -621,6 +621,9 @@ def _model_and_static_manifests(rows: list[dict], device: str):
     import transformers
     from importlib.metadata import version as package_version
     import exp_green_bridge_gpt2 as legacy
+    from green_bridge_v400_resource_plan import (
+        gpt2_small_tail_shape, plan_gpt2_tail_resources,
+    )
     from green_bridge_spec import MODEL_ID, MODEL_REVISION, SELECTED_GATES
 
     tokenizer, hf_model, model, observed = legacy.load_models(device)
@@ -728,7 +731,12 @@ def _model_and_static_manifests(rows: list[dict], device: str):
             and has_unmasked_key
             and mask_is_negative_infinity
         )
-        feasible = finite and nonzero and softmax_valid and min(ln_margins) > 0
+        resource_plan = plan_gpt2_tail_resources(
+            gpt2_small_tail_shape(int(clean.shape[1])),
+            frozen_mpfr_ops_cap_per_row=MAX_SCALAR_MPFR_OPERATIONS_PER_ROW,
+        )
+        feasible = (finite and nonzero and softmax_valid and min(ln_margins) > 0
+                    and resource_plan.feasible_under_frozen_cap)
         token_hash = _sha256_bytes(clean.detach().cpu().numpy().tobytes() + corrupt.detach().cpu().numpy().tobytes())
         hook_spec_hash = sha256_canonical({"hooks": controlled_hooks, "selected_gates": SELECTED_GATES})
         feasibility.append({
@@ -742,9 +750,13 @@ def _model_and_static_manifests(rows: list[dict], device: str):
             "finite": finite, "required_nonzero_directions": nonzero,
             "supported_graph": set(GRAPH_OPERATIONS) <= set(SUPPORTED_OPERATIONS),
             "sealed_exclusion_pass": True,
-            "static_cone_estimate": {"nodes_upper": 1_750_000, "scalar_mpfr_operations_upper": 75_000_000},
+            "static_cone_estimate": resource_plan.to_dict(),
             "layernorm_static_margins": ln_margins, "softmax_static_records": [softmax_record],
-            "feasible": feasible, "failure_codes": [] if feasible else ["INVALID_DOMAIN"],
+            "feasible": feasible,
+            "failure_codes": ([] if feasible else [
+                "RESOURCE_PLAN_INFEASIBLE" if not resource_plan.feasible_under_frozen_cap
+                else "INVALID_DOMAIN"
+            ]),
             "contains_response_outcome": False,
         })
         graph_payload = {
