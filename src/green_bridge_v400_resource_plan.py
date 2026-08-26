@@ -34,8 +34,23 @@ class ResourcePlan:
     proof_assumptions: dict
     formula_version: str = "green-v400-gpt2-tail-resource-v2-lower-bound"
 
+    def __post_init__(self):
+        if self.proof_assumptions != {
+                "mpfr_ops_per_dense_coefficient_term_lower_bound": 12,
+                "mandatory_initial_cells": 2,
+                "scope": "one precision; dense coefficient arithmetic only",
+                "cap_scope": "the cap covers the entire row across radii; one mandatory radius lower bound already exceeds it"}:
+            raise ValueError("resource proof assumptions are not frozen")
+
     def to_dict(self) -> dict:
-        return asdict(self)
+        payload = asdict(self)
+        payload["proof_assumptions"] = {
+            "mpfr_ops_per_dense_coefficient_term_lower_bound": 12,
+            "mandatory_initial_cells": 2,
+            "scope": "one precision; dense coefficient arithmetic only",
+            "cap_scope": "the cap covers the entire row across radii; one mandatory radius lower bound already exceeds it",
+        }
+        return payload
 
 
 def plan_gpt2_tail_resources(shape: TailShape, *, mpfr_ops_per_term_lower: int = 12,

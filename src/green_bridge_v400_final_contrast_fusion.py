@@ -4,6 +4,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from fractions import Fraction
 import hashlib
+import json
 
 import numpy as np
 
@@ -45,7 +46,7 @@ def _dyadic_payload(value: Fraction) -> dict:
 class ExactFinalContrastFusion:
     weights: tuple[Fraction, ...]
     bias: Fraction
-    input_closure: dict
+    input_closure_canonical_json: str
 
     def payload(self) -> dict:
         return {
@@ -53,7 +54,7 @@ class ExactFinalContrastFusion:
             "weights": [_dyadic_payload(value) for value in self.weights],
             "bias": _dyadic_payload(self.bias),
             "d_model": len(self.weights),
-            "input_closure": self.input_closure,
+            "input_closure": json.loads(self.input_closure_canonical_json),
         }
 
     def semantic_hash(self) -> str:
@@ -69,7 +70,7 @@ def fuse_final_contrast_exact(unembed, bias, suffix_ids,
     if any(not value.flags.c_contiguous for value in inputs):
         raise ValueError("final-contrast fusion inputs must already be C-contiguous")
     unembed, bias, suffix_ids, coefficients = inputs
-    if (unembed.ndim != 2 or bias.ndim != 1 or suffix_ids.ndim != 1
+    if (unembed.ndim != 2 or unembed.shape[0] == 0 or bias.ndim != 1 or suffix_ids.ndim != 1
             or coefficients.ndim != 1):
         raise ValueError("final-contrast fusion inputs have noncanonical ranks")
     if (not np.isfinite(unembed).all() or not np.isfinite(bias).all()
@@ -103,4 +104,4 @@ def fuse_final_contrast_exact(unembed, bias, suffix_ids,
             "dtype": array.dtype.str, "shape": list(array.shape),
             "semantic_sha256": hashlib.sha256(prefix + array.tobytes()).hexdigest(),
         }
-    return ExactFinalContrastFusion(tuple(weights), fused_bias, closure)
+    return ExactFinalContrastFusion(tuple(weights), fused_bias, canonical_json(closure))
