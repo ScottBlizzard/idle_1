@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+from fractions import Fraction
 from pathlib import Path
 import sys
 
@@ -10,7 +11,9 @@ import pytest
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 
-from green_bridge_v400_tensor_store import TensorStoreReader, write_tensor_store
+from green_bridge_v400_tensor_store import (
+    TensorStoreReader, exact_dyadic_scalar, write_tensor_store,
+)
 
 
 def test_bit_exact_tensor_store_round_trip(tmp_path):
@@ -26,6 +29,9 @@ def test_bit_exact_tensor_store_round_trip(tmp_path):
         assert actual.dtype.str == expected.dtype.str
         assert actual.shape == expected.shape
         assert actual.tobytes() == expected.tobytes()
+        ref = reader.tensor_ref(name)
+        assert reader.read_semantic(ref.tensor_sha256).tobytes() == expected.tobytes()
+        assert ref.layout == "C" and ref.nbytes == expected.nbytes
     assert manifest.blob_nbytes == sum(value.nbytes for _, value in tensors)
 
 
@@ -69,3 +75,9 @@ def test_tensor_store_enforces_dtype_and_resource_guards(tmp_path):
     with pytest.raises(ValueError, match="byte resource"):
         write_tensor_store(tmp_path, "large", [("x", np.arange(8, dtype="<i8"))],
                            max_total_bytes=32)
+
+
+def test_exact_dyadic_decoder_preserves_ieee_values():
+    assert exact_dyadic_scalar(np.asarray(0.1, dtype="<f4")) == Fraction(13421773, 134217728)
+    assert exact_dyadic_scalar(np.asarray(-0.0, dtype="<f8")) == 0
+    assert exact_dyadic_scalar(np.asarray(17, dtype="<i8")) == 17

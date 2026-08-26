@@ -7,6 +7,7 @@ import json
 import os
 from pathlib import Path
 from typing import Iterable
+from fractions import Fraction
 
 import numpy as np
 
@@ -14,6 +15,7 @@ from green_bridge_v400_schemas import canonical_json, sha256_canonical
 
 
 SCHEMA_VERSION = "green-v400-tensor-store-v1"
+TENSOR_REF_SCHEMA_VERSION = "green-v400-tensor-ref-v1"
 
 
 def _sha256_bytes(value: bytes) -> str:
@@ -47,6 +49,26 @@ def _as_exact_array(value) -> np.ndarray:
 
 
 @dataclass(frozen=True)
+class TensorRef:
+    schema_version: str
+    tensor_sha256: str
+    dtype: str
+    shape: tuple[int, ...]
+    layout: str
+    nbytes: int
+
+    def to_dict(self) -> dict:
+        return {
+            "schema_version": self.schema_version,
+            "tensor_sha256": self.tensor_sha256,
+            "dtype": self.dtype,
+            "shape": list(self.shape),
+            "layout": self.layout,
+            "nbytes": self.nbytes,
+        }
+
+
+@dataclass(frozen=True)
 class TensorRecord:
     name: str
     dtype: str
@@ -56,6 +78,10 @@ class TensorRecord:
     nbytes: int
     data_sha256: str
     semantic_sha256: str
+
+    def tensor_ref(self) -> TensorRef:
+        return TensorRef(TENSOR_REF_SCHEMA_VERSION, self.semantic_sha256,
+                         self.dtype, self.shape, "C", self.nbytes)
 
     def to_dict(self) -> dict:
         return {
@@ -153,7 +179,7 @@ def write_tensor_store(root: Path, name: str,
             dtype = array.dtype.str
             semantic = _sha256_bytes(canonical_json({
                 "dtype": dtype, "shape": list(array.shape),
-                "byte_order": byte_order,
+                "byte_order": byte_order, "layout": "C",
             }).encode("ascii") + b"\0" + raw)
             records.append(TensorRecord(
                 tensor_name, dtype, tuple(array.shape), byte_order,
@@ -190,6 +216,7 @@ class TensorStoreReader:
                 or _sha256_file(self.blob_path) != self.manifest.blob_sha256):
             raise ValueError("tensor blob closure mismatch")
         self._records = {record.name: record for record in self.manifest.records}
+        self._semantic_records: dict[str, TensorRecord] = {}
         cursor = 0
         for record in sorted(self.manifest.records, key=lambda item: item.offset):
             if record.offset != cursor or record.nbytes < 0:
@@ -200,6 +227,10 @@ class TensorStoreReader:
             if (expected != record.nbytes or record.byte_order != canonical_order
                     or dtype.str != record.dtype):
                 raise ValueError("tensor record dtype/shape mismatch")
+            prior = self._semantic_records.get(record.semantic_sha256)
+            if prior is not None and prior.tensor_ref() != record.tensor_ref():
+                raise ValueError("semantic tensor hash collision")
+            self._semantic_records.setdefault(record.semantic_sha256, record)
             cursor += record.nbytes
         if cursor != self.manifest.blob_nbytes:
             raise ValueError("tensor records leave trailing or missing bytes")
@@ -208,7 +239,15 @@ class TensorStoreReader:
         return tuple(record.name for record in self.manifest.records)
 
     def read(self, name: str) -> np.ndarray:
-        record = self._records[name]
+        return self._read_record(self._records[name])
+
+    def read_semantic(self, tensor_sha256: str) -> np.ndarray:
+        return self._read_record(self._semantic_records[tensor_sha256])
+
+    def tensor_ref(self, name: str) -> TensorRef:
+        return self._records[name].tensor_ref()
+
+    def _read_record(self, record: TensorRecord) -> np.ndarray:
         with self.blob_path.open("rb") as handle:
             handle.seek(record.offset)
             raw = handle.read(record.nbytes)
@@ -216,8 +255,22 @@ class TensorStoreReader:
             raise ValueError("tensor payload hash mismatch")
         semantic = _sha256_bytes(canonical_json({
             "dtype": record.dtype, "shape": list(record.shape),
-            "byte_order": record.byte_order,
+            "byte_order": record.byte_order, "layout": "C",
         }).encode("ascii") + b"\0" + raw)
         if semantic != record.semantic_sha256:
             raise ValueError("tensor semantic hash mismatch")
         return np.frombuffer(raw, dtype=np.dtype(record.dtype)).reshape(record.shape).copy()
+
+
+def exact_dyadic_scalar(value) -> Fraction:
+    """Decode a certified scalar tensor value as its exact rational value."""
+    scalar = np.asarray(value)
+    if scalar.shape != () or scalar.dtype.kind not in "buif":
+        raise ValueError("exact dyadic decoder requires one certified scalar")
+    item = scalar.item()
+    if scalar.dtype.kind == "f":
+        if not np.isfinite(scalar):
+            raise ValueError("nonfinite dyadic scalar")
+        numerator, denominator = float(item).as_integer_ratio()
+        return Fraction(numerator, denominator)
+    return Fraction(int(item), 1)
