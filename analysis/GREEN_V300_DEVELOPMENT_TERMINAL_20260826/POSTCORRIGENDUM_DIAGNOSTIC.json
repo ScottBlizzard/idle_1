@@ -1,0 +1,236 @@
+{
+  "confirmation_inspected_or_started": false,
+  "corrigendum_effect": {
+    "current_coarse_fine_median_symmetric_change": 0.0018200336091344256,
+    "initial_coarse_fine_median_symmetric_change": 0.9369016459017094,
+    "joint_bound_absolute_delta": {
+      "max": 3.968213910243712e-09,
+      "median": 1.8999691837190413e-09,
+      "min": 1.2668547599847813e-09,
+      "p10": 1.5081476643918902e-09,
+      "p25": 1.6447393091575946e-09,
+      "p75": 2.2152575052114543e-09,
+      "p90": 2.812786080441667e-09,
+      "p95": 3.2407227536918043e-09,
+      "p99": 3.715600026821251e-09
+    },
+    "joint_bound_relative_delta": {
+      "max": 1.2304566110404393e-07,
+      "median": 6.642257025372295e-08,
+      "min": 2.815925643236339e-08,
+      "p10": 4.0178932218489955e-08,
+      "p25": 5.1926263803562157e-08,
+      "p75": 8.588793134719901e-08,
+      "p90": 9.662704972604123e-08,
+      "p95": 1.0135120880249607e-07,
+      "p99": 1.1651432777273312e-07
+    }
+  },
+  "current_verdict": "POSTER_ONLY",
+  "evidence_sha256": {
+    "current_dev_cells.json": "752e2e82f8eba752b63fd9776d746c44376f8d97486def354685dcb9920e02d9",
+    "current_dev_joint_targets.parquet": "9dd68f93f84f4a8195c4a762f9ce25f09d729543a12eecf70a8d6f8ad1de932f",
+    "current_dev_result.json": "740ce5b1d06db729eff5fa7341da47df3ee0a148568e0a985a746a3872a7e587",
+    "current_dev_transport_scores.parquet": "08831b1db894181295f2b887fdffc56fca5ac221f23c730b11a6202d3e850397",
+    "initial_dev_joint_targets.parquet": "0ee9909042de75bb0b987f5ed9164bb1d6f45f18d8ff7e37a5e9ee28ae767a98",
+    "initial_dev_result.json": "a7df7440e434e370ca883685e6f958cc24da8bce590550a73e55ca51671141ea"
+  },
+  "failed_gates": [
+    "detectability_lcb",
+    "detectability_rho",
+    "set_snr_cells"
+  ],
+  "initial_verdict": "POSTER_ONLY",
+  "interpretation": {
+    "detectability": "Almost the entire panel is response-recoverable with near-zero transport error. The frozen panel therefore samples a saturated high-identifiability regime rather than a transition regime, so monotone error improvement is not empirically visible.",
+    "joint": "Point centers reproduce AD targets at near-numerical precision, but all 80 worst-case signed intervals cross zero. The set-SNR failure is interval conservatism under joint composition, not point-estimator inaccuracy."
+  },
+  "joint": {
+    "bound_to_abs_target_ratio": {
+      "max": 503.10806767423253,
+      "median": 9.791444016921908,
+      "min": 1.533744994948016,
+      "p10": 3.97140572310771,
+      "p25": 5.70974138285791,
+      "p75": 19.511089174807935,
+      "p90": 54.80888706712825,
+      "p95": 122.5373881759056,
+      "p99": 485.9295132282103
+    },
+    "cell_set_snr": {
+      "kingdom|12|far": 0.0804316342,
+      "kingdom|12|near": 0.0444938448,
+      "kingdom|16|far": 0.0764112106,
+      "kingdom|16|near": 0.1154215969,
+      "reign|12|far": 0.1350526361,
+      "reign|12|near": 0.0917858546,
+      "siege|14|far": 0.1594108248,
+      "siege|14|near": 0.1016751335,
+      "siege|16|far": 0.1363573005,
+      "siege|16|near": 0.1479582969
+    },
+    "cell_set_snr_ge_4": 0,
+    "center_target_abs_error": {
+      "max": 2.0552883668763233e-07,
+      "median": 9.121233857621591e-09,
+      "min": 1.1205990302354252e-10,
+      "p10": 1.4957972773593785e-09,
+      "p25": 4.8855598867685035e-09,
+      "p75": 1.796662895520683e-08,
+      "p90": 3.1278509290272325e-08,
+      "p95": 4.276737431627153e-08,
+      "p99": 1.694231523360204e-07
+    },
+    "record_set_snr": {
+      "max": 0.6519999380787526,
+      "median": 0.10224079434642688,
+      "min": 0.0019898096558990004,
+      "p10": 0.01860154248952866,
+      "p25": 0.05131830580466475,
+      "p75": 0.17515064804182645,
+      "p90": 0.2532414166067664,
+      "p95": 0.36347204891425583,
+      "p99": 0.4687440280195967
+    },
+    "record_set_snr_ge_4": 0,
+    "records": 80,
+    "zero_crossing_certified_intervals": 80
+  },
+  "read_only_nonprotocol": true,
+  "schema_version": "green-bridge-v3.0.0-postcorrigendum-diagnostic-v1",
+  "transport_saturation": {
+    "class_counts": {
+      "recoverable": 1599,
+      "unresolved": 1
+    },
+    "curvature_deciles": [
+      {
+        "count": 160,
+        "curvature_snr_median": 139.74747862820666,
+        "decile": 0,
+        "direct_error_median": 6.0370374687344326e-06,
+        "direct_error_p90": 2.7903813357265206e-05
+      },
+      {
+        "count": 160,
+        "curvature_snr_median": 230.39826779503795,
+        "decile": 1,
+        "direct_error_median": 2.9625784397543824e-06,
+        "direct_error_p90": 1.0960371529866837e-05
+      },
+      {
+        "count": 160,
+        "curvature_snr_median": 292.5914710673395,
+        "decile": 2,
+        "direct_error_median": 2.3088176393382448e-06,
+        "direct_error_p90": 9.839029718218221e-06
+      },
+      {
+        "count": 160,
+        "curvature_snr_median": 349.19075545959424,
+        "decile": 3,
+        "direct_error_median": 1.7803002819099618e-06,
+        "direct_error_p90": 8.377421897057213e-06
+      },
+      {
+        "count": 160,
+        "curvature_snr_median": 422.6858555356612,
+        "decile": 4,
+        "direct_error_median": 2.537755231831698e-06,
+        "direct_error_p90": 1.210366835977283e-05
+      },
+      {
+        "count": 160,
+        "curvature_snr_median": 523.9030298920017,
+        "decile": 5,
+        "direct_error_median": 2.3519596759045597e-06,
+        "direct_error_p90": 6.985166289153136e-06
+      },
+      {
+        "count": 160,
+        "curvature_snr_median": 653.3380613338701,
+        "decile": 6,
+        "direct_error_median": 3.265191069600936e-06,
+        "direct_error_p90": 9.203584545502864e-06
+      },
+      {
+        "count": 160,
+        "curvature_snr_median": 927.5527416091725,
+        "decile": 7,
+        "direct_error_median": 3.783189419818917e-06,
+        "direct_error_p90": 8.055293379266188e-06
+      },
+      {
+        "count": 160,
+        "curvature_snr_median": 1555.6657590352997,
+        "decile": 8,
+        "direct_error_median": 3.1203962987340834e-06,
+        "direct_error_p90": 6.609728008681434e-06
+      },
+      {
+        "count": 160,
+        "curvature_snr_median": 3644.8995686408066,
+        "decile": 9,
+        "direct_error_median": 3.3451834406952534e-06,
+        "direct_error_p90": 1.5219293742238728e-05
+      }
+    ],
+    "curvature_snr": {
+      "max": 6384.804776057961,
+      "median": 470.3236869643759,
+      "min": 8.997966485440896,
+      "p10": 185.2872699792555,
+      "p25": 292.6650204033176,
+      "p75": 926.6176024544819,
+      "p90": 2659.2828108707226,
+      "p95": 3631.219925907723,
+      "p99": 4706.650182982169
+    },
+    "direct_error": {
+      "max": 0.0032860269348348285,
+      "median": 3.005472775558892e-06,
+      "min": 4.907498970569801e-09,
+      "p10": 6.129974319220824e-07,
+      "p25": 1.5081708745222763e-06,
+      "p75": 5.635515932485809e-06,
+      "p90": 1.1027502696423072e-05,
+      "p95": 1.7757256768487172e-05,
+      "p99": 7.138640839412516e-05
+    },
+    "direct_error_le_1e_4_fraction": 0.9925,
+    "direct_error_le_1e_5_fraction": 0.88625,
+    "gate_system_units": 1600,
+    "global_detectability_lcb_95": -0.04572672464426421,
+    "global_detectability_spearman": 0.016126877237655036,
+    "operator_snr": {
+      "max": 2480.6646816721136,
+      "median": 154.79584664626503,
+      "min": 2.476204811659066,
+      "p10": 57.85658771908163,
+      "p25": 92.82811205982675,
+      "p75": 304.29028059476997,
+      "p90": 781.7435214366513,
+      "p95": 1188.6918760628382,
+      "p99": 1717.0025352364166
+    },
+    "records": 80,
+    "response_snr": {
+      "max": 847251.3382993237,
+      "median": 77028.71701617491,
+      "min": 8.522958565853676,
+      "p10": 15072.48336489175,
+      "p25": 38204.04804188797,
+      "p75": 146132.78630966778,
+      "p90": 351391.59245976404,
+      "p95": 605270.7402096192,
+      "p99": 717479.9647858668
+    },
+    "within_group_detectability_spearman": {
+      "kingdom-12": 0.08982123205789538,
+      "kingdom-16": -0.022121757281962664,
+      "reign-12": 0.12294363495708995,
+      "siege-14": -0.031696502550352876,
+      "siege-16": -0.06732518260415916
+    }
+  }
+}

@@ -1,0 +1,36 @@
+{
+  "attempt_index": 1,
+  "confirmation_authorized": false,
+  "confirmation_started": false,
+  "created_utc": "2026-08-26T03:56:08Z",
+  "development_authorization_id": "CODEX-GREEN-V300-DEVELOPMENT-v1-20260826",
+  "development_completed": true,
+  "development_corrigendum_scope": {
+    "coarse_fine_stability_definition_restored_from_v2": true,
+    "detectability_definition_or_values_changed": false,
+    "joint_role_recomputed": true,
+    "recoverable_joint_bound_formula_corrected": true,
+    "transport_role_reused_unchanged": true
+  },
+  "development_execution_commit": "0ad916b26f4bb225c474795460fac7a775a2c7e4",
+  "development_execution_incident": {
+    "failure": "integrity verdict read before context-manager exit",
+    "incident_commit": "2ef281794d08933ec686e624f2b01252b3b8ace1",
+    "recovery_changes_scientific_protocol": false,
+    "recovery_commit": "0ad916b26f4bb225c474795460fac7a775a2c7e4",
+    "scientific_result_artifacts_written": false,
+    "threshold_or_metric_output_observed": false
+  },
+  "development_initial_merge_commit": "2f8e1cf6b061a554e7afc584589ccf5529cff08d",
+  "development_initial_terminal_archive": "/mnt/sdb/ccj/iclr_1_runs/green_bridge_v300_602e7c9c5e43f1aecf1485d4ad2fc6574b2fdaa1/development_initial_merge_2f8e1cf6b061a554e7afc584589ccf5529cff08d_POSTER_ONLY",
+  "development_joint_bound_corrigendum_commit": "7351d4492b556b82e2d5edfb4bdffe86cfb56087",
+  "development_merge_commit": "2f8e1cf6b061a554e7afc584589ccf5529cff08d",
+  "development_postcorrigendum_merge_commit": "7351d4492b556b82e2d5edfb4bdffe86cfb56087",
+  "development_started": true,
+  "development_verdict": "POSTER_ONLY",
+  "execution_commit": "602e7c9c5e43f1aecf1485d4ad2fc6574b2fdaa1",
+  "formal_one_shot": true,
+  "prepare_started": true,
+  "protocol_run_id": "green-bridge-v3.0.0-one-shot",
+  "retry_allowed": false
+}

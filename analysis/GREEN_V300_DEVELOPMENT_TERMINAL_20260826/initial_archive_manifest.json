@@ -1,0 +1,8 @@
+{
+  "confirmation_started": false,
+  "development_execution_commit": "0ad916b26f4bb225c474795460fac7a775a2c7e4",
+  "development_merge_commit": "2f8e1cf6b061a554e7afc584589ccf5529cff08d",
+  "reason_archived": "pre-corrigendum recoverable joint-bound contraction and radius-stability denominator",
+  "schema_version": "green-bridge-v3.0.0-initial-development-archive-v1",
+  "verdict": "POSTER_ONLY"
+}

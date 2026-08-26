@@ -1,0 +1,15 @@
+{
+  "authorization_id": "CODEX-GREEN-V300-DEVELOPMENT-v1-20260826",
+  "confirmation_reselection_allowed": false,
+  "fitted_affine_calibration": false,
+  "group_balanced_rmse": {
+    "gate_atom_only": 0.19706856682726212,
+    "raw_path_jacobian": 211.30168090842048,
+    "unmatched_path_mixed": 1.241674807085715,
+    "zero": 1.0
+  },
+  "schema_version": "green-bridge-v3.0.0-frozen-baseline-v1",
+  "selected_baseline": "gate_atom_only",
+  "selected_global_radius": 1.0,
+  "selection_rule": "minimum group-balanced RMSE; lexicographic tie break"
+}
