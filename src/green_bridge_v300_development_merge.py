@@ -199,7 +199,9 @@ def merge_development_v300(worker_root: Path, output_root: Path) -> dict:
     for field in ["error_matched"] + [f"error_{name}" for name in BASELINES]:
         finite_scoring = finite_scoring[np.isfinite(finite_scoring[field])]
     frozen = select_frozen_baseline_v300(finite_scoring)
-    matched_rmse = group_balanced_rmse_v300(finite_scoring, "error_matched")
+    matched_rmse = group_balanced_rmse_v300(
+        finite_scoring.to_dict("records"), "error_matched"
+    )
     baseline_gains = {
         name: matched_gain_v300(matched_rmse, score)
         for name, score in frozen["group_balanced_rmse"].items()
