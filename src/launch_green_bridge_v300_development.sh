@@ -3,6 +3,11 @@
 set -euo pipefail
 
 PREPARE_ROOT="${1:?usage: launch_green_bridge_v300_development.sh PREPARE_ROOT}"
+MODE="${2:-initial}"
+[[ "$MODE" == "initial" || "$MODE" == "integrity-finalization-recovery" ]] || {
+  echo "invalid development launch mode" >&2
+  exit 2
+}
 PROJECT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 EXECUTION_COMMIT="$(git -C "$PROJECT_DIR" rev-parse HEAD)"
 [[ -z "$(git -C "$PROJECT_DIR" status --porcelain=v1 --untracked-files=all)" ]] || {
@@ -53,25 +58,45 @@ grep -q "Ran 272 tests" "$LOG_ROOT/combined_contract.log"
 grep -q '^OK$' "$LOG_ROOT/combined_contract.log"
 ! grep -qi 'skipped=' "$LOG_ROOT/combined_contract.log"
 
-"$PYTHON" - "$PREPARE_ROOT" "$EXECUTION_COMMIT" <<'PY'
+"$PYTHON" - "$PREPARE_ROOT" "$EXECUTION_COMMIT" "$MODE" "$RUN_ROOT" <<'PY'
 import hashlib, json, os, pathlib, sys, tempfile
 root = pathlib.Path(sys.argv[1])
 commit = sys.argv[2]
+mode = sys.argv[3]
+run_root = pathlib.Path(sys.argv[4])
 result = json.load(open(root / "prepare_result.json", encoding="utf-8"))
 ledger = json.load(open(root / "run_ledger.json", encoding="utf-8"))
 if result.get("verdict") != "PREPARE_PASS":
     raise SystemExit("PREPARE_PASS_REQUIRED")
-if ledger.get("development_started") or ledger.get("confirmation_started"):
+if ledger.get("confirmation_started") or (root / "dev_result.json").exists():
+    raise SystemExit("DEVELOPMENT_OR_CONFIRMATION_ALREADY_TERMINAL")
+if mode == "initial" and ledger.get("development_started"):
     raise SystemExit("DEVELOPMENT_PHASE_STATE_INVALID")
+if mode == "integrity-finalization-recovery":
+    if not ledger.get("development_started") or ledger.get("development_completed"):
+        raise SystemExit("DEVELOPMENT_RECOVERY_STATE_INVALID")
+    if ledger.get("development_execution_commit") != "2ef281794d08933ec686e624f2b01252b3b8ace1":
+        raise SystemExit("DEVELOPMENT_INCIDENT_COMMIT_MISMATCH")
+    old_logs = run_root / "logs/development_2ef281794d08933ec686e624f2b01252b3b8ace1"
+    logs = sorted(old_logs.glob("worker_*.log"))
+    if len(logs) != 8 or any(
+        "DEVELOPMENT_ACTIVE_MODEL_INTEGRITY_FAILURE" not in path.read_text(encoding="utf-8")
+        for path in logs
+    ):
+        raise SystemExit("DEVELOPMENT_INCIDENT_EVIDENCE_MISMATCH")
+hash_file = root / ("sha256sums.txt" if mode == "initial" else "prepare_sha256sums.txt")
 listed = {}
-for line in (root / "sha256sums.txt").read_text(encoding="utf-8").splitlines():
+for line in hash_file.read_text(encoding="utf-8").splitlines():
     digest, name = line.split("  ", 1)
     listed[name] = digest
 for name, digest in listed.items():
+    if mode != "initial" and name == "run_ledger.json":
+        continue
     actual = hashlib.sha256((root / name).read_bytes()).hexdigest()
     if actual != digest:
         raise SystemExit(f"PREPARE_HASH_FAILURE:{name}")
-(root / "prepare_sha256sums.txt").write_bytes((root / "sha256sums.txt").read_bytes())
+if mode == "initial":
+    (root / "prepare_sha256sums.txt").write_bytes((root / "sha256sums.txt").read_bytes())
 ledger.update({
     "development_started": True,
     "development_completed": False,
@@ -79,6 +104,15 @@ ledger.update({
     "development_authorization_id": "CODEX-GREEN-V300-DEVELOPMENT-v1-20260826",
     "confirmation_started": False,
 })
+if mode == "integrity-finalization-recovery":
+    ledger["development_execution_incident"] = {
+        "incident_commit": "2ef281794d08933ec686e624f2b01252b3b8ace1",
+        "failure": "integrity verdict read before context-manager exit",
+        "scientific_result_artifacts_written": False,
+        "threshold_or_metric_output_observed": False,
+        "recovery_commit": commit,
+        "recovery_changes_scientific_protocol": False,
+    }
 tmp = root / ".run_ledger.development.tmp"
 tmp.write_text(json.dumps(ledger, indent=2, sort_keys=True) + "\n", encoding="utf-8")
 os.replace(tmp, root / "run_ledger.json")

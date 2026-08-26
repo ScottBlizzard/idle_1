@@ -270,8 +270,12 @@ def main() -> None:
                     ),
                 })
             torch.cuda.empty_cache()
-        finite_integrity = finite_tail.active_model_unchanged
-        ad_integrity = ad_tail.active_model_unchanged
+        # The context managers populate their integrity verdicts in __exit__.
+        # Reading these fields inside the with-block yields None even when the
+        # active model is bitwise unchanged.
+        pass
+    finite_integrity = finite_tail.active_model_unchanged
+    ad_integrity = ad_tail.active_model_unchanged
     integrity_after = legacy.active_model_integrity_hash_v200(model)
     active_model_unchanged = bool(
         integrity_before == integrity_after and finite_integrity and ad_integrity
