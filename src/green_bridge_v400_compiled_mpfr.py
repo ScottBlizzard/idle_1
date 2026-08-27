@@ -329,6 +329,21 @@ class CompiledMPFRBackend:
         )
         native_payload_validated.argtypes = [ctypes.c_uint64]
         native_payload_validated.restype = ctypes.c_int
+        native_typed_info = self.library.green_v400_native_plan_typed_info_v1
+        native_typed_info.argtypes = [ctypes.c_uint64] + [
+            ctypes.POINTER(ctypes.c_uint32), ctypes.POINTER(ctypes.c_uint32),
+            ctypes.POINTER(ctypes.c_uint32), ctypes.POINTER(ctypes.c_uint32),
+            ctypes.POINTER(ctypes.c_uint64), ctypes.POINTER(ctypes.c_uint32),
+        ]
+        native_typed_info.restype = ctypes.c_int
+        native_typed_trace = self.library.green_v400_native_plan_typed_trace_v1
+        native_typed_trace.argtypes = [
+            ctypes.c_uint64, ctypes.POINTER(ctypes.c_uint32),
+            ctypes.POINTER(ctypes.c_uint32), ctypes.c_uint32,
+            ctypes.POINTER(ctypes.c_uint32), ctypes.c_uint32,
+            ctypes.POINTER(ctypes.c_uint32),
+        ]
+        native_typed_trace.restype = ctypes.c_int
 
     def open_native_plan_envelope(
         self, descriptor_path: Path, blob_path: Path, *, descriptor_sha256: str,
@@ -357,12 +372,45 @@ class CompiledMPFRBackend:
         if self.library.green_v400_native_plan_payload_validated_v1(handle.value) != 1:
             self.library.green_v400_native_plan_envelope_close_v1(handle.value)
             raise RuntimeError("native plan envelope payload-table validation was not retained")
+        typed32 = [ctypes.c_uint32() for _ in range(5)]
+        liveness_rows = ctypes.c_uint64()
+        status = self.library.green_v400_native_plan_typed_info_v1(
+            handle.value, *(ctypes.byref(value) for value in typed32[:4]),
+            ctypes.byref(liveness_rows), ctypes.byref(typed32[4]),
+        )
+        if (status != 0 or [value.value for value in typed32[:4]]
+                != [value.value for value in values32] or typed32[4].value != 4):
+            self.library.green_v400_native_plan_envelope_close_v1(handle.value)
+            raise RuntimeError("native typed plan materialization is inconsistent")
         return CompiledNativePlanEnvelope(self, handle.value, {
             "descriptor_nbytes": values64[0].value, "blob_nbytes": values64[1].value,
             "record_count": values32[0].value, "node_count": values32[1].value,
             "binding_count": values32[2].value, "fusion_weight_count": values32[3].value,
             "payload_tables_validated": True,
+            "typed_plan_materialized": True,
+            "liveness_row_count": liveness_rows.value,
+            "branch_root_count": typed32[4].value,
         })
+
+    def native_plan_typed_trace(self, envelope: CompiledNativePlanEnvelope) -> dict:
+        if envelope.backend is not self or envelope.handle <= 0:
+            raise ValueError("native plan envelope is closed or belongs to another backend")
+        node_count = int(envelope.info["node_count"])
+        root_count = int(envelope.info["branch_root_count"])
+        kernels = (ctypes.c_uint32 * node_count)()
+        liveness = (ctypes.c_uint32 * node_count)()
+        roots = (ctypes.c_uint32 * root_count)()
+        output_root = ctypes.c_uint32()
+        status = self.library.green_v400_native_plan_typed_trace_v1(
+            envelope.handle, kernels, liveness, node_count, roots, root_count,
+            ctypes.byref(output_root),
+        )
+        if status != 0:
+            raise RuntimeError(f"native typed plan trace failed with status {status}")
+        return {
+            "kernel_tags": list(kernels), "liveness_counts": list(liveness),
+            "branch_root_indices": list(roots), "output_root_index": output_root.value,
+        }
 
     def affine_jet2(self, weights, bias, values: list[Jet2], precision_bits: int) -> dict:
         weights = np.ascontiguousarray(np.asarray(weights, dtype="<f4").reshape(-1))

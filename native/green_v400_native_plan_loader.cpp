@@ -172,9 +172,153 @@ bool text_matches_digest(const BinaryValue* value,const std::uint8_t* digest){
 }
 std::size_t dtype_size(const std::string& dtype){if(dtype=="|u1"||dtype=="|i1")return 1;if(dtype=="<i2"||dtype=="<f2")return 2;if(dtype=="<i4"||dtype=="<f4")return 4;if(dtype=="<i8"||dtype=="<f8")return 8;return 0;}
 
+struct NativeRecord {
+  std::string name,dtype,tensor_semantic_sha256,data_sha256;
+  std::uint64_t offset=0,nbytes=0;
+  std::vector<std::uint32_t> shape;
+};
+struct NativeNode {
+  std::string semantic_id,kernel_id;
+  std::uint32_t kernel_tag=0;
+  bool depends_on_t=false;
+  std::int32_t axis=-1;
+  std::uint32_t operation_tag=0,float_kernel_tag=0,final_position=0;
+  std::uint32_t n_heads=0,d_head=0,contrast_width=0;
+  std::vector<std::uint32_t> parents;
+  std::vector<std::string> tensor_hashes;
+  std::string output_dtype;
+  std::vector<std::uint32_t> selected_gates,output_shape,required_axis0_rows;
+};
+struct NativeBinding {
+  std::uint32_t node_index=0,input_ordinal=0,source_index=0;
+  bool source_is_record=false;
+  std::string tensor_semantic_sha256,source_name;
+};
+struct NativeDyadic { std::string significand; std::int64_t exponent_2=0; };
+struct NativePlanTables {
+  std::uint32_t sequence_length=0,d_model=0,d_mlp=0,n_heads=0,d_head=0;
+  std::uint32_t final_position=0,contrast_width=0;
+  std::vector<std::uint32_t> selected_gates;
+  std::vector<NativeRecord> records;
+  std::vector<NativeNode> nodes;
+  std::vector<NativeBinding> bindings;
+  std::vector<NativeDyadic> fusion_weights;
+  NativeDyadic fusion_bias;
+  std::array<std::uint32_t,4> branch_roots{};
+  std::uint32_t output_root=0;
+  std::size_t total_liveness_rows=0;
+};
+std::uint32_t kernel_tag(const std::string& kernel){
+  if(kernel=="affine_scatter.v1")return 1;if(kernel=="static_view.v1")return 2;
+  if(kernel=="pairwise_affine.v1")return 3;if(kernel=="layer_norm.v1")return 4;
+  if(kernel=="gelu_new.v1")return 5;if(kernel=="causal_attention.v1")return 6;
+  if(kernel=="residual_add.v1")return 7;if(kernel=="final_contrast.v1")return 8;
+  if(kernel=="branch_linear_combination.v1")return 9;return 0;
+}
+bool dyadic(const BinaryValue* value,NativeDyadic& out){
+  std::string significand;std::int64_t exponent;
+  if(!value||value->kind!=BinaryValue::kDict||value->dict.size()!=2
+      ||!text(field(*value,"significand"),significand)||significand.empty()
+      ||!integer(field(*value,"exponent_2"),exponent))return false;
+  std::size_t start=significand[0]=='-'?1:0;if(start==significand.size())return false;
+  if(significand[start]=='0'&&significand.size()-start!=1)return false;
+  for(std::size_t i=start;i<significand.size();++i)if(significand[i]<'0'||significand[i]>'9')return false;
+  if(significand=="0"&&exponent!=0)return false;
+  if(significand!="0"&&((significand.back()-'0')%2)==0)return false;
+  out.significand=std::move(significand);out.exponent_2=exponent;return true;
+}
+bool boolean(const BinaryValue* value,bool& out){if(!value||value->kind!=BinaryValue::kBool)return false;out=value->boolean;return true;}
+bool string_is(const BinaryValue* value,const char* expected){std::string actual;return text(value,actual)&&actual==expected;}
+bool encoded_equal(const BinaryValue* first,const BinaryValue* second){return first&&second&&first->encoded_size==second->encoded_size
+    &&std::memcmp(first->encoded,second->encoded,first->encoded_size)==0;}
+bool validate_node_attrs(const BinaryValue* attrs,const BinaryValue* output_spec,
+                         std::uint32_t final_position,std::uint32_t n_heads,
+                         std::uint32_t d_head,std::uint32_t contrast_width,
+                         const std::vector<std::uint32_t>& selected_gates,NativeNode& node){
+  if(!attrs||attrs->kind!=BinaryValue::kDict||!boolean(field(*attrs,"depends_on_t"),node.depends_on_t))return false;
+  const BinaryValue* mask=field(*attrs,"dependency_mask_spec");
+  if(!mask||mask->kind!=BinaryValue::kDict||mask->dict.size()!=5
+      ||!string_is(field(*mask,"schema_version"),"green-v400-dependency-mask-v2")
+      ||!encoded_equal(field(*mask,"output_spec"),output_spec))return false;
+  std::string kind;std::int64_t dependent_count;
+  const BinaryValue* indices=field(*mask,"axis0_indices");
+  if(!text(field(*mask,"kind"),kind)||!integer(field(*mask,"dependent_scalar_count"),dependent_count)
+      ||dependent_count<0||!indices||indices->kind!=BinaryValue::kList)return false;
+  std::uint64_t trailing=1;for(std::size_t i=1;i<node.output_shape.size();++i){if(node.output_shape[i]
+      &&trailing>std::numeric_limits<std::uint64_t>::max()/node.output_shape[i])return false;trailing*=node.output_shape[i];}
+  std::int64_t prior=-1;for(const auto& index:indices->list){if(index.kind!=BinaryValue::kInt||index.integer<=prior
+      ||node.output_shape.empty()||index.integer<0||index.integer>=node.output_shape[0])return false;prior=index.integer;}
+  std::uint64_t scalar_count=1;for(std::uint32_t dim:node.output_shape){if(dim
+      &&scalar_count>std::numeric_limits<std::uint64_t>::max()/dim)return false;scalar_count*=dim;}
+  if(scalar_count>static_cast<std::uint64_t>(std::numeric_limits<std::int64_t>::max())
+      ||trailing>static_cast<std::uint64_t>(std::numeric_limits<std::int64_t>::max())
+      ||indices->list.size()>static_cast<std::uint64_t>(std::numeric_limits<std::int64_t>::max())/std::max<std::uint64_t>(trailing,1))return false;
+  if((kind=="empty"&&(!indices->list.empty()||dependent_count!=0||node.depends_on_t))
+      ||(kind=="dense"&&(!indices->list.empty()||dependent_count!=static_cast<std::int64_t>(scalar_count)||!node.depends_on_t))
+      ||(kind=="axis0_rows"&&(indices->list.empty()||dependent_count!=static_cast<std::int64_t>(indices->list.size()*trailing)||!node.depends_on_t))
+      ||(kind!="empty"&&kind!="dense"&&kind!="axis0_rows"))return false;
+  std::int64_t value;
+  if(node.kernel_id=="affine_scatter.v1"){
+    if(attrs->dict.size()!=4||!string_is(field(*attrs,"control"),"same_t_times_physical_direction")
+        ||!integer(field(*attrs,"final_position"),value)||value!=final_position)return false;
+    node.final_position=final_position;return true;
+  }
+  if(node.kernel_id=="static_view.v1"){
+    std::string operation;if(!text(field(*attrs,"operation"),operation))return false;
+    if(operation=="tensor_constant")node.operation_tag=1;
+    else if(operation=="subtract_exact_parent_at_final_position")node.operation_tag=2;
+    else return false;
+    if(node.operation_tag==2){if(attrs->dict.size()!=4||!integer(field(*attrs,"final_position"),value)||value!=final_position)return false;node.final_position=final_position;}
+    else if(attrs->dict.size()!=3)return false;return true;
+  }
+  if(node.kernel_id=="layer_norm.v1"){if(attrs->dict.size()!=3||!integer(field(*attrs,"axis"),value)||value!=-1)return false;node.axis=-1;return true;}
+  if(node.kernel_id=="pairwise_affine.v1"){
+    if(attrs->dict.size()<3||attrs->dict.size()>5||!string_is(field(*attrs,"weight_layout"),"input_output"))return false;
+    for(const auto& item:attrs->dict)if(item.first!="dependency_mask_spec"&&item.first!="depends_on_t"
+        &&item.first!="weight_layout"&&item.first!="torch_float_kernel"&&item.first!="selected_gates")return false;
+    const BinaryValue* float_kernel=field(*attrs,"torch_float_kernel");
+    if(float_kernel){if(string_is(float_kernel,"batch_addmm"))node.float_kernel_tag=1;
+      else if(string_is(float_kernel,"linear"))node.float_kernel_tag=2;else return false;}
+    const BinaryValue* gates=field(*attrs,"selected_gates");
+    if(gates){if(gates->kind!=BinaryValue::kList||gates->list.size()!=selected_gates.size())return false;
+      for(std::size_t i=0;i<gates->list.size();++i)if(gates->list[i].kind!=BinaryValue::kInt
+          ||gates->list[i].integer!=selected_gates[i])return false;node.selected_gates=selected_gates;}
+    return true;
+  }
+  if(node.kernel_id=="gelu_new.v1"||node.kernel_id=="residual_add.v1")return attrs->dict.size()==2;
+  if(node.kernel_id=="causal_attention.v1"){
+    const BinaryValue* pivot=field(*attrs,"softmax_pivot");std::int64_t heads,head;
+    if(attrs->dict.size()!=7||!integer(field(*attrs,"n_heads"),heads)||heads!=n_heads
+        ||!integer(field(*attrs,"d_head"),head)||head!=d_head
+        ||!string_is(field(*attrs,"mask"),"causal_delete_future")
+        ||!string_is(field(*attrs,"score_scale"),"inverse_sqrt_d_head")||!pivot||pivot->kind!=BinaryValue::kDict
+        ||pivot->dict.size()!=2||!string_is(field(*pivot,"kind"),"fixed_index")
+        ||!integer(field(*pivot,"index"),value)||value!=0)return false;
+    node.n_heads=heads;node.d_head=head;return true;
+  }
+  if(node.kernel_id=="final_contrast.v1"){
+    std::int64_t position,width;if(attrs->dict.size()!=6||!integer(field(*attrs,"final_position"),position)
+        ||position!=final_position||!integer(field(*attrs,"contrast_width"),width)||width!=contrast_width
+        ||!string_is(field(*attrs,"reduction"),"fixed_balanced_pairwise")
+        ||!string_is(field(*attrs,"scalarization"),"exact_affine_fusion_to_residual_contrast"))return false;
+    node.final_position=position;node.contrast_width=width;return true;
+  }
+  if(node.kernel_id=="branch_linear_combination.v1"){
+    const BinaryValue* order=field(*attrs,"order");const BinaryValue* weights=field(*attrs,"weights");
+    const char* names[4]={"PAT_J","PAT_B","TAR_J","TAR_B"};const std::int64_t expected[4]={1,-1,-1,1};
+    if(attrs->dict.size()!=5||!string_is(field(*attrs,"reduction"),"PAT_J_minus_PAT_B_minus_TAR_J_plus_TAR_B")
+        ||!order||order->kind!=BinaryValue::kList||order->list.size()!=4
+        ||!weights||weights->kind!=BinaryValue::kList||weights->list.size()!=4)return false;
+    for(std::size_t i=0;i<4;++i){std::int64_t weight;if(!string_is(&order->list[i],names[i])
+        ||!integer(&weights->list[i],weight)||weight!=expected[i])return false;}return true;
+  }
+  return false;
+}
+
 bool validate_payload_tables(const std::uint8_t* data,std::size_t size,
                              const std::uint8_t* header,std::uint32_t header_fusion,
-                             std::uint64_t expected_blob_size){
+                             std::uint64_t expected_blob_size,NativePlanTables& output){
+  NativePlanTables built;
   BinaryValue root;
   if(!BinaryDecoder(data,size).parse(root)||root.kind!=BinaryValue::kDict||root.dict.size()!=21)return false;
   std::string schema,claim,blob_name;
@@ -207,11 +351,16 @@ bool validate_payload_tables(const std::uint8_t* data,std::size_t size,
       ||!integer(field(*dimensions,"final_position"),final_position)||!integer(field(*dimensions,"d_mlp"),dmlp)
       ||!integer(field(*dimensions,"contrast_width"),contrast_width)||dmodel<=0||heads<=0||dhead<=0
       ||dmlp<=0||contrast_width<=0||dmodel!=heads*dhead||sequence<=0||final_position<0
-      ||final_position>=sequence||static_cast<std::uint64_t>(dmodel)!=header_fusion)return false;
+      ||final_position>=sequence||dmodel>10000000||heads>10000000||dhead>10000000
+      ||dmlp>10000000||contrast_width>10000000||sequence>10000000
+      ||static_cast<std::uint64_t>(dmodel)!=header_fusion)return false;
   const BinaryValue* gates=field(*dimensions,"selected_gates");std::unordered_set<std::int64_t> selected;
   if(!gates||gates->kind!=BinaryValue::kList)return false;
   for(const auto& gate:gates->list)if(gate.kind!=BinaryValue::kInt||gate.integer<0||gate.integer>=dmlp
       ||!selected.insert(gate.integer).second)return false;
+  built.sequence_length=sequence;built.d_model=dmodel;built.d_mlp=dmlp;built.n_heads=heads;
+  built.d_head=dhead;built.final_position=final_position;built.contrast_width=contrast_width;
+  for(const auto& gate:gates->list)built.selected_gates.push_back(static_cast<std::uint32_t>(gate.integer));
 
   const BinaryValue* records=field(root,"records");
   if(!records||records->kind!=BinaryValue::kList||records->list.size()!=32)return false;
@@ -236,7 +385,10 @@ bool validate_payload_tables(const std::uint8_t* data,std::size_t size,
     const std::uint64_t expected=(prior+63U)/64U*64U;
     if(static_cast<std::uint64_t>(offset)!=expected||elements*item_size!=static_cast<std::uint64_t>(nbytes))return false;
     prior=static_cast<std::uint64_t>(offset)+static_cast<std::uint64_t>(nbytes);
-    record_names.push_back(name);record_semantics.push_back(semantic);
+    NativeRecord typed;typed.name=name;typed.dtype=dtype;typed.tensor_semantic_sha256=semantic;
+    text(field(record,"data_sha256"),typed.data_sha256);typed.offset=offset;typed.nbytes=nbytes;
+    for(const auto& dim:shape->list)typed.shape.push_back(static_cast<std::uint32_t>(dim.integer));
+    built.records.push_back(std::move(typed));record_names.push_back(name);record_semantics.push_back(semantic);
   }
   if(prior!=expected_blob_size)return false;
 
@@ -244,28 +396,43 @@ bool validate_payload_tables(const std::uint8_t* data,std::size_t size,
   if(!identity||identity->kind!=BinaryValue::kDict||!nodes||nodes->kind!=BinaryValue::kList||nodes->list.size()!=81)return false;
   struct NodeInfo{std::string kernel;std::vector<std::string> tensor_hashes;std::int64_t axis0=-1;};
   std::unordered_set<std::string> seen;std::unordered_map<std::string,NodeInfo> node_info;
+  std::unordered_map<std::string,std::uint32_t> node_indices;
   std::vector<std::string> ordered;ordered.reserve(81);
   for(const auto& node:nodes->list){
     std::string id,kernel;
     if(!sha(field(node,"semantic_id"))||!text(field(node,"semantic_id"),id)
-        ||!text(field(node,"kernel_id"),kernel)||kernel.empty()||seen.count(id))return false;
+        ||!text(field(node,"kernel_id"),kernel)||kernel_tag(kernel)==0||seen.count(id))return false;
     const BinaryValue* parents=field(node,"parent_semantic_ids");const BinaryValue* inputs=field(node,"tensor_inputs");
     const BinaryValue* output_spec=field(node,"output_spec");const BinaryValue* output_shape=output_spec?field(*output_spec,"shape"):nullptr;
     if(!parents||parents->kind!=BinaryValue::kList||!inputs||inputs->kind!=BinaryValue::kList
+        ||!output_spec||output_spec->kind!=BinaryValue::kDict||output_spec->dict.size()!=3
         ||!output_shape||output_shape->kind!=BinaryValue::kList||output_shape->list.size()>8)return false;
-    for(const auto& parent:parents->list)if(parent.kind!=BinaryValue::kString||!seen.count(parent.string))return false;
+    NativeNode typed;typed.semantic_id=id;typed.kernel_id=kernel;typed.kernel_tag=kernel_tag(kernel);
+    if(!text(field(*output_spec,"dtype"),typed.output_dtype)||dtype_size(typed.output_dtype)==0
+        ||!string_is(field(*output_spec,"layout"),"C"))return false;
+    for(const auto& parent:parents->list){if(parent.kind!=BinaryValue::kString||!seen.count(parent.string))return false;
+      typed.parents.push_back(node_indices[parent.string]);}
     NodeInfo info;info.kernel=kernel;
     for(const auto& input:inputs->list){std::string tensor_hash;if(!sha(field(input,"tensor_sha256"))
-        ||!text(field(input,"tensor_sha256"),tensor_hash))return false;info.tensor_hashes.push_back(tensor_hash);}
+        ||!text(field(input,"tensor_sha256"),tensor_hash))return false;info.tensor_hashes.push_back(tensor_hash);typed.tensor_hashes.push_back(tensor_hash);}
     for(std::size_t i=0;i<output_shape->list.size();++i){const auto& dim=output_shape->list[i];
-      if(dim.kind!=BinaryValue::kInt||dim.integer<0||dim.integer>10000000)return false;if(i==0)info.axis0=dim.integer;}
-    seen.insert(id);ordered.push_back(id);node_info.emplace(id,std::move(info));
+      if(dim.kind!=BinaryValue::kInt||dim.integer<0||dim.integer>10000000)return false;
+      typed.output_shape.push_back(static_cast<std::uint32_t>(dim.integer));if(i==0)info.axis0=dim.integer;}
+    if(!validate_node_attrs(field(node,"exact_attrs"),output_spec,static_cast<std::uint32_t>(final_position),
+        static_cast<std::uint32_t>(heads),static_cast<std::uint32_t>(dhead),static_cast<std::uint32_t>(contrast_width),
+        built.selected_gates,typed))return false;
+    const std::uint32_t node_index=static_cast<std::uint32_t>(built.nodes.size());
+    seen.insert(id);ordered.push_back(id);node_info.emplace(id,std::move(info));node_indices.emplace(id,node_index);
+    built.nodes.push_back(std::move(typed));
   }
   const BinaryValue* roots=field(root,"branch_roots");
   if(!roots||roots->kind!=BinaryValue::kDict||roots->dict.size()!=4
       ||!field(*roots,"PAT_J")||!field(*roots,"PAT_B")||!field(*roots,"TAR_J")||!field(*roots,"TAR_B"))return false;
   for(const auto& item:roots->dict)if(item.second.kind!=BinaryValue::kString||!seen.count(item.second.string))return false;
-  std::string output;if(!text(field(root,"output_root"),output)||!seen.count(output))return false;
+  std::string output_root_id;if(!text(field(root,"output_root"),output_root_id)||!seen.count(output_root_id))return false;
+  const char* root_names[4]={"PAT_J","PAT_B","TAR_J","TAR_B"};
+  for(std::size_t i=0;i<4;++i){std::string id;if(!text(field(*roots,root_names[i]),id))return false;built.branch_roots[i]=node_indices[id];}
+  built.output_root=node_indices[output_root_id];
   const BinaryValue* live=field(root,"required_axis0_rows");
   if(!live||live->kind!=BinaryValue::kList||live->list.size()!=81)return false;
   for(std::size_t i=0;i<81;++i){
@@ -273,7 +440,8 @@ bool validate_payload_tables(const std::uint8_t* data,std::size_t size,
     const BinaryValue* rows=field(live->list[i],"rows");if(!rows||rows->kind!=BinaryValue::kList)return false;
     std::int64_t prior_row=-1;const std::int64_t axis0=node_info[id].axis0;
     for(const auto& row:rows->list){if(row.kind!=BinaryValue::kInt||row.integer<=prior_row
-        ||axis0<0||row.integer<0||row.integer>=axis0)return false;prior_row=row.integer;}
+        ||axis0<0||row.integer<0||row.integer>=axis0)return false;prior_row=row.integer;
+      built.nodes[i].required_axis0_rows.push_back(static_cast<std::uint32_t>(row.integer));++built.total_liveness_rows;}
   }
 
   const BinaryValue* weights=fusion?field(*fusion,"weights"):nullptr;
@@ -281,9 +449,12 @@ bool validate_payload_tables(const std::uint8_t* data,std::size_t size,
   if(!fusion||fusion->kind!=BinaryValue::kDict||!weights||weights->kind!=BinaryValue::kList
       ||weights->list.size()!=header_fusion||!integer(field(*fusion,"d_model"),fusion_dmodel)
       ||fusion_dmodel!=dmodel||!closure||closure->kind!=BinaryValue::kDict)return false;
-  std::unordered_map<std::string,std::string> fusion_semantics;
+  for(const auto& weight:weights->list){NativeDyadic typed;if(!dyadic(&weight,typed))return false;built.fusion_weights.push_back(std::move(typed));}
+  if(!dyadic(field(*fusion,"bias"),built.fusion_bias))return false;
+  std::unordered_map<std::string,std::string> fusion_semantics;std::unordered_map<std::string,std::uint32_t> fusion_indices;
   for(const auto& item:closure->dict){std::string semantic;if(!sha(field(item.second,"semantic_sha256"))
-      ||!text(field(item.second,"semantic_sha256"),semantic))return false;fusion_semantics.emplace(item.first,semantic);}
+      ||!text(field(item.second,"semantic_sha256"),semantic))return false;
+    fusion_indices.emplace(item.first,static_cast<std::uint32_t>(fusion_indices.size()));fusion_semantics.emplace(item.first,semantic);}
 
   const BinaryValue* bindings=field(root,"program_input_binding_table");
   if(!bindings||bindings->kind!=BinaryValue::kList||bindings->list.size()!=150)return false;
@@ -301,9 +472,14 @@ bool validate_payload_tables(const std::uint8_t* data,std::size_t size,
         std::int64_t index;std::string name;if(!integer(field(*source,"record_index"),index)||index<0||index>=32
             ||!text(field(*source,"record_name"),name)||name!=record_names[index]
             ||tensor_hash!=record_semantics[index])return false;
+        NativeBinding typed;typed.node_index=node_indices[id];typed.input_ordinal=ordinal;typed.source_is_record=true;
+        typed.source_index=index;typed.tensor_semantic_sha256=tensor_hash;typed.source_name=name;built.bindings.push_back(std::move(typed));
       }else if(kind=="exact_final_contrast_fusion_source"){
         std::string source_name;if(!text(field(*source,"source_name"),source_name)||!fusion_semantics.count(source_name)
             ||tensor_hash!=fusion_semantics[source_name])return false;
+        NativeBinding typed;typed.node_index=node_indices[id];typed.input_ordinal=ordinal;typed.source_is_record=false;
+        typed.source_index=fusion_indices[source_name];typed.tensor_semantic_sha256=tensor_hash;typed.source_name=source_name;
+        built.bindings.push_back(std::move(typed));
       }else return false;
     }
   }
@@ -327,10 +503,10 @@ bool validate_payload_tables(const std::uint8_t* data,std::size_t size,
       ||!precisions||precisions->kind!=BinaryValue::kList||precisions->list.size()!=2
       ||precisions->list[0].kind!=BinaryValue::kInt||precisions->list[0].integer!=384
       ||precisions->list[1].kind!=BinaryValue::kInt||precisions->list[1].integer!=512)return false;
-  return true;
+  output=std::move(built);return true;
 }
 
-struct PlanEnvelope { int dfd=-1,bfd=-1; void* blob=MAP_FAILED; std::uint64_t dsize=0,bsize=0; std::uint32_t records=0,nodes=0,bindings=0,fusion=0; bool payload_validated=false; ~PlanEnvelope(){if(blob!=MAP_FAILED)::munmap(blob,bsize);if(dfd>=0)::close(dfd);if(bfd>=0)::close(bfd);} };
+struct PlanEnvelope { int dfd=-1,bfd=-1; void* blob=MAP_FAILED; std::uint64_t dsize=0,bsize=0; std::uint32_t records=0,nodes=0,bindings=0,fusion=0; bool payload_validated=false; NativePlanTables tables; ~PlanEnvelope(){if(blob!=MAP_FAILED)::munmap(blob,bsize);if(dfd>=0)::close(dfd);if(bfd>=0)::close(bfd);} };
 std::mutex registry_mutex; std::unordered_map<std::uint64_t,std::unique_ptr<PlanEnvelope>> registry; std::atomic<std::uint64_t> next_handle{1};
 
 }  // namespace
@@ -359,7 +535,7 @@ extern "C" int green_v400_native_plan_envelope_open_v1(
   Sha256 payload;payload.update(bytes.data()+256,bytes.size()-256);auto pd=payload.finish();if(std::memcmp(h+48,pd.data(),32))return 7;
   plan->bfd=::open(blob_path,O_RDONLY|O_CLOEXEC|O_NOFOLLOW);if(plan->bfd<0)return 3;struct stat bs{};
   if(::fstat(plan->bfd,&bs)!=0||!S_ISREG(bs.st_mode)||std::uint64_t(bs.st_size)!=expected_blob_nbytes)return 8;plan->bsize=bs.st_size;
-  if(!validate_payload_tables(bytes.data()+256,bytes.size()-256,h,plan->fusion,plan->bsize))return 11;plan->payload_validated=true;
+  if(!validate_payload_tables(bytes.data()+256,bytes.size()-256,h,plan->fusion,plan->bsize,plan->tables))return 11;plan->payload_validated=true;
   Sha256 blob_hash;std::vector<std::uint8_t> chunk(1U<<20);std::uint64_t off=0;while(off<plan->bsize){std::size_t want=std::min<std::uint64_t>(chunk.size(),plan->bsize-off);ssize_t n=::pread(plan->bfd,chunk.data(),want,off);if(n<=0)return 8;blob_hash.update(chunk.data(),n);off+=n;}if(blob_hash.finish()!=eb)return 8;
   plan->blob=::mmap(nullptr,plan->bsize,PROT_READ,MAP_PRIVATE,plan->bfd,0);if(plan->blob==MAP_FAILED)return 9;
   std::uint64_t handle=next_handle.fetch_add(1);if(handle==0)return 10;{std::lock_guard<std::mutex> lock(registry_mutex);registry.emplace(handle,std::move(plan));}*out_handle=handle;return 0;
@@ -368,3 +544,18 @@ extern "C" int green_v400_native_plan_envelope_open_v1(
 extern "C" int green_v400_native_plan_envelope_info_v1(std::uint64_t handle,std::uint64_t* descriptor_nbytes,std::uint64_t* blob_nbytes,std::uint32_t* records,std::uint32_t* nodes,std::uint32_t* bindings,std::uint32_t* fusion_weights){std::lock_guard<std::mutex> lock(registry_mutex);auto it=registry.find(handle);if(it==registry.end())return 2;auto& p=*it->second;if(descriptor_nbytes)*descriptor_nbytes=p.dsize;if(blob_nbytes)*blob_nbytes=p.bsize;if(records)*records=p.records;if(nodes)*nodes=p.nodes;if(bindings)*bindings=p.bindings;if(fusion_weights)*fusion_weights=p.fusion;return 0;}
 extern "C" int green_v400_native_plan_envelope_close_v1(std::uint64_t handle){std::unique_ptr<PlanEnvelope> removed;{std::lock_guard<std::mutex> lock(registry_mutex);auto it=registry.find(handle);if(it==registry.end())return 2;removed=std::move(it->second);registry.erase(it);}return 0;}
 extern "C" int green_v400_native_plan_payload_validated_v1(std::uint64_t handle){std::lock_guard<std::mutex> lock(registry_mutex);auto it=registry.find(handle);if(it==registry.end())return 0;return it->second->payload_validated?1:0;}
+extern "C" int green_v400_native_plan_typed_info_v1(std::uint64_t handle,std::uint32_t* records,std::uint32_t* nodes,std::uint32_t* bindings,std::uint32_t* fusion_weights,std::uint64_t* liveness_rows,std::uint32_t* root_count){
+  std::lock_guard<std::mutex> lock(registry_mutex);auto it=registry.find(handle);if(it==registry.end())return 2;
+  const auto& tables=it->second->tables;if(records)*records=tables.records.size();if(nodes)*nodes=tables.nodes.size();
+  if(bindings)*bindings=tables.bindings.size();if(fusion_weights)*fusion_weights=tables.fusion_weights.size();
+  if(liveness_rows)*liveness_rows=tables.total_liveness_rows;if(root_count)*root_count=tables.branch_roots.size();return 0;
+}
+extern "C" int green_v400_native_plan_typed_trace_v1(std::uint64_t handle,std::uint32_t* kernel_tags,std::uint32_t* liveness_counts,std::uint32_t node_capacity,std::uint32_t* roots,std::uint32_t root_capacity,std::uint32_t* output_root){
+  std::lock_guard<std::mutex> lock(registry_mutex);auto it=registry.find(handle);if(it==registry.end())return 2;
+  const auto& tables=it->second->tables;if(!kernel_tags||!liveness_counts||node_capacity<tables.nodes.size()
+      ||!roots||root_capacity<tables.branch_roots.size()||!output_root)return 3;
+  for(std::size_t i=0;i<tables.nodes.size();++i){kernel_tags[i]=tables.nodes[i].kernel_tag;
+    liveness_counts[i]=tables.nodes[i].required_axis0_rows.size();}
+  for(std::size_t i=0;i<tables.branch_roots.size();++i)roots[i]=tables.branch_roots[i];
+  *output_root=tables.output_root;return 0;
+}

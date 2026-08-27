@@ -1,0 +1,41 @@
+{
+  "backend_sha256": "25896007e14eca33cf64b47024515b8f08f9bc2a744580f1e2fdbe50378c6884",
+  "backend_version": "green-v400-compiled-mpfr-v2",
+  "blob_sha256": "34bcd45371c08720c23f66d8f723dfc0249779e9e47eee5499c04d6064dc3560",
+  "claim_scope": "the generation handle retains typed dimensions, records, nodes, kernel attributes, parent indices, output specs, liveness rows, ordered bindings, exact dyadic fusion, four branch roots, and output root; no MPFR precision context or node execution occurs",
+  "contains_scientific_outcome": false,
+  "created_at_utc": "2026-08-27T09:49:51.870332Z",
+  "descriptor_sha256": "bc673467ac237e59e542634d38d02b8eaa12053cbb0abfc39e4dcaa6659ba3ee",
+  "dispatch_sha256": "eb4c907ab4a86f3aac2fda445deed67099f2831c41e9712463688cccf1b6f008",
+  "full_native_dispatch_ready": false,
+  "fusion_sha256": "bd734f457bd3baee252af47f1c048dbd606ec15bf6a1b6533751c7bb943319c1",
+  "native_execution_ready": false,
+  "native_info": {
+    "binding_count": 150,
+    "blob_nbytes": 28517632,
+    "branch_root_count": 4,
+    "descriptor_nbytes": 241234,
+    "fusion_weight_count": 768,
+    "liveness_row_count": 196,
+    "node_count": 81,
+    "payload_tables_validated": true,
+    "record_count": 32,
+    "typed_plan_materialized": true
+  },
+  "native_typed_plan_materialization_ready": true,
+  "open_materialize_trace_seconds": 0.12073218301520683,
+  "per_precision_native_context_ready": false,
+  "process_peak_rss_after_kib": 38040,
+  "process_peak_rss_before_kib": 35144,
+  "process_peak_rss_delta_kib": 2896,
+  "program_execution_sha256": "38f40999524d465b8ee58fcc8d2d1822caf9af6c36897a72bd404a8fff34fe62",
+  "schema_version": "green-v400-native-typed-plan-audit-v1",
+  "stale_handle_typed_info_status": 2,
+  "status": "PASS_NATIVE_TYPED_PLAN_MATERIALIZATION_PREPARE_ONLY",
+  "typed_trace": {
+    "branch_root_indices": [25, 39, 65, 79],
+    "kernel_tags": [1, 1, 2, 4, 4, 3, 3, 5, 5, 2, 3, 7, 4, 3, 3, 3, 6, 3, 7, 4, 3, 5, 3, 7, 4, 8, 4, 3, 3, 3, 6, 3, 7, 4, 3, 5, 3, 7, 4, 8, 1, 1, 2, 4, 4, 3, 3, 5, 5, 2, 3, 7, 4, 3, 3, 3, 6, 3, 7, 4, 3, 5, 3, 7, 4, 8, 4, 3, 3, 3, 6, 3, 7, 4, 3, 5, 3, 7, 4, 8, 9],
+    "liveness_counts": [7, 1, 1, 1, 1, 1, 1, 1, 1, 7, 7, 7, 7, 1, 7, 7, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 7, 1, 7, 7, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 7, 1, 1, 1, 1, 1, 1, 1, 1, 7, 7, 7, 7, 1, 7, 7, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 7, 1, 7, 7, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0],
+    "output_root_index": 80
+  }
+}

@@ -19,7 +19,7 @@ from green_bridge_v400_compiled_mpfr import CompiledMPFRBackend
 from green_bridge_v400_resident_plan import (
     build_resident_plan, load_resident_plan_arrays,
 )
-from green_bridge_v400_tensor_program import TensorProgram
+from green_bridge_v400_tensor_program import NATIVE_DISPATCH_KERNEL_TAGS, TensorProgram
 from test_green_bridge_v400_gpt2_program import _fixture
 
 
@@ -180,6 +180,22 @@ def test_compiled_native_envelope_loader_is_hash_closed_and_generation_safe(tmp_
         "node_count": 81, "binding_count": 150,
         "fusion_weight_count": len(payload["exact_final_contrast_fusion"]["weights"]),
         "payload_tables_validated": True,
+        "typed_plan_materialized": True,
+        "liveness_row_count": sum(
+            len(item["rows"]) for item in payload["required_axis0_rows"]
+        ),
+        "branch_root_count": 4,
+    }
+    trace = backend.native_plan_typed_trace(envelope)
+    node_ids = [node.semantic_id for node in program.nodes]
+    assert trace == {
+        "kernel_tags": [NATIVE_DISPATCH_KERNEL_TAGS[node.kernel_id]
+                        for node in program.nodes],
+        "liveness_counts": [len(item["rows"])
+                            for item in payload["required_axis0_rows"]],
+        "branch_root_indices": [node_ids.index(payload["branch_roots"][name])
+                                for name in ("PAT_J", "PAT_B", "TAR_J", "TAR_B")],
+        "output_root_index": node_ids.index(payload["output_root"]),
     }
     stale = envelope.handle
     envelope.close()

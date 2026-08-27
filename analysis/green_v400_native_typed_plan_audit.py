@@ -1,4 +1,4 @@
-"""Outcome-blind actual-file audit of the bounded native payload-table parser."""
+"""Outcome-blind actual-file audit of retained typed native plan tables."""
 from __future__ import annotations
 
 import argparse
@@ -13,14 +13,23 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 
 from green_bridge_v400_compiled_mpfr import CompiledMPFRBackend
+from green_v400_native_payload_parser_audit import (
+    BLOB_NBYTES, BLOB_SHA, DESCRIPTOR_SHA, DISPATCH_SHA, FUSION_SHA, PROGRAM_SHA,
+)
 
 
-DESCRIPTOR_SHA = "bc673467ac237e59e542634d38d02b8eaa12053cbb0abfc39e4dcaa6659ba3ee"
-PROGRAM_SHA = "38f40999524d465b8ee58fcc8d2d1822caf9af6c36897a72bd404a8fff34fe62"
-DISPATCH_SHA = "eb4c907ab4a86f3aac2fda445deed67099f2831c41e9712463688cccf1b6f008"
-BLOB_SHA = "34bcd45371c08720c23f66d8f723dfc0249779e9e47eee5499c04d6064dc3560"
-FUSION_SHA = "bd734f457bd3baee252af47f1c048dbd606ec15bf6a1b6533751c7bb943319c1"
-BLOB_NBYTES = 28_517_632
+EXPECTED_KERNEL_TAGS = [
+    1, 1, 2, 4, 4, 3, 3, 5, 5, 2, 3, 7, 4, 3, 3, 3, 6, 3, 7, 4, 3,
+    5, 3, 7, 4, 8, 4, 3, 3, 3, 6, 3, 7, 4, 3, 5, 3, 7, 4, 8, 1, 1, 2,
+    4, 4, 3, 3, 5, 5, 2, 3, 7, 4, 3, 3, 3, 6, 3, 7, 4, 3, 5, 3, 7,
+    4, 8, 4, 3, 3, 3, 6, 3, 7, 4, 3, 5, 3, 7, 4, 8, 9,
+]
+EXPECTED_LIVENESS_COUNTS = [
+    7, 1, 1, 1, 1, 1, 1, 1, 1, 7, 7, 7, 7, 1, 7, 7, 1, 1, 1, 1, 1,
+    1, 1, 1, 1, 0, 7, 1, 7, 7, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 7, 1, 1,
+    1, 1, 1, 1, 1, 1, 7, 7, 7, 7, 1, 7, 7, 1, 1, 1, 1, 1, 1, 1, 1,
+    1, 0, 7, 1, 7, 7, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0,
+]
 
 
 def main() -> int:
@@ -35,9 +44,9 @@ def main() -> int:
     try:
         relative = output.relative_to(root)
     except ValueError as error:
-        raise RuntimeError("native parser audit output must resolve below /mnt/sdb") from error
+        raise RuntimeError("native typed-plan audit output must resolve below /mnt/sdb") from error
     if not relative.parts or output.exists():
-        raise RuntimeError("native parser audit output must be new below /mnt/sdb")
+        raise RuntimeError("native typed-plan audit output must be new below /mnt/sdb")
     backend = CompiledMPFRBackend(Path(args.library))
     before = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
     started = time.perf_counter()
@@ -47,32 +56,36 @@ def main() -> int:
         blob_sha256=BLOB_SHA, fusion_sha256=FUSION_SHA,
         blob_nbytes=BLOB_NBYTES, fusion_weight_count=768,
     )
+    trace = backend.native_plan_typed_trace(envelope)
     elapsed = time.perf_counter() - started
     info = envelope.info
     handle = envelope.handle
     envelope.close()
-    stale_info_status = backend.library.green_v400_native_plan_envelope_info_v1(
+    stale_status = backend.library.green_v400_native_plan_typed_info_v1(
         handle, None, None, None, None, None, None
-    )
-    stale_validation_status = (
-        backend.library.green_v400_native_plan_payload_validated_v1(handle)
     )
     after = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
     expected_info = {
         "descriptor_nbytes": 241_234, "blob_nbytes": BLOB_NBYTES,
         "record_count": 32, "node_count": 81, "binding_count": 150,
         "fusion_weight_count": 768, "payload_tables_validated": True,
+        "typed_plan_materialized": True, "liveness_row_count": 196,
+        "branch_root_count": 4,
     }
-    passed = (all(info.get(key) == value for key, value in expected_info.items())
-              and stale_info_status == 2 and stale_validation_status == 0)
+    expected_trace = {
+        "kernel_tags": EXPECTED_KERNEL_TAGS,
+        "liveness_counts": EXPECTED_LIVENESS_COUNTS,
+        "branch_root_indices": [25, 39, 65, 79], "output_root_index": 80,
+    }
+    passed = info == expected_info and trace == expected_trace and stale_status == 2
     report = {
-        "schema_version": "green-v400-native-payload-parser-audit-v1",
+        "schema_version": "green-v400-native-typed-plan-audit-v1",
         "created_at_utc": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
         "contains_scientific_outcome": False,
-        "status": "PASS_NATIVE_PAYLOAD_TABLE_PARSER_PREPARE_ONLY" if passed else "FAIL",
+        "status": "PASS_NATIVE_TYPED_PLAN_MATERIALIZATION_PREPARE_ONLY" if passed else "FAIL",
         "native_execution_ready": False,
-        "native_payload_table_validation_ready": passed,
-        "native_typed_plan_materialization_ready": False,
+        "native_typed_plan_materialization_ready": passed,
+        "per_precision_native_context_ready": False,
         "full_native_dispatch_ready": False,
         "backend_sha256": backend.library_sha256,
         "backend_version": backend.version,
@@ -82,17 +95,16 @@ def main() -> int:
         "blob_sha256": BLOB_SHA,
         "fusion_sha256": FUSION_SHA,
         "native_info": info,
-        "stale_handle_info_status": stale_info_status,
-        "stale_handle_validation_status": stale_validation_status,
-        "open_hash_parse_validate_mmap_seconds": elapsed,
+        "typed_trace": trace,
+        "stale_handle_typed_info_status": stale_status,
+        "open_materialize_trace_seconds": elapsed,
         "process_peak_rss_before_kib": before,
         "process_peak_rss_after_kib": after,
         "process_peak_rss_delta_kib": max(0, after - before),
         "claim_scope": (
-            "bounded native canonical-binary decode and semantic validation of the actual "
-            "descriptor records, nodes, roots, liveness, bindings, fusion closure, dimensions, "
-            "and runtime policy; parsed values are not yet retained as a typed native plan and "
-            "no node execution occurs"
+            "the generation handle retains typed dimensions, records, nodes, kernel attributes, "
+            "parent indices, output specs, liveness rows, ordered bindings, exact dyadic fusion, "
+            "four branch roots, and output root; no MPFR precision context or node execution occurs"
         ),
     }
     output.parent.mkdir(parents=True, exist_ok=True)
