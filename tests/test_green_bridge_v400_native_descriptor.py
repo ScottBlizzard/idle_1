@@ -197,11 +197,33 @@ def test_compiled_native_envelope_loader_is_hash_closed_and_generation_safe(tmp_
                                 for name in ("PAT_J", "PAT_B", "TAR_J", "TAR_B")],
         "output_root_index": node_ids.index(payload["output_root"]),
     }
+    contexts = [backend.open_native_precision_context(envelope, precision)
+                for precision in (384, 512)]
+    expected_static_jets = payload["dimensions"]["d_model"] * (
+        1 + 4 * payload["dimensions"]["sequence_length"]
+    )
+    for precision, context in zip((384, 512), contexts):
+        assert context.info == {
+            "precision_bits": precision, "static_buffer_count": 5,
+            "static_jet_count": expected_static_jets,
+            "node_count": 81, "binding_count": 150, "plan_retained": True,
+        }
+    with pytest.raises(RuntimeError, match="status 2"):
+        backend.open_native_precision_context(envelope, 256)
     stale = envelope.handle
     envelope.close()
     assert backend.library.green_v400_native_plan_envelope_info_v1(
         stale, None, None, None, None, None, None
     ) == 2
+    stale_contexts = [context.handle for context in contexts]
+    assert all(backend.library.green_v400_native_precision_context_info_v1(
+        handle, None, None, None, None, None
+    ) == 0 for handle in stale_contexts)
+    for context in contexts:
+        context.close()
+    assert all(backend.library.green_v400_native_precision_context_info_v1(
+        handle, None, None, None, None, None
+    ) == 2 for handle in stale_contexts)
     corrupted = tmp_path / "corrupted.desc"
     raw = bytearray(descriptor.read_bytes()); raw[-1] ^= 1
     corrupted.write_bytes(raw)

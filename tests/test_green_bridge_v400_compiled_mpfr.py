@@ -304,6 +304,18 @@ def test_resident_jet_buffer_mlp_chain_matches_json_roundtrips(precision):
 
 
 @pytest.mark.parametrize("precision", [384, 512])
+def test_resident_f32_constant_import_is_exact_and_has_zero_derivatives(precision):
+    backend = _backend()
+    values = np.asarray([-0.0, 0.125, -0.75, 1.0 / 3.0], dtype="<f4")
+    with backend.resident_f32_constant_buffer(values, precision) as buffer:
+        outputs = backend.export_resident_jet_buffer(buffer)["outputs"]
+    expected = [constant_jet(Interval.point(float(value), precision)) for value in values]
+    for actual, reference in zip(outputs, expected):
+        decoded = _decode_compiled_jet(backend, actual, precision)
+        assert decoded == reference
+
+
+@pytest.mark.parametrize("precision", [384, 512])
 def test_resident_layer_norm_matches_existing_compiled_path(precision):
     backend = _backend()
     inputs = [_jet(-0.25 + index / 7, 2.0**(-9-index),

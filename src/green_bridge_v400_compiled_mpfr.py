@@ -106,6 +106,40 @@ class CompiledNativePlanEnvelope:
             pass
 
 
+class CompiledNativePrecisionContext:
+    """Owned per-precision native resources retaining their typed plan mapping."""
+
+    def __init__(self, backend, handle: int, info: dict):
+        if handle <= 0:
+            raise ValueError("invalid native precision context handle")
+        self.backend = backend
+        self.handle = int(handle)
+        self.info = info
+
+    def close(self) -> None:
+        if self.handle:
+            status = self.backend.library.green_v400_native_precision_context_close_v1(
+                self.handle
+            )
+            self.handle = 0
+            if status != 0:
+                raise RuntimeError(
+                    f"native precision context close failed with status {status}"
+                )
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc_value, traceback):
+        self.close()
+
+    def __del__(self):
+        try:
+            self.close()
+        except Exception:
+            pass
+
+
 class CompiledMPFRBackend:
     def __init__(self, library_path: Path):
         self.library_path = Path(library_path).resolve()
@@ -243,6 +277,14 @@ class CompiledMPFRBackend:
             ctypes.POINTER(ctypes.c_int64), ctypes.POINTER(ctypes.c_void_p),
         ]
         resident_import.restype = ctypes.c_int
+        resident_import_f32 = (
+            self.library.green_v400_resident_jet_buffer_import_f32_constants
+        )
+        resident_import_f32.argtypes = [
+            ctypes.c_uint32, ctypes.c_uint32,
+            ctypes.POINTER(ctypes.c_uint32), ctypes.POINTER(ctypes.c_void_p),
+        ]
+        resident_import_f32.restype = ctypes.c_int
         resident_affine = self.library.green_v400_resident_jet_buffer_packed_affine
         resident_affine.argtypes = [
             ctypes.c_void_p, ctypes.c_uint32, ctypes.POINTER(ctypes.c_uint32),
@@ -344,6 +386,21 @@ class CompiledMPFRBackend:
             ctypes.POINTER(ctypes.c_uint32),
         ]
         native_typed_trace.restype = ctypes.c_int
+        native_context_open = self.library.green_v400_native_precision_context_open_v1
+        native_context_open.argtypes = [
+            ctypes.c_uint64, ctypes.c_uint32, ctypes.POINTER(ctypes.c_uint64),
+        ]
+        native_context_open.restype = ctypes.c_int
+        native_context_info = self.library.green_v400_native_precision_context_info_v1
+        native_context_info.argtypes = [ctypes.c_uint64] + [
+            ctypes.POINTER(ctypes.c_uint32), ctypes.POINTER(ctypes.c_uint32),
+            ctypes.POINTER(ctypes.c_uint64), ctypes.POINTER(ctypes.c_uint32),
+            ctypes.POINTER(ctypes.c_uint32),
+        ]
+        native_context_info.restype = ctypes.c_int
+        native_context_close = self.library.green_v400_native_precision_context_close_v1
+        native_context_close.argtypes = [ctypes.c_uint64]
+        native_context_close.restype = ctypes.c_int
 
     def open_native_plan_envelope(
         self, descriptor_path: Path, blob_path: Path, *, descriptor_sha256: str,
@@ -411,6 +468,37 @@ class CompiledMPFRBackend:
             "kernel_tags": list(kernels), "liveness_counts": list(liveness),
             "branch_root_indices": list(roots), "output_root_index": output_root.value,
         }
+
+    def open_native_precision_context(
+        self, envelope: CompiledNativePlanEnvelope, precision_bits: int,
+    ) -> CompiledNativePrecisionContext:
+        if envelope.backend is not self or envelope.handle <= 0:
+            raise ValueError("native plan envelope is closed or belongs to another backend")
+        handle = ctypes.c_uint64()
+        status = self.library.green_v400_native_precision_context_open_v1(
+            envelope.handle, int(precision_bits), ctypes.byref(handle)
+        )
+        if status != 0:
+            raise RuntimeError(f"native precision context open failed with status {status}")
+        precision = ctypes.c_uint32()
+        static_buffers = ctypes.c_uint32()
+        static_jets = ctypes.c_uint64()
+        nodes = ctypes.c_uint32()
+        bindings = ctypes.c_uint32()
+        status = self.library.green_v400_native_precision_context_info_v1(
+            handle.value, ctypes.byref(precision), ctypes.byref(static_buffers),
+            ctypes.byref(static_jets), ctypes.byref(nodes), ctypes.byref(bindings),
+        )
+        if status != 0:
+            self.library.green_v400_native_precision_context_close_v1(handle.value)
+            raise RuntimeError(f"native precision context info failed with status {status}")
+        return CompiledNativePrecisionContext(self, handle.value, {
+            "precision_bits": precision.value,
+            "static_buffer_count": static_buffers.value,
+            "static_jet_count": static_jets.value,
+            "node_count": nodes.value, "binding_count": bindings.value,
+            "plan_retained": True,
+        })
 
     def affine_jet2(self, weights, bias, values: list[Jet2], precision_bits: int) -> dict:
         weights = np.ascontiguousarray(np.asarray(weights, dtype="<f4").reshape(-1))
@@ -575,6 +663,24 @@ class CompiledMPFRBackend:
         if status != 0:
             raise RuntimeError(f"compiled resident Jet2 import failed with status {status}")
         return CompiledResidentJetBuffer(self, handle, precision, len(values))
+
+    def resident_f32_constant_buffer(
+        self, values, precision_bits: int,
+    ) -> CompiledResidentJetBuffer:
+        array = np.ascontiguousarray(np.asarray(values, dtype="<f4").reshape(-1))
+        if array.size == 0:
+            raise ValueError("resident f32 constant buffer requires values")
+        handle = ctypes.c_void_p()
+        status = self.library.green_v400_resident_jet_buffer_import_f32_constants(
+            int(precision_bits), array.size,
+            array.view("<u4").ctypes.data_as(ctypes.POINTER(ctypes.c_uint32)),
+            ctypes.byref(handle),
+        )
+        if status != 0:
+            raise RuntimeError(f"compiled resident f32 import failed with status {status}")
+        return CompiledResidentJetBuffer(
+            self, handle, int(precision_bits), int(array.size)
+        )
 
     def resident_packed_affine_layer_jet2(
         self, values: CompiledResidentJetBuffer, weight, bias,

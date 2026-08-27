@@ -15,6 +15,11 @@
 #include <unistd.h>
 #include <vector>
 
+extern "C" int green_v400_resident_jet_buffer_import_f32_constants(
+    std::uint32_t precision_bits,std::uint32_t width,
+    const std::uint32_t* value_bits,void** output_handle);
+extern "C" void green_v400_resident_jet_buffer_free(void* input_handle);
+
 namespace {
 
 constexpr std::size_t kHeaderBytes = 256;
@@ -507,7 +512,18 @@ bool validate_payload_tables(const std::uint8_t* data,std::size_t size,
 }
 
 struct PlanEnvelope { int dfd=-1,bfd=-1; void* blob=MAP_FAILED; std::uint64_t dsize=0,bsize=0; std::uint32_t records=0,nodes=0,bindings=0,fusion=0; bool payload_validated=false; NativePlanTables tables; ~PlanEnvelope(){if(blob!=MAP_FAILED)::munmap(blob,bsize);if(dfd>=0)::close(dfd);if(bfd>=0)::close(bfd);} };
-std::mutex registry_mutex; std::unordered_map<std::uint64_t,std::unique_ptr<PlanEnvelope>> registry; std::atomic<std::uint64_t> next_handle{1};
+struct NativePrecisionContext {
+  std::shared_ptr<PlanEnvelope> plan;
+  std::uint32_t precision=0;
+  std::vector<void*> static_buffers;
+  std::vector<std::uint32_t> static_record_indices;
+  std::uint64_t static_jet_count=0;
+  ~NativePrecisionContext(){for(void* buffer:static_buffers)green_v400_resident_jet_buffer_free(buffer);}
+};
+std::mutex registry_mutex;std::unordered_map<std::uint64_t,std::shared_ptr<PlanEnvelope>> registry;
+std::atomic<std::uint64_t> next_handle{1};
+std::mutex context_registry_mutex;std::unordered_map<std::uint64_t,std::unique_ptr<NativePrecisionContext>> context_registry;
+std::atomic<std::uint64_t> next_context_handle{1};
 
 }  // namespace
 
@@ -519,7 +535,7 @@ extern "C" int green_v400_native_plan_envelope_open_v1(
   if(!descriptor_path||!blob_path||!out_handle)return 2;*out_handle=0;
   std::array<std::uint8_t,32> ed,ep,et,eb,ef;
   if(!parse_hex(expected_descriptor_sha,ed)||!parse_hex(expected_program_sha,ep)||!parse_hex(expected_dispatch_sha,et)||!parse_hex(expected_blob_sha,eb)||!parse_hex(expected_fusion_sha,ef))return 2;
-  std::unique_ptr<PlanEnvelope> plan(new PlanEnvelope());
+  std::shared_ptr<PlanEnvelope> plan(new PlanEnvelope());
   plan->dfd=::open(descriptor_path,O_RDONLY|O_CLOEXEC|O_NOFOLLOW); if(plan->dfd<0)return 3;
   struct stat ds{}; if(::fstat(plan->dfd,&ds)!=0||!S_ISREG(ds.st_mode)||ds.st_size<(off_t)kHeaderBytes||ds.st_size>(off_t)kMaxDescriptorBytes)return 4;
   plan->dsize=ds.st_size; std::vector<std::uint8_t> bytes(plan->dsize); if(!read_all(plan->dfd,bytes))return 4;
@@ -538,11 +554,11 @@ extern "C" int green_v400_native_plan_envelope_open_v1(
   if(!validate_payload_tables(bytes.data()+256,bytes.size()-256,h,plan->fusion,plan->bsize,plan->tables))return 11;plan->payload_validated=true;
   Sha256 blob_hash;std::vector<std::uint8_t> chunk(1U<<20);std::uint64_t off=0;while(off<plan->bsize){std::size_t want=std::min<std::uint64_t>(chunk.size(),plan->bsize-off);ssize_t n=::pread(plan->bfd,chunk.data(),want,off);if(n<=0)return 8;blob_hash.update(chunk.data(),n);off+=n;}if(blob_hash.finish()!=eb)return 8;
   plan->blob=::mmap(nullptr,plan->bsize,PROT_READ,MAP_PRIVATE,plan->bfd,0);if(plan->blob==MAP_FAILED)return 9;
-  std::uint64_t handle=next_handle.fetch_add(1);if(handle==0)return 10;{std::lock_guard<std::mutex> lock(registry_mutex);registry.emplace(handle,std::move(plan));}*out_handle=handle;return 0;
+  std::uint64_t handle=next_handle.fetch_add(1);if(handle==0)return 10;{std::lock_guard<std::mutex> lock(registry_mutex);registry.emplace(handle,plan);}*out_handle=handle;return 0;
 }
 
 extern "C" int green_v400_native_plan_envelope_info_v1(std::uint64_t handle,std::uint64_t* descriptor_nbytes,std::uint64_t* blob_nbytes,std::uint32_t* records,std::uint32_t* nodes,std::uint32_t* bindings,std::uint32_t* fusion_weights){std::lock_guard<std::mutex> lock(registry_mutex);auto it=registry.find(handle);if(it==registry.end())return 2;auto& p=*it->second;if(descriptor_nbytes)*descriptor_nbytes=p.dsize;if(blob_nbytes)*blob_nbytes=p.bsize;if(records)*records=p.records;if(nodes)*nodes=p.nodes;if(bindings)*bindings=p.bindings;if(fusion_weights)*fusion_weights=p.fusion;return 0;}
-extern "C" int green_v400_native_plan_envelope_close_v1(std::uint64_t handle){std::unique_ptr<PlanEnvelope> removed;{std::lock_guard<std::mutex> lock(registry_mutex);auto it=registry.find(handle);if(it==registry.end())return 2;removed=std::move(it->second);registry.erase(it);}return 0;}
+extern "C" int green_v400_native_plan_envelope_close_v1(std::uint64_t handle){std::shared_ptr<PlanEnvelope> removed;{std::lock_guard<std::mutex> lock(registry_mutex);auto it=registry.find(handle);if(it==registry.end())return 2;removed=std::move(it->second);registry.erase(it);}return 0;}
 extern "C" int green_v400_native_plan_payload_validated_v1(std::uint64_t handle){std::lock_guard<std::mutex> lock(registry_mutex);auto it=registry.find(handle);if(it==registry.end())return 0;return it->second->payload_validated?1:0;}
 extern "C" int green_v400_native_plan_typed_info_v1(std::uint64_t handle,std::uint32_t* records,std::uint32_t* nodes,std::uint32_t* bindings,std::uint32_t* fusion_weights,std::uint64_t* liveness_rows,std::uint32_t* root_count){
   std::lock_guard<std::mutex> lock(registry_mutex);auto it=registry.find(handle);if(it==registry.end())return 2;
@@ -558,4 +574,37 @@ extern "C" int green_v400_native_plan_typed_trace_v1(std::uint64_t handle,std::u
     liveness_counts[i]=tables.nodes[i].required_axis0_rows.size();}
   for(std::size_t i=0;i<tables.branch_roots.size();++i)roots[i]=tables.branch_roots[i];
   *output_root=tables.output_root;return 0;
+}
+extern "C" int green_v400_native_precision_context_open_v1(std::uint64_t plan_handle,std::uint32_t precision_bits,std::uint64_t* out_context_handle){
+  if(!out_context_handle||(precision_bits!=384&&precision_bits!=512))return 2;*out_context_handle=0;
+  std::shared_ptr<PlanEnvelope> plan;{std::lock_guard<std::mutex> lock(registry_mutex);auto it=registry.find(plan_handle);
+    if(it==registry.end())return 2;plan=it->second;}
+  const std::uint32_t endian_probe=1;if(*reinterpret_cast<const std::uint8_t*>(&endian_probe)!=1)return 3;
+  std::unique_ptr<NativePrecisionContext> context(new NativePrecisionContext());context->plan=plan;context->precision=precision_bits;
+  const char* static_names[5]={"zero.d_model","PAT.resid_mid","PAT.resid_post","TAR.resid_mid","TAR.resid_post"};
+  for(const char* name:static_names){
+    std::size_t index=0;while(index<plan->tables.records.size()&&plan->tables.records[index].name!=name)++index;
+    if(index==plan->tables.records.size())return 3;const NativeRecord& record=plan->tables.records[index];
+    if(record.dtype!="<f4"||record.nbytes==0||record.nbytes%4!=0||record.nbytes/4>1000000U
+        ||record.offset>plan->bsize||record.nbytes>plan->bsize-record.offset)return 3;
+    const auto* bits=reinterpret_cast<const std::uint32_t*>(
+        static_cast<const std::uint8_t*>(plan->blob)+record.offset);void* buffer=nullptr;
+    const int status=green_v400_resident_jet_buffer_import_f32_constants(
+        precision_bits,static_cast<std::uint32_t>(record.nbytes/4),bits,&buffer);
+    if(status!=0||!buffer)return 12;context->static_buffers.push_back(buffer);
+    context->static_record_indices.push_back(static_cast<std::uint32_t>(index));context->static_jet_count+=record.nbytes/4;
+  }
+  const std::uint64_t handle=next_context_handle.fetch_add(1);if(handle==0)return 10;
+  {std::lock_guard<std::mutex> lock(context_registry_mutex);context_registry.emplace(handle,std::move(context));}
+  *out_context_handle=handle;return 0;
+}
+extern "C" int green_v400_native_precision_context_info_v1(std::uint64_t context_handle,std::uint32_t* precision_bits,std::uint32_t* static_buffer_count,std::uint64_t* static_jet_count,std::uint32_t* node_count,std::uint32_t* binding_count){
+  std::lock_guard<std::mutex> lock(context_registry_mutex);auto it=context_registry.find(context_handle);if(it==context_registry.end())return 2;
+  const auto& context=*it->second;if(precision_bits)*precision_bits=context.precision;
+  if(static_buffer_count)*static_buffer_count=context.static_buffers.size();if(static_jet_count)*static_jet_count=context.static_jet_count;
+  if(node_count)*node_count=context.plan->tables.nodes.size();if(binding_count)*binding_count=context.plan->tables.bindings.size();return 0;
+}
+extern "C" int green_v400_native_precision_context_close_v1(std::uint64_t context_handle){
+  std::unique_ptr<NativePrecisionContext> removed;{std::lock_guard<std::mutex> lock(context_registry_mutex);
+    auto it=context_registry.find(context_handle);if(it==context_registry.end())return 2;removed=std::move(it->second);context_registry.erase(it);}return 0;
 }

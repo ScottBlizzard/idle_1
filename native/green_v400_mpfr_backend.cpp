@@ -1028,6 +1028,27 @@ extern "C" int green_v400_resident_jet_buffer_import_exact(
   }
 }
 
+extern "C" int green_v400_resident_jet_buffer_import_f32_constants(
+    std::uint32_t precision_bits, std::uint32_t width,
+    const std::uint32_t* value_bits, void** output_handle) {
+  if (output_handle == nullptr) return 2;
+  *output_handle = nullptr;
+  if (precision_bits < 64 || precision_bits > 4096 || width == 0
+      || width > 1000000U || value_bits == nullptr) return 2;
+  try {
+    const mpfr_prec_t precision = static_cast<mpfr_prec_t>(precision_bits);
+    std::vector<JetMP> values;
+    values.reserve(width);
+    for (std::uint32_t index = 0; index < width; ++index)
+      values.emplace_back(jet_constant(interval_point_float(
+          float_from_bits(value_bits[index]), precision)));
+    *output_handle = new ResidentJetBuffer(precision, std::move(values));
+    return 0;
+  } catch (...) {
+    return 7;
+  }
+}
+
 extern "C" int green_v400_resident_jet_buffer_packed_affine(
     void* input_handle, std::uint32_t output_width,
     const std::uint32_t* weight_bits, const std::uint32_t* bias_bits,
