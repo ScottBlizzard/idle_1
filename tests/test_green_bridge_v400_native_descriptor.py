@@ -17,9 +17,9 @@ from green_bridge_v400_native_descriptor import (
     load_native_execution_descriptor, program_execution_identity,
 )
 from green_bridge_v400_compiled_mpfr import (
-    CompiledMPFRBackend, CompiledNativeJointWitnessEvaluator,
+    CompiledMPFRBackend, CompiledNativeJointWitnessEvaluator, ExactDomainJetMemo,
 )
-from green_bridge_v400_certificate import certify_adaptive_cells
+from green_bridge_v400_certificate import DyadicCell, certify_adaptive_cells, certify_cell
 from green_bridge_v400_interval import Interval
 from green_bridge_v400_mpfr_tensor_executor import (
     execute_tensor_program_mpfr, jet_exact_payload,
@@ -28,7 +28,7 @@ from green_bridge_v400_resident_plan import (
     build_resident_plan, load_resident_plan_arrays,
 )
 from green_bridge_v400_tensor_program import NATIVE_DISPATCH_KERNEL_TAGS, TensorProgram
-from green_bridge_v400_schemas import CertificatePlan, Dyadic
+from green_bridge_v400_schemas import CertificatePlan, Dyadic, sha256_canonical
 from test_green_bridge_v400_gpt2_program import _fixture
 
 
@@ -186,6 +186,19 @@ def test_compiled_native_envelope_loader_is_hash_closed_and_generation_safe(tmp_
         blob_nbytes=payload["blob_nbytes"],
         fusion_weight_count=len(payload["exact_final_contrast_fusion"]["weights"]),
     )
+    native_plan_identity = {
+        "schema_version": "green-v400-native-plan-identity-v1",
+        "descriptor_file_sha256": built["descriptor_file_sha256"],
+        "program_execution_semantic_hash": payload["program_execution_semantic_hash"],
+        "dispatch_signature_sha256": payload["program_dispatch_signature_sha256"],
+        "blob_sha256": payload["blob_sha256"],
+        "fusion_sha256": payload["exact_final_contrast_fusion_sha256"],
+        "blob_nbytes": payload["blob_nbytes"],
+        "record_count": 32,
+        "node_count": 81,
+        "binding_count": 150,
+        "fusion_weight_count": len(payload["exact_final_contrast_fusion"]["weights"]),
+    }
     assert envelope.info == {
         "descriptor_nbytes": descriptor.stat().st_size,
         "blob_nbytes": payload["blob_nbytes"], "record_count": 32,
@@ -197,6 +210,8 @@ def test_compiled_native_envelope_loader_is_hash_closed_and_generation_safe(tmp_
             len(item["rows"]) for item in payload["required_axis0_rows"]
         ),
         "branch_root_count": 4,
+        "native_plan_identity": native_plan_identity,
+        "native_plan_identity_sha256": sha256_canonical(native_plan_identity),
     }
     trace = backend.native_plan_typed_trace(envelope)
     node_ids = [node.semantic_id for node in program.nodes]
@@ -219,6 +234,8 @@ def test_compiled_native_envelope_loader_is_hash_closed_and_generation_safe(tmp_
             "precision_bits": precision, "static_buffer_count": 5,
             "static_jet_count": expected_static_jets,
             "node_count": 81, "binding_count": 150, "plan_retained": True,
+            "native_plan_identity": native_plan_identity,
+            "native_plan_identity_sha256": sha256_canonical(native_plan_identity),
         }
         historical_rows = payload["dimensions"]["final_position"]
         assert backend.native_precision_context_projection_info(context) == {
@@ -292,6 +309,40 @@ def test_compiled_native_envelope_loader_is_hash_closed_and_generation_safe(tmp_
     )
     assert cells is not None and len(cells) == 2
     assert evaluator.dispatch_count_by_precision == {384: 2, 512: 0}
+    identity_probe = CompiledNativeJointWitnessEvaluator(
+        backend, {384: contexts[0], 512: contexts[1]},
+        certificate_row_hash=row_hash,
+        expected_kernel_tags=tuple(trace["kernel_tags"]),
+    )
+    memo = ExactDomainJetMemo(identity_probe.evaluator_identity, max_entries=8)
+    memoized = CompiledNativeJointWitnessEvaluator(
+        backend, {384: contexts[0], 512: contexts[1]},
+        certificate_row_hash=row_hash,
+        expected_kernel_tags=tuple(trace["kernel_tags"]),
+        exact_domain_memo=memo,
+    )
+    same_bounds_different_depth = (
+        DyadicCell(Fraction(-1, 2**14), Fraction(0), 0),
+        DyadicCell(Fraction(-1, 2**14), Fraction(0), 7),
+    )
+    memo_cells = [certify_cell(memoized, cell, 384)
+                  for cell in same_bounds_different_depth]
+    assert [item.cell.depth for item in memo_cells] == [0, 7]
+    assert memo_cells[0].value == memo_cells[1].value
+    assert memoized.dispatch_count_by_precision == {384: 1, 512: 0}
+    assert memo.metrics()["by_precision"]["384"] == {
+        "logical_requests": 2, "hits": 1, "misses": 1, "waits": 0,
+    }
+    mismatched = ExactDomainJetMemo(
+        identity_probe.evaluator_identity | {"certificate_row_hash": "b" * 64},
+        max_entries=8,
+    )
+    with pytest.raises(ValueError, match="identity mismatch"):
+        CompiledNativeJointWitnessEvaluator(
+            backend, {384: contexts[0]}, certificate_row_hash=row_hash,
+            expected_kernel_tags=tuple(trace["kernel_tags"]),
+            exact_domain_memo=mismatched,
+        )
     with pytest.raises(RuntimeError, match="status 2"):
         backend.open_native_precision_context(envelope, 256)
     stale = envelope.handle
@@ -305,6 +356,10 @@ def test_compiled_native_envelope_loader_is_hash_closed_and_generation_safe(tmp_
     ) == 0 for handle in stale_contexts)
     for context in contexts:
         context.close()
+    with pytest.raises(RuntimeError, match="unavailable"):
+        memoized.evaluate_interval(
+            Interval.from_bounds(Fraction(-1, 2**14), 0, 384)
+        )
     assert all(backend.library.green_v400_native_precision_context_info_v1(
         handle, None, None, None, None, None
     ) == 2 for handle in stale_contexts)

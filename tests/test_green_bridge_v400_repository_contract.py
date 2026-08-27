@@ -166,3 +166,88 @@ def test_template_graph_manifest_cannot_pass_internal_gate():
             [{"row_hash": row_hash, "supported_operation_coverage": True}],
             [plan], coverage,
         )
+
+
+def _candidate_resource_lock(**changes):
+    payload = {
+        "schema_version": "green-v400-certificate-resource-lock-v1",
+        "row_hash": "0" * 64,
+        "certificate_plan_semantic_hash": "9" * 64,
+        "radii_order_sha256": "a" * 64,
+        "radii_count": 17,
+        "phase_order": "ALL_384_THEN_REPLAY_SAME_PARTITION_512",
+        "official_precision": 384,
+        "audit_precision": 512,
+        "max_depth": 24,
+        "max_final_leaves_per_radius": 14,
+        "center_reuse": False,
+        "endpoint_passes_per_radius_precision": 3,
+        "charge_on_admission": True,
+        "failed_dispatch_refund": False,
+        "fte_formula_version": "green-v400-fte-pass-v1",
+        "primitive_taxonomy_version": "green-v400-directed-primitives-v1",
+        "primitive_charge_per_dispatch": 352_275_450,
+        "token_weight_384": 90,
+        "token_weight_512": 100,
+        "token_budget": 75_600,
+        "orchestration_reserve_seconds": 10_800,
+        "wall_deadline_seconds": 86_400,
+        "memory_max_bytes": 68_719_476_736,
+        "partial_success_allowed": False,
+        "scientific_threshold_reads_before_interval_complete": False,
+        "worker_concurrency": 1,
+        "memory_enforcement": "cgroup_v2_memory.max",
+        "swap_enforcement": "cgroup_v2_memory.swap.max=0",
+        "deadline_enforcement": "external_monotonic_supervisor_v1",
+        "supervisor_process_scope": "outside_worker_cgroup_pidfd_timerfd",
+        "deadline_scope": "pre_exec_validation_through_atomic_publish",
+        "publication_policy": "TWO_PHASE_SUPERVISOR_COMMIT",
+        "resource_reasons": schemas.RESOURCE_REASONS,
+        "reachable_primary_reasons": (
+            "MAX_FINAL_LEAVES_PER_RADIUS_REACHED",
+            "WALL_DEADLINE_REACHED",
+            "MEMORY_MAX_REACHED",
+        ),
+        "repository_commit": "b" * 40,
+        "python_source_manifest_sha256": "c" * 64,
+        "supervisor_executable_sha256": "d" * 64,
+        "resource_corrigendum_sha256": "e" * 64,
+        "backend_sha256": "1" * 64,
+        "descriptor_sha256": "2" * 64,
+        "blob_sha256": "3" * 64,
+        "program_execution_sha256": "4" * 64,
+        "dispatch_sha256": "5" * 64,
+        "fusion_sha256": "6" * 64,
+        "rounding_environment_sha256": "7" * 64,
+        "hardware_manifest_sha256": "8" * 64,
+        "production_authorized": False,
+    }
+    return schemas.CertificateResourceLock(**(payload | changes))
+
+
+def test_candidate_resource_lock_is_hash_closed_and_cost_consistent():
+    lock = _candidate_resource_lock()
+    assert lock.worst_case_passes_384 == 493
+    assert lock.worst_case_passes_512 == 289
+    assert lock.worst_case_total_passes == 782
+    assert lock.worst_case_charged_primitives == 275_479_401_900
+    assert schemas.CertificateResourceLock.from_dict(lock.to_dict()) == lock
+    assert len(schemas.sha256_canonical(lock)) == 64
+    assert len(lock.semantic_hash()) == 64
+
+
+@pytest.mark.parametrize("changes", [
+    {"phase_order": "RADIUS_MAJOR"},
+    {"charge_on_admission": False},
+    {"scientific_threshold_reads_before_interval_complete": True},
+    {"memory_enforcement": "proc_sampler"},
+    {"swap_enforcement": "swap_allowed"},
+    {"token_budget": 73_269},
+    {"resource_reasons": schemas.RESOURCE_REASONS[:-1]},
+    {"backend_sha256": "A" * 64},
+    {"production_authorized": True},
+    {"worker_concurrency": True},
+])
+def test_candidate_resource_lock_rejects_unfrozen_or_unsafe_variants(changes):
+    with pytest.raises(ValueError):
+        _candidate_resource_lock(**changes)

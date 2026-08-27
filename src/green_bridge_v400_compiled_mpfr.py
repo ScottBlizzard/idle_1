@@ -2,16 +2,21 @@
 from __future__ import annotations
 
 import ctypes
+from collections import OrderedDict
+from dataclasses import dataclass
 from fractions import Fraction
 import hashlib
 import json
 from pathlib import Path
+import threading
 
 import numpy as np
 import gmpy2
 
 from green_bridge_v400_interval_jet import Jet2
 from green_bridge_v400_interval import Interval
+from green_bridge_v400_mpfr import rounding_environment_manifest
+from green_bridge_v400_schemas import sha256_canonical
 
 
 def _bits_f32(value) -> int:
@@ -140,13 +145,125 @@ class CompiledNativePrecisionContext:
             pass
 
 
+@dataclass(frozen=True)
+class ExactDomainKey:
+    evaluator_identity_sha256: str
+    precision_bits: int
+    lower_numerator: int
+    lower_denominator: int
+    upper_numerator: int
+    upper_denominator: int
+
+
+class _MemoFlight:
+    def __init__(self, condition: threading.Condition):
+        self.condition = condition
+        self.done = False
+        self.value: Jet2 | None = None
+        self.error: BaseException | None = None
+
+
+class ExactDomainJetMemo:
+    """Bounded, identity-closed, successful-Jet2-only single-flight memo."""
+
+    def __init__(self, evaluator_identity: dict, *, max_entries: int):
+        if max_entries <= 0:
+            raise ValueError("exact-domain memo needs a positive entry cap")
+        self.evaluator_identity = json.loads(json.dumps(
+            evaluator_identity, sort_keys=True, separators=(",", ":")
+        ))
+        self.evaluator_identity_sha256 = sha256_canonical(self.evaluator_identity)
+        self.max_entries = int(max_entries)
+        self._lock = threading.RLock()
+        self._values: OrderedDict[ExactDomainKey, Jet2] = OrderedDict()
+        self._inflight: dict[ExactDomainKey, _MemoFlight] = {}
+        self._metrics: dict[int, dict[str, int]] = {}
+
+    def _counters(self, precision_bits: int) -> dict[str, int]:
+        return self._metrics.setdefault(int(precision_bits), {
+            "logical_requests": 0, "hits": 0, "misses": 0, "waits": 0,
+        })
+
+    def key(self, domain: Interval) -> ExactDomainKey:
+        lower = gmpy2.mpq(domain.lower)
+        upper = gmpy2.mpq(domain.upper)
+        return ExactDomainKey(
+            self.evaluator_identity_sha256,
+            domain.precision_bits,
+            int(lower.numerator), int(lower.denominator),
+            int(upper.numerator), int(upper.denominator),
+        )
+
+    def get_or_compute(self, domain: Interval, compute) -> Jet2:
+        key = self.key(domain)
+        with self._lock:
+            counters = self._counters(domain.precision_bits)
+            counters["logical_requests"] += 1
+            cached = self._values.get(key)
+            if cached is not None:
+                counters["hits"] += 1
+                self._values.move_to_end(key)
+                return cached
+            flight = self._inflight.get(key)
+            if flight is not None:
+                counters["waits"] += 1
+                while not flight.done:
+                    flight.condition.wait()
+                if flight.error is not None:
+                    raise flight.error
+                assert flight.value is not None
+                return flight.value
+            counters["misses"] += 1
+            flight = _MemoFlight(threading.Condition(self._lock))
+            self._inflight[key] = flight
+        try:
+            value = compute()
+            if not isinstance(value, Jet2) or value.precision_bits != domain.precision_bits:
+                raise RuntimeError("exact-domain memo compute returned an invalid Jet2")
+        except BaseException as error:
+            with self._lock:
+                flight.error = error
+                flight.done = True
+                self._inflight.pop(key, None)
+                flight.condition.notify_all()
+            raise
+        with self._lock:
+            self._values[key] = value
+            self._values.move_to_end(key)
+            while len(self._values) > self.max_entries:
+                self._values.popitem(last=False)
+            flight.value = value
+            flight.done = True
+            self._inflight.pop(key, None)
+            flight.condition.notify_all()
+        return value
+
+    def clear(self) -> None:
+        with self._lock:
+            if self._inflight:
+                raise RuntimeError("cannot clear exact-domain memo with in-flight work")
+            self._values.clear()
+
+    def metrics(self) -> dict:
+        with self._lock:
+            return {
+                "evaluator_identity_sha256": self.evaluator_identity_sha256,
+                "max_entries": self.max_entries,
+                "entry_count": len(self._values),
+                "by_precision": {
+                    str(key): dict(value) for key, value in sorted(self._metrics.items())
+                },
+            }
+
+
 class CompiledNativeJointWitnessEvaluator:
     """Outcome-blind adapter from retained native contexts to certificate Jet2."""
 
     contains_scientific_outcome = False
 
     def __init__(self, backend, contexts: dict[int, CompiledNativePrecisionContext], *,
-                 certificate_row_hash: str, expected_kernel_tags: tuple[int, ...]):
+                 certificate_row_hash: str, expected_kernel_tags: tuple[int, ...],
+                 exact_domain_memo: ExactDomainJetMemo | None = None):
         if len(certificate_row_hash) != 64:
             raise ValueError("native certificate row hash must be SHA-256")
         if not contexts:
@@ -157,11 +274,34 @@ class CompiledNativeJointWitnessEvaluator:
                 raise ValueError("native evaluator context identity mismatch")
         if not expected_kernel_tags:
             raise ValueError("native evaluator requires the frozen dispatch trace")
+        plan_identities = {
+            context.info.get("native_plan_identity_sha256") for context in contexts.values()
+        }
+        if len(plan_identities) != 1 or None in plan_identities:
+            raise ValueError("native evaluator contexts lack one closed plan identity")
         self.backend = backend
         self.contexts = dict(contexts)
         self.certificate_row_hash = certificate_row_hash
         self.expected_kernel_tags = tuple(int(tag) for tag in expected_kernel_tags)
+        self.evaluator_identity = {
+            "schema_version": "green-v400-exact-domain-evaluator-identity-v1",
+            "certificate_row_hash": certificate_row_hash,
+            "native_plan_identity_sha256": next(iter(plan_identities)),
+            "backend_library_sha256": backend.library_sha256,
+            "backend_version": backend.version,
+            "expected_kernel_tags_sha256": sha256_canonical(self.expected_kernel_tags),
+            "rounding_environment_sha256": sha256_canonical(
+                rounding_environment_manifest()
+            ),
+        }
+        self.evaluator_identity_sha256 = sha256_canonical(self.evaluator_identity)
+        if (exact_domain_memo is not None
+                and exact_domain_memo.evaluator_identity != self.evaluator_identity):
+            raise ValueError("exact-domain memo evaluator identity mismatch")
+        self.exact_domain_memo = exact_domain_memo
         self.dispatch_count_by_precision = {int(key): 0 for key in contexts}
+        self.dispatch_attempt_count_by_precision = {int(key): 0 for key in contexts}
+        self._dispatch_locks = {int(key): threading.Lock() for key in contexts}
 
     @staticmethod
     def _interval(payload: dict, precision_bits: int) -> Interval:
@@ -171,19 +311,27 @@ class CompiledNativeJointWitnessEvaluator:
 
     def evaluate_interval(self, domain: Interval) -> Jet2:
         context = self.contexts.get(domain.precision_bits)
-        if context is None:
+        if context is None or context.handle <= 0:
             raise RuntimeError("native evaluator precision context is unavailable")
-        payload = self.backend.dispatch_native_precision_context_cell(context, domain)
-        if (payload.get("event_count") != len(self.expected_kernel_tags)
-                or tuple(payload.get("kernel_tags", ())) != self.expected_kernel_tags):
-            raise RuntimeError("NATIVE_CERTIFICATE_DISPATCH_IDENTITY_INVALID")
-        output = payload["output"]
-        jet = Jet2(*(
-            self._interval(output[component], domain.precision_bits)
-            for component in ("value", "first", "second")
-        ))
-        self.dispatch_count_by_precision[domain.precision_bits] += 1
-        return jet
+
+        def dispatch_and_validate() -> Jet2:
+            with self._dispatch_locks[domain.precision_bits]:
+                self.dispatch_attempt_count_by_precision[domain.precision_bits] += 1
+                payload = self.backend.dispatch_native_precision_context_cell(context, domain)
+            if (payload.get("event_count") != len(self.expected_kernel_tags)
+                    or tuple(payload.get("kernel_tags", ())) != self.expected_kernel_tags):
+                raise RuntimeError("NATIVE_CERTIFICATE_DISPATCH_IDENTITY_INVALID")
+            output = payload["output"]
+            jet = Jet2(*(
+                self._interval(output[component], domain.precision_bits)
+                for component in ("value", "first", "second")
+            ))
+            self.dispatch_count_by_precision[domain.precision_bits] += 1
+            return jet
+
+        if self.exact_domain_memo is None:
+            return dispatch_and_validate()
+        return self.exact_domain_memo.get_or_compute(domain, dispatch_and_validate)
 
 
 class CompiledMPFRBackend:
@@ -506,6 +654,19 @@ class CompiledMPFRBackend:
                 != [value.value for value in values32] or typed32[4].value != 4):
             self.library.green_v400_native_plan_envelope_close_v1(handle.value)
             raise RuntimeError("native typed plan materialization is inconsistent")
+        native_plan_identity = {
+            "schema_version": "green-v400-native-plan-identity-v1",
+            "descriptor_file_sha256": descriptor_sha256,
+            "program_execution_semantic_hash": program_execution_sha256,
+            "dispatch_signature_sha256": dispatch_sha256,
+            "blob_sha256": blob_sha256,
+            "fusion_sha256": fusion_sha256,
+            "blob_nbytes": int(blob_nbytes),
+            "record_count": values32[0].value,
+            "node_count": values32[1].value,
+            "binding_count": values32[2].value,
+            "fusion_weight_count": values32[3].value,
+        }
         return CompiledNativePlanEnvelope(self, handle.value, {
             "descriptor_nbytes": values64[0].value, "blob_nbytes": values64[1].value,
             "record_count": values32[0].value, "node_count": values32[1].value,
@@ -514,6 +675,8 @@ class CompiledMPFRBackend:
             "typed_plan_materialized": True,
             "liveness_row_count": liveness_rows.value,
             "branch_root_count": typed32[4].value,
+            "native_plan_identity": native_plan_identity,
+            "native_plan_identity_sha256": sha256_canonical(native_plan_identity),
         })
 
     def native_plan_typed_trace(self, envelope: CompiledNativePlanEnvelope) -> dict:
@@ -565,6 +728,10 @@ class CompiledMPFRBackend:
             "static_jet_count": static_jets.value,
             "node_count": nodes.value, "binding_count": bindings.value,
             "plan_retained": True,
+            "native_plan_identity": envelope.info["native_plan_identity"],
+            "native_plan_identity_sha256": envelope.info[
+                "native_plan_identity_sha256"
+            ],
         })
 
     def native_precision_context_projection_info(
