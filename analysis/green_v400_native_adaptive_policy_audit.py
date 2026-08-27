@@ -9,6 +9,8 @@ from pathlib import Path
 import subprocess
 import sys
 
+import gmpy2
+
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 
@@ -31,8 +33,8 @@ AUDIT_ROW_HASH = hashlib.sha256(
 
 
 def _fraction_payload(value) -> list[int]:
-    rational = Fraction(value)
-    return [rational.numerator, rational.denominator]
+    rational = gmpy2.mpq(value)
+    return [int(rational.numerator), int(rational.denominator)]
 
 
 class _TrackingEvaluator:
