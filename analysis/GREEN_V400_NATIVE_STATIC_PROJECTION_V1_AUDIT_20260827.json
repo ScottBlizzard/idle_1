@@ -1,0 +1,37 @@
+{
+  "backend_sha256": "d07a3678b872289bf832dee83473eee16a7df256aedf996065778eefe0821fb9",
+  "backend_version": "green-v400-compiled-mpfr-v2",
+  "blob_sha256": "34bcd45371c08720c23f66d8f723dfc0249779e9e47eee5499c04d6064dc3560",
+  "claim_scope": "each precision context owns exact historical K/V buffers for four PAT/TAR branches and six pre-final rows, built from the closed f32 residual, LayerNorm, and K/V affine records; selected buffers are serialization-hashed only",
+  "contains_scientific_outcome": false,
+  "context_owned_static_kv_ready": true,
+  "context_survives_envelope_close_statuses": [0, 0],
+  "created_at_utc": "2026-08-27T10:05:52.961612Z",
+  "descriptor_sha256": "bc673467ac237e59e542634d38d02b8eaa12053cbb0abfc39e4dcaa6659ba3ee",
+  "dispatch_sha256": "eb4c907ab4a86f3aac2fda445deed67099f2831c41e9712463688cccf1b6f008",
+  "full_native_dispatch_ready": false,
+  "fusion_sha256": "bd734f457bd3baee252af47f1c048dbd606ec15bf6a1b6533751c7bb943319c1",
+  "native_execution_ready": false,
+  "precision_observations": [
+    {
+      "context_build_seconds": 9.017590784002095,
+      "precision_bits": 384,
+      "projection_info": {"branch_count": 4, "historical_row_count": 6, "projection_buffer_count": 48, "projection_jet_count": 36864},
+      "selected_projection_indices": [0, 1, 46, 47],
+      "selected_projection_payload_sha256": ["3da085a51a96a731874af0d31bfde626d634a59493213cde3fc067e14a054891", "3be9c9ea4c5cd9523506b4406d3bf41883fd94ef8914c03f7628c61ada70f643", "83b35e7056fe86539acae268ebe136f459160b43e6e16a9a13de81e118e8953d", "318444caa5203b936d4255eec74f688243db9ce41427c3ebb5c6b23eacc7f604"]
+    },
+    {
+      "context_build_seconds": 9.802215442003217,
+      "precision_bits": 512,
+      "projection_info": {"branch_count": 4, "historical_row_count": 6, "projection_buffer_count": 48, "projection_jet_count": 36864},
+      "selected_projection_indices": [0, 1, 46, 47],
+      "selected_projection_payload_sha256": ["1954196a6edf13c55ee1c0f3278075ae5b540b04265d08316f0080d63fe62b92", "f5a1aaa6cf481a456e7164d91ff4f930a7af632e53e9c3aa3662b4af6b151bba", "1bb877b665255c50a76682cbfbe9ff548310daa39c617705ecfc4cc0f1bcd7a6", "69fcaca9f8a8f1a5bb4bf9299e89ff6d68b3aa9afcd0b8756790ef261eb9429e"]
+    }
+  ],
+  "process_peak_rss_after_kib": 126720,
+  "process_peak_rss_before_kib": 35052,
+  "process_peak_rss_delta_kib": 91668,
+  "program_execution_sha256": "38f40999524d465b8ee58fcc8d2d1822caf9af6c36897a72bd404a8fff34fe62",
+  "schema_version": "green-v400-native-static-projection-audit-v1",
+  "status": "PASS_NATIVE_STATIC_KV_PROJECTIONS_PREPARE_ONLY"
+}

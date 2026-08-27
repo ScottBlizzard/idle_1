@@ -18,6 +18,14 @@
 extern "C" int green_v400_resident_jet_buffer_import_f32_constants(
     std::uint32_t precision_bits,std::uint32_t width,
     const std::uint32_t* value_bits,void** output_handle);
+extern "C" int green_v400_resident_jet_buffer_layer_norm(
+    void* input_handle,std::uint32_t epsilon_bits,const std::uint32_t* gamma_bits,
+    const std::uint32_t* beta_bits,void** output_handle);
+extern "C" int green_v400_resident_jet_buffer_packed_affine(
+    void* input_handle,std::uint32_t output_width,const std::uint32_t* weight_bits,
+    const std::uint32_t* bias_bits,void** output_handle);
+extern "C" int green_v400_resident_jet_buffer_export_json(
+    void* input_handle,char* output_json,std::uint64_t output_capacity);
 extern "C" void green_v400_resident_jet_buffer_free(void* input_handle);
 
 namespace {
@@ -518,7 +526,10 @@ struct NativePrecisionContext {
   std::vector<void*> static_buffers;
   std::vector<std::uint32_t> static_record_indices;
   std::uint64_t static_jet_count=0;
-  ~NativePrecisionContext(){for(void* buffer:static_buffers)green_v400_resident_jet_buffer_free(buffer);}
+  std::vector<void*> static_projection_buffers;
+  std::uint64_t static_projection_jet_count=0;
+  ~NativePrecisionContext(){for(void* buffer:static_projection_buffers)green_v400_resident_jet_buffer_free(buffer);
+    for(void* buffer:static_buffers)green_v400_resident_jet_buffer_free(buffer);}
 };
 std::mutex registry_mutex;std::unordered_map<std::uint64_t,std::shared_ptr<PlanEnvelope>> registry;
 std::atomic<std::uint64_t> next_handle{1};
@@ -594,6 +605,42 @@ extern "C" int green_v400_native_precision_context_open_v1(std::uint64_t plan_ha
     if(status!=0||!buffer)return 12;context->static_buffers.push_back(buffer);
     context->static_record_indices.push_back(static_cast<std::uint32_t>(index));context->static_jet_count+=record.nbytes/4;
   }
+  auto find_record=[&](const char* name)->const NativeRecord*{for(const auto& record:plan->tables.records)
+      if(record.name==name)return &record;return nullptr;};
+  auto bits=[&](const NativeRecord* record)->const std::uint32_t*{return reinterpret_cast<const std::uint32_t*>(
+      static_cast<const std::uint8_t*>(plan->blob)+record->offset);};
+  const NativeRecord* epsilon=find_record("layer_norm.eps");const NativeRecord* gamma=find_record("block11.ln1.w");
+  const NativeRecord* beta=find_record("block11.ln1.b");const NativeRecord* weight_k=find_record("block11.attn.W_K");
+  const NativeRecord* bias_k=find_record("block11.attn.b_K");const NativeRecord* weight_v=find_record("block11.attn.W_V");
+  const NativeRecord* bias_v=find_record("block11.attn.b_V");const std::uint32_t width=plan->tables.d_model;
+  auto vector_record=[&](const NativeRecord* record){return record&&record->dtype=="<f4"&&record->shape.size()==1
+      &&record->shape[0]==width&&record->nbytes==static_cast<std::uint64_t>(width)*4;};
+  auto matrix_record=[&](const NativeRecord* record){return record&&record->dtype=="<f4"&&record->shape.size()==2
+      &&record->shape[0]==width&&record->shape[1]==width&&record->nbytes==static_cast<std::uint64_t>(width)*width*4;};
+  if(!epsilon||epsilon->dtype!="<f4"||!epsilon->shape.empty()||epsilon->nbytes!=4
+      ||!vector_record(gamma)||!vector_record(beta)||!matrix_record(weight_k)||!vector_record(bias_k)
+      ||!matrix_record(weight_v)||!vector_record(bias_v))return 3;
+  const char* base_names[4]={"PAT.resid_mid","PAT.resid_post","TAR.resid_mid","TAR.resid_post"};
+  for(const char* base_name:base_names){
+    const NativeRecord* base=find_record(base_name);
+    if(!base||base->dtype!="<f4"||base->shape.size()!=2||base->shape[0]!=plan->tables.sequence_length
+        ||base->shape[1]!=width||base->nbytes!=static_cast<std::uint64_t>(plan->tables.sequence_length)*width*4)return 3;
+    for(std::uint32_t row=0;row<plan->tables.final_position;++row){
+      void* input=nullptr;void* normalized=nullptr;void* key=nullptr;void* value=nullptr;
+      int status=green_v400_resident_jet_buffer_import_f32_constants(
+          precision_bits,width,bits(base)+static_cast<std::size_t>(row)*width,&input);
+      if(status==0)status=green_v400_resident_jet_buffer_layer_norm(
+          input,*bits(epsilon),bits(gamma),bits(beta),&normalized);
+      if(status==0)status=green_v400_resident_jet_buffer_packed_affine(
+          normalized,width,bits(weight_k),bits(bias_k),&key);
+      if(status==0)status=green_v400_resident_jet_buffer_packed_affine(
+          normalized,width,bits(weight_v),bits(bias_v),&value);
+      if(input)green_v400_resident_jet_buffer_free(input);if(normalized)green_v400_resident_jet_buffer_free(normalized);
+      if(status!=0||!key||!value){if(key)green_v400_resident_jet_buffer_free(key);if(value)green_v400_resident_jet_buffer_free(value);return 12;}
+      context->static_projection_buffers.push_back(key);context->static_projection_buffers.push_back(value);
+      context->static_projection_jet_count+=static_cast<std::uint64_t>(2)*width;
+    }
+  }
   const std::uint64_t handle=next_context_handle.fetch_add(1);if(handle==0)return 10;
   {std::lock_guard<std::mutex> lock(context_registry_mutex);context_registry.emplace(handle,std::move(context));}
   *out_context_handle=handle;return 0;
@@ -603,6 +650,17 @@ extern "C" int green_v400_native_precision_context_info_v1(std::uint64_t context
   const auto& context=*it->second;if(precision_bits)*precision_bits=context.precision;
   if(static_buffer_count)*static_buffer_count=context.static_buffers.size();if(static_jet_count)*static_jet_count=context.static_jet_count;
   if(node_count)*node_count=context.plan->tables.nodes.size();if(binding_count)*binding_count=context.plan->tables.bindings.size();return 0;
+}
+extern "C" int green_v400_native_precision_context_projection_info_v1(std::uint64_t context_handle,std::uint32_t* projection_buffer_count,std::uint64_t* projection_jet_count,std::uint32_t* historical_row_count,std::uint32_t* branch_count){
+  std::lock_guard<std::mutex> lock(context_registry_mutex);auto it=context_registry.find(context_handle);if(it==context_registry.end())return 2;
+  const auto& context=*it->second;if(projection_buffer_count)*projection_buffer_count=context.static_projection_buffers.size();
+  if(projection_jet_count)*projection_jet_count=context.static_projection_jet_count;
+  if(historical_row_count)*historical_row_count=context.plan->tables.final_position;if(branch_count)*branch_count=4;return 0;
+}
+extern "C" int green_v400_native_precision_context_projection_export_json_v1(std::uint64_t context_handle,std::uint32_t projection_index,char* output_json,std::uint64_t output_capacity){
+  std::lock_guard<std::mutex> lock(context_registry_mutex);auto it=context_registry.find(context_handle);if(it==context_registry.end())return 2;
+  const auto& buffers=it->second->static_projection_buffers;if(projection_index>=buffers.size())return 3;
+  return green_v400_resident_jet_buffer_export_json(buffers[projection_index],output_json,output_capacity);
 }
 extern "C" int green_v400_native_precision_context_close_v1(std::uint64_t context_handle){
   std::unique_ptr<NativePrecisionContext> removed;{std::lock_guard<std::mutex> lock(context_registry_mutex);

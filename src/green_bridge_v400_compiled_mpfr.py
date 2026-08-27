@@ -398,6 +398,21 @@ class CompiledMPFRBackend:
             ctypes.POINTER(ctypes.c_uint32),
         ]
         native_context_info.restype = ctypes.c_int
+        native_projection_info = (
+            self.library.green_v400_native_precision_context_projection_info_v1
+        )
+        native_projection_info.argtypes = [ctypes.c_uint64] + [
+            ctypes.POINTER(ctypes.c_uint32), ctypes.POINTER(ctypes.c_uint64),
+            ctypes.POINTER(ctypes.c_uint32), ctypes.POINTER(ctypes.c_uint32),
+        ]
+        native_projection_info.restype = ctypes.c_int
+        native_projection_export = (
+            self.library.green_v400_native_precision_context_projection_export_json_v1
+        )
+        native_projection_export.argtypes = [
+            ctypes.c_uint64, ctypes.c_uint32, ctypes.c_char_p, ctypes.c_uint64,
+        ]
+        native_projection_export.restype = ctypes.c_int
         native_context_close = self.library.green_v400_native_precision_context_close_v1
         native_context_close.argtypes = [ctypes.c_uint64]
         native_context_close.restype = ctypes.c_int
@@ -499,6 +514,44 @@ class CompiledMPFRBackend:
             "node_count": nodes.value, "binding_count": bindings.value,
             "plan_retained": True,
         })
+
+    def native_precision_context_projection_info(
+        self, context: CompiledNativePrecisionContext,
+    ) -> dict:
+        if context.backend is not self or context.handle <= 0:
+            raise ValueError("native precision context is closed or belongs to another backend")
+        buffers = ctypes.c_uint32()
+        jets = ctypes.c_uint64()
+        rows = ctypes.c_uint32()
+        branches = ctypes.c_uint32()
+        status = self.library.green_v400_native_precision_context_projection_info_v1(
+            context.handle, ctypes.byref(buffers), ctypes.byref(jets),
+            ctypes.byref(rows), ctypes.byref(branches),
+        )
+        if status != 0:
+            raise RuntimeError(f"native projection info failed with status {status}")
+        return {
+            "projection_buffer_count": buffers.value,
+            "projection_jet_count": jets.value,
+            "historical_row_count": rows.value, "branch_count": branches.value,
+        }
+
+    def export_native_precision_context_projection(
+        self, context: CompiledNativePrecisionContext, index: int,
+    ) -> dict:
+        info = self.native_precision_context_projection_info(context)
+        if not 0 <= int(index) < info["projection_buffer_count"]:
+            raise ValueError("native projection index is outside the context")
+        width = info["projection_jet_count"] // info["projection_buffer_count"]
+        output = ctypes.create_string_buffer(max(8192, 4096 * width))
+        status = (
+            self.library.green_v400_native_precision_context_projection_export_json_v1(
+                context.handle, int(index), output, len(output)
+            )
+        )
+        if status != 0:
+            raise RuntimeError(f"native projection export failed with status {status}")
+        return json.loads(output.value.decode("ascii"))
 
     def affine_jet2(self, weights, bias, values: list[Jet2], precision_bits: int) -> dict:
         weights = np.ascontiguousarray(np.asarray(weights, dtype="<f4").reshape(-1))

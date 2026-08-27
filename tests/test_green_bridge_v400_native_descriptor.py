@@ -161,7 +161,7 @@ def test_compiled_native_envelope_loader_is_hash_closed_and_generation_safe(tmp_
     library = os.environ.get("GREEN_V400_MPFR_BACKEND")
     if not library:
         pytest.skip("compiled MPFR backend is not configured")
-    _, program, plan, descriptor, built = _descriptor_fixture(tmp_path)
+    reader, program, plan, descriptor, built = _descriptor_fixture(tmp_path)
     backend = CompiledMPFRBackend(Path(library))
     payload = built["payload"]
     envelope = backend.open_native_plan_envelope(
@@ -208,6 +208,40 @@ def test_compiled_native_envelope_loader_is_hash_closed_and_generation_safe(tmp_
             "static_jet_count": expected_static_jets,
             "node_count": 81, "binding_count": 150, "plan_retained": True,
         }
+        historical_rows = payload["dimensions"]["final_position"]
+        assert backend.native_precision_context_projection_info(context) == {
+            "projection_buffer_count": 4 * historical_rows * 2,
+            "projection_jet_count": (
+                4 * historical_rows * 2 * payload["dimensions"]["d_model"]
+            ),
+            "historical_row_count": historical_rows, "branch_count": 4,
+        }
+        buffers = []
+        try:
+            buffers.append(backend.resident_f32_constant_buffer(
+                reader.read("PAT.resid_mid")[0], precision
+            ))
+            buffers.append(backend.resident_layer_norm_jet2(
+                buffers[-1], reader.read("layer_norm.eps").reshape(()),
+                reader.read("block11.ln1.w"), reader.read("block11.ln1.b"),
+            ))
+            buffers.append(backend.resident_packed_affine_layer_jet2(
+                buffers[-1], reader.read("block11.attn.W_K"),
+                reader.read("block11.attn.b_K"),
+            ))
+            buffers.append(backend.resident_packed_affine_layer_jet2(
+                buffers[-2], reader.read("block11.attn.W_V"),
+                reader.read("block11.attn.b_V"),
+            ))
+            assert backend.export_native_precision_context_projection(
+                context, 0
+            ) == backend.export_resident_jet_buffer(buffers[-2])
+            assert backend.export_native_precision_context_projection(
+                context, 1
+            ) == backend.export_resident_jet_buffer(buffers[-1])
+        finally:
+            for buffer in reversed(buffers):
+                buffer.close()
     with pytest.raises(RuntimeError, match="status 2"):
         backend.open_native_precision_context(envelope, 256)
     stale = envelope.handle
