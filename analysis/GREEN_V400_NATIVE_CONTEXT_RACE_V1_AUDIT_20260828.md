@@ -20,4 +20,4 @@ The complete audit took 90.0379 seconds and reached 248,208 KiB sampled process-
 
 The audit closes the concrete same-context contention, active-dispatch close, post-close rejection, and double-close linearization cases. It retains only trace/equality/status/resource evidence and no response Jet2 payload.
 
-This is not a sanitizer proof over every possible interleaving. TSan/ASan stress and an independent external supervisor remain required engineering checks before production execution.
+The separate close-first hook audit deterministically closes the ordering in which dispatch has copied the context `shared_ptr`, close marks it inactive before it acquires the execution mutex, and the old waiter must return status 2. This is still not a sanitizer proof over every possible interleaving. TSan/ASan stress and an independent external supervisor remain required engineering checks before production execution.

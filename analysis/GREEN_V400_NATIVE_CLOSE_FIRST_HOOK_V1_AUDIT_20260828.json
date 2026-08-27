@@ -1,0 +1,64 @@
+{
+  "audit_only_backend_build": true,
+  "claim_scope": "deterministic audit-only interleaving: dispatch has copied the context shared_ptr but has not acquired its execution mutex; close removes and inactivates the context first; the old waiter then returns stale status 2",
+  "close_completed_before_hook_release": true,
+  "close_status": 0,
+  "contains_scientific_outcome": false,
+  "hook_enable_status": 0,
+  "hook_release_status": 0,
+  "native_dispatch_concurrency": {
+    "active_dispatch_count": 0,
+    "dispatch_entry_count": 0,
+    "peak_active_dispatch_count": 0
+  },
+  "post_close_info_status": 2,
+  "prelock_waiter_dispatch_status": 2,
+  "process_tree_resource_record": {
+    "children_ru_maxrss_after_kib": 259708,
+    "children_ru_maxrss_before_kib": 259708,
+    "descendant_identity_count": 0,
+    "finished_at_utc": "2026-08-27T16:35:29.265216Z",
+    "is_formal_upper_bound": false,
+    "measurement_scope": "sampled_root_and_observed_descendants",
+    "missed_processes_possible": true,
+    "peak_sampled_tree_rss_kib": 91460,
+    "platform": "Linux-5.15.0-67-generic-x86_64-with-glibc2.31",
+    "process_observations": [
+      {
+        "command_sha256": "758f06d8a9b5a1a6c25d1e16f100a88f4a2ee65f55d9d2ee331aff597ac80bcf",
+        "last_rss_kib": 82032,
+        "parent_pid": 469391,
+        "peak_rss_kib": 91460,
+        "pid": 469392,
+        "samples": 877,
+        "start_ticks": 28365906,
+        "system_ticks": 8,
+        "user_ticks": 1472
+      }
+    ],
+    "root_peak_rss_kib": 91460,
+    "root_pid": 469392,
+    "root_start_ticks": 28365906,
+    "sample_count": 877,
+    "sample_interval_seconds": 0.01,
+    "schema_version": "green-v400-process-tree-resource-v1",
+    "self_ru_maxrss_after_kib": 91460,
+    "self_ru_maxrss_before_kib": 36936,
+    "started_at_utc": "2026-08-27T16:35:20.236926Z",
+    "wall_seconds": 9.028283468040172
+  },
+  "provenance": {
+    "audit_backend_sha256": "391dc82709288fcb09a2add283e6d364852cc8f69e80bcdd93efc1e448603ece",
+    "blob_sha256": "34bcd45371c08720c23f66d8f723dfc0249779e9e47eee5499c04d6064dc3560",
+    "descriptor_sha256": "bc673467ac237e59e542634d38d02b8eaa12053cbb0abfc39e4dcaa6659ba3ee",
+    "dispatch_sha256": "eb4c907ab4a86f3aac2fda445deed67099f2831c41e9712463688cccf1b6f008",
+    "fusion_sha256": "bd734f457bd3baee252af47f1c048dbd606ec15bf6a1b6533751c7bb943319c1",
+    "program_execution_sha256": "38f40999524d465b8ee58fcc8d2d1822caf9af6c36897a72bd404a8fff34fe62",
+    "repository_clean": true,
+    "repository_commit": "3829cb89d4acaea47c680a450fb23cb61fe3ae79"
+  },
+  "report_semantic_hash": "fef813531628bf936c97139d7ba5c03f07f73f40582638ae4f8e7f9308d62067",
+  "schema_version": "green-v400-native-close-first-hook-audit-v1",
+  "scientific_threshold_applied": false,
+  "status": "PASS_CLOSE_FIRST_PRELOCK_WAITER"
+}
