@@ -1,0 +1,30 @@
+{
+  "backend_sha256": "aabb2a49673d1c7bf182db3aa79a69249396ed8c38ad947a534ce2d0f236fb70",
+  "backend_version": "green-v400-compiled-mpfr-v2",
+  "blob_sha256": "34bcd45371c08720c23f66d8f723dfc0249779e9e47eee5499c04d6064dc3560",
+  "claim_scope": "single-fd descriptor read/hash plus single-fd blob stream-hash/read-only mmap; no native payload table materialization and no node execution",
+  "contains_scientific_outcome": false,
+  "created_at_utc": "2026-08-27T08:33:30.745407Z",
+  "descriptor_sha256": "bc673467ac237e59e542634d38d02b8eaa12053cbb0abfc39e4dcaa6659ba3ee",
+  "dispatch_sha256": "eb4c907ab4a86f3aac2fda445deed67099f2831c41e9712463688cccf1b6f008",
+  "full_native_dispatch_ready": false,
+  "full_native_payload_parser_ready": false,
+  "fusion_sha256": "bd734f457bd3baee252af47f1c048dbd606ec15bf6a1b6533751c7bb943319c1",
+  "native_execution_ready": false,
+  "native_info": {
+    "binding_count": 150,
+    "blob_nbytes": 28517632,
+    "descriptor_nbytes": 241234,
+    "fusion_weight_count": 768,
+    "node_count": 81,
+    "record_count": 32
+  },
+  "open_hash_mmap_seconds": 0.12189253000542521,
+  "process_peak_rss_after_kib": 36780,
+  "process_peak_rss_before_kib": 35424,
+  "process_peak_rss_delta_kib": 1356,
+  "program_execution_sha256": "38f40999524d465b8ee58fcc8d2d1822caf9af6c36897a72bd404a8fff34fe62",
+  "schema_version": "green-v400-native-envelope-loader-audit-v1",
+  "stale_handle_info_status": 2,
+  "status": "PASS_NATIVE_ENVELOPE_LOADER_PREPARE_ONLY"
+}

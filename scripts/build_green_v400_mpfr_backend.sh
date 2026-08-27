@@ -14,5 +14,6 @@ mkdir -p "$(dirname "$output")"
 g++ -std=c++17 -O3 -fPIC -shared \
   -I"$prefix/include" \
   "$project_root/native/green_v400_mpfr_backend.cpp" \
+  "$project_root/native/green_v400_native_plan_loader.cpp" \
   -L"$prefix/lib" -Wl,-rpath,"$prefix/lib" -lmpfr -lgmp -lm \
   -o "$output"

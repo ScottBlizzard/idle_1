@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from pathlib import Path
+import os
 import sys
 
 import pytest
@@ -13,6 +14,7 @@ from green_bridge_v400_native_descriptor import (
     decode_canonical_binary, descriptor_payload, encode_canonical_binary,
     load_native_execution_descriptor, program_execution_identity,
 )
+from green_bridge_v400_compiled_mpfr import CompiledMPFRBackend
 from green_bridge_v400_resident_plan import (
     build_resident_plan, load_resident_plan_arrays,
 )
@@ -152,3 +154,61 @@ def test_native_descriptor_rejects_semantic_substitution_with_valid_payload_hash
     substituted.write_bytes(_header_for(payload, encoded) + encoded)
     with pytest.raises(ValueError, match="descriptor"):
         load_native_execution_descriptor(substituted, program, plan)
+
+
+def test_compiled_native_envelope_loader_is_hash_closed_and_generation_safe(tmp_path):
+    library = os.environ.get("GREEN_V400_MPFR_BACKEND")
+    if not library:
+        pytest.skip("compiled MPFR backend is not configured")
+    _, program, plan, descriptor, built = _descriptor_fixture(tmp_path)
+    backend = CompiledMPFRBackend(Path(library))
+    payload = built["payload"]
+    envelope = backend.open_native_plan_envelope(
+        descriptor, plan.blob_path,
+        descriptor_sha256=built["descriptor_file_sha256"],
+        program_execution_sha256=payload["program_execution_semantic_hash"],
+        dispatch_sha256=payload["program_dispatch_signature_sha256"],
+        blob_sha256=payload["blob_sha256"],
+        fusion_sha256=payload["exact_final_contrast_fusion_sha256"],
+        blob_nbytes=payload["blob_nbytes"],
+        fusion_weight_count=len(payload["exact_final_contrast_fusion"]["weights"]),
+    )
+    assert envelope.info == {
+        "descriptor_nbytes": descriptor.stat().st_size,
+        "blob_nbytes": payload["blob_nbytes"], "record_count": 32,
+        "node_count": 81, "binding_count": 150,
+        "fusion_weight_count": len(payload["exact_final_contrast_fusion"]["weights"]),
+    }
+    stale = envelope.handle
+    envelope.close()
+    assert backend.library.green_v400_native_plan_envelope_info_v1(
+        stale, None, None, None, None, None, None
+    ) == 2
+    corrupted = tmp_path / "corrupted.desc"
+    raw = bytearray(descriptor.read_bytes()); raw[-1] ^= 1
+    corrupted.write_bytes(raw)
+    with pytest.raises(RuntimeError, match="status 5"):
+        backend.open_native_plan_envelope(
+            corrupted, plan.blob_path,
+            descriptor_sha256=built["descriptor_file_sha256"],
+            program_execution_sha256=payload["program_execution_semantic_hash"],
+            dispatch_sha256=payload["program_dispatch_signature_sha256"],
+            blob_sha256=payload["blob_sha256"],
+            fusion_sha256=payload["exact_final_contrast_fusion_sha256"],
+            blob_nbytes=payload["blob_nbytes"],
+            fusion_weight_count=len(payload["exact_final_contrast_fusion"]["weights"]),
+        )
+    corrupted_blob = tmp_path / "corrupted.bin"
+    blob_raw = bytearray(plan.blob_path.read_bytes()); blob_raw[-1] ^= 1
+    corrupted_blob.write_bytes(blob_raw)
+    with pytest.raises(RuntimeError, match="status 8"):
+        backend.open_native_plan_envelope(
+            descriptor, corrupted_blob,
+            descriptor_sha256=built["descriptor_file_sha256"],
+            program_execution_sha256=payload["program_execution_semantic_hash"],
+            dispatch_sha256=payload["program_dispatch_signature_sha256"],
+            blob_sha256=payload["blob_sha256"],
+            fusion_sha256=payload["exact_final_contrast_fusion_sha256"],
+            blob_nbytes=payload["blob_nbytes"],
+            fusion_weight_count=len(payload["exact_final_contrast_fusion"]["weights"]),
+        )

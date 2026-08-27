@@ -74,6 +74,38 @@ class CompiledResidentJetBuffer:
             pass
 
 
+class CompiledNativePlanEnvelope:
+    """Generation-handle owner for a native descriptor/blob mapping."""
+
+    def __init__(self, backend, handle: int, info: dict):
+        if handle <= 0:
+            raise ValueError("invalid native plan envelope handle")
+        self.backend = backend
+        self.handle = int(handle)
+        self.info = info
+
+    def close(self) -> None:
+        if self.handle:
+            status = self.backend.library.green_v400_native_plan_envelope_close_v1(
+                self.handle
+            )
+            self.handle = 0
+            if status != 0:
+                raise RuntimeError(f"native plan envelope close failed with status {status}")
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc_value, traceback):
+        self.close()
+
+    def __del__(self):
+        try:
+            self.close()
+        except Exception:
+            pass
+
+
 class CompiledMPFRBackend:
     def __init__(self, library_path: Path):
         self.library_path = Path(library_path).resolve()
@@ -274,6 +306,54 @@ class CompiledMPFRBackend:
         resident_free = self.library.green_v400_resident_jet_buffer_free
         resident_free.argtypes = [ctypes.c_void_p]
         resident_free.restype = None
+        native_open = self.library.green_v400_native_plan_envelope_open_v1
+        native_open.argtypes = [
+            ctypes.c_char_p, ctypes.c_char_p,
+            ctypes.c_char_p, ctypes.c_char_p, ctypes.c_char_p,
+            ctypes.c_char_p, ctypes.c_char_p, ctypes.c_uint64, ctypes.c_uint32,
+            ctypes.POINTER(ctypes.c_uint64),
+        ]
+        native_open.restype = ctypes.c_int
+        native_info = self.library.green_v400_native_plan_envelope_info_v1
+        native_info.argtypes = [ctypes.c_uint64] + [
+            ctypes.POINTER(ctypes.c_uint64), ctypes.POINTER(ctypes.c_uint64),
+            ctypes.POINTER(ctypes.c_uint32), ctypes.POINTER(ctypes.c_uint32),
+            ctypes.POINTER(ctypes.c_uint32), ctypes.POINTER(ctypes.c_uint32),
+        ]
+        native_info.restype = ctypes.c_int
+        native_close = self.library.green_v400_native_plan_envelope_close_v1
+        native_close.argtypes = [ctypes.c_uint64]
+        native_close.restype = ctypes.c_int
+
+    def open_native_plan_envelope(
+        self, descriptor_path: Path, blob_path: Path, *, descriptor_sha256: str,
+        program_execution_sha256: str, dispatch_sha256: str, blob_sha256: str,
+        fusion_sha256: str, blob_nbytes: int, fusion_weight_count: int,
+    ) -> CompiledNativePlanEnvelope:
+        handle = ctypes.c_uint64()
+        status = self.library.green_v400_native_plan_envelope_open_v1(
+            str(Path(descriptor_path).resolve()).encode(),
+            str(Path(blob_path).resolve()).encode(), descriptor_sha256.encode(),
+            program_execution_sha256.encode(), dispatch_sha256.encode(),
+            blob_sha256.encode(), fusion_sha256.encode(), int(blob_nbytes),
+            int(fusion_weight_count),
+            ctypes.byref(handle),
+        )
+        if status != 0:
+            raise RuntimeError(f"native plan envelope open failed with status {status}")
+        values64 = [ctypes.c_uint64(), ctypes.c_uint64()]
+        values32 = [ctypes.c_uint32() for _ in range(4)]
+        status = self.library.green_v400_native_plan_envelope_info_v1(
+            handle.value, *(ctypes.byref(value) for value in [*values64, *values32])
+        )
+        if status != 0:
+            self.library.green_v400_native_plan_envelope_close_v1(handle.value)
+            raise RuntimeError(f"native plan envelope info failed with status {status}")
+        return CompiledNativePlanEnvelope(self, handle.value, {
+            "descriptor_nbytes": values64[0].value, "blob_nbytes": values64[1].value,
+            "record_count": values32[0].value, "node_count": values32[1].value,
+            "binding_count": values32[2].value, "fusion_weight_count": values32[3].value,
+        })
 
     def affine_jet2(self, weights, bias, values: list[Jet2], precision_bits: int) -> dict:
         weights = np.ascontiguousarray(np.asarray(weights, dtype="<f4").reshape(-1))
