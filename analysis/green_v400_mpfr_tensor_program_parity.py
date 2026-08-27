@@ -110,7 +110,7 @@ def main() -> int:
             "resident_runtime_metrics": resident_fused["runtime_metrics"],
         })
     report = {
-        "schema_version": "green-v400-full-tensor-program-mpfr-parity-v6",
+        "schema_version": "green-v400-full-tensor-program-mpfr-parity-v7",
         "created_at_utc": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
         "status": "PASS" if passed else "FAIL",
         "fixture": "deterministic tiny Transformer; no noun, prompt, donor, or scientific outcome",
@@ -128,6 +128,7 @@ def main() -> int:
         "resident_plan_native_execution_ready": resident_plan["native_execution_ready"],
         "resident_packed_tensor_inputs_consumed": True,
         "resident_pairwise_affine_batch_abi_consumed": True,
+        "resident_gelu_batch_abi_consumed": True,
         "resident_sparse_axis0_execution_consumed": True,
         "resident_static_row_cache_consumed": True,
         "resident_materialized_axis0_row_count": sum(map(len, live_rows.values())),

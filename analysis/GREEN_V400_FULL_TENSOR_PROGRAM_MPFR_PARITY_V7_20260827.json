@@ -1,10 +1,10 @@
 {
-  "backend_sha256": "516784d3a684e785bf9710bf5734e6eaca424c0e42e61f2494ef4c6812b53639",
+  "backend_sha256": "f6c85148cb2e115395c6d360a0b08eaca870358a68e578122a5bb9e7b50e3ffb",
   "backend_version": "green-v400-compiled-mpfr-v1",
   "cap_decision_authorized": false,
   "claim_scope": "end-to-end correctness plus packed-input, sparse-row, and fused-contrast parity; the remaining JSON/FFI dispatcher is not a performance backend",
   "contains_scientific_outcome": false,
-  "created_at_utc": "2026-08-27T03:15:10.448980Z",
+  "created_at_utc": "2026-08-27T03:27:07.645960Z",
   "dense_axis0_row_slot_count": 228,
   "dependency_mask_closure_sha256": "9ac06bc0e8c80331555686620117ba35b3db2d7c52b69b7f8d3595b18500428e",
   "dimensions": {
@@ -24,6 +24,7 @@
   "program_node_count": 81,
   "program_semantic_hash": "1d7edfa065046e258a066acb6725610867edeae8bc084869c96b61d5ea29aa2a",
   "resident_buffer_executor": false,
+  "resident_gelu_batch_abi_consumed": true,
   "resident_materialized_axis0_row_count": 148,
   "resident_packed_tensor_inputs_consumed": true,
   "resident_pairwise_affine_batch_abi_consumed": true,
@@ -34,7 +35,7 @@
   "resident_static_row_cache_consumed": true,
   "rows": [
     {
-      "compiled_correctness_ffi_seconds": 94.80935718599358,
+      "compiled_correctness_ffi_seconds": 84.10220651898999,
       "domain": {
         "lower": {
           "exponent_2": -14,
@@ -47,13 +48,14 @@
       },
       "precision_bits": 384,
       "program_dispatch_signature_sha256": "e2b7b4b5f161aa0c43c075a3fd637b98c21931d3d8dc2547b08864bc8424c7dc",
-      "reference_seconds": 1.299307899986161,
+      "reference_seconds": 1.7964682540041395,
       "resident_dispatch_trace_bit_identical": true,
-      "resident_fused_contrast_ffi_seconds": 25.52275582999573,
+      "resident_fused_contrast_ffi_seconds": 22.755917394009884,
       "resident_runtime_metrics": {
         "dense_axis0_row_slot_count": 228,
         "materialized_axis0_row_count": 148,
         "resident_fused_contrast_nodes": 4,
+        "resident_gelu_batch_rows": 16,
         "resident_packed_tensor_binding_reads": 134,
         "schema_version": "green-v400-resident-runtime-metrics-v1",
         "sparse_axis0_execution": true,
@@ -112,7 +114,7 @@
       "successful_dispatch_trace_sha256": "6854f99c2a270b296bac6c1b1ed5ad34d6e18534611e2ef2af5df8e4fa6ff528"
     },
     {
-      "compiled_correctness_ffi_seconds": 92.59687901800498,
+      "compiled_correctness_ffi_seconds": 83.24298383499263,
       "domain": {
         "lower": {
           "exponent_2": -14,
@@ -125,13 +127,14 @@
       },
       "precision_bits": 512,
       "program_dispatch_signature_sha256": "e2b7b4b5f161aa0c43c075a3fd637b98c21931d3d8dc2547b08864bc8424c7dc",
-      "reference_seconds": 1.5838502970000263,
+      "reference_seconds": 1.4368337290070485,
       "resident_dispatch_trace_bit_identical": true,
-      "resident_fused_contrast_ffi_seconds": 25.550932793994434,
+      "resident_fused_contrast_ffi_seconds": 23.286539677006658,
       "resident_runtime_metrics": {
         "dense_axis0_row_slot_count": 228,
         "materialized_axis0_row_count": 148,
         "resident_fused_contrast_nodes": 4,
+        "resident_gelu_batch_rows": 16,
         "resident_packed_tensor_binding_reads": 134,
         "schema_version": "green-v400-resident-runtime-metrics-v1",
         "sparse_axis0_execution": true,
@@ -190,6 +193,6 @@
       "successful_dispatch_trace_sha256": "6854f99c2a270b296bac6c1b1ed5ad34d6e18534611e2ef2af5df8e4fa6ff528"
     }
   ],
-  "schema_version": "green-v400-full-tensor-program-mpfr-parity-v6",
+  "schema_version": "green-v400-full-tensor-program-mpfr-parity-v7",
   "status": "PASS"
 }

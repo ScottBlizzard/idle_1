@@ -243,4 +243,5 @@ def test_complete_four_branch_mpfr_program_is_bit_identical_compiled(tmp_path, p
     assert metrics["resident_packed_tensor_binding_reads"] > 0
     assert metrics["tensor_store_fallback_reads"] == 0
     assert metrics["resident_fused_contrast_nodes"] == 4
+    assert metrics["resident_gelu_batch_rows"] > 0
     assert resident_compiled["dispatch_trace"] == reference["dispatch_trace"]

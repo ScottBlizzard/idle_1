@@ -138,6 +138,21 @@ def test_compiled_gelu_new_jet_is_bit_identical(precision):
 
 
 @pytest.mark.parametrize("precision", [384, 512])
+def test_compiled_gelu_layer_matches_individual_exact_jets(precision):
+    backend = _backend()
+    values = [
+        _jet(-0.5 + index / 9, 2.0**(-8-index), 0.2-index/11,
+             -0.3+index/13, precision)
+        for index in range(7)
+    ]
+    kappa = np.float32(np.sqrt(2.0 / np.pi))
+    lam = np.float32(0.044715)
+    batched = backend.gelu_new_layer_jet2(values, kappa, lam)["outputs"]
+    individual = [backend.gelu_new_jet2(value, kappa, lam) for value in values]
+    assert batched == individual
+
+
+@pytest.mark.parametrize("precision", [384, 512])
 def test_compiled_layer_norm_jet_is_bit_identical(precision):
     backend = _backend()
     values = [

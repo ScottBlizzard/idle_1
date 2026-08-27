@@ -1368,6 +1368,50 @@ extern "C" int green_v400_gelu_new_jet2_exact(
   return 0;
 }
 
+extern "C" int green_v400_gelu_new_layer_jet2_exact(
+    std::uint32_t precision_bits, std::uint32_t width,
+    const char* const* endpoint_significands, const std::int64_t* endpoint_exponents,
+    std::uint32_t kappa_bits, std::uint32_t lambda_bits,
+    char* output_json, std::uint64_t output_capacity) {
+  if (precision_bits < 64 || precision_bits > 4096 || width == 0 || width > 1000000U
+      || endpoint_significands == nullptr || endpoint_exponents == nullptr
+      || output_json == nullptr || output_capacity == 0) return 2;
+  const mpfr_prec_t precision = static_cast<mpfr_prec_t>(precision_bits);
+  std::vector<JetMP> outputs;
+  outputs.reserve(width);
+  for (std::uint32_t index = 0; index < width; ++index) {
+    JetMP input(precision);
+    IntervalMP* components[3] = {&input.value, &input.first, &input.second};
+    for (std::size_t component = 0; component < 3; ++component) {
+      const std::size_t offset = static_cast<std::size_t>(index) * 6U + 2U * component;
+      int status = set_exact_binary(components[component]->lower.get(),
+                                    endpoint_significands[offset], endpoint_exponents[offset]);
+      if (status != 0) return status;
+      status = set_exact_binary(components[component]->upper.get(),
+                                endpoint_significands[offset + 1U],
+                                endpoint_exponents[offset + 1U]);
+      if (status != 0 || mpfr_greater_p(components[component]->lower.get(),
+                                       components[component]->upper.get())) return 3;
+    }
+    outputs.emplace_back(jet_gelu_new(
+        input, float_from_bits(kappa_bits), float_from_bits(lambda_bits)));
+  }
+  std::ostringstream stream;
+  stream << "{\"outputs\":[";
+  for (std::size_t index = 0; index < outputs.size(); ++index) {
+    if (index != 0) stream << ',';
+    const JetMP& output = outputs[index];
+    stream << serialize_jet(output.value.lower.get(), output.value.upper.get(),
+                            output.first.lower.get(), output.first.upper.get(),
+                            output.second.lower.get(), output.second.upper.get(), precision);
+  }
+  stream << "]}";
+  const std::string serialized = stream.str();
+  if (serialized.size() + 1 > output_capacity) return 4;
+  std::memcpy(output_json, serialized.c_str(), serialized.size() + 1);
+  return 0;
+}
+
 extern "C" int green_v400_layer_norm_jet2_exact(
     std::uint32_t precision_bits, std::uint32_t width,
     const char* const* endpoint_significands, const std::int64_t* endpoint_exponents,

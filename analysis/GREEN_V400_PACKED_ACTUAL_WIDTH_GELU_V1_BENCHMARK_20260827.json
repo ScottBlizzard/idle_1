@@ -1,0 +1,40 @@
+{
+  "backend_sha256": "f6c85148cb2e115395c6d360a0b08eaca870358a68e578122a5bb9e7b50e3ffb",
+  "cap_decision_authorized": false,
+  "contains_scientific_outcome": false,
+  "created_at_utc": "2026-08-27T03:30:07.077529Z",
+  "formal_wall_time_upper_bound": false,
+  "input_policy": "deterministic synthetic Jet2 row with actual closed GELU constants",
+  "kappa_tensor_semantic_sha256": "c126878ce0885aca95ea31274595b78ced5731e01eb5373ff37c7ebb65c8870d",
+  "lambda_tensor_semantic_sha256": "d5c3c88f1bfc809c51646f74b7ec2a043bef5ec8246a48a4c5162b608ef11751",
+  "program_semantic_hash": "38f40999524d465b8ee58fcc8d2d1822caf9af6c36897a72bd404a8fff34fe62",
+  "resident_dispatcher_complete": false,
+  "resident_plan_semantic_hash": "0d5625e2f7af118615497e9642481946aec0a436b900e3c0d1661f90ba6f9acf",
+  "rows": [
+    {
+      "elapsed_seconds": [
+        0.37782296200748533,
+        0.3464911810006015,
+        0.39318869399721734
+      ],
+      "guardbanded_observed_max_1p25x_seconds": 0.4914858674965217,
+      "observed_max_seconds": 0.39318869399721734,
+      "output_exact_payload_sha256": "942d1224d95589a6934b5e8ebcace2b5e7c2a8e11585b3cb0a13e368ffdec639",
+      "precision_bits": 384
+    },
+    {
+      "elapsed_seconds": [
+        0.4699402039987035,
+        0.39097450801637024,
+        0.4614761699922383
+      ],
+      "guardbanded_observed_max_1p25x_seconds": 0.5874252549983794,
+      "observed_max_seconds": 0.4699402039987035,
+      "output_exact_payload_sha256": "bc34fa8bd275f427a6cc11830b577a8d1f9a1f73d9d5e091133834003ffff690",
+      "precision_bits": 512
+    }
+  ],
+  "schema_version": "green-v400-packed-full-width-gelu-benchmark-v1",
+  "status": "PASS_ACTUAL_WIDTH_GELU_BATCH_FFI_OBSERVATION_ONLY",
+  "width": 3072
+}

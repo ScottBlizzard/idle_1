@@ -126,6 +126,13 @@ class CompiledMPFRBackend:
             ctypes.c_char_p, ctypes.c_uint64,
         ]
         gelu.restype = ctypes.c_int
+        gelu_layer = self.library.green_v400_gelu_new_layer_jet2_exact
+        gelu_layer.argtypes = [
+            ctypes.c_uint32, ctypes.c_uint32,
+            ctypes.POINTER(ctypes.c_char_p), ctypes.POINTER(ctypes.c_int64),
+            ctypes.c_uint32, ctypes.c_uint32, ctypes.c_char_p, ctypes.c_uint64,
+        ]
+        gelu_layer.restype = ctypes.c_int
         layer_norm = self.library.green_v400_layer_norm_jet2_exact
         layer_norm.argtypes = [
             ctypes.c_uint32, ctypes.c_uint32,
@@ -368,6 +375,28 @@ class CompiledMPFRBackend:
         )
         if status != 0:
             raise RuntimeError(f"compiled GELU jet failed with status {status}")
+        return json.loads(output.value.decode("ascii"))
+
+    def gelu_new_layer_jet2(self, values: list[Jet2], kappa, lam) -> dict:
+        if not values:
+            raise ValueError("compiled GELU layer requires values")
+        precision = values[0].precision_bits
+        if any(value.precision_bits != precision for value in values):
+            raise ValueError("compiled GELU layer precision mismatch")
+        encoded = []
+        for value in values:
+            for component in (value.value, value.first, value.second):
+                encoded.extend((_binary_endpoint(component.lower), _binary_endpoint(component.upper)))
+        strings = (ctypes.c_char_p * len(encoded))(*(item[0] for item in encoded))
+        exponents = np.asarray([item[1] for item in encoded], dtype="<i8")
+        output = ctypes.create_string_buffer(max(8192, 4096 * len(values)))
+        status = self.library.green_v400_gelu_new_layer_jet2_exact(
+            precision, len(values), strings,
+            exponents.ctypes.data_as(ctypes.POINTER(ctypes.c_int64)),
+            _bits_f32(kappa), _bits_f32(lam), output, len(output),
+        )
+        if status != 0:
+            raise RuntimeError(f"compiled GELU layer failed with status {status}")
         return json.loads(output.value.decode("ascii"))
 
     def layer_norm_jet2(self, values: list[Jet2], epsilon, gamma, beta) -> dict:

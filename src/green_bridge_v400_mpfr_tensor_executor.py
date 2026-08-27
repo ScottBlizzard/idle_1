@@ -134,6 +134,7 @@ def execute_tensor_program_mpfr(
     resident_packed_binding_reads = 0
     tensor_store_fallback_reads = 0
     resident_fused_contrast_nodes = 0
+    resident_gelu_batch_rows = 0
     if resident_arrays is not None:
         if resident_plan is None or compiled_backend is None:
             raise ValueError("resident arrays require a resident plan and compiled backend")
@@ -278,6 +279,12 @@ def execute_tensor_program_mpfr(
                     output[row_index] = [
                         gelu_new_jet(jet, kappa=float(kappa), lam=float(lam)) for jet in row
                     ]
+                elif resident_arrays is not None:
+                    payload = compiled_backend.gelu_new_layer_jet2(row, kappa, lam)
+                    output[row_index] = [
+                        _decode_jet(item, precision) for item in payload["outputs"]
+                    ]
+                    resident_gelu_batch_rows += 1
                 else:
                     output[row_index] = [_decode_jet(
                         compiled_backend.gelu_new_jet2(jet, kappa, lam), precision
@@ -414,6 +421,7 @@ def execute_tensor_program_mpfr(
             "resident_packed_tensor_binding_reads": resident_packed_binding_reads,
             "tensor_store_fallback_reads": tensor_store_fallback_reads,
             "resident_fused_contrast_nodes": resident_fused_contrast_nodes,
+            "resident_gelu_batch_rows": resident_gelu_batch_rows,
         }
     return result
 
