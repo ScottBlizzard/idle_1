@@ -22,7 +22,7 @@ from green_bridge_v400_supervisor import (
 def _lock():
     return CertificateResourceLock(
         "green-v400-certificate-resource-lock-v1", "0"*64, "9"*64,
-        "a"*64, 17, "ALL_384_THEN_REPLAY_SAME_PARTITION_512", 384, 512,
+        "a"*64, 1, "ALL_384_THEN_REPLAY_SAME_PARTITION_512", 384, 512,
         24, 14, False, 3, True, False, "green-v400-fte-pass-v1",
         "green-v400-directed-primitives-v1", 352_275_450, 90, 100,
         75_600, 10_800, 86_400, 68_719_476_736, False, False, 1,
@@ -38,15 +38,32 @@ def _lock():
     )
 
 
+def _finish_minimal_official(ledger):
+    records = []
+    for index in range(5):
+        record = ledger.admit(
+            384, token_id=f"p384-{index}", attempt_id="audit-1",
+            exact_domain_sha256=f"{index + 1:064x}",
+        )
+        ledger.mark_dispatch_started(record.token_id)
+        ledger.mark_dispatch_finished(record.token_id, success=index != 0)
+        records.append(record)
+    return records
+
+
 def test_admission_charges_before_execution_and_never_refunds(tmp_path):
     ledger = AdmissionLedger(_lock(), tmp_path / "ledger.jsonl")
-    first = ledger.admit(384)
-    ledger.freeze_official_phase()
-    second = ledger.admit(512)
+    first, *_ = _finish_minimal_official(ledger)
+    ledger.freeze_official_phase(
+        completed_radius_count=1, official_partition_manifest_sha256="2"*64,
+    )
+    second = ledger.admit(
+        512, token_id="p512-0", attempt_id="audit-1", exact_domain_sha256="1"*64,
+    )
     ledger.failure_without_refund(first.ordinal)
     assert (first.charged_tokens, second.charged_tokens) == (90, 100)
-    assert ledger.charged_tokens == 190
-    assert ledger.remaining_tokens == 75_410
+    assert ledger.charged_tokens == 550
+    assert ledger.remaining_tokens == 75_050
     assert ledger.to_dict()["failed_dispatch_refund"] is False
     assert "ADMITTED_PASS_FAILED_NO_REFUND" in ledger.ledger_path.read_text()
 
@@ -54,12 +71,53 @@ def test_admission_charges_before_execution_and_never_refunds(tmp_path):
 def test_admission_rejects_precision_and_budget_exhaustion(tmp_path):
     ledger = AdmissionLedger(_lock(), tmp_path / "ledger.jsonl")
     with pytest.raises(SupervisorViolation, match="unsupported precision"):
-        ledger.admit(256)
-    ledger.freeze_official_phase()
-    for _ in range(756):
-        ledger.admit(512)
+        ledger.admit(
+            256, token_id="bad", attempt_id="audit-1", exact_domain_sha256="1"*64,
+        )
+    _finish_minimal_official(ledger)
+    ledger.freeze_official_phase(
+        completed_radius_count=1, official_partition_manifest_sha256="2"*64,
+    )
+    while ledger.remaining_tokens >= 100:
+        index = len(ledger.records)
+        ledger.admit(
+            512, token_id=f"p512-{index}", attempt_id="audit-1",
+            exact_domain_sha256=f"{index:064x}",
+        )
     with pytest.raises(SupervisorViolation, match="cannot admit"):
-        ledger.admit(512)
+        ledger.admit(
+            512, token_id="overflow", attempt_id="audit-1",
+            exact_domain_sha256="f"*64,
+        )
+
+
+def test_admission_token_is_idempotent_but_dispatch_is_exactly_once(tmp_path):
+    ledger = AdmissionLedger(_lock(), tmp_path / "ledger.jsonl")
+    first = ledger.admit(
+        384, token_id="same", attempt_id="audit-1", exact_domain_sha256="1"*64,
+    )
+    replay = ledger.admit(
+        384, token_id="same", attempt_id="audit-1", exact_domain_sha256="1"*64,
+    )
+    assert first == replay
+    assert ledger.charged_tokens == 90
+    ledger.mark_dispatch_started("same")
+    with pytest.raises(SupervisorViolation, match="not uniquely admitted"):
+        ledger.mark_dispatch_started("same")
+    ledger.mark_dispatch_finished("same", success=True)
+    with pytest.raises(SupervisorViolation, match="not active"):
+        ledger.mark_dispatch_finished("same", success=True)
+
+
+def test_official_freeze_requires_all_admitted_dispatches_finished(tmp_path):
+    ledger = AdmissionLedger(_lock(), tmp_path / "ledger.jsonl")
+    ledger.admit(
+        384, token_id="pending", attempt_id="audit-1", exact_domain_sha256="1"*64,
+    )
+    with pytest.raises(SupervisorViolation, match="freeze evidence incomplete"):
+        ledger.freeze_official_phase(
+            completed_radius_count=1, official_partition_manifest_sha256="2"*64,
+        )
 
 
 def _stage(tmp_path, lock, **changes):

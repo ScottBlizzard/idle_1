@@ -8,7 +8,7 @@ The prepare-only accounting/publication/deadline primitives are implemented. For
 
 Implemented and unit-tested:
 
-- a durable admission ledger that fsyncs each 384/512 pass charge before returning admission, never refunds failed admitted work, and prohibits 512-bit admission until the official phase is explicitly frozen;
+- a thread-safe durable admission ledger that fsyncs each charge before returning admission; binds every token to attempt, precision, and exact-domain SHA-256; makes token replay accounting-idempotent while permitting dispatch start/finish exactly once; never refunds failure; and prohibits 512-bit admission until every admitted official pass is finished, the minimal all-radius pass count is present, and a partition-manifest identity is frozen;
 - strict worker-candidate validation against the resource-lock semantic hash, allowed interval/resource statuses, threshold firewall, flat artifact identities with SHA-256 and byte length, path/symlink/special/unexpected-file rejection, and file/directory fsync;
 - same-filesystem no-replace publication using Linux `renameat2(RENAME_NOREPLACE)` rather than overwrite;
 - cgroup-v2 host probing and fail-closed `memory.max`/`memory.swap.max=0` write/readback helpers;

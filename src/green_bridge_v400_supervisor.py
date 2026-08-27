@@ -16,6 +16,7 @@ from pathlib import Path, PurePosixPath
 import re
 import select
 import signal
+import threading
 import time
 
 from green_bridge_v400_schemas import CertificateResourceLock, canonical_json
@@ -177,6 +178,9 @@ class LinuxMonotonicDeadline:
 @dataclass(frozen=True)
 class AdmissionRecord:
     ordinal: int
+    token_id: str
+    attempt_id: str
+    exact_domain_sha256: str
     precision_bits: int
     charged_tokens: int
     cumulative_tokens: int
@@ -188,8 +192,11 @@ class AdmissionLedger:
     def __init__(self, resource_lock: CertificateResourceLock, ledger_path: Path):
         self.resource_lock = resource_lock
         self._records: list[AdmissionRecord] = []
+        self._records_by_token: dict[str, AdmissionRecord] = {}
+        self._dispatch_state_by_token: dict[str, str] = {}
         self._charged_tokens = 0
         self._phase = "OFFICIAL_384"
+        self._mutex = threading.RLock()
         self.ledger_path = Path(ledger_path).absolute()
         self.ledger_path.parent.mkdir(parents=True, exist_ok=True)
         with self.ledger_path.open("xb") as stream:
@@ -219,7 +226,34 @@ class AdmissionLedger:
     def records(self) -> tuple[AdmissionRecord, ...]:
         return tuple(self._records)
 
-    def admit(self, precision_bits: int) -> AdmissionRecord:
+    def admit(
+        self, precision_bits: int, *, token_id: str, attempt_id: str,
+        exact_domain_sha256: str,
+    ) -> AdmissionRecord:
+        if (not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9._-]{0,127}", token_id)
+                or not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9._-]{0,127}", attempt_id)
+                or not SHA256_RE.fullmatch(exact_domain_sha256)):
+            raise SupervisorViolation(
+                "RESOURCE_ACCOUNTING_INVALID", "admission identity invalid",
+            )
+        with self._mutex:
+            existing = self._records_by_token.get(token_id)
+            if existing is not None:
+                if (existing.precision_bits != precision_bits
+                        or existing.attempt_id != attempt_id
+                        or existing.exact_domain_sha256 != exact_domain_sha256):
+                    raise SupervisorViolation(
+                        "RESOURCE_ACCOUNTING_INVALID", "token id identity collision",
+                    )
+                return existing
+            return self._admit_new(
+                precision_bits, token_id, attempt_id, exact_domain_sha256,
+            )
+
+    def _admit_new(
+        self, precision_bits: int, token_id: str, attempt_id: str,
+        exact_domain_sha256: str,
+    ) -> AdmissionRecord:
         if precision_bits == self.resource_lock.official_precision:
             if self._phase != "OFFICIAL_384":
                 raise SupervisorViolation(
@@ -241,7 +275,8 @@ class AdmissionLedger:
                 "RESOURCE_ACCOUNTING_INVALID", "token budget cannot admit another pass",
             )
         record = AdmissionRecord(
-            len(self._records), precision_bits, charge, self._charged_tokens + charge,
+            len(self._records), token_id, attempt_id, exact_domain_sha256,
+            precision_bits, charge, self._charged_tokens + charge,
         )
         self._append({
             "event": "PASS_ADMITTED", "phase": self._phase,
@@ -249,30 +284,69 @@ class AdmissionLedger:
         })
         self._charged_tokens += charge
         self._records.append(record)
+        self._records_by_token[token_id] = record
+        self._dispatch_state_by_token[token_id] = "ADMITTED"
         return record
 
-    def freeze_official_phase(self) -> None:
-        if self._phase != "OFFICIAL_384":
-            raise SupervisorViolation(
-                "RESOURCE_ACCOUNTING_INVALID", "official phase freeze is not unique",
-            )
-        self._append({
-            "event": "OFFICIAL_PARTITIONS_FROZEN",
-            "admitted_pass_count": len(self._records),
-            "charged_tokens": self._charged_tokens,
-        })
-        self._phase = "AUDIT_512"
+    def freeze_official_phase(
+        self, *, completed_radius_count: int,
+        official_partition_manifest_sha256: str,
+    ) -> None:
+        with self._mutex:
+            if self._phase != "OFFICIAL_384":
+                raise SupervisorViolation(
+                    "RESOURCE_ACCOUNTING_INVALID", "official phase freeze is not unique",
+                )
+            if (completed_radius_count != self.resource_lock.radii_count
+                    or not SHA256_RE.fullmatch(official_partition_manifest_sha256)
+                    or any(state != "FINISHED" for state in self._dispatch_state_by_token.values())
+                    or len(self._records) < self.resource_lock.radii_count * 5
+                    or any(record.precision_bits != self.resource_lock.official_precision
+                           for record in self._records)):
+                raise SupervisorViolation(
+                    "RESOURCE_ACCOUNTING_INVALID", "official freeze evidence incomplete",
+                )
+            self._append({
+                "event": "OFFICIAL_PARTITIONS_FROZEN",
+                "completed_radius_count": completed_radius_count,
+                "official_partition_manifest_sha256": official_partition_manifest_sha256,
+                "admitted_pass_count": len(self._records),
+                "charged_tokens": self._charged_tokens,
+            })
+            self._phase = "AUDIT_512"
+
+    def mark_dispatch_started(self, token_id: str) -> None:
+        with self._mutex:
+            if self._dispatch_state_by_token.get(token_id) != "ADMITTED":
+                raise SupervisorViolation(
+                    "RESOURCE_ACCOUNTING_INVALID", "dispatch token is not uniquely admitted",
+                )
+            self._append({"event": "DISPATCH_STARTED", "token_id": token_id})
+            self._dispatch_state_by_token[token_id] = "STARTED"
+
+    def mark_dispatch_finished(self, token_id: str, *, success: bool) -> None:
+        with self._mutex:
+            if self._dispatch_state_by_token.get(token_id) != "STARTED":
+                raise SupervisorViolation(
+                    "RESOURCE_ACCOUNTING_INVALID", "dispatch token is not active",
+                )
+            self._append({
+                "event": "DISPATCH_FINISHED", "token_id": token_id,
+                "success": bool(success), "refund": False,
+            })
+            self._dispatch_state_by_token[token_id] = "FINISHED"
 
     def failure_without_refund(self, ordinal: int) -> None:
-        if ordinal < 0 or ordinal >= len(self._records):
-            raise SupervisorViolation(
-                "RESOURCE_ACCOUNTING_INVALID", "unknown admitted-pass ordinal",
-            )
-        self._append({
-            "event": "ADMITTED_PASS_FAILED_NO_REFUND", "ordinal": ordinal,
-            "charged_tokens": self._charged_tokens,
-        })
-        # Deliberately no accounting mutation: an admitted pass remains charged.
+        with self._mutex:
+            if ordinal < 0 or ordinal >= len(self._records):
+                raise SupervisorViolation(
+                    "RESOURCE_ACCOUNTING_INVALID", "unknown admitted-pass ordinal",
+                )
+            self._append({
+                "event": "ADMITTED_PASS_FAILED_NO_REFUND", "ordinal": ordinal,
+                "charged_tokens": self._charged_tokens,
+            })
+            # Deliberately no accounting mutation: an admitted pass remains charged.
 
     def to_dict(self) -> dict:
         return {
@@ -282,6 +356,7 @@ class AdmissionLedger:
             "charged_tokens": self.charged_tokens,
             "remaining_tokens": self.remaining_tokens,
             "phase": self._phase,
+            "dispatch_states": dict(sorted(self._dispatch_state_by_token.items())),
             "records": [record.__dict__ for record in self._records],
             "failed_dispatch_refund": False,
         }
