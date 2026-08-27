@@ -198,9 +198,48 @@ def test_m2_fallback_bounds_endpoint_error():
 
 
 def test_epsilon_component_accounting():
-    _, _, _, _, error = _certificate_parts(2)
+    _, _, endpoint, curvature, error = _certificate_parts(2)
     assert error.epsilon_psi == max(error.positive_residual.magnitude(),
                                     error.negative_residual.magnitude())
+    accounting = error.accounting
+    assert accounting is not None
+    assert accounting.positive_direct_residual_radius == (
+        accounting.positive_endpoint_evaluation_radius
+        + accounting.center_evaluation_radius
+        + accounting.slope_evaluation_contribution
+        + accounting.positive_direct_arithmetic_rounding
+    )
+    assert accounting.negative_direct_residual_radius == (
+        accounting.negative_endpoint_evaluation_radius
+        + accounting.center_evaluation_radius
+        + accounting.slope_evaluation_contribution
+        + accounting.negative_direct_arithmetic_rounding
+    )
+    assert accounting.positive_curvature_radius == gmpy2.mpq(
+        curvature.positive.upper - curvature.positive.lower
+    ) / 2
+    assert accounting.negative_curvature_radius == gmpy2.mpq(
+        curvature.negative.upper - curvature.negative.lower
+    ) / 2
+    assert accounting.input_import_contribution == 0
+    assert accounting.graph_reduction_contribution == 0
+    assert accounting.subdivision_contribution == 0
+    assert accounting.positive_direct_residual_center == (
+        (gmpy2.mpq(endpoint.positive.lower) + gmpy2.mpq(endpoint.positive.upper)) / 2
+        - (gmpy2.mpq(endpoint.center.lower) + gmpy2.mpq(endpoint.center.upper)) / 2
+        - (gmpy2.mpq(endpoint.slope.lower) + gmpy2.mpq(endpoint.slope.upper)) / 2
+    )
+
+
+def test_curvature_rounding_shadow_accounting_is_nonnegative():
+    _, _, _, curvature, error = _certificate_parts(3, Fraction(1, 3))
+    assert curvature.accounting is not None
+    accounting = error.accounting
+    assert accounting is not None
+    assert accounting.positive_weight_rounding >= 0
+    assert accounting.negative_weight_rounding >= 0
+    assert accounting.positive_summation_rounding >= 0
+    assert accounting.negative_summation_rounding >= 0
 
 
 def test_384_official_512_audit_nested():
@@ -297,13 +336,26 @@ def test_exact_certificate_file_round_trip_is_immutable(tmp_path):
     )
     loaded = json.loads(output.read_text(encoding="utf-8"))
     assert loaded == written
-    assert loaded["serialization_scope"] == "current_in_memory_certificate_object_only"
-    assert loaded["binding_component_accounting_complete"] is False
+    assert loaded["schema_version"] == "green-v400-joint-witness-certificate-v2"
+    assert loaded["serialization_scope"] == "component_accounted_synthetic_certificate_only"
+    assert loaded["binding_component_accounting_complete"] is True
+    assert loaded["binding_final_artifact_complete"] is False
     assert loaded["contains_scientific_outcome"] is False
     assert loaded["audit_witness_interval"] is not None
     assert loaded["radii"][0]["audit_endpoint"] is not None
     assert loaded["radii"][0]["audit_curvature"] is not None
     assert loaded["radii"][0]["audit_endpoint_error"] is not None
+    components = loaded["radii"][0]["endpoint_error"]["component_accounting"]
+    assert components["input_import_contribution"] == [0, 1]
+    assert components["graph_reduction_contribution"] == [0, 1]
+    assert components["subdivision_contribution"] == [0, 1]
+    parity = loaded["radii"][0]["endpoint_error"]["runtime_parity"]
+    assert parity == {
+        "available": False,
+        "discrepancy": None,
+        "diagnostic_only": True,
+        "included_in_epsilon_psi": False,
+    }
     semantic_hash = loaded.pop("certificate_semantic_hash")
     from green_bridge_v400_schemas import sha256_canonical
     assert semantic_hash == sha256_canonical(loaded)

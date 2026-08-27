@@ -61,6 +61,26 @@ class CurvatureCertificate:
     negative: Interval
     secant: Interval
     m2: Interval
+    accounting: "CurvatureComponentAccounting | None" = None
+
+
+@dataclass(frozen=True)
+class CurvatureComponentAccounting:
+    """Exact-rational audit split for signed curvature integration.
+
+    The weight term includes outward multiplication of an exact rational weight
+    by the certified cell interval.  The summation term is then isolated with an
+    exact directed-shadow sum of those already-rounded products.
+    """
+
+    positive_midpoint: gmpy2.mpq
+    negative_midpoint: gmpy2.mpq
+    positive_radius: gmpy2.mpq
+    negative_radius: gmpy2.mpq
+    positive_weight_rounding: gmpy2.mpq
+    negative_weight_rounding: gmpy2.mpq
+    positive_summation_rounding: gmpy2.mpq
+    negative_summation_rounding: gmpy2.mpq
 
 
 @dataclass(frozen=True)
@@ -68,6 +88,32 @@ class EndpointErrorCertificate:
     positive_residual: Interval
     negative_residual: Interval
     epsilon_psi: gmpy2.mpfr
+    accounting: "EndpointErrorComponentAccounting | None" = None
+
+
+@dataclass(frozen=True)
+class EndpointErrorComponentAccounting:
+    positive_endpoint_evaluation_radius: gmpy2.mpq
+    negative_endpoint_evaluation_radius: gmpy2.mpq
+    center_evaluation_radius: gmpy2.mpq
+    slope_evaluation_contribution: gmpy2.mpq
+    positive_direct_residual_center: gmpy2.mpq
+    negative_direct_residual_center: gmpy2.mpq
+    positive_direct_residual_radius: gmpy2.mpq
+    negative_direct_residual_radius: gmpy2.mpq
+    positive_direct_arithmetic_rounding: gmpy2.mpq
+    negative_direct_arithmetic_rounding: gmpy2.mpq
+    positive_curvature_midpoint: gmpy2.mpq
+    negative_curvature_midpoint: gmpy2.mpq
+    positive_curvature_radius: gmpy2.mpq
+    negative_curvature_radius: gmpy2.mpq
+    positive_weight_rounding: gmpy2.mpq
+    negative_weight_rounding: gmpy2.mpq
+    positive_summation_rounding: gmpy2.mpq
+    negative_summation_rounding: gmpy2.mpq
+    input_import_contribution: gmpy2.mpq
+    graph_reduction_contribution: gmpy2.mpq
+    subdivision_contribution: gmpy2.mpq
 
 
 @dataclass(frozen=True)
@@ -105,6 +151,14 @@ class JointWitnessCertificate:
 def _exact_mpfr_payload(value) -> list[int]:
     exact = gmpy2.mpq(value)
     return [int(exact.numerator), int(exact.denominator)]
+
+
+def _exact_midpoint(interval: Interval) -> gmpy2.mpq:
+    return (gmpy2.mpq(interval.lower) + gmpy2.mpq(interval.upper)) / 2
+
+
+def _exact_radius(interval: Interval) -> gmpy2.mpq:
+    return (gmpy2.mpq(interval.upper) - gmpy2.mpq(interval.lower)) / 2
 
 
 def _interval_payload(interval: Interval | None) -> dict | None:
@@ -145,12 +199,33 @@ def _endpoint_payload(certificate: EndpointCertificate | None) -> dict | None:
 def _curvature_payload(certificate: CurvatureCertificate | None) -> dict | None:
     if certificate is None:
         return None
-    return {
+    payload = {
         "positive": _interval_payload(certificate.positive),
         "negative": _interval_payload(certificate.negative),
         "secant": _interval_payload(certificate.secant),
         "m2": _interval_payload(certificate.m2),
     }
+    if certificate.accounting is not None:
+        accounting = certificate.accounting
+        payload["component_accounting"] = {
+            "positive_midpoint": _exact_mpfr_payload(accounting.positive_midpoint),
+            "negative_midpoint": _exact_mpfr_payload(accounting.negative_midpoint),
+            "positive_radius": _exact_mpfr_payload(accounting.positive_radius),
+            "negative_radius": _exact_mpfr_payload(accounting.negative_radius),
+            "positive_weight_rounding": _exact_mpfr_payload(
+                accounting.positive_weight_rounding
+            ),
+            "negative_weight_rounding": _exact_mpfr_payload(
+                accounting.negative_weight_rounding
+            ),
+            "positive_summation_rounding": _exact_mpfr_payload(
+                accounting.positive_summation_rounding
+            ),
+            "negative_summation_rounding": _exact_mpfr_payload(
+                accounting.negative_summation_rounding
+            ),
+        }
+    return payload
 
 
 def _endpoint_error_payload(
@@ -158,22 +233,34 @@ def _endpoint_error_payload(
 ) -> dict | None:
     if certificate is None:
         return None
-    return {
+    payload = {
         "positive_residual": _interval_payload(certificate.positive_residual),
         "negative_residual": _interval_payload(certificate.negative_residual),
         "epsilon_psi": _exact_mpfr_payload(certificate.epsilon_psi),
     }
+    if certificate.accounting is not None:
+        accounting = certificate.accounting
+        payload["component_accounting"] = {
+            field: _exact_mpfr_payload(getattr(accounting, field))
+            for field in accounting.__dataclass_fields__
+        }
+        payload["runtime_parity"] = {
+            "available": False,
+            "discrepancy": None,
+            "diagnostic_only": True,
+            "included_in_epsilon_psi": False,
+        }
+    return payload
 
 
 def joint_witness_certificate_payload(
     certificate: JointWitnessCertificate, *, row_spec: JointWitnessRowSpec,
     plan: CertificatePlan,
 ) -> dict:
-    """Serialize the current certificate object for synthetic rows only.
+    """Serialize one component-accounted certificate for synthetic rows only.
 
-    The current dataclasses do not yet carry the binding per-operation rounding
-    and runtime provenance, so this payload must not be represented as the final
-    formal certificate artifact.
+    Backend/commit provenance and process-tree resources belong to the enclosing
+    immutable run artifact, so this object alone is not a final launch artifact.
     """
     if not isinstance(row_spec, JointWitnessRowSpec) or not isinstance(plan, CertificatePlan):
         raise TypeError("certificate serialization requires validated row and plan schemas")
@@ -183,6 +270,8 @@ def joint_witness_certificate_payload(
         raise ValueError("certificate serialization identity mismatch")
     radii = []
     for radius in certificate.radii:
+        if radius.endpoint_error.accounting is None or radius.audit_endpoint_error.accounting is None:
+            raise RuntimeError("CERTIFICATE_COMPONENT_ACCOUNTING_MISSING")
         radii.append({
             "h": [radius.h.numerator, radius.h.denominator],
             "official_witness": _interval_payload(radius.official_witness),
@@ -198,9 +287,14 @@ def joint_witness_certificate_payload(
             "audit_nested": radius.audit_nested,
         })
     payload = {
-        "schema_version": "green-v400-joint-witness-certificate-v1",
-        "serialization_scope": "current_in_memory_certificate_object_only",
-        "binding_component_accounting_complete": False,
+        "schema_version": "green-v400-joint-witness-certificate-v2",
+        "serialization_scope": "component_accounted_synthetic_certificate_only",
+        "binding_component_accounting_complete": True,
+        "binding_final_artifact_complete": False,
+        "final_artifact_missing_scopes": [
+            "backend_environment_commit_provenance",
+            "process_tree_resource_record",
+        ],
         "row_hash": row_spec.row_hash,
         "row_spec_semantic_hash": sha256_canonical(row_spec),
         "certificate_plan_semantic_hash": sha256_canonical(plan),
@@ -310,6 +404,27 @@ def _weight(cell: DyadicCell, h: Fraction) -> Fraction:
     raise ValueError("curvature cell crosses zero")
 
 
+def _exact_scaled_bounds(interval: Interval, weight: Fraction) -> tuple[gmpy2.mpq, gmpy2.mpq]:
+    rational_weight = gmpy2.mpq(weight.numerator, weight.denominator)
+    products = (
+        gmpy2.mpq(interval.lower) * rational_weight,
+        gmpy2.mpq(interval.upper) * rational_weight,
+    )
+    return min(products), max(products)
+
+
+def _shadow_radius(bounds: list[tuple[gmpy2.mpq, gmpy2.mpq]]) -> gmpy2.mpq:
+    lower = sum((item[0] for item in bounds), gmpy2.mpq(0))
+    upper = sum((item[1] for item in bounds), gmpy2.mpq(0))
+    return (upper - lower) / 2
+
+
+def _shadow_midpoint(bounds: list[tuple[gmpy2.mpq, gmpy2.mpq]]) -> gmpy2.mpq:
+    lower = sum((item[0] for item in bounds), gmpy2.mpq(0))
+    upper = sum((item[1] for item in bounds), gmpy2.mpq(0))
+    return (lower + upper) / 2
+
+
 def integrate_signed_curvature(cell_certificates: list[CellCertificate],
                                h: Fraction) -> CurvatureCertificate:
     if not cell_certificates:
@@ -317,20 +432,58 @@ def integrate_signed_curvature(cell_certificates: list[CellCertificate],
     precision = cell_certificates[0].second.precision_bits
     positive = Interval.point(0, precision)
     negative = Interval.point(0, precision)
+    exact_positive: list[tuple[gmpy2.mpq, gmpy2.mpq]] = []
+    exact_negative: list[tuple[gmpy2.mpq, gmpy2.mpq]] = []
+    product_positive: list[tuple[gmpy2.mpq, gmpy2.mpq]] = []
+    product_negative: list[tuple[gmpy2.mpq, gmpy2.mpq]] = []
     for certificate in cell_certificates:
         if certificate.cell.lower < -h or certificate.cell.upper > h:
             raise ValueError("curvature cell outside witness radius")
-        weight = Interval.point(gmpy2.mpq(_weight(certificate.cell, h).numerator,
-                                          _weight(certificate.cell, h).denominator), precision)
+        exact_weight = _weight(certificate.cell, h)
+        weight = Interval.point(gmpy2.mpq(exact_weight.numerator,
+                                          exact_weight.denominator), precision)
         contribution = weight * certificate.second
+        exact_bounds = _exact_scaled_bounds(certificate.second, exact_weight)
+        product_bounds = (gmpy2.mpq(contribution.lower), gmpy2.mpq(contribution.upper))
         if certificate.cell.lower >= 0:
             positive = positive + contribution
+            exact_positive.append(exact_bounds)
+            product_positive.append(product_bounds)
         elif certificate.cell.upper <= 0:
             negative = negative + contribution
+            exact_negative.append(exact_bounds)
+            product_negative.append(product_bounds)
         else:
             raise ValueError("partition must split at zero")
-    return CurvatureCertificate(positive, negative, positive - negative,
-                                compute_m2(cell_certificates))
+
+    positive_weight_rounding = (
+        _shadow_radius(product_positive) - _shadow_radius(exact_positive)
+    )
+    negative_weight_rounding = (
+        _shadow_radius(product_negative) - _shadow_radius(exact_negative)
+    )
+    positive_summation_rounding = _exact_radius(positive) - _shadow_radius(product_positive)
+    negative_summation_rounding = _exact_radius(negative) - _shadow_radius(product_negative)
+    contributions = (
+        positive_weight_rounding, negative_weight_rounding,
+        positive_summation_rounding, negative_summation_rounding,
+    )
+    if any(value < 0 for value in contributions):
+        raise RuntimeError("CERTIFICATE_COMPONENT_ACCOUNTING_INVALID")
+    accounting = CurvatureComponentAccounting(
+        _shadow_midpoint(product_positive),
+        _shadow_midpoint(product_negative),
+        _exact_radius(positive),
+        _exact_radius(negative),
+        positive_weight_rounding,
+        negative_weight_rounding,
+        positive_summation_rounding,
+        negative_summation_rounding,
+    )
+    return CurvatureCertificate(
+        positive, negative, positive - negative,
+        compute_m2(cell_certificates), accounting,
+    )
 
 
 def compute_epsilon_psi(endpoint: EndpointCertificate,
@@ -345,7 +498,50 @@ def compute_epsilon_psi(endpoint: EndpointCertificate,
     except EmptyIntersection as error:
         raise RuntimeError("CERTIFICATE_IMPLEMENTATION_INVALID") from error
     epsilon = max(positive.magnitude(), negative.magnitude())
-    return EndpointErrorCertificate(positive, negative, epsilon)
+    if curvature.accounting is None:
+        raise RuntimeError("CERTIFICATE_COMPONENT_ACCOUNTING_MISSING")
+    positive_eval_radius = _exact_radius(endpoint.positive)
+    negative_eval_radius = _exact_radius(endpoint.negative)
+    center_eval_radius = _exact_radius(endpoint.center)
+    rational_h = gmpy2.mpq(endpoint.h.numerator, endpoint.h.denominator)
+    slope_eval_contribution = abs(rational_h) * _exact_radius(endpoint.slope)
+    direct_positive_radius = _exact_radius(direct_positive)
+    direct_negative_radius = _exact_radius(direct_negative)
+    positive_arithmetic = direct_positive_radius - (
+        positive_eval_radius + center_eval_radius + slope_eval_contribution
+    )
+    negative_arithmetic = direct_negative_radius - (
+        negative_eval_radius + center_eval_radius + slope_eval_contribution
+    )
+    if positive_arithmetic < 0 or negative_arithmetic < 0:
+        raise RuntimeError("CERTIFICATE_COMPONENT_ACCOUNTING_INVALID")
+    curve = curvature.accounting
+    accounting = EndpointErrorComponentAccounting(
+        positive_eval_radius,
+        negative_eval_radius,
+        center_eval_radius,
+        slope_eval_contribution,
+        _exact_midpoint(endpoint.positive) - _exact_midpoint(endpoint.center)
+        - rational_h * _exact_midpoint(endpoint.slope),
+        _exact_midpoint(endpoint.negative) - _exact_midpoint(endpoint.center)
+        + rational_h * _exact_midpoint(endpoint.slope),
+        direct_positive_radius,
+        direct_negative_radius,
+        positive_arithmetic,
+        negative_arithmetic,
+        curve.positive_midpoint,
+        curve.negative_midpoint,
+        curve.positive_radius,
+        curve.negative_radius,
+        curve.positive_weight_rounding,
+        curve.negative_weight_rounding,
+        curve.positive_summation_rounding,
+        curve.negative_summation_rounding,
+        gmpy2.mpq(0),
+        gmpy2.mpq(0),
+        gmpy2.mpq(0),
+    )
+    return EndpointErrorCertificate(positive, negative, epsilon, accounting)
 
 
 def witness_interval(endpoint: EndpointCertificate,
