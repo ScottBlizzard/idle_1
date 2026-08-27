@@ -14,6 +14,9 @@ import json
 import os
 from pathlib import Path, PurePosixPath
 import re
+import select
+import signal
+import time
 
 from green_bridge_v400_schemas import CertificateResourceLock, canonical_json
 
@@ -26,6 +29,149 @@ class SupervisorViolation(RuntimeError):
     def __init__(self, reason: str, message: str):
         super().__init__(f"{reason}: {message}")
         self.reason = reason
+
+
+@dataclass(frozen=True)
+class WorkerWaitResult:
+    deadline_reached: bool
+    exit_code: int | None
+    termination_signal: int | None
+
+
+class _Timespec(ctypes.Structure):
+    _fields_ = [("tv_sec", ctypes.c_long), ("tv_nsec", ctypes.c_long)]
+
+
+class _Itimerspec(ctypes.Structure):
+    _fields_ = [("it_interval", _Timespec), ("it_value", _Timespec)]
+
+
+class LinuxMonotonicDeadline:
+    """pidfd + absolute CLOCK_MONOTONIC timer retained through publication."""
+
+    CLOCK_MONOTONIC = 1
+    TFD_TIMER_ABSTIME = 1
+    SYS_PIDFD_OPEN = 434
+
+    def __init__(self, deadline_seconds: float, *, started_at: float | None = None):
+        if os.name != "posix" or deadline_seconds <= 0:
+            raise SupervisorViolation(
+                "SUPERVISOR_INFRASTRUCTURE_INVALID", "Linux positive deadline required",
+            )
+        self.started_at = time.monotonic() if started_at is None else float(started_at)
+        now = time.monotonic()
+        if self.started_at > now:
+            raise SupervisorViolation(
+                "SUPERVISOR_INFRASTRUCTURE_INVALID", "deadline start is in the future",
+            )
+        self.deadline_at = self.started_at + float(deadline_seconds)
+        self._libc = ctypes.CDLL(None, use_errno=True)
+        create = getattr(self._libc, "timerfd_create", None)
+        settime = getattr(self._libc, "timerfd_settime", None)
+        if create is None or settime is None:
+            raise SupervisorViolation(
+                "SUPERVISOR_INFRASTRUCTURE_INVALID", "timerfd symbols unavailable",
+            )
+        create.argtypes = [ctypes.c_int, ctypes.c_int]
+        create.restype = ctypes.c_int
+        self.timer_fd = create(
+            self.CLOCK_MONOTONIC, os.O_CLOEXEC | os.O_NONBLOCK,
+        )
+        if self.timer_fd < 0:
+            raise SupervisorViolation(
+                "SUPERVISOR_INFRASTRUCTURE_INVALID",
+                f"timerfd_create errno={ctypes.get_errno()}",
+            )
+        seconds = int(self.deadline_at)
+        nanoseconds = int((self.deadline_at - seconds) * 1_000_000_000)
+        specification = _Itimerspec(_Timespec(0, 0), _Timespec(seconds, nanoseconds))
+        settime.argtypes = [
+            ctypes.c_int, ctypes.c_int, ctypes.POINTER(_Itimerspec),
+            ctypes.POINTER(_Itimerspec),
+        ]
+        settime.restype = ctypes.c_int
+        if settime(
+            self.timer_fd, self.TFD_TIMER_ABSTIME,
+            ctypes.byref(specification), None,
+        ) != 0:
+            error = ctypes.get_errno()
+            os.close(self.timer_fd)
+            self.timer_fd = -1
+            raise SupervisorViolation(
+                "SUPERVISOR_INFRASTRUCTURE_INVALID", f"timerfd_settime errno={error}",
+            )
+        self._expired = False
+
+    def _pidfd_open(self, pid: int) -> int:
+        if hasattr(os, "pidfd_open"):
+            return os.pidfd_open(pid, 0)
+        descriptor = self._libc.syscall(self.SYS_PIDFD_OPEN, pid, 0)
+        if descriptor < 0:
+            raise SupervisorViolation(
+                "SUPERVISOR_INFRASTRUCTURE_INVALID",
+                f"pidfd_open syscall errno={ctypes.get_errno()}",
+            )
+        return descriptor
+
+    @staticmethod
+    def _decode_wait_status(status: int) -> tuple[int | None, int | None]:
+        if os.WIFEXITED(status):
+            return os.WEXITSTATUS(status), None
+        if os.WIFSIGNALED(status):
+            return None, os.WTERMSIG(status)
+        return None, None
+
+    def wait_worker(self, pid: int) -> WorkerWaitResult:
+        pidfd = self._pidfd_open(pid)
+        poller = select.poll()
+        poller.register(pidfd, select.POLLIN)
+        poller.register(self.timer_fd, select.POLLIN)
+        try:
+            events = {descriptor for descriptor, _ in poller.poll()}
+            if self.timer_fd in events:
+                self._expired = True
+                try:
+                    os.kill(pid, signal.SIGKILL)
+                except ProcessLookupError:
+                    pass
+                _, status = os.waitpid(pid, 0)
+                exit_code, termination_signal = self._decode_wait_status(status)
+                return WorkerWaitResult(True, exit_code, termination_signal)
+            if pidfd not in events:
+                raise SupervisorViolation(
+                    "SUPERVISOR_INFRASTRUCTURE_INVALID", "poll returned no pidfd/timerfd",
+                )
+            _, status = os.waitpid(pid, 0)
+            exit_code, termination_signal = self._decode_wait_status(status)
+            return WorkerWaitResult(False, exit_code, termination_signal)
+        finally:
+            os.close(pidfd)
+
+    def deadline_expired(self) -> bool:
+        if self._expired:
+            return True
+        poller = select.poll()
+        poller.register(self.timer_fd, select.POLLIN)
+        if poller.poll(0):
+            self._expired = True
+        return self._expired
+
+    def assert_publish_window(self) -> None:
+        if self.deadline_expired():
+            raise SupervisorViolation(
+                "WALL_DEADLINE_REACHED", "deadline expired before atomic publication",
+            )
+
+    def close(self) -> None:
+        if self.timer_fd >= 0:
+            os.close(self.timer_fd)
+            self.timer_fd = -1
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc_value, traceback):
+        self.close()
 
 
 @dataclass(frozen=True)
@@ -92,7 +238,7 @@ class AdmissionLedger:
             )
         if self._charged_tokens + charge > self.resource_lock.token_budget:
             raise SupervisorViolation(
-                "WALL_DEADLINE_REACHED", "token budget cannot admit another pass",
+                "RESOURCE_ACCOUNTING_INVALID", "token budget cannot admit another pass",
             )
         record = AdmissionRecord(
             len(self._records), precision_bits, charge, self._charged_tokens + charge,

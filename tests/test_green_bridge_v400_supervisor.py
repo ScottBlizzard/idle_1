@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import os
 from pathlib import Path
 import sys
 
@@ -14,7 +15,7 @@ from green_bridge_v400_schemas import CertificateResourceLock, RESOURCE_REASONS
 from green_bridge_v400_supervisor import (
     AdmissionLedger, SupervisorViolation, atomic_publish,
     authorize_supervised_execution, configure_worker_cgroup,
-    probe_cgroup_v2, validate_staged_commit,
+    LinuxMonotonicDeadline, probe_cgroup_v2, validate_staged_commit,
 )
 
 
@@ -141,3 +142,32 @@ def test_configure_worker_cgroup_requires_readback_and_swap_zero(tmp_path):
 def test_prepare_only_lock_cannot_authorize_worker():
     with pytest.raises(SupervisorViolation, match="prepare-only"):
         authorize_supervised_execution(_lock())
+
+
+@pytest.mark.skipif(os.name != "posix" or not hasattr(os, "fork"), reason="Linux only")
+def test_pidfd_timerfd_observes_clean_worker_exit():
+    with LinuxMonotonicDeadline(1.0) as deadline:
+        pid = os.fork()
+        if pid == 0:
+            os._exit(7)
+        result = deadline.wait_worker(pid)
+        assert not result.deadline_reached
+        assert result.exit_code == 7
+        assert result.termination_signal is None
+        deadline.assert_publish_window()
+
+
+@pytest.mark.skipif(os.name != "posix" or not hasattr(os, "fork"), reason="Linux only")
+def test_pidfd_timerfd_kills_worker_at_absolute_deadline():
+    with LinuxMonotonicDeadline(0.05) as deadline:
+        pid = os.fork()
+        if pid == 0:
+            import time
+            time.sleep(10)
+            os._exit(0)
+        result = deadline.wait_worker(pid)
+        assert result.deadline_reached
+        assert result.exit_code is None
+        assert result.termination_signal == 9
+        with pytest.raises(SupervisorViolation, match="before atomic publication"):
+            deadline.assert_publish_window()

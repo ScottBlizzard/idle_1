@@ -1,0 +1,35 @@
+{
+  "cgroup_v2": {
+    "controllers": [],
+    "delegated_subtree_writable": false,
+    "memory_controller_available": false,
+    "memory_events_available": false,
+    "memory_max_available": false,
+    "mount_path": "/sys/fs/cgroup/unified",
+    "process_path": "/sys/fs/cgroup/unified/user.slice/user-1002.slice/session-2604.scope",
+    "swap_max_available": false
+  },
+  "contains_scientific_outcome": false,
+  "frozen_memory_policy": {
+    "memory_enforcement": "cgroup_v2_memory.max",
+    "swap_enforcement": "cgroup_v2_memory.swap.max=0",
+    "v1_fallback_allowed": false
+  },
+  "linux_runtime_primitives": {
+    "pidfd_open_available": false,
+    "renameat2_symbol_available": true,
+    "timerfd_create_symbol_available": true,
+    "timerfd_settime_symbol_available": true
+  },
+  "platform": "Linux-5.15.0-67-generic-x86_64-with-glibc2.31",
+  "production_execution_authorized": false,
+  "provenance": {
+    "repository_clean": true,
+    "repository_commit": "831edc3c8db60a938d575bc3b63e796d4a903cdd"
+  },
+  "report_semantic_hash": "ac1d75f5959b90ae1f371c7870dac8f8e23b798f07995e6d0697fe33f67f52be",
+  "required_host_action": "provide a pure/delegated cgroup v2 subtree with the memory controller and writable memory.max, memory.swap.max, memory.events, cgroup.procs",
+  "schema_version": "green-v400-supervisor-environment-audit-v1",
+  "scientific_threshold_applied": false,
+  "status": "BLOCK_CGROUP_V2_MEMORY_UNAVAILABLE"
+}
