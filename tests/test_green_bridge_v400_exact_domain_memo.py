@@ -11,7 +11,9 @@ import pytest
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 
-from green_bridge_v400_compiled_mpfr import ExactDomainJetMemo
+from green_bridge_v400_compiled_mpfr import (
+    ExactDomainJetMemo, ParallelNativeSiblingEvaluator,
+)
 from green_bridge_v400_interval import Interval
 from green_bridge_v400_interval_jet import Jet2
 
@@ -106,3 +108,42 @@ def test_exact_domain_memo_rejects_invalid_compute_result():
     with pytest.raises(RuntimeError, match="invalid Jet2"):
         memo.get_or_compute(domain, lambda: _jet(512))
     assert memo.metrics()["entry_count"] == 0
+
+
+def test_parallel_sibling_evaluator_commits_in_input_order():
+    identity = _identity()
+    memo = ExactDomainJetMemo(identity, max_entries=4)
+    completed = []
+
+    class Worker:
+        evaluator_identity = identity
+        evaluator_identity_sha256 = memo.evaluator_identity_sha256
+        exact_domain_memo = memo
+        certificate_row_hash = "a" * 64
+
+        def __init__(self):
+            self.dispatch_count_by_precision = {384: 0}
+            self.dispatch_attempt_count_by_precision = {384: 0}
+
+        def evaluate_interval(self, domain):
+            value = -1 if domain.upper <= 0 else 1
+            time.sleep(0.04 if value < 0 else 0.005)
+            completed.append(value)
+            self.dispatch_count_by_precision[384] += 1
+            self.dispatch_attempt_count_by_precision[384] += 1
+            return _jet(384, value)
+
+    workers = (Worker(), Worker())
+    pool = ParallelNativeSiblingEvaluator(workers)
+    domains = (
+        Interval.from_bounds(-1, 0, 384),
+        Interval.from_bounds(0, 1, 384),
+    )
+    results = pool.evaluate_interval_pair(domains)
+    assert completed == [1, -1]
+    assert results[0].value.contains(-1)
+    assert results[1].value.contains(1)
+    assert pool.dispatch_count_by_precision == {384: 2}
+    pool.close()
+    with pytest.raises(RuntimeError, match="closed"):
+        pool.evaluate_interval_pair(domains)

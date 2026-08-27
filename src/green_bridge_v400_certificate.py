@@ -350,6 +350,21 @@ def certify_cell(graph: RelationalGraph, cell: DyadicCell,
     return CellCertificate(cell, jet.value, jet.first, jet.second)
 
 
+def _certify_cell_pair(graph, cells: tuple[DyadicCell, DyadicCell],
+                       precision_bits: int) -> tuple[CellCertificate, CellCertificate]:
+    evaluate_pair = getattr(graph, "evaluate_interval_pair", None)
+    if not callable(evaluate_pair):
+        return tuple(certify_cell(graph, cell, precision_bits) for cell in cells)
+    domains = tuple(cell.interval(precision_bits) for cell in cells)
+    jets = evaluate_pair(domains)
+    if len(jets) != 2 or any(jet.precision_bits != precision_bits for jet in jets):
+        raise RuntimeError("certificate pair evaluator precision/count mismatch")
+    return tuple(
+        CellCertificate(cell, jet.value, jet.first, jet.second)
+        for cell, jet in zip(cells, jets)
+    )
+
+
 def _point_interval(value: Fraction, precision_bits: int) -> Interval:
     return Interval.from_bounds(str(value), str(value), precision_bits)
 
@@ -606,8 +621,10 @@ def _adaptive_cells_with_reason(
     absolute = _hex_fraction(plan.absolute_width_tolerance)
     relative = _hex_fraction(plan.relative_width_tolerance)
     pending: list[tuple[gmpy2.mpfr, Fraction, int, CellCertificate]] = []
-    for cell in (DyadicCell(-h, Fraction(0)), DyadicCell(Fraction(0), h)):
-        certificate = certify_cell(graph, cell, precision_bits)
+    initial_cells = (DyadicCell(-h, Fraction(0)), DyadicCell(Fraction(0), h))
+    for cell, certificate in zip(
+        initial_cells, _certify_cell_pair(graph, initial_cells, precision_bits)
+    ):
         heapq.heappush(pending, (-_cell_priority(certificate, h), cell.lower,
                                  cell.depth, certificate))
     accepted: list[CellCertificate] = []
@@ -622,8 +639,10 @@ def _adaptive_cells_with_reason(
         if len(accepted) + len(pending) + 2 > plan.max_cells:
             return None, "MAX_CELLS_REACHED"
         left, right = cell.bisect()
-        for child in (left, right):
-            child_certificate = certify_cell(graph, child, precision_bits)
+        children = (left, right)
+        for child, child_certificate in zip(
+            children, _certify_cell_pair(graph, children, precision_bits)
+        ):
             heapq.heappush(
                 pending,
                 (-_cell_priority(child_certificate, h), child.lower,

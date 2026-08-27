@@ -147,6 +147,37 @@ def test_public_adaptive_evaluator_requires_plan_identity():
         )
 
 
+def test_adaptive_evaluator_uses_ordered_pair_interface_when_available():
+    class PairEvaluator:
+        contains_scientific_outcome = False
+        certificate_row_hash = "f" * 64
+
+        def __init__(self):
+            self.pair_domains = []
+            self.single_calls = 0
+
+        def evaluate_interval(self, domain):
+            self.single_calls += 1
+            return _polynomial_graph(2).evaluate(domain)
+
+        def evaluate_interval_pair(self, domains):
+            self.pair_domains.append(domains)
+            return tuple(_polynomial_graph(2).evaluate(domain) for domain in domains)
+
+    evaluator = PairEvaluator()
+    cells = certify_adaptive_cells(
+        evaluator, Fraction(1), P,
+        _plan("f" * 64, max_depth=0, max_cells=2),
+    )
+    assert cells is not None
+    assert [cell.cell for cell in cells] == [
+        DyadicCell(Fraction(-1), Fraction(0)),
+        DyadicCell(Fraction(0), Fraction(1)),
+    ]
+    assert len(evaluator.pair_domains) == 1
+    assert evaluator.single_calls == 0
+
+
 def test_linear_endpoint_error_zero():
     _, _, endpoint, curvature, error = _certificate_parts(1)
     assert error.positive_residual.lower == error.positive_residual.upper == 0

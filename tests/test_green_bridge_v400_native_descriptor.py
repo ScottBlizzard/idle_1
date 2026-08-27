@@ -18,6 +18,7 @@ from green_bridge_v400_native_descriptor import (
 )
 from green_bridge_v400_compiled_mpfr import (
     CompiledMPFRBackend, CompiledNativeJointWitnessEvaluator, ExactDomainJetMemo,
+    ParallelNativeSiblingEvaluator,
 )
 from green_bridge_v400_certificate import DyadicCell, certify_adaptive_cells, certify_cell
 from green_bridge_v400_interval import Interval
@@ -343,6 +344,39 @@ def test_compiled_native_envelope_loader_is_hash_closed_and_generation_safe(tmp_
             expected_kernel_tags=tuple(trace["kernel_tags"]),
             exact_domain_memo=mismatched,
         )
+    sibling_context = backend.open_native_precision_context(envelope, 384)
+    sibling_identity_probe = CompiledNativeJointWitnessEvaluator(
+        backend, {384: contexts[0]}, certificate_row_hash=row_hash,
+        expected_kernel_tags=tuple(trace["kernel_tags"]),
+    )
+    sibling_memo = ExactDomainJetMemo(
+        sibling_identity_probe.evaluator_identity, max_entries=8
+    )
+    sibling_workers = (
+        CompiledNativeJointWitnessEvaluator(
+            backend, {384: contexts[0]}, certificate_row_hash=row_hash,
+            expected_kernel_tags=tuple(trace["kernel_tags"]),
+            exact_domain_memo=sibling_memo,
+        ),
+        CompiledNativeJointWitnessEvaluator(
+            backend, {384: sibling_context}, certificate_row_hash=row_hash,
+            expected_kernel_tags=tuple(trace["kernel_tags"]),
+            exact_domain_memo=sibling_memo,
+        ),
+    )
+    sibling_pool = ParallelNativeSiblingEvaluator(sibling_workers)
+    parallel_cells = certify_adaptive_cells(
+        sibling_pool, Fraction(1, 2**14), 384, certificate_plan,
+    )
+    assert parallel_cells is not None and cells is not None
+    assert [
+        (item.value, item.first, item.second) for item in parallel_cells
+    ] == [
+        (item.value, item.first, item.second) for item in cells
+    ]
+    assert sibling_pool.dispatch_count_by_precision == {384: 2}
+    sibling_pool.close()
+    sibling_context.close()
     with pytest.raises(RuntimeError, match="status 2"):
         backend.open_native_precision_context(envelope, 256)
     stale = envelope.handle

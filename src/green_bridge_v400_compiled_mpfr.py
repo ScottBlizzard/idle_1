@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import ctypes
 from collections import OrderedDict
+from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass
 from fractions import Fraction
 import hashlib
@@ -332,6 +333,90 @@ class CompiledNativeJointWitnessEvaluator:
         if self.exact_domain_memo is None:
             return dispatch_and_validate()
         return self.exact_domain_memo.get_or_compute(domain, dispatch_and_validate)
+
+
+class ParallelNativeSiblingEvaluator:
+    """Two independent native contexts with canonical ordered pair commits."""
+
+    contains_scientific_outcome = False
+
+    def __init__(self, workers: tuple[CompiledNativeJointWitnessEvaluator, ...]):
+        if len(workers) != 2:
+            raise ValueError("parallel sibling evaluator requires exactly two workers")
+        if workers[0].evaluator_identity != workers[1].evaluator_identity:
+            raise ValueError("parallel sibling worker identity mismatch")
+        if (workers[0].exact_domain_memo is None
+                or workers[0].exact_domain_memo is not workers[1].exact_domain_memo):
+            raise ValueError("parallel sibling workers require one shared exact-domain memo")
+        self.workers = workers
+        self.certificate_row_hash = workers[0].certificate_row_hash
+        self.evaluator_identity = workers[0].evaluator_identity
+        self.evaluator_identity_sha256 = workers[0].evaluator_identity_sha256
+        self.exact_domain_memo = workers[0].exact_domain_memo
+        self._executor = ThreadPoolExecutor(
+            max_workers=2, thread_name_prefix="green-v400-native-sibling"
+        )
+        self._closed = False
+
+    def evaluate_interval(self, domain: Interval) -> Jet2:
+        if self._closed:
+            raise RuntimeError("parallel sibling evaluator is closed")
+        return self.workers[0].evaluate_interval(domain)
+
+    def evaluate_interval_pair(self, domains: tuple[Interval, Interval]) -> tuple[Jet2, Jet2]:
+        if self._closed:
+            raise RuntimeError("parallel sibling evaluator is closed")
+        if len(domains) != 2 or domains[0].precision_bits != domains[1].precision_bits:
+            raise ValueError("parallel sibling domains must be one precision pair")
+        futures = tuple(
+            self._executor.submit(worker.evaluate_interval, domain)
+            for worker, domain in zip(self.workers, domains)
+        )
+        # Result order is canonical input order, independent of physical completion.
+        results: list[Jet2 | None] = [None, None]
+        errors: list[BaseException] = []
+        for index, future in enumerate(futures):
+            try:
+                results[index] = future.result()
+            except BaseException as error:
+                errors.append(error)
+        if errors:
+            raise errors[0]
+        assert results[0] is not None and results[1] is not None
+        return results[0], results[1]
+
+    @property
+    def dispatch_count_by_precision(self) -> dict[int, int]:
+        precisions = set().union(*(
+            worker.dispatch_count_by_precision for worker in self.workers
+        ))
+        return {
+            precision: sum(worker.dispatch_count_by_precision.get(precision, 0)
+                           for worker in self.workers)
+            for precision in precisions
+        }
+
+    @property
+    def dispatch_attempt_count_by_precision(self) -> dict[int, int]:
+        precisions = set().union(*(
+            worker.dispatch_attempt_count_by_precision for worker in self.workers
+        ))
+        return {
+            precision: sum(worker.dispatch_attempt_count_by_precision.get(precision, 0)
+                           for worker in self.workers)
+            for precision in precisions
+        }
+
+    def close(self) -> None:
+        if not self._closed:
+            self._closed = True
+            self._executor.shutdown(wait=True, cancel_futures=False)
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc_value, traceback):
+        self.close()
 
 
 class CompiledMPFRBackend:
