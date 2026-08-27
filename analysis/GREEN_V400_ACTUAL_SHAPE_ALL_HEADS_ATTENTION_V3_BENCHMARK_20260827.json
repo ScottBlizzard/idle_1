@@ -1,0 +1,79 @@
+{
+  "backend_sha256": "0487f7acc5bba1dc87d9abfd41c5aaa3ba0834de2e1780e8e1edca50ae1ffb21",
+  "cap_decision_authorized": false,
+  "contains_scientific_outcome": false,
+  "created_at_utc": "2026-08-27T03:58:23.273722Z",
+  "dimensions": {
+    "d_model": 768,
+    "head_dim": 64,
+    "n_heads": 12,
+    "sequence_length": 12
+  },
+  "execution_order_policy": "alternate all-head-first and per-head-first by repetition",
+  "formal_wall_time_upper_bound": false,
+  "input_policy": "deterministic synthetic Jet2 query/key/value tensors",
+  "performance_decision": "NO_STABLE_SPEEDUP_KEEP_DISABLED_BY_DEFAULT",
+  "resident_dispatcher_complete": false,
+  "rows": [
+    {
+      "all_heads_elapsed_seconds": [
+        0.5634085469937418,
+        0.4841895950085018,
+        0.4415222840034403,
+        0.4625231160025578,
+        0.4609516350028571,
+        0.48650915900361724,
+        0.49267092198715545
+      ],
+      "all_heads_median_seconds": 0.4841895950085018,
+      "all_heads_observed_max_seconds": 0.5634085469937418,
+      "bit_identical": true,
+      "median_speedup_ratio": 1.016694350877798,
+      "observed_max_speedup_ratio": 1.0573783609825116,
+      "output_exact_payload_sha256": "596cf9b0381f672eb7b09d8009ed3875fa9f88656552444b8082af1b1ddf0506",
+      "per_head_elapsed_seconds": [
+        0.4528447480115574,
+        0.43814257901976816,
+        0.4922728259989526,
+        0.5957360059837811,
+        0.49820390398963355,
+        0.5111656230001245,
+        0.44368564200703986
+      ],
+      "per_head_median_seconds": 0.4922728259989526,
+      "per_head_observed_max_seconds": 0.5957360059837811,
+      "precision_bits": 384
+    },
+    {
+      "all_heads_elapsed_seconds": [
+        0.6638454879866913,
+        0.4679285080055706,
+        0.46184474098845385,
+        0.48150772400549613,
+        0.47703433499555103,
+        0.47881363399210386,
+        0.47886053199181333
+      ],
+      "all_heads_median_seconds": 0.47881363399210386,
+      "all_heads_observed_max_seconds": 0.6638454879866913,
+      "bit_identical": true,
+      "median_speedup_ratio": 0.9829911338718459,
+      "observed_max_speedup_ratio": 0.7582309379205573,
+      "output_exact_payload_sha256": "ee1fa455d6807aba84034883460e3aba9f501f81be4e775dc11a075ca86b7a7d",
+      "per_head_elapsed_seconds": [
+        0.47066955699119717,
+        0.503348186990479,
+        0.46906595199834555,
+        0.46356912900228053,
+        0.46754551099729724,
+        0.49651934098801576,
+        0.49949400301557034
+      ],
+      "per_head_median_seconds": 0.47066955699119717,
+      "per_head_observed_max_seconds": 0.503348186990479,
+      "precision_bits": 512
+    }
+  ],
+  "schema_version": "green-v400-actual-shape-all-heads-attention-benchmark-v2",
+  "status": "PASS_ACTUAL_SHAPE_ALL_HEADS_ATTENTION_FFI_OBSERVATION_ONLY"
+}

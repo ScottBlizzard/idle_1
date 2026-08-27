@@ -1528,6 +1528,76 @@ extern "C" int green_v400_causal_attention_final_head_jet2_exact(
   return 0;
 }
 
+extern "C" int green_v400_causal_attention_final_all_heads_jet2_exact(
+    std::uint32_t precision_bits, std::uint32_t sequence_length,
+    std::uint32_t n_heads, std::uint32_t head_dim, std::uint32_t pivot,
+    const char* const* endpoint_significands, const std::int64_t* endpoint_exponents,
+    char* output_json, std::uint64_t output_capacity) {
+  if (precision_bits < 64 || precision_bits > 4096 || sequence_length == 0
+      || n_heads == 0 || head_dim == 0 || pivot >= sequence_length
+      || sequence_length > 4096U || n_heads > 4096U || head_dim > 4096U
+      || endpoint_significands == nullptr || endpoint_exponents == nullptr
+      || output_json == nullptr || output_capacity == 0) return 2;
+  const mpfr_prec_t precision = static_cast<mpfr_prec_t>(precision_bits);
+  const std::size_t d_model = static_cast<std::size_t>(n_heads) * head_dim;
+  const std::size_t matrix_count = static_cast<std::size_t>(sequence_length) * d_model;
+  auto parse_jet = [&](std::size_t input_index, JetMP& target) -> int {
+    IntervalMP* components[3] = {&target.value, &target.first, &target.second};
+    for (std::size_t component = 0; component < 3; ++component) {
+      const std::size_t offset = input_index * 6U + component * 2U;
+      int status = set_exact_binary(components[component]->lower.get(),
+                                    endpoint_significands[offset], endpoint_exponents[offset]);
+      if (status != 0) return status;
+      status = set_exact_binary(components[component]->upper.get(),
+                                endpoint_significands[offset + 1U], endpoint_exponents[offset + 1U]);
+      if (status != 0 || mpfr_greater_p(components[component]->lower.get(),
+                                       components[component]->upper.get())) return 3;
+    }
+    return 0;
+  };
+  std::ostringstream stream;
+  stream << "{\"schema_version\":\"green-v400-compiled-causal-attention-all-heads-jet2-v1\",";
+  stream << "\"precision_bits\":" << precision_bits << ",\"outputs\":[";
+  std::size_t output_index = 0;
+  for (std::uint32_t head = 0; head < n_heads; ++head) {
+    const std::size_t head_start = static_cast<std::size_t>(head) * head_dim;
+    std::vector<JetMP> query, keys, values;
+    query.reserve(head_dim);
+    keys.reserve(static_cast<std::size_t>(sequence_length) * head_dim);
+    values.reserve(static_cast<std::size_t>(sequence_length) * head_dim);
+    for (std::uint32_t coordinate = 0; coordinate < head_dim; ++coordinate) {
+      query.emplace_back(precision);
+      const int status = parse_jet(head_start + coordinate, query.back());
+      if (status != 0) return status;
+    }
+    for (std::uint32_t token = 0; token < sequence_length; ++token) {
+      for (std::uint32_t coordinate = 0; coordinate < head_dim; ++coordinate) {
+        const std::size_t index = static_cast<std::size_t>(token) * d_model
+                                  + head_start + coordinate;
+        keys.emplace_back(precision);
+        values.emplace_back(precision);
+        int status = parse_jet(d_model + index, keys.back());
+        if (status != 0) return status;
+        status = parse_jet(d_model + matrix_count + index, values.back());
+        if (status != 0) return status;
+      }
+    }
+    std::vector<JetMP> head_outputs = attention_final_head(
+        query, keys, values, sequence_length, head_dim, pivot);
+    for (const JetMP& output : head_outputs) {
+      if (output_index++) stream << ',';
+      stream << serialize_jet(output.value.lower.get(), output.value.upper.get(),
+                              output.first.lower.get(), output.first.upper.get(),
+                              output.second.lower.get(), output.second.upper.get(), precision);
+    }
+  }
+  stream << "]}";
+  const std::string serialized = stream.str();
+  if (serialized.size() + 1 > output_capacity) return 4;
+  std::memcpy(output_json, serialized.c_str(), serialized.size() + 1);
+  return 0;
+}
+
 extern "C" int green_v400_fused_contrast_jet2_exact(
     std::uint32_t precision_bits, std::uint32_t d_model,
     const char* const* endpoint_significands, const std::int64_t* endpoint_exponents,

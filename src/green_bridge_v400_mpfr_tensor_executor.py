@@ -325,20 +325,19 @@ def execute_tensor_program_mpfr(
             else:
                 output = [[_zero(precision) for _ in range(n_heads * d_head)]
                           for _ in range(sequence_length)]
+            pivot = int(node.exact_attrs["softmax_pivot"]["index"])
             for head in range(n_heads):
                 start, stop = head * d_head, (head + 1) * d_head
                 query = q[final_position][start:stop]
                 keys = [row[start:stop] for row in k[:final_position + 1]]
                 vectors = [row[start:stop] for row in v[:final_position + 1]]
                 if compiled_backend is None:
-                    pivot = int(node.exact_attrs["softmax_pivot"]["index"])
                     attended = attention_head_jets(
                         [query] * (final_position + 1), keys, vectors, causal=True,
                     )[-1] if pivot == 0 else None
                     if attended is None:
                         raise ValueError("Python MPFR attention currently requires fixed pivot zero")
                 else:
-                    pivot = int(node.exact_attrs["softmax_pivot"]["index"])
                     attended = [_decode_jet(item, precision) for item in
                                 compiled_backend.causal_attention_final_head_jet2(
                                     query, keys, vectors, pivot=pivot,

@@ -148,6 +148,13 @@ class CompiledMPFRBackend:
             ctypes.c_char_p, ctypes.c_uint64,
         ]
         attention.restype = ctypes.c_int
+        attention_all_heads = self.library.green_v400_causal_attention_final_all_heads_jet2_exact
+        attention_all_heads.argtypes = [
+            ctypes.c_uint32, ctypes.c_uint32, ctypes.c_uint32, ctypes.c_uint32,
+            ctypes.c_uint32, ctypes.POINTER(ctypes.c_char_p),
+            ctypes.POINTER(ctypes.c_int64), ctypes.c_char_p, ctypes.c_uint64,
+        ]
+        attention_all_heads.restype = ctypes.c_int
         contrast = self.library.green_v400_final_contrast_jet2_exact
         contrast.argtypes = [
             ctypes.c_uint32, ctypes.c_uint32, ctypes.c_uint32, ctypes.c_uint32,
@@ -450,6 +457,35 @@ class CompiledMPFRBackend:
         )
         if status != 0:
             raise RuntimeError(f"compiled attention jet failed with status {status}")
+        return json.loads(output.value.decode("ascii"))
+
+    def causal_attention_final_all_heads_jet2(
+        self, query: list[Jet2], keys: list[list[Jet2]], values: list[list[Jet2]],
+        n_heads: int, pivot: int = 0,
+    ) -> dict:
+        if not query or not keys or len(keys) != len(values) or n_heads <= 0:
+            raise ValueError("compiled all-head attention shape mismatch")
+        d_model, sequence_length = len(query), len(keys)
+        if d_model % n_heads or any(len(row) != d_model for row in keys + values):
+            raise ValueError("compiled all-head attention width mismatch")
+        head_dim = d_model // n_heads
+        jets = query + [jet for row in keys for jet in row] + [jet for row in values for jet in row]
+        precision = jets[0].precision_bits
+        if any(jet.precision_bits != precision for jet in jets):
+            raise ValueError("compiled all-head attention precision mismatch")
+        encoded = []
+        for jet in jets:
+            for component in (jet.value, jet.first, jet.second):
+                encoded.extend((_binary_endpoint(component.lower), _binary_endpoint(component.upper)))
+        strings = (ctypes.c_char_p * len(encoded))(*(item[0] for item in encoded))
+        exponents = np.asarray([item[1] for item in encoded], dtype="<i8")
+        output = ctypes.create_string_buffer(max(8192, 4096 * d_model))
+        status = self.library.green_v400_causal_attention_final_all_heads_jet2_exact(
+            precision, sequence_length, n_heads, head_dim, pivot, strings,
+            exponents.ctypes.data_as(ctypes.POINTER(ctypes.c_int64)), output, len(output),
+        )
+        if status != 0:
+            raise RuntimeError(f"compiled all-head attention failed with status {status}")
         return json.loads(output.value.decode("ascii"))
 
     def fused_contrast_jet2(self, values: list[Jet2], fusion_payload: dict) -> dict:

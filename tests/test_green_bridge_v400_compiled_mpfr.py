@@ -253,6 +253,33 @@ def test_compiled_causal_attention_final_head_is_bit_identical(precision):
 
 
 @pytest.mark.parametrize("precision", [384, 512])
+def test_compiled_causal_attention_all_heads_matches_individual_heads(precision):
+    backend = _backend()
+    n_heads, head_dim, sequence_length = 2, 3, 3
+    d_model = n_heads * head_dim
+    query = [_jet(-0.2 + coordinate/13, 2.0**(-10-coordinate),
+                  0.15-coordinate/17, -0.08+coordinate/19, precision)
+             for coordinate in range(d_model)]
+    keys = [[_jet(-0.3 + token/11 + coordinate/23, 2.0**(-11-token-coordinate),
+                  0.12+token/29-coordinate/31, -0.18+coordinate/37, precision)
+             for coordinate in range(d_model)] for token in range(sequence_length)]
+    values = [[_jet(0.22-token/13+coordinate/17, 2.0**(-12-token-coordinate),
+                    -0.11+token/19+coordinate/41, 0.04-token/43, precision)
+               for coordinate in range(d_model)] for token in range(sequence_length)]
+    batched = backend.causal_attention_final_all_heads_jet2(
+        query, keys, values, n_heads, pivot=0
+    )["outputs"]
+    individual = []
+    for head in range(n_heads):
+        start, stop = head * head_dim, (head + 1) * head_dim
+        individual.extend(backend.causal_attention_final_head_jet2(
+            query[start:stop], [row[start:stop] for row in keys],
+            [row[start:stop] for row in values], pivot=0,
+        )["outputs"])
+    assert batched == individual
+
+
+@pytest.mark.parametrize("precision", [384, 512])
 def test_compiled_final_contrast_is_bit_identical_to_exact_fusion(precision):
     backend = _backend()
     values = [_jet(-0.2 + index/7, 2.0**(-10-index),

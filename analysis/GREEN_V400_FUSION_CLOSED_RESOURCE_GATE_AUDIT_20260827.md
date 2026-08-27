@@ -11,6 +11,7 @@
 - **GO (resident Python-dispatch correctness scope):** after plan validation, all 32 packed constants are consumed through aligned read-only mmap arrays. Each precision records 134 packed tensor bindings, zero tensor-store fallback reads, and four fused-contrast nodes. Every pairwise-affine node uses the packed batch ABI; exact backward row liveness materializes 148 of 228 dense axis-0 row slots; per-cell static-row caching reuses four layer-normalization rows and eleven affine rows. Both precisions preserve all five exact roots and the complete 81-event successful-dispatch trace.
 - **GO (observation-only):** the native packed affine ABI was exercised with the actual `block11.mlp.W_in` 768-by-3072 weight and synthetic Jet2 inputs. Its outputs are repeatable and its smaller regression fixture is bit-identical to individually dispatched exact affine columns at both precisions.
 - **GO (observation-only):** the row-batched native GELU ABI is bit-identical to individually dispatched exact GELU jets at both precisions and is exercised at the actual MLP width 3072 with deterministic synthetic Jet2 inputs and the closed GPT-2 GELU constants.
+- **GO (correctness-only, disabled by default):** the all-head native causal-attention ABI is bit-identical to concatenated per-head ABI outputs at both precisions. A seven-repetition, alternating-order actual-shape observation found no stable speed advantage, so the resident dispatcher deliberately retains the per-head path.
 - **BLOCK:** the full 81-node native resident dispatcher is not implemented. Node orchestration and the static-row cache still live in Python, static past-K/V values are reused only within a cell rather than hash-closed as resident-plan inputs, attention still crosses FFI per head, residual/scalar orchestration remains in Python, and the fusion payload still uses a canonical-JSON control plane pending a native loader.
 - **BLOCK:** no numeric replacement cap is authorized. The observations are not formal wall-time bounds and exclude set/copy/comparison/serialization and full certificate orchestration.
 - **BLOCK:** real certificate, development rows, confirmation rows, and scientific outcome access remain unauthorized.
@@ -20,7 +21,7 @@
 - Fusion-closed TensorProgram semantic hash: `38f40999524d465b8ee58fcc8d2d1822caf9af6c36897a72bd404a8fff34fe62`.
 - Exact final-contrast fusion hash: `bd734f457bd3baee252af47f1c048dbd606ec15bf6a1b6533751c7bb943319c1`.
 - Native one-cell ordered kernel tags: 81 events; FNV regression checksum `e0f23d0f4c4df894`. The complete 81-tag vector, not the FNV checksum alone, is checked.
-- Full regression: 449 tests passed in 223.31 s on the server with the compiled 384/512-bit backend after packed input consumption, batch affine and GELU dispatch, sparse row liveness, static-row reuse, and resident fused contrast.
+- Full regression: 451 tests passed in 222.23 s on the server with the compiled 384/512-bit backend after packed input consumption, batch affine and GELU dispatch, sparse row liveness, static-row reuse, resident fused contrast, and the correctness-qualified/disabled all-head attention ABI.
 - Successful actual-dispatch trace SHA-256 at both precisions: `6854f99c2a270b296bac6c1b1ed5ad34d6e18534611e2ef2af5df8e4fa6ff528`.
 - Packed resident-plan semantic hash: `0d5625e2f7af118615497e9642481946aec0a436b900e3c0d1661f90ba6f9acf`.
 - Packed blob: 28,517,632 bytes; SHA-256 `34bcd45371c08720c23f66d8f723dfc0249779e9e47eee5499c04d6064dc3560`.
@@ -35,7 +36,8 @@
 - Peak RSS observed with program/store/fusion validation: approximately 494,136 KiB.
 - Actual packed `block11.mlp.W_in` affine observed maxima: 1.4126 s at 384 bits and 1.6704 s at 512 bits; 1.25x observational guardbands 1.7657 s and 2.0880 s, respectively. These are not formal bounds and are not a complete resident-cell runtime.
 - Actual-width 3072 row-batched GELU observed maxima: 0.3932 s at 384 bits and 0.4699 s at 512 bits; 1.25x observational guardbands 0.4915 s and 0.5874 s, respectively.
-- Deterministic tiny-fixture resident Python-dispatch observations after packed batch affine, row-batched GELU, exact row liveness, static-row caching, and fused contrast: 22.7559 s at 384 bits and 23.2865 s at 512 bits. The predecessor packed-but-dense path was approximately 93 s per precision, the sparse-without-cache path approximately 37.8 s, and the pre-batched-GELU cached path approximately 25.5 s. These fixture timings are engineering comparisons, not full GPT-2 cell bounds.
+- Actual-shape attention medians over seven alternating-order repetitions (`S=12`, 12 heads, head dimension 64): all-head/per-head 0.4842/0.4923 s at 384 bits and 0.4788/0.4707 s at 512 bits. Median speedup ratios 1.0167 and 0.9830 point in opposite directions; no stable speedup is claimed.
+- Current deterministic tiny-fixture resident Python-dispatch observations after packed batch affine, row-batched GELU, exact row liveness, static-row caching, and fused contrast: 25.6729 s at 384 bits and 25.4552 s at 512 bits. Repeated development runs varied by several seconds, so no end-to-end speedup is claimed from a single run. These fixture timings are engineering comparisons, not full GPT-2 cell bounds.
 
 ## Remaining minimum gate
 

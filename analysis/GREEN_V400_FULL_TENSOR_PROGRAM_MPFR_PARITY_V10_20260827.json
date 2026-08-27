@@ -1,10 +1,10 @@
 {
-  "backend_sha256": "f6c85148cb2e115395c6d360a0b08eaca870358a68e578122a5bb9e7b50e3ffb",
+  "backend_sha256": "0487f7acc5bba1dc87d9abfd41c5aaa3ba0834de2e1780e8e1edca50ae1ffb21",
   "backend_version": "green-v400-compiled-mpfr-v1",
   "cap_decision_authorized": false,
   "claim_scope": "end-to-end correctness plus packed-input, sparse-row, and fused-contrast parity; the remaining JSON/FFI dispatcher is not a performance backend",
   "contains_scientific_outcome": false,
-  "created_at_utc": "2026-08-27T03:27:07.645960Z",
+  "created_at_utc": "2026-08-27T03:56:55.270865Z",
   "dense_axis0_row_slot_count": 228,
   "dependency_mask_closure_sha256": "9ac06bc0e8c80331555686620117ba35b3db2d7c52b69b7f8d3595b18500428e",
   "dimensions": {
@@ -23,6 +23,8 @@
   "fixture": "deterministic tiny Transformer; no noun, prompt, donor, or scientific outcome",
   "program_node_count": 81,
   "program_semantic_hash": "1d7edfa065046e258a066acb6725610867edeae8bc084869c96b61d5ea29aa2a",
+  "resident_attention_all_heads_abi_decision": "correctness-qualified but disabled: actual-shape benchmark showed no stable speedup and the tiny end-to-end resident path regressed",
+  "resident_attention_all_heads_abi_default_enabled": false,
   "resident_buffer_executor": false,
   "resident_gelu_batch_abi_consumed": true,
   "resident_materialized_axis0_row_count": 148,
@@ -35,7 +37,7 @@
   "resident_static_row_cache_consumed": true,
   "rows": [
     {
-      "compiled_correctness_ffi_seconds": 84.10220651898999,
+      "compiled_correctness_ffi_seconds": 93.15955749200657,
       "domain": {
         "lower": {
           "exponent_2": -14,
@@ -48,9 +50,9 @@
       },
       "precision_bits": 384,
       "program_dispatch_signature_sha256": "e2b7b4b5f161aa0c43c075a3fd637b98c21931d3d8dc2547b08864bc8424c7dc",
-      "reference_seconds": 1.7964682540041395,
+      "reference_seconds": 1.151028516003862,
       "resident_dispatch_trace_bit_identical": true,
-      "resident_fused_contrast_ffi_seconds": 22.755917394009884,
+      "resident_fused_contrast_ffi_seconds": 25.67285449898918,
       "resident_runtime_metrics": {
         "dense_axis0_row_slot_count": 228,
         "materialized_axis0_row_count": 148,
@@ -114,7 +116,7 @@
       "successful_dispatch_trace_sha256": "6854f99c2a270b296bac6c1b1ed5ad34d6e18534611e2ef2af5df8e4fa6ff528"
     },
     {
-      "compiled_correctness_ffi_seconds": 83.24298383499263,
+      "compiled_correctness_ffi_seconds": 92.5273079930048,
       "domain": {
         "lower": {
           "exponent_2": -14,
@@ -127,9 +129,9 @@
       },
       "precision_bits": 512,
       "program_dispatch_signature_sha256": "e2b7b4b5f161aa0c43c075a3fd637b98c21931d3d8dc2547b08864bc8424c7dc",
-      "reference_seconds": 1.4368337290070485,
+      "reference_seconds": 1.54030855698511,
       "resident_dispatch_trace_bit_identical": true,
-      "resident_fused_contrast_ffi_seconds": 23.286539677006658,
+      "resident_fused_contrast_ffi_seconds": 25.455243444012012,
       "resident_runtime_metrics": {
         "dense_axis0_row_slot_count": 228,
         "materialized_axis0_row_count": 148,
@@ -193,6 +195,6 @@
       "successful_dispatch_trace_sha256": "6854f99c2a270b296bac6c1b1ed5ad34d6e18534611e2ef2af5df8e4fa6ff528"
     }
   ],
-  "schema_version": "green-v400-full-tensor-program-mpfr-parity-v7",
+  "schema_version": "green-v400-full-tensor-program-mpfr-parity-v10",
   "status": "PASS"
 }
