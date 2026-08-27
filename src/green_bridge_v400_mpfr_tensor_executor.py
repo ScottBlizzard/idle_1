@@ -10,7 +10,9 @@ from typing import Callable
 import gmpy2
 import numpy as np
 
-from green_bridge_v400_compiled_mpfr import CompiledMPFRBackend
+from green_bridge_v400_compiled_mpfr import (
+    CompiledMPFRBackend, CompiledResidentJetBuffer,
+)
 from green_bridge_v400_interval import Interval
 from green_bridge_v400_interval_jet import (
     Jet2, add_jet, affine_control_jet, constant_jet, sub_jet,
@@ -35,6 +37,12 @@ class ResidentStaticRowCache:
     _entries: dict[tuple[object, ...], list[Jet2]] = field(
         default_factory=dict, repr=False
     )
+    _native_rows: dict[tuple[int, int], CompiledResidentJetBuffer] = field(
+        default_factory=dict, repr=False
+    )
+    _native_flattened_rows: dict[
+        tuple[int, tuple[int, ...]], CompiledResidentJetBuffer
+    ] = field(default_factory=dict, repr=False)
 
     @classmethod
     def build(cls, program: TensorProgram, resident_plan: dict,
@@ -67,6 +75,24 @@ class ResidentStaticRowCache:
     @property
     def entry_count(self) -> int:
         return len(self._entries)
+
+    @property
+    def native_entry_count(self) -> int:
+        return len(self._native_rows) + len(self._native_flattened_rows)
+
+    def close(self) -> None:
+        for buffer in reversed([
+            *self._native_rows.values(), *self._native_flattened_rows.values()
+        ]):
+            buffer.close()
+        self._native_rows.clear()
+        self._native_flattened_rows.clear()
+
+    def __del__(self):
+        try:
+            self.close()
+        except Exception:
+            pass
 
 
 def _decode_interval(payload: dict, precision: int) -> Interval:
@@ -185,6 +211,7 @@ def execute_tensor_program_mpfr(
     resident_arrays: dict[str, np.ndarray] | None = None,
     resident_static_row_cache: ResidentStaticRowCache | None = None,
     sparse_axis0_execution: bool = False,
+    resident_buffer_execution: bool = False,
     return_node_values: bool = False,
     return_dispatch_trace: bool = False,
     return_runtime_metrics: bool = False,
@@ -202,6 +229,15 @@ def execute_tensor_program_mpfr(
     tensor_store_fallback_reads = 0
     resident_fused_contrast_nodes = 0
     resident_gelu_batch_rows = 0
+    resident_buffer_imports = 0
+    resident_buffer_exports = 0
+    resident_buffer_imported_jet_count = 0
+    resident_buffer_exported_jet_count = 0
+    resident_buffer_nodes: dict[str, int] = {}
+    resident_native_buffers: list[CompiledResidentJetBuffer] = []
+    resident_python_rows: dict[int, list[Jet2]] = {}
+    resident_native_cache_hits = 0
+    resident_native_cache_misses = 0
     if resident_arrays is not None:
         if resident_plan is None or compiled_backend is None:
             raise ValueError("resident arrays require a resident plan and compiled backend")
@@ -223,12 +259,20 @@ def execute_tensor_program_mpfr(
         )
     if sparse_axis0_execution and (resident_arrays is None or return_node_values):
         raise ValueError("sparse row execution requires resident arrays and root-only output")
+    if resident_buffer_execution and (
+        not sparse_axis0_execution or resident_arrays is None
+        or resident_plan is None or compiled_backend is None or return_node_values
+    ):
+        raise ValueError(
+            "resident-buffer execution requires sparse packed resident root-only execution"
+        )
     live_rows = tensor_program_required_axis0_rows(program) if sparse_axis0_execution else {}
     static_row_cache = (
         resident_static_row_cache._entries
         if resident_static_row_cache is not None else {}
     )
     static_row_cache_initial_entry_count = len(static_row_cache)
+    static_python_row_ids = {id(row) for row in static_row_cache.values()}
     cache_hits: dict[str, int] = {}
     cache_misses: dict[str, int] = {}
     static_node_identities = {
@@ -240,7 +284,97 @@ def execute_tensor_program_mpfr(
         for node in program.nodes
     }
 
+    def track_native_buffer(
+        buffer: CompiledResidentJetBuffer, kernel: str | None = None,
+    ) -> CompiledResidentJetBuffer:
+        resident_native_buffers.append(buffer)
+        if kernel is not None:
+            resident_buffer_nodes[kernel] = resident_buffer_nodes.get(kernel, 0) + 1
+        return buffer
+
+    def native_row(row) -> CompiledResidentJetBuffer:
+        nonlocal resident_buffer_imports, resident_buffer_imported_jet_count
+        nonlocal resident_native_cache_hits, resident_native_cache_misses
+        if isinstance(row, CompiledResidentJetBuffer):
+            return row
+        cache_key = (id(compiled_backend), id(row))
+        if resident_static_row_cache is not None and id(row) in static_python_row_ids:
+            cached = resident_static_row_cache._native_rows.get(cache_key)
+            if cached is not None:
+                resident_native_cache_hits += 1
+                return cached
+            resident_native_cache_misses += 1
+        resident_buffer_imports += 1
+        resident_buffer_imported_jet_count += len(row)
+        imported = compiled_backend.resident_jet_buffer(row)
+        if resident_static_row_cache is not None and id(row) in static_python_row_ids:
+            resident_static_row_cache._native_rows[cache_key] = imported
+            return imported
+        return track_native_buffer(imported)
+
+    def python_row(row) -> list[Jet2]:
+        nonlocal resident_buffer_exports, resident_buffer_exported_jet_count
+        if not isinstance(row, CompiledResidentJetBuffer):
+            return row
+        identity = int(row.handle.value)
+        if identity in resident_python_rows:
+            return resident_python_rows[identity]
+        resident_buffer_exports += 1
+        resident_buffer_exported_jet_count += row.width
+        decoded = [
+            _decode_jet(item, precision) for item in
+            compiled_backend.export_resident_jet_buffer(row)["outputs"]
+        ]
+        resident_python_rows[identity] = decoded
+        return decoded
+
+    def native_flatten_rows(rows) -> CompiledResidentJetBuffer:
+        chunks: list[CompiledResidentJetBuffer] = []
+        pending_rows: list[list[Jet2]] = []
+
+        def flush_pending() -> None:
+            nonlocal resident_buffer_imports, resident_buffer_imported_jet_count
+            nonlocal resident_native_cache_hits, resident_native_cache_misses
+            if not pending_rows:
+                return
+            identities = tuple(id(row) for row in pending_rows)
+            cache_key = (id(compiled_backend), identities)
+            cacheable = (
+                resident_static_row_cache is not None
+                and all(identity in static_python_row_ids for identity in identities)
+            )
+            if cacheable:
+                cached = resident_static_row_cache._native_flattened_rows.get(cache_key)
+                if cached is not None:
+                    resident_native_cache_hits += 1
+                    chunks.append(cached)
+                    pending_rows.clear()
+                    return
+                resident_native_cache_misses += 1
+            flattened = [jet for row in pending_rows for jet in row]
+            resident_buffer_imports += 1
+            resident_buffer_imported_jet_count += len(flattened)
+            imported = compiled_backend.resident_jet_buffer(flattened)
+            if cacheable:
+                resident_static_row_cache._native_flattened_rows[cache_key] = imported
+                chunks.append(imported)
+            else:
+                chunks.append(track_native_buffer(imported))
+            pending_rows.clear()
+
+        for row in rows:
+            if isinstance(row, CompiledResidentJetBuffer):
+                flush_pending()
+                chunks.append(row)
+            else:
+                pending_rows.append(row)
+        flush_pending()
+        if len(chunks) == 1:
+            return chunks[0]
+        return track_native_buffer(compiled_backend.resident_concat_jet2(chunks))
+
     def exact_row_key(row: list[Jet2]) -> tuple[object, ...]:
+        row = python_row(row)
         return tuple(
             endpoint
             for jet in row
@@ -267,6 +401,7 @@ def execute_tensor_program_mpfr(
     def store_static_row(key, row: list[Jet2]) -> None:
         if key is not None:
             static_row_cache[key] = row
+            static_python_row_ids.add(id(row))
     for ordinal, node in enumerate(program.nodes):
         node_started = time.perf_counter() if successful_node_callback is not None else None
         parents = [values[parent] for parent in node.parent_semantic_ids]
@@ -311,11 +446,19 @@ def execute_tensor_program_mpfr(
             for row_index in row_indices:
                 row = source[row_index]
                 cache_key = static_row_cache_key(node, row_index, row)
+                if cache_key is not None:
+                    row = python_row(row)
                 cached = cached_static_row(cache_key, kernel)
                 if cached is not None:
                     output[row_index] = cached
                     continue
-                if compiled_backend is None:
+                if resident_buffer_execution and cache_key is None:
+                    output[row_index] = track_native_buffer(
+                        compiled_backend.resident_layer_norm_jet2(
+                            native_row(row), epsilon.reshape(()), gamma, beta,
+                        ), kernel,
+                    )
+                elif compiled_backend is None:
                     output[row_index] = layernorm_jets(
                         row, epsilon=float(epsilon.reshape(())), gamma=gamma, beta=beta,
                     )
@@ -334,11 +477,19 @@ def execute_tensor_program_mpfr(
             for row_index in row_indices:
                 row = source[row_index]
                 cache_key = static_row_cache_key(node, row_index, row)
+                if cache_key is not None:
+                    row = python_row(row)
                 cached = cached_static_row(cache_key, kernel)
                 if cached is not None:
                     output[row_index] = cached
                     continue
-                if compiled_backend is None:
+                if resident_buffer_execution and cache_key is None:
+                    output[row_index] = track_native_buffer(
+                        compiled_backend.resident_packed_affine_layer_jet2(
+                            native_row(row), weight, bias,
+                        ), kernel,
+                    )
+                elif compiled_backend is None:
                     output[row_index] = affine_map_jets(weight.T, row, bias)
                 elif resident_arrays is not None:
                     output[row_index] = [
@@ -362,11 +513,19 @@ def execute_tensor_program_mpfr(
             for row_index in row_indices:
                 row = source[row_index]
                 cache_key = static_row_cache_key(node, row_index, row)
+                if cache_key is not None:
+                    row = python_row(row)
                 cached = cached_static_row(cache_key, kernel)
                 if cached is not None:
                     output[row_index] = cached
                     continue
-                if compiled_backend is None:
+                if resident_buffer_execution and cache_key is None:
+                    output[row_index] = track_native_buffer(
+                        compiled_backend.resident_gelu_new_layer_jet2(
+                            native_row(row), kappa, lam,
+                        ), kernel,
+                    )
+                elif compiled_backend is None:
                     output[row_index] = [
                         gelu_new_jet(jet, kappa=float(kappa), lam=float(lam)) for jet in row
                     ]
@@ -394,11 +553,19 @@ def execute_tensor_program_mpfr(
                 output = [None] * shape[0]
                 for row_index in row_indices:
                     if row_index == final_position:
-                        output[row_index] = [
-                            sub_jet(left, right) for left, right in zip(
-                                parents[0][row_index], parents[1][row_index]
+                        if resident_buffer_execution:
+                            output[row_index] = track_native_buffer(
+                                compiled_backend.resident_sub_jet2(
+                                    native_row(parents[0][row_index]),
+                                    native_row(parents[1][row_index]),
+                                ), kernel,
                             )
-                        ]
+                        else:
+                            output[row_index] = [
+                                sub_jet(left, right) for left, right in zip(
+                                    parents[0][row_index], parents[1][row_index]
+                                )
+                            ]
                     else:
                         output[row_index] = [_zero(precision) for _ in range(shape[1])]
             else:
@@ -417,31 +584,51 @@ def execute_tensor_program_mpfr(
                 output = [[_zero(precision) for _ in range(n_heads * d_head)]
                           for _ in range(sequence_length)]
             pivot = int(node.exact_attrs["softmax_pivot"]["index"])
-            for head in range(n_heads):
-                start, stop = head * d_head, (head + 1) * d_head
-                query = q[final_position][start:stop]
-                keys = [row[start:stop] for row in k[:final_position + 1]]
-                vectors = [row[start:stop] for row in v[:final_position + 1]]
-                if compiled_backend is None:
-                    attended = attention_head_jets(
-                        [query] * (final_position + 1), keys, vectors, causal=True,
-                    )[-1] if pivot == 0 else None
-                    if attended is None:
-                        raise ValueError("Python MPFR attention currently requires fixed pivot zero")
-                else:
-                    attended = [_decode_jet(item, precision) for item in
-                                compiled_backend.causal_attention_final_head_jet2(
-                                    query, keys, vectors, pivot=pivot,
-                                )["outputs"]]
-                output[final_position][start:stop] = attended
+            if resident_buffer_execution:
+                output[final_position] = track_native_buffer(
+                    compiled_backend.resident_causal_attention_all_heads_jet2(
+                        native_row(q[final_position]),
+                        native_flatten_rows(k[:final_position + 1]),
+                        native_flatten_rows(v[:final_position + 1]),
+                        final_position + 1, n_heads, d_head, pivot,
+                    ), kernel,
+                )
+            else:
+                for head in range(n_heads):
+                    start, stop = head * d_head, (head + 1) * d_head
+                    query = q[final_position][start:stop]
+                    keys = [row[start:stop] for row in k[:final_position + 1]]
+                    vectors = [row[start:stop] for row in v[:final_position + 1]]
+                    if compiled_backend is None:
+                        attended = attention_head_jets(
+                            [query] * (final_position + 1), keys, vectors, causal=True,
+                        )[-1] if pivot == 0 else None
+                        if attended is None:
+                            raise ValueError(
+                                "Python MPFR attention currently requires fixed pivot zero"
+                            )
+                    else:
+                        attended = [_decode_jet(item, precision) for item in
+                                    compiled_backend.causal_attention_final_head_jet2(
+                                        query, keys, vectors, pivot=pivot,
+                                    )["outputs"]]
+                    output[final_position][start:stop] = attended
         elif kernel == "residual_add.v1":
             output = [None] * shape[0]
             for row_index in row_indices:
-                output[row_index] = [
-                    add_jet(left, right) for left, right in zip(
-                        parents[0][row_index], parents[1][row_index]
+                if resident_buffer_execution:
+                    output[row_index] = track_native_buffer(
+                        compiled_backend.resident_add_jet2(
+                            native_row(parents[0][row_index]),
+                            native_row(parents[1][row_index]),
+                        ), kernel,
                     )
-                ]
+                else:
+                    output[row_index] = [
+                        add_jet(left, right) for left, right in zip(
+                            parents[0][row_index], parents[1][row_index]
+                        )
+                    ]
         elif kernel == "final_contrast.v1":
             final_position = int(node.exact_attrs["final_position"])
             row = parents[0][final_position]
@@ -450,21 +637,43 @@ def execute_tensor_program_mpfr(
                 if (resident_plan.get("exact_final_contrast_fusion_sha256")
                         != program.resource_formula["exact_final_contrast_fusion_sha256"]):
                     raise ValueError("resident exact-fusion hash disagrees with TensorProgram")
-                output = _decode_jet(compiled_backend.fused_contrast_jet2(
-                    row, resident_plan["exact_final_contrast_fusion"]
-                ), precision)
+                if resident_buffer_execution:
+                    output = track_native_buffer(
+                        compiled_backend.resident_fused_contrast_jet2(
+                            native_row(row), resident_plan["exact_final_contrast_fusion"]
+                        ), kernel,
+                    )
+                else:
+                    output = _decode_jet(compiled_backend.fused_contrast_jet2(
+                        row, resident_plan["exact_final_contrast_fusion"]
+                    ), precision)
             elif compiled_backend is None:
+                row = python_row(row)
                 unembed, bias, suffix_ids, coefficients = tensors
                 output = _final_contrast_reference(
                     row, unembed, bias, suffix_ids.astype(np.int64), coefficients,
                 )
             else:
+                row = python_row(row)
                 unembed, bias, suffix_ids, coefficients = tensors
                 output = _decode_jet(compiled_backend.final_contrast_jet2(
                     row, unembed, bias, suffix_ids, coefficients,
                 ), precision)
         elif kernel == "branch_linear_combination.v1":
-            output = add_jet(sub_jet(sub_jet(parents[0], parents[1]), parents[2]), parents[3])
+            if resident_buffer_execution:
+                first = track_native_buffer(compiled_backend.resident_sub_jet2(
+                    native_row(parents[0]), native_row(parents[1])
+                ))
+                second = track_native_buffer(compiled_backend.resident_sub_jet2(
+                    first, native_row(parents[2])
+                ))
+                output = track_native_buffer(compiled_backend.resident_add_jet2(
+                    second, native_row(parents[3])
+                ), kernel)
+            else:
+                output = add_jet(
+                    sub_jet(sub_jet(parents[0], parents[1]), parents[2]), parents[3]
+                )
         else:
             raise RuntimeError(f"unsupported MPFR TensorProgram kernel: {kernel}")
         values[node.semantic_id] = output
@@ -482,9 +691,17 @@ def execute_tensor_program_mpfr(
                 "kernel_id": node.kernel_id,
                 "elapsed_seconds": time.perf_counter() - node_started,
             })
+    def scalar_value(value) -> Jet2:
+        if isinstance(value, CompiledResidentJetBuffer):
+            if value.width != 1:
+                raise RuntimeError("resident scalar root has non-scalar width")
+            return python_row(value)[0]
+        return value
+
     result = {
-        **{name: values[root] for name, root in program.branch_roots.items()},
-        "output": values[program.output_root],
+        **{name: scalar_value(values[root])
+           for name, root in program.branch_roots.items()},
+        "output": scalar_value(values[program.output_root]),
     }
     if return_node_values:
         result["node_values"] = values
@@ -521,7 +738,21 @@ def execute_tensor_program_mpfr(
             "tensor_store_fallback_reads": tensor_store_fallback_reads,
             "resident_fused_contrast_nodes": resident_fused_contrast_nodes,
             "resident_gelu_batch_rows": resident_gelu_batch_rows,
+            "resident_buffer_execution": resident_buffer_execution,
+            "resident_buffer_imports": resident_buffer_imports,
+            "resident_buffer_exports": resident_buffer_exports,
+            "resident_buffer_imported_jet_count": resident_buffer_imported_jet_count,
+            "resident_buffer_exported_jet_count": resident_buffer_exported_jet_count,
+            "resident_buffer_nodes_by_kernel": resident_buffer_nodes,
+            "resident_native_static_cache_hits": resident_native_cache_hits,
+            "resident_native_static_cache_misses": resident_native_cache_misses,
+            "resident_native_static_cache_entry_count": (
+                resident_static_row_cache.native_entry_count
+                if resident_static_row_cache is not None else 0
+            ),
         }
+    for buffer in reversed(resident_native_buffers):
+        buffer.close()
     return result
 
 

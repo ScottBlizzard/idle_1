@@ -813,6 +813,35 @@ std::vector<JetMP> packed_affine_layer(
   return outputs;
 }
 
+int packed_layer_norm(
+    const std::vector<JetMP>& inputs, std::uint32_t epsilon_bits,
+    const std::uint32_t* gamma_bits, const std::uint32_t* beta_bits,
+    std::vector<JetMP>& outputs) {
+  if (inputs.empty() || gamma_bits == nullptr || beta_bits == nullptr) return 2;
+  const mpfr_prec_t precision = inputs[0].value.precision;
+  const IntervalMP reciprocal_width = interval_point_rational(1U, inputs.size(), precision);
+  JetMP mean = jet_scale_interval(jet_pairwise_sum(inputs), reciprocal_width);
+  std::vector<JetMP> centered;
+  centered.reserve(inputs.size());
+  for (const JetMP& input : inputs) centered.emplace_back(jet_sub(input, mean));
+  std::vector<JetMP> squares;
+  squares.reserve(inputs.size());
+  for (const JetMP& value : centered) squares.emplace_back(jet_square(value));
+  JetMP variance = jet_scale_interval(jet_pairwise_sum(squares), reciprocal_width);
+  variance = jet_add(variance, jet_constant(interval_point_float(
+      float_from_bits(epsilon_bits), precision)));
+  if (mpfr_sgn(variance.value.lower.get()) <= 0) return 5;
+  JetMP inverse_scale = jet_inv_sqrt(variance);
+  outputs.reserve(inputs.size());
+  for (std::size_t index = 0; index < inputs.size(); ++index) {
+    JetMP normalized = jet_mul(centered[index], inverse_scale);
+    JetMP scaled = jet_scale_float(normalized, float_from_bits(gamma_bits[index]));
+    outputs.emplace_back(jet_add(scaled, jet_constant(interval_point_float(
+        float_from_bits(beta_bits[index]), precision))));
+  }
+  return 0;
+}
+
 std::vector<JetMP> layer_norm_identity(const std::vector<JetMP>& inputs) {
   const mpfr_prec_t precision = inputs[0].value.precision;
   const IntervalMP reciprocal_width = interval_point_rational(1U, inputs.size(), precision);
@@ -1032,6 +1061,182 @@ extern "C" int green_v400_resident_jet_buffer_gelu_new(
       values.emplace_back(jet_gelu_new(
           jet, float_from_bits(kappa_bits), float_from_bits(lambda_bits)));
     *output_handle = new ResidentJetBuffer(input->precision, std::move(values));
+    return 0;
+  } catch (...) {
+    return 7;
+  }
+}
+
+extern "C" int green_v400_resident_jet_buffer_layer_norm(
+    void* input_handle, std::uint32_t epsilon_bits,
+    const std::uint32_t* gamma_bits, const std::uint32_t* beta_bits,
+    void** output_handle) {
+  if (output_handle == nullptr) return 2;
+  *output_handle = nullptr;
+  ResidentJetBuffer* input = resident_buffer(input_handle);
+  if (input == nullptr || input->values.empty()
+      || gamma_bits == nullptr || beta_bits == nullptr) return 2;
+  try {
+    std::vector<JetMP> values;
+    const int status = packed_layer_norm(
+        input->values, epsilon_bits, gamma_bits, beta_bits, values);
+    if (status != 0) return status;
+    *output_handle = new ResidentJetBuffer(input->precision, std::move(values));
+    return 0;
+  } catch (...) {
+    return 7;
+  }
+}
+
+extern "C" int green_v400_resident_jet_buffer_add(
+    void* left_handle, void* right_handle, void** output_handle) {
+  if (output_handle == nullptr) return 2;
+  *output_handle = nullptr;
+  ResidentJetBuffer* left = resident_buffer(left_handle);
+  ResidentJetBuffer* right = resident_buffer(right_handle);
+  if (left == nullptr || right == nullptr || left->values.empty()
+      || left->precision != right->precision
+      || left->values.size() != right->values.size()) return 2;
+  try {
+    std::vector<JetMP> values;
+    values.reserve(left->values.size());
+    for (std::size_t index = 0; index < left->values.size(); ++index)
+      values.emplace_back(jet_add(left->values[index], right->values[index]));
+    *output_handle = new ResidentJetBuffer(left->precision, std::move(values));
+    return 0;
+  } catch (...) {
+    return 7;
+  }
+}
+
+extern "C" int green_v400_resident_jet_buffer_sub(
+    void* left_handle, void* right_handle, void** output_handle) {
+  if (output_handle == nullptr) return 2;
+  *output_handle = nullptr;
+  ResidentJetBuffer* left = resident_buffer(left_handle);
+  ResidentJetBuffer* right = resident_buffer(right_handle);
+  if (left == nullptr || right == nullptr || left->values.empty()
+      || left->precision != right->precision
+      || left->values.size() != right->values.size()) return 2;
+  try {
+    std::vector<JetMP> values;
+    values.reserve(left->values.size());
+    for (std::size_t index = 0; index < left->values.size(); ++index)
+      values.emplace_back(jet_sub(left->values[index], right->values[index]));
+    *output_handle = new ResidentJetBuffer(left->precision, std::move(values));
+    return 0;
+  } catch (...) {
+    return 7;
+  }
+}
+
+extern "C" int green_v400_resident_jet_buffer_concat(
+    void* const* input_handles, std::uint32_t input_count, void** output_handle) {
+  if (output_handle == nullptr) return 2;
+  *output_handle = nullptr;
+  if (input_handles == nullptr || input_count == 0 || input_count > 1000000U) return 2;
+  ResidentJetBuffer* first = resident_buffer(input_handles[0]);
+  if (first == nullptr || first->values.empty()) return 2;
+  std::size_t total_width = 0;
+  for (std::uint32_t index = 0; index < input_count; ++index) {
+    ResidentJetBuffer* input = resident_buffer(input_handles[index]);
+    if (input == nullptr || input->values.empty() || input->precision != first->precision
+        || input->values.size() > 1000000U - total_width) return 2;
+    total_width += input->values.size();
+  }
+  try {
+    std::vector<JetMP> values;
+    values.reserve(total_width);
+    for (std::uint32_t index = 0; index < input_count; ++index) {
+      ResidentJetBuffer* input = resident_buffer(input_handles[index]);
+      for (const JetMP& value : input->values) values.emplace_back(jet_clone(value));
+    }
+    *output_handle = new ResidentJetBuffer(first->precision, std::move(values));
+    return 0;
+  } catch (...) {
+    return 7;
+  }
+}
+
+extern "C" int green_v400_resident_jet_buffer_causal_attention_all_heads(
+    void* query_handle, void* keys_handle, void* values_handle,
+    std::uint32_t sequence_length, std::uint32_t n_heads,
+    std::uint32_t head_dim, std::uint32_t pivot, void** output_handle) {
+  if (output_handle == nullptr) return 2;
+  *output_handle = nullptr;
+  ResidentJetBuffer* query_input = resident_buffer(query_handle);
+  ResidentJetBuffer* keys_input = resident_buffer(keys_handle);
+  ResidentJetBuffer* values_input = resident_buffer(values_handle);
+  if (query_input == nullptr || keys_input == nullptr || values_input == nullptr
+      || sequence_length == 0 || n_heads == 0 || head_dim == 0
+      || pivot >= sequence_length || sequence_length > 4096U
+      || n_heads > 4096U || head_dim > 4096U
+      || query_input->precision != keys_input->precision
+      || query_input->precision != values_input->precision) return 2;
+  const std::size_t d_model = static_cast<std::size_t>(n_heads) * head_dim;
+  const std::size_t matrix_width = static_cast<std::size_t>(sequence_length) * d_model;
+  if (query_input->values.size() != d_model
+      || keys_input->values.size() != matrix_width
+      || values_input->values.size() != matrix_width) return 2;
+  try {
+    std::vector<JetMP> outputs;
+    outputs.reserve(d_model);
+    for (std::uint32_t head = 0; head < n_heads; ++head) {
+      const std::size_t start = static_cast<std::size_t>(head) * head_dim;
+      std::vector<JetMP> query, keys, values;
+      query.reserve(head_dim);
+      keys.reserve(static_cast<std::size_t>(sequence_length) * head_dim);
+      values.reserve(static_cast<std::size_t>(sequence_length) * head_dim);
+      for (std::uint32_t coordinate = 0; coordinate < head_dim; ++coordinate)
+        query.emplace_back(jet_clone(query_input->values[start + coordinate]));
+      for (std::uint32_t token = 0; token < sequence_length; ++token) {
+        for (std::uint32_t coordinate = 0; coordinate < head_dim; ++coordinate) {
+          const std::size_t index = static_cast<std::size_t>(token) * d_model
+                                    + start + coordinate;
+          keys.emplace_back(jet_clone(keys_input->values[index]));
+          values.emplace_back(jet_clone(values_input->values[index]));
+        }
+      }
+      std::vector<JetMP> head_outputs = attention_final_head(
+          query, keys, values, sequence_length, head_dim, pivot);
+      for (JetMP& output : head_outputs) outputs.emplace_back(std::move(output));
+    }
+    *output_handle = new ResidentJetBuffer(query_input->precision, std::move(outputs));
+    return 0;
+  } catch (...) {
+    return 7;
+  }
+}
+
+extern "C" int green_v400_resident_jet_buffer_fused_contrast_exact(
+    void* input_handle, const char* const* weight_significands,
+    const std::int64_t* weight_exponents, const char* bias_significand,
+    std::int64_t bias_exponent, void** output_handle) {
+  if (output_handle == nullptr) return 2;
+  *output_handle = nullptr;
+  ResidentJetBuffer* input = resident_buffer(input_handle);
+  if (input == nullptr || input->values.empty() || weight_significands == nullptr
+      || weight_exponents == nullptr || bias_significand == nullptr) return 2;
+  try {
+    std::vector<JetMP> terms;
+    terms.reserve(input->values.size());
+    for (std::size_t index = 0; index < input->values.size(); ++index) {
+      IntervalMP weight(input->precision);
+      const int status = set_exact_binary(
+          weight.lower.get(), weight_significands[index], weight_exponents[index]);
+      if (status != 0) return status;
+      mpfr_set(weight.upper.get(), weight.lower.get(), MPFR_RNDN);
+      terms.emplace_back(jet_scale_interval(input->values[index], weight));
+    }
+    JetMP result = jet_pairwise_sum(terms);
+    IntervalMP bias(input->precision);
+    const int status = set_exact_binary(
+        bias.lower.get(), bias_significand, bias_exponent);
+    if (status != 0) return status;
+    mpfr_set(bias.upper.get(), bias.lower.get(), MPFR_RNDN);
+    std::vector<JetMP> outputs;
+    outputs.emplace_back(jet_add(result, jet_constant(bias)));
+    *output_handle = new ResidentJetBuffer(input->precision, std::move(outputs));
     return 0;
   } catch (...) {
     return 7;
@@ -1578,28 +1783,16 @@ extern "C" int green_v400_layer_norm_jet2_exact(
                                        components[component]->upper.get())) return 3;
     }
   }
-  const IntervalMP reciprocal_width = interval_point_rational(1U, width, precision);
-  JetMP mean = jet_scale_interval(jet_pairwise_sum(inputs), reciprocal_width);
-  std::vector<JetMP> centered;
-  centered.reserve(width);
-  for (const JetMP& input : inputs) centered.emplace_back(jet_sub(input, mean));
-  std::vector<JetMP> squares;
-  squares.reserve(width);
-  for (const JetMP& value : centered) squares.emplace_back(jet_square(value));
-  JetMP variance = jet_scale_interval(jet_pairwise_sum(squares), reciprocal_width);
-  variance = jet_add(variance, jet_constant(interval_point_float(
-      float_from_bits(epsilon_bits), precision)));
-  if (mpfr_sgn(variance.value.lower.get()) <= 0) return 5;
-  JetMP inverse_scale = jet_inv_sqrt(variance);
+  std::vector<JetMP> outputs;
+  const int layer_norm_status = packed_layer_norm(
+      inputs, epsilon_bits, gamma_bits, beta_bits, outputs);
+  if (layer_norm_status != 0) return layer_norm_status;
   std::ostringstream stream;
   stream << "{\"schema_version\":\"green-v400-compiled-layernorm-jet2-v1\",";
   stream << "\"precision_bits\":" << precision_bits << ",\"outputs\":[";
   for (std::uint32_t index = 0; index < width; ++index) {
-    JetMP normalized = jet_mul(centered[index], inverse_scale);
-    JetMP scaled = jet_scale_float(normalized, float_from_bits(gamma_bits[index]));
-    JetMP output = jet_add(scaled, jet_constant(interval_point_float(
-        float_from_bits(beta_bits[index]), precision)));
     if (index) stream << ',';
+    const JetMP& output = outputs[index];
     stream << serialize_jet(output.value.lower.get(), output.value.upper.get(),
                             output.first.lower.get(), output.first.upper.get(),
                             output.second.lower.get(), output.second.upper.get(), precision);

@@ -1,0 +1,103 @@
+{
+  "backend_sha256": "8603cf38258c07c71eff93da4713cc112a9a5c1a6d3ab7bbd591a99823b486aa",
+  "cap_decision_authorized": false,
+  "claim_scope": "cross-cell reuse of exact static rows under program/plan/backend/precision identity; Python dispatcher remains and timings are observations, not formal bounds",
+  "contains_scientific_outcome": false,
+  "created_at_utc": "2026-08-27T06:43:01.108149Z",
+  "domain": {
+    "lower": {
+      "exponent_2": -14,
+      "numerator": -1
+    },
+    "upper": {
+      "exponent_2": -14,
+      "numerator": 1
+    }
+  },
+  "fixture": "actual-shape closed GPT-2 synthetic tensor store; output values omitted",
+  "formal_wall_time_upper_bound": false,
+  "program_semantic_hash": "38f40999524d465b8ee58fcc8d2d1822caf9af6c36897a72bd404a8fff34fe62",
+  "resident_buffer_execution": true,
+  "resident_dispatcher_complete": false,
+  "resident_plan_semantic_hash": "0d5625e2f7af118615497e9642481946aec0a436b900e3c0d1661f90ba6f9acf",
+  "rows": [
+    {
+      "cold_over_warm_ratio": 1.3712293713099084,
+      "cold_runtime_metrics": {
+        "dense_axis0_row_slot_count": 532,
+        "materialized_axis0_row_count": 196,
+        "resident_buffer_execution": true,
+        "resident_buffer_exports": 17,
+        "resident_buffer_imports": 42,
+        "resident_buffer_nodes_by_kernel": {
+          "branch_linear_combination.v1": 1,
+          "causal_attention.v1": 4,
+          "final_contrast.v1": 4,
+          "gelu_new.v1": 6,
+          "layer_norm.v1": 14,
+          "pairwise_affine.v1": 28,
+          "residual_add.v1": 22,
+          "static_view.v1": 2
+        },
+        "resident_fused_contrast_nodes": 4,
+        "resident_gelu_batch_rows": 2,
+        "resident_packed_tensor_binding_reads": 134,
+        "resident_static_row_cache_enabled": true,
+        "schema_version": "green-v400-resident-runtime-metrics-v1",
+        "sparse_axis0_execution": true,
+        "static_row_cache_entry_count": 40,
+        "static_row_cache_hits_by_kernel": {
+          "layer_norm.v1": 13,
+          "pairwise_affine.v1": 37
+        },
+        "static_row_cache_initial_entry_count": 0,
+        "static_row_cache_misses_by_kernel": {
+          "gelu_new.v1": 2,
+          "layer_norm.v1": 13,
+          "pairwise_affine.v1": 25
+        },
+        "tensor_store_fallback_reads": 0
+      },
+      "cold_seconds": 31.654498275980586,
+      "output_bit_identity_boolean_only": true,
+      "precision_bits": 384,
+      "resident_static_cache_entry_count": 40,
+      "row_pass": true,
+      "warm_runtime_metrics": {
+        "dense_axis0_row_slot_count": 532,
+        "materialized_axis0_row_count": 196,
+        "resident_buffer_execution": true,
+        "resident_buffer_exports": 17,
+        "resident_buffer_imports": 42,
+        "resident_buffer_nodes_by_kernel": {
+          "branch_linear_combination.v1": 1,
+          "causal_attention.v1": 4,
+          "final_contrast.v1": 4,
+          "gelu_new.v1": 6,
+          "layer_norm.v1": 14,
+          "pairwise_affine.v1": 28,
+          "residual_add.v1": 22,
+          "static_view.v1": 2
+        },
+        "resident_fused_contrast_nodes": 4,
+        "resident_gelu_batch_rows": 0,
+        "resident_packed_tensor_binding_reads": 134,
+        "resident_static_row_cache_enabled": true,
+        "schema_version": "green-v400-resident-runtime-metrics-v1",
+        "sparse_axis0_execution": true,
+        "static_row_cache_entry_count": 40,
+        "static_row_cache_hits_by_kernel": {
+          "gelu_new.v1": 2,
+          "layer_norm.v1": 26,
+          "pairwise_affine.v1": 62
+        },
+        "static_row_cache_initial_entry_count": 40,
+        "static_row_cache_misses_by_kernel": {},
+        "tensor_store_fallback_reads": 0
+      },
+      "warm_seconds": 23.08475805600756
+    }
+  ],
+  "schema_version": "green-v400-cross-cell-static-cache-benchmark-v1",
+  "status": "PASS_CROSS_CELL_STATIC_CACHE_OBSERVATION_ONLY"
+}

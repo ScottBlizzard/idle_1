@@ -79,16 +79,31 @@ def main() -> int:
             return_runtime_metrics=True, return_dispatch_trace=True,
         )
         resident_warm_seconds = time.perf_counter() - started
+        resident_buffer_cache = ResidentStaticRowCache.build(
+            program, resident_plan, backend, precision
+        )
+        started = time.perf_counter()
+        resident_buffer = execute_tensor_program_mpfr(
+            program, reader, domain, backend, resident_plan=resident_plan,
+            resident_arrays=resident_arrays, sparse_axis0_execution=True,
+            resident_static_row_cache=resident_buffer_cache,
+            resident_buffer_execution=True, return_runtime_metrics=True,
+            return_dispatch_trace=True,
+        )
+        resident_buffer_seconds = time.perf_counter() - started
         roots = {}
         for name in ("PAT_J", "PAT_B", "TAR_J", "TAR_B", "output"):
             reference_payload = jet_exact_payload(reference[name])
             compiled_payload = jet_exact_payload(compiled[name])
             resident_fused_payload = jet_exact_payload(resident_fused[name])
             resident_warm_payload = jet_exact_payload(resident_warm[name])
+            resident_buffer_payload = jet_exact_payload(resident_buffer[name])
             identical = reference_payload == compiled_payload
             resident_fused_identical = reference_payload == resident_fused_payload
             resident_warm_identical = reference_payload == resident_warm_payload
-            passed = passed and identical and resident_fused_identical and resident_warm_identical
+            resident_buffer_identical = reference_payload == resident_buffer_payload
+            passed = (passed and identical and resident_fused_identical
+                      and resident_warm_identical and resident_buffer_identical)
             roots[name] = {
                 "bit_identical": identical,
                 "resident_fused_contrast_bit_identical": resident_fused_identical,
@@ -98,6 +113,10 @@ def main() -> int:
                     resident_fused_payload
                 ),
                 "resident_warm_static_cache_bit_identical": resident_warm_identical,
+                "resident_buffer_bit_identical": resident_buffer_identical,
+                "resident_buffer_exact_payload_sha256": sha256_canonical(
+                    resident_buffer_payload
+                ),
             }
         resident_trace_identical = (
             resident_fused["dispatch_trace"] == reference["dispatch_trace"]
@@ -107,6 +126,10 @@ def main() -> int:
             resident_warm["dispatch_trace"] == reference["dispatch_trace"]
         )
         passed = passed and resident_warm_trace_identical
+        resident_buffer_trace_identical = (
+            resident_buffer["dispatch_trace"] == reference["dispatch_trace"]
+        )
+        passed = passed and resident_buffer_trace_identical
         rows.append({
             "precision_bits": precision,
             "domain": {"lower": {"numerator": -1, "exponent_2": -14},
@@ -115,6 +138,7 @@ def main() -> int:
             "compiled_correctness_ffi_seconds": compiled_seconds,
             "resident_fused_contrast_ffi_seconds": resident_fused_seconds,
             "resident_warm_static_cache_ffi_seconds": resident_warm_seconds,
+            "resident_buffer_ffi_seconds": resident_buffer_seconds,
             "resident_cold_over_warm_ratio": resident_fused_seconds / resident_warm_seconds,
             "roots": roots,
             "successful_dispatch_trace_sha256": reference["dispatch_trace"]["trace_sha256"],
@@ -132,9 +156,13 @@ def main() -> int:
             "resident_runtime_metrics": resident_fused["runtime_metrics"],
             "resident_warm_dispatch_trace_bit_identical": resident_warm_trace_identical,
             "resident_warm_runtime_metrics": resident_warm["runtime_metrics"],
+            "resident_buffer_dispatch_trace_bit_identical": (
+                resident_buffer_trace_identical
+            ),
+            "resident_buffer_runtime_metrics": resident_buffer["runtime_metrics"],
         })
     report = {
-        "schema_version": "green-v400-full-tensor-program-mpfr-parity-v12",
+        "schema_version": "green-v400-full-tensor-program-mpfr-parity-v13-resident-buffer",
         "created_at_utc": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
         "status": "PASS" if passed else "FAIL",
         "fixture": "deterministic tiny Transformer; no noun, prompt, donor, or scientific outcome",
@@ -153,6 +181,10 @@ def main() -> int:
         "resident_packed_tensor_inputs_consumed": True,
         "resident_pairwise_affine_batch_abi_consumed": True,
         "resident_gelu_batch_abi_consumed": True,
+        "resident_layer_norm_buffer_abi_consumed": True,
+        "resident_residual_buffer_abi_consumed": True,
+        "resident_attention_buffer_abi_consumed": True,
+        "resident_fused_contrast_buffer_abi_consumed": True,
         "resident_attention_all_heads_abi_default_enabled": False,
         "resident_attention_all_heads_abi_decision": (
             "correctness-qualified but disabled: actual-shape benchmark showed no stable "
@@ -173,7 +205,7 @@ def main() -> int:
             "identity-bound cross-cell static-row parity; "
             "the remaining JSON/FFI dispatcher is not a performance backend"
         ),
-        "resident_buffer_executor": False,
+        "resident_buffer_executor": True,
         "cap_decision_authorized": False,
     }
     (output_root / "parity_report.json").write_text(

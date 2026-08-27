@@ -1,0 +1,387 @@
+{
+  "backend_sha256": "8603cf38258c07c71eff93da4713cc112a9a5c1a6d3ab7bbd591a99823b486aa",
+  "backend_version": "green-v400-compiled-mpfr-v2",
+  "canonical_zero_endpoint_serialization_consumed": true,
+  "cap_decision_authorized": false,
+  "claim_scope": "end-to-end correctness plus packed-input, sparse-row, fused-contrast, and identity-bound cross-cell static-row parity; the remaining JSON/FFI dispatcher is not a performance backend",
+  "contains_scientific_outcome": false,
+  "created_at_utc": "2026-08-27T06:46:36.324610Z",
+  "dense_axis0_row_slot_count": 228,
+  "dependency_mask_closure_sha256": "9ac06bc0e8c80331555686620117ba35b3db2d7c52b69b7f8d3595b18500428e",
+  "dimensions": {
+    "contrast_width": 3,
+    "d_head": 2,
+    "d_mlp": 8,
+    "d_model": 4,
+    "final_position": 2,
+    "n_heads": 2,
+    "selected_gates": [
+      1,
+      6
+    ],
+    "sequence_length": 3
+  },
+  "fixture": "deterministic tiny Transformer; no noun, prompt, donor, or scientific outcome",
+  "program_node_count": 81,
+  "program_semantic_hash": "1d7edfa065046e258a066acb6725610867edeae8bc084869c96b61d5ea29aa2a",
+  "python_zero_decode_short_circuit_consumed": true,
+  "resident_attention_all_heads_abi_decision": "correctness-qualified but disabled: actual-shape benchmark showed no stable speedup and the tiny end-to-end resident path regressed",
+  "resident_attention_all_heads_abi_default_enabled": false,
+  "resident_attention_buffer_abi_consumed": true,
+  "resident_buffer_executor": true,
+  "resident_cross_cell_static_row_cache_consumed": true,
+  "resident_fused_contrast_buffer_abi_consumed": true,
+  "resident_gelu_batch_abi_consumed": true,
+  "resident_layer_norm_buffer_abi_consumed": true,
+  "resident_materialized_axis0_row_count": 116,
+  "resident_packed_tensor_inputs_consumed": true,
+  "resident_pairwise_affine_batch_abi_consumed": true,
+  "resident_plan_claim_status": "PASS_PACKED_RESIDENT_MANIFEST_PREPARE_ONLY",
+  "resident_plan_native_execution_ready": false,
+  "resident_plan_semantic_hash": "5c41acabbb7a0c3f1e67b1e0f747feab4c75b9ffb206b91b74914e9bc5c93014",
+  "resident_residual_buffer_abi_consumed": true,
+  "resident_sparse_axis0_execution_consumed": true,
+  "resident_static_row_cache_consumed": true,
+  "rows": [
+    {
+      "compiled_correctness_ffi_seconds": 0.09102487299242057,
+      "domain": {
+        "lower": {
+          "exponent_2": -14,
+          "numerator": -1
+        },
+        "upper": {
+          "exponent_2": -14,
+          "numerator": 1
+        }
+      },
+      "precision_bits": 384,
+      "program_dispatch_signature_sha256": "e2b7b4b5f161aa0c43c075a3fd637b98c21931d3d8dc2547b08864bc8424c7dc",
+      "reference_seconds": 1.1965384560171515,
+      "resident_buffer_dispatch_trace_bit_identical": true,
+      "resident_buffer_ffi_seconds": 0.016689604992279783,
+      "resident_buffer_runtime_metrics": {
+        "dense_axis0_row_slot_count": 228,
+        "materialized_axis0_row_count": 116,
+        "resident_buffer_execution": true,
+        "resident_buffer_exported_jet_count": 21,
+        "resident_buffer_exports": 9,
+        "resident_buffer_imported_jet_count": 132,
+        "resident_buffer_imports": 26,
+        "resident_buffer_nodes_by_kernel": {
+          "branch_linear_combination.v1": 1,
+          "causal_attention.v1": 4,
+          "final_contrast.v1": 4,
+          "gelu_new.v1": 6,
+          "layer_norm.v1": 14,
+          "pairwise_affine.v1": 28,
+          "residual_add.v1": 14,
+          "static_view.v1": 2
+        },
+        "resident_fused_contrast_nodes": 4,
+        "resident_gelu_batch_rows": 2,
+        "resident_packed_tensor_binding_reads": 134,
+        "resident_static_row_cache_enabled": true,
+        "schema_version": "green-v400-resident-runtime-metrics-v1",
+        "sparse_axis0_execution": true,
+        "static_row_cache_entry_count": 19,
+        "static_row_cache_hits_by_kernel": {
+          "layer_norm.v1": 4,
+          "pairwise_affine.v1": 11
+        },
+        "static_row_cache_initial_entry_count": 0,
+        "static_row_cache_misses_by_kernel": {
+          "gelu_new.v1": 2,
+          "layer_norm.v1": 6,
+          "pairwise_affine.v1": 11
+        },
+        "tensor_store_fallback_reads": 0
+      },
+      "resident_cold_over_warm_ratio": 1.2034649070206576,
+      "resident_dispatch_trace_bit_identical": true,
+      "resident_fused_contrast_ffi_seconds": 0.03392411000095308,
+      "resident_runtime_metrics": {
+        "dense_axis0_row_slot_count": 228,
+        "materialized_axis0_row_count": 116,
+        "resident_buffer_execution": false,
+        "resident_buffer_exported_jet_count": 0,
+        "resident_buffer_exports": 0,
+        "resident_buffer_imported_jet_count": 0,
+        "resident_buffer_imports": 0,
+        "resident_buffer_nodes_by_kernel": {},
+        "resident_fused_contrast_nodes": 4,
+        "resident_gelu_batch_rows": 8,
+        "resident_packed_tensor_binding_reads": 134,
+        "resident_static_row_cache_enabled": true,
+        "schema_version": "green-v400-resident-runtime-metrics-v1",
+        "sparse_axis0_execution": true,
+        "static_row_cache_entry_count": 19,
+        "static_row_cache_hits_by_kernel": {
+          "layer_norm.v1": 4,
+          "pairwise_affine.v1": 11
+        },
+        "static_row_cache_initial_entry_count": 0,
+        "static_row_cache_misses_by_kernel": {
+          "gelu_new.v1": 2,
+          "layer_norm.v1": 6,
+          "pairwise_affine.v1": 11
+        },
+        "tensor_store_fallback_reads": 0
+      },
+      "resident_successful_dispatch_event_count": 81,
+      "resident_successful_dispatch_trace_sha256": "6854f99c2a270b296bac6c1b1ed5ad34d6e18534611e2ef2af5df8e4fa6ff528",
+      "resident_warm_dispatch_trace_bit_identical": true,
+      "resident_warm_runtime_metrics": {
+        "dense_axis0_row_slot_count": 228,
+        "materialized_axis0_row_count": 116,
+        "resident_buffer_execution": false,
+        "resident_buffer_exported_jet_count": 0,
+        "resident_buffer_exports": 0,
+        "resident_buffer_imported_jet_count": 0,
+        "resident_buffer_imports": 0,
+        "resident_buffer_nodes_by_kernel": {},
+        "resident_fused_contrast_nodes": 4,
+        "resident_gelu_batch_rows": 6,
+        "resident_packed_tensor_binding_reads": 134,
+        "resident_static_row_cache_enabled": true,
+        "schema_version": "green-v400-resident-runtime-metrics-v1",
+        "sparse_axis0_execution": true,
+        "static_row_cache_entry_count": 19,
+        "static_row_cache_hits_by_kernel": {
+          "gelu_new.v1": 2,
+          "layer_norm.v1": 10,
+          "pairwise_affine.v1": 22
+        },
+        "static_row_cache_initial_entry_count": 19,
+        "static_row_cache_misses_by_kernel": {},
+        "tensor_store_fallback_reads": 0
+      },
+      "resident_warm_static_cache_ffi_seconds": 0.028188698983285576,
+      "roots": {
+        "PAT_B": {
+          "bit_identical": true,
+          "compiled_exact_payload_sha256": "d015f5f6a9c894a464106358e086770300e8501f7050a01227fbd6aea8f8cc2f",
+          "reference_exact_payload_sha256": "d015f5f6a9c894a464106358e086770300e8501f7050a01227fbd6aea8f8cc2f",
+          "resident_buffer_bit_identical": true,
+          "resident_buffer_exact_payload_sha256": "d015f5f6a9c894a464106358e086770300e8501f7050a01227fbd6aea8f8cc2f",
+          "resident_fused_contrast_bit_identical": true,
+          "resident_fused_exact_payload_sha256": "d015f5f6a9c894a464106358e086770300e8501f7050a01227fbd6aea8f8cc2f",
+          "resident_warm_static_cache_bit_identical": true
+        },
+        "PAT_J": {
+          "bit_identical": true,
+          "compiled_exact_payload_sha256": "f6c10400352d69184ed1510b509a68abba6b32a61df3b95c1085d3c56b17bdbc",
+          "reference_exact_payload_sha256": "f6c10400352d69184ed1510b509a68abba6b32a61df3b95c1085d3c56b17bdbc",
+          "resident_buffer_bit_identical": true,
+          "resident_buffer_exact_payload_sha256": "f6c10400352d69184ed1510b509a68abba6b32a61df3b95c1085d3c56b17bdbc",
+          "resident_fused_contrast_bit_identical": true,
+          "resident_fused_exact_payload_sha256": "f6c10400352d69184ed1510b509a68abba6b32a61df3b95c1085d3c56b17bdbc",
+          "resident_warm_static_cache_bit_identical": true
+        },
+        "TAR_B": {
+          "bit_identical": true,
+          "compiled_exact_payload_sha256": "43031ee67a59774a378ccb4ed09004c89aa6536b77af4fbec9257f8f034b1e70",
+          "reference_exact_payload_sha256": "43031ee67a59774a378ccb4ed09004c89aa6536b77af4fbec9257f8f034b1e70",
+          "resident_buffer_bit_identical": true,
+          "resident_buffer_exact_payload_sha256": "43031ee67a59774a378ccb4ed09004c89aa6536b77af4fbec9257f8f034b1e70",
+          "resident_fused_contrast_bit_identical": true,
+          "resident_fused_exact_payload_sha256": "43031ee67a59774a378ccb4ed09004c89aa6536b77af4fbec9257f8f034b1e70",
+          "resident_warm_static_cache_bit_identical": true
+        },
+        "TAR_J": {
+          "bit_identical": true,
+          "compiled_exact_payload_sha256": "b8cc8bf8d32312b63b08058bafff6bd17b9746d8f2c36918b9e5ea511009de21",
+          "reference_exact_payload_sha256": "b8cc8bf8d32312b63b08058bafff6bd17b9746d8f2c36918b9e5ea511009de21",
+          "resident_buffer_bit_identical": true,
+          "resident_buffer_exact_payload_sha256": "b8cc8bf8d32312b63b08058bafff6bd17b9746d8f2c36918b9e5ea511009de21",
+          "resident_fused_contrast_bit_identical": true,
+          "resident_fused_exact_payload_sha256": "b8cc8bf8d32312b63b08058bafff6bd17b9746d8f2c36918b9e5ea511009de21",
+          "resident_warm_static_cache_bit_identical": true
+        },
+        "output": {
+          "bit_identical": true,
+          "compiled_exact_payload_sha256": "97703d4ccac006f81591d1890a8a326af75ca26e0dac7a5a05794adf758b535a",
+          "reference_exact_payload_sha256": "97703d4ccac006f81591d1890a8a326af75ca26e0dac7a5a05794adf758b535a",
+          "resident_buffer_bit_identical": true,
+          "resident_buffer_exact_payload_sha256": "97703d4ccac006f81591d1890a8a326af75ca26e0dac7a5a05794adf758b535a",
+          "resident_fused_contrast_bit_identical": true,
+          "resident_fused_exact_payload_sha256": "97703d4ccac006f81591d1890a8a326af75ca26e0dac7a5a05794adf758b535a",
+          "resident_warm_static_cache_bit_identical": true
+        }
+      },
+      "successful_dispatch_event_count": 81,
+      "successful_dispatch_trace_sha256": "6854f99c2a270b296bac6c1b1ed5ad34d6e18534611e2ef2af5df8e4fa6ff528"
+    },
+    {
+      "compiled_correctness_ffi_seconds": 0.09394105098908767,
+      "domain": {
+        "lower": {
+          "exponent_2": -14,
+          "numerator": -1
+        },
+        "upper": {
+          "exponent_2": -14,
+          "numerator": 1
+        }
+      },
+      "precision_bits": 512,
+      "program_dispatch_signature_sha256": "e2b7b4b5f161aa0c43c075a3fd637b98c21931d3d8dc2547b08864bc8424c7dc",
+      "reference_seconds": 1.5968105270003434,
+      "resident_buffer_dispatch_trace_bit_identical": true,
+      "resident_buffer_ffi_seconds": 0.017531499994220212,
+      "resident_buffer_runtime_metrics": {
+        "dense_axis0_row_slot_count": 228,
+        "materialized_axis0_row_count": 116,
+        "resident_buffer_execution": true,
+        "resident_buffer_exported_jet_count": 21,
+        "resident_buffer_exports": 9,
+        "resident_buffer_imported_jet_count": 132,
+        "resident_buffer_imports": 26,
+        "resident_buffer_nodes_by_kernel": {
+          "branch_linear_combination.v1": 1,
+          "causal_attention.v1": 4,
+          "final_contrast.v1": 4,
+          "gelu_new.v1": 6,
+          "layer_norm.v1": 14,
+          "pairwise_affine.v1": 28,
+          "residual_add.v1": 14,
+          "static_view.v1": 2
+        },
+        "resident_fused_contrast_nodes": 4,
+        "resident_gelu_batch_rows": 2,
+        "resident_packed_tensor_binding_reads": 134,
+        "resident_static_row_cache_enabled": true,
+        "schema_version": "green-v400-resident-runtime-metrics-v1",
+        "sparse_axis0_execution": true,
+        "static_row_cache_entry_count": 19,
+        "static_row_cache_hits_by_kernel": {
+          "layer_norm.v1": 4,
+          "pairwise_affine.v1": 11
+        },
+        "static_row_cache_initial_entry_count": 0,
+        "static_row_cache_misses_by_kernel": {
+          "gelu_new.v1": 2,
+          "layer_norm.v1": 6,
+          "pairwise_affine.v1": 11
+        },
+        "tensor_store_fallback_reads": 0
+      },
+      "resident_cold_over_warm_ratio": 1.1530275504238958,
+      "resident_dispatch_trace_bit_identical": true,
+      "resident_fused_contrast_ffi_seconds": 0.03570294001838192,
+      "resident_runtime_metrics": {
+        "dense_axis0_row_slot_count": 228,
+        "materialized_axis0_row_count": 116,
+        "resident_buffer_execution": false,
+        "resident_buffer_exported_jet_count": 0,
+        "resident_buffer_exports": 0,
+        "resident_buffer_imported_jet_count": 0,
+        "resident_buffer_imports": 0,
+        "resident_buffer_nodes_by_kernel": {},
+        "resident_fused_contrast_nodes": 4,
+        "resident_gelu_batch_rows": 8,
+        "resident_packed_tensor_binding_reads": 134,
+        "resident_static_row_cache_enabled": true,
+        "schema_version": "green-v400-resident-runtime-metrics-v1",
+        "sparse_axis0_execution": true,
+        "static_row_cache_entry_count": 19,
+        "static_row_cache_hits_by_kernel": {
+          "layer_norm.v1": 4,
+          "pairwise_affine.v1": 11
+        },
+        "static_row_cache_initial_entry_count": 0,
+        "static_row_cache_misses_by_kernel": {
+          "gelu_new.v1": 2,
+          "layer_norm.v1": 6,
+          "pairwise_affine.v1": 11
+        },
+        "tensor_store_fallback_reads": 0
+      },
+      "resident_successful_dispatch_event_count": 81,
+      "resident_successful_dispatch_trace_sha256": "6854f99c2a270b296bac6c1b1ed5ad34d6e18534611e2ef2af5df8e4fa6ff528",
+      "resident_warm_dispatch_trace_bit_identical": true,
+      "resident_warm_runtime_metrics": {
+        "dense_axis0_row_slot_count": 228,
+        "materialized_axis0_row_count": 116,
+        "resident_buffer_execution": false,
+        "resident_buffer_exported_jet_count": 0,
+        "resident_buffer_exports": 0,
+        "resident_buffer_imported_jet_count": 0,
+        "resident_buffer_imports": 0,
+        "resident_buffer_nodes_by_kernel": {},
+        "resident_fused_contrast_nodes": 4,
+        "resident_gelu_batch_rows": 6,
+        "resident_packed_tensor_binding_reads": 134,
+        "resident_static_row_cache_enabled": true,
+        "schema_version": "green-v400-resident-runtime-metrics-v1",
+        "sparse_axis0_execution": true,
+        "static_row_cache_entry_count": 19,
+        "static_row_cache_hits_by_kernel": {
+          "gelu_new.v1": 2,
+          "layer_norm.v1": 10,
+          "pairwise_affine.v1": 22
+        },
+        "static_row_cache_initial_entry_count": 19,
+        "static_row_cache_misses_by_kernel": {},
+        "tensor_store_fallback_reads": 0
+      },
+      "resident_warm_static_cache_ffi_seconds": 0.030964515986852348,
+      "roots": {
+        "PAT_B": {
+          "bit_identical": true,
+          "compiled_exact_payload_sha256": "7c0a5b70449109742cf872bf9fe11ed6b63b0c5e29753815c20cea300c4fb38e",
+          "reference_exact_payload_sha256": "7c0a5b70449109742cf872bf9fe11ed6b63b0c5e29753815c20cea300c4fb38e",
+          "resident_buffer_bit_identical": true,
+          "resident_buffer_exact_payload_sha256": "7c0a5b70449109742cf872bf9fe11ed6b63b0c5e29753815c20cea300c4fb38e",
+          "resident_fused_contrast_bit_identical": true,
+          "resident_fused_exact_payload_sha256": "7c0a5b70449109742cf872bf9fe11ed6b63b0c5e29753815c20cea300c4fb38e",
+          "resident_warm_static_cache_bit_identical": true
+        },
+        "PAT_J": {
+          "bit_identical": true,
+          "compiled_exact_payload_sha256": "eec40445018e58354373c9525d6f3e632ee3ddc13cb217433f99650f3e4b55a2",
+          "reference_exact_payload_sha256": "eec40445018e58354373c9525d6f3e632ee3ddc13cb217433f99650f3e4b55a2",
+          "resident_buffer_bit_identical": true,
+          "resident_buffer_exact_payload_sha256": "eec40445018e58354373c9525d6f3e632ee3ddc13cb217433f99650f3e4b55a2",
+          "resident_fused_contrast_bit_identical": true,
+          "resident_fused_exact_payload_sha256": "eec40445018e58354373c9525d6f3e632ee3ddc13cb217433f99650f3e4b55a2",
+          "resident_warm_static_cache_bit_identical": true
+        },
+        "TAR_B": {
+          "bit_identical": true,
+          "compiled_exact_payload_sha256": "cec33b66901cc93ab37a565838ae781ee34c72f35334bf9589eb242af966eccb",
+          "reference_exact_payload_sha256": "cec33b66901cc93ab37a565838ae781ee34c72f35334bf9589eb242af966eccb",
+          "resident_buffer_bit_identical": true,
+          "resident_buffer_exact_payload_sha256": "cec33b66901cc93ab37a565838ae781ee34c72f35334bf9589eb242af966eccb",
+          "resident_fused_contrast_bit_identical": true,
+          "resident_fused_exact_payload_sha256": "cec33b66901cc93ab37a565838ae781ee34c72f35334bf9589eb242af966eccb",
+          "resident_warm_static_cache_bit_identical": true
+        },
+        "TAR_J": {
+          "bit_identical": true,
+          "compiled_exact_payload_sha256": "0e06273d9d5e08c7ecb1a758c6267301a874012045a368b042954320079821e6",
+          "reference_exact_payload_sha256": "0e06273d9d5e08c7ecb1a758c6267301a874012045a368b042954320079821e6",
+          "resident_buffer_bit_identical": true,
+          "resident_buffer_exact_payload_sha256": "0e06273d9d5e08c7ecb1a758c6267301a874012045a368b042954320079821e6",
+          "resident_fused_contrast_bit_identical": true,
+          "resident_fused_exact_payload_sha256": "0e06273d9d5e08c7ecb1a758c6267301a874012045a368b042954320079821e6",
+          "resident_warm_static_cache_bit_identical": true
+        },
+        "output": {
+          "bit_identical": true,
+          "compiled_exact_payload_sha256": "fcb6fd3aefed8cfe206c95e9122f8eb92ebdd3ef62f776ac7819c9e370138b85",
+          "reference_exact_payload_sha256": "fcb6fd3aefed8cfe206c95e9122f8eb92ebdd3ef62f776ac7819c9e370138b85",
+          "resident_buffer_bit_identical": true,
+          "resident_buffer_exact_payload_sha256": "fcb6fd3aefed8cfe206c95e9122f8eb92ebdd3ef62f776ac7819c9e370138b85",
+          "resident_fused_contrast_bit_identical": true,
+          "resident_fused_exact_payload_sha256": "fcb6fd3aefed8cfe206c95e9122f8eb92ebdd3ef62f776ac7819c9e370138b85",
+          "resident_warm_static_cache_bit_identical": true
+        }
+      },
+      "successful_dispatch_event_count": 81,
+      "successful_dispatch_trace_sha256": "6854f99c2a270b296bac6c1b1ed5ad34d6e18534611e2ef2af5df8e4fa6ff528"
+    }
+  ],
+  "schema_version": "green-v400-full-tensor-program-mpfr-parity-v13-resident-buffer",
+  "status": "PASS"
+}

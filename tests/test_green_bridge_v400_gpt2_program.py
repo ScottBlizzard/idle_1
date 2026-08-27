@@ -248,6 +248,12 @@ def test_complete_four_branch_mpfr_program_is_bit_identical_compiled(tmp_path, p
         sparse_axis0_execution=True, return_runtime_metrics=True,
         return_dispatch_trace=True,
     )
+    resident_buffer_compiled = execute_tensor_program_mpfr(
+        program, reader, domain, CompiledMPFRBackend(Path(library)),
+        resident_plan=resident_plan, resident_arrays=resident_arrays,
+        sparse_axis0_execution=True, resident_buffer_execution=True,
+        return_runtime_metrics=True, return_dispatch_trace=True,
+    )
     assert set(reference) == {"PAT_J", "PAT_B", "TAR_J", "TAR_B", "output", "dispatch_trace"}
     assert set(compiled) == {"PAT_J", "PAT_B", "TAR_J", "TAR_B", "output"}
     assert len(reference["dispatch_trace"]["events"]) == 81
@@ -256,6 +262,8 @@ def test_complete_four_branch_mpfr_program_is_bit_identical_compiled(tmp_path, p
     for name in ("PAT_J", "PAT_B", "TAR_J", "TAR_B", "output"):
         assert jet_exact_payload(compiled[name]) == jet_exact_payload(reference[name])
         assert jet_exact_payload(resident_compiled[name]) == jet_exact_payload(reference[name])
+        assert (jet_exact_payload(resident_buffer_compiled[name])
+                == jet_exact_payload(reference[name]))
     metrics = resident_compiled["runtime_metrics"]
     assert metrics["materialized_axis0_row_count"] < metrics["dense_axis0_row_slot_count"]
     assert metrics["static_row_cache_hits_by_kernel"]["layer_norm.v1"] > 0
@@ -265,6 +273,15 @@ def test_complete_four_branch_mpfr_program_is_bit_identical_compiled(tmp_path, p
     assert metrics["resident_fused_contrast_nodes"] == 4
     assert metrics["resident_gelu_batch_rows"] > 0
     assert resident_compiled["dispatch_trace"] == reference["dispatch_trace"]
+    buffer_metrics = resident_buffer_compiled["runtime_metrics"]
+    assert buffer_metrics["resident_buffer_execution"] is True
+    assert buffer_metrics["resident_buffer_imports"] > 0
+    assert buffer_metrics["resident_buffer_exports"] > 0
+    assert buffer_metrics["resident_buffer_nodes_by_kernel"]["layer_norm.v1"] > 0
+    assert buffer_metrics["resident_buffer_nodes_by_kernel"]["pairwise_affine.v1"] > 0
+    assert buffer_metrics["resident_buffer_nodes_by_kernel"]["gelu_new.v1"] > 0
+    assert buffer_metrics["resident_buffer_nodes_by_kernel"]["residual_add.v1"] > 0
+    assert resident_buffer_compiled["dispatch_trace"] == reference["dispatch_trace"]
 
 
 @pytest.mark.parametrize("precision", [384, 512])
@@ -303,6 +320,28 @@ def test_resident_static_rows_are_reused_across_interval_cells(tmp_path, precisi
     assert second["runtime_metrics"]["resident_static_row_cache_enabled"] is True
     for name in ("PAT_J", "PAT_B", "TAR_J", "TAR_B", "output"):
         assert jet_exact_payload(second[name]) == jet_exact_payload(reference[name])
+    buffer_cache = ResidentStaticRowCache.build(
+        program, resident_plan, backend, precision
+    )
+    buffer_first = execute_tensor_program_mpfr(
+        program, reader, first_domain, backend, resident_plan=resident_plan,
+        resident_arrays=resident_arrays, resident_static_row_cache=buffer_cache,
+        sparse_axis0_execution=True, resident_buffer_execution=True,
+        return_runtime_metrics=True,
+    )
+    buffer_second = execute_tensor_program_mpfr(
+        program, reader, second_domain, backend, resident_plan=resident_plan,
+        resident_arrays=resident_arrays, resident_static_row_cache=buffer_cache,
+        sparse_axis0_execution=True, resident_buffer_execution=True,
+        return_runtime_metrics=True,
+    )
+    assert buffer_cache.native_entry_count > 0
+    assert buffer_second["runtime_metrics"]["resident_native_static_cache_hits"] > 0
+    assert (buffer_second["runtime_metrics"]["resident_buffer_imported_jet_count"]
+            < buffer_first["runtime_metrics"]["resident_buffer_imported_jet_count"])
+    for name in ("PAT_J", "PAT_B", "TAR_J", "TAR_B", "output"):
+        assert jet_exact_payload(buffer_second[name]) == jet_exact_payload(reference[name])
+    buffer_cache.close()
 
 
 def test_resident_static_row_cache_rejects_identity_mismatch(tmp_path):

@@ -18,7 +18,7 @@ from green_bridge_v400_resident_resources import gpt2_joint_witness_cell_jet2
 from green_bridge_v400_interval import (
     Interval, exp_interval, inv_sqrt_interval, sqrt_interval, tanh_interval,
 )
-from green_bridge_v400_interval_jet import Jet2, constant_jet
+from green_bridge_v400_interval_jet import Jet2, add_jet, constant_jet, sub_jet
 from green_bridge_v400_transformer_ops import (
     affine_map_jets, attention_head_jets, gelu_new_jet, layernorm_jets,
 )
@@ -301,6 +301,71 @@ def test_resident_jet_buffer_mlp_chain_matches_json_roundtrips(precision):
     finally:
         for buffer in reversed(buffers):
             buffer.close()
+
+
+@pytest.mark.parametrize("precision", [384, 512])
+def test_resident_layer_norm_matches_existing_compiled_path(precision):
+    backend = _backend()
+    inputs = [_jet(-0.25 + index / 7, 2.0**(-9-index),
+                   0.125-index/13, -0.0625+index/17, precision)
+              for index in range(5)]
+    epsilon = np.float32(1.0e-5)
+    gamma = np.asarray([1.0, -0.5, 0.25, 1.5, -0.75], dtype="<f4")
+    beta = np.asarray([0.0, 0.125, -0.25, 0.5, -0.0625], dtype="<f4")
+    expected = backend.layer_norm_jet2(inputs, epsilon, gamma, beta)["outputs"]
+    buffers = []
+    try:
+        buffers.append(backend.resident_jet_buffer(inputs))
+        buffers.append(backend.resident_layer_norm_jet2(
+            buffers[-1], epsilon, gamma, beta
+        ))
+        assert backend.export_resident_jet_buffer(buffers[-1])["outputs"] == expected
+    finally:
+        for buffer in reversed(buffers):
+            buffer.close()
+
+
+@pytest.mark.parametrize("precision", [384, 512])
+def test_resident_add_and_sub_match_python_reference(precision):
+    backend = _backend()
+    left = [_jet(-0.2 + index/9, 2.0**(-10-index),
+                 0.1-index/17, -0.05+index/19, precision)
+            for index in range(4)]
+    right = [_jet(0.3-index/11, 2.0**(-11-index),
+                  -0.12+index/23, 0.07-index/29, precision)
+             for index in range(4)]
+    expected_add = [add_jet(x, y) for x, y in zip(left, right)]
+    expected_sub = [sub_jet(x, y) for x, y in zip(left, right)]
+    buffers = []
+    try:
+        buffers.extend((backend.resident_jet_buffer(left),
+                        backend.resident_jet_buffer(right)))
+        buffers.append(backend.resident_add_jet2(buffers[0], buffers[1]))
+        buffers.append(backend.resident_sub_jet2(buffers[0], buffers[1]))
+        for resident, expected in zip(buffers[2:], (expected_add, expected_sub)):
+            payload = backend.export_resident_jet_buffer(resident)["outputs"]
+            for actual, reference in zip(payload, expected):
+                for component in ("value", "first", "second"):
+                    interval = getattr(reference, component)
+                    assert backend.exact_fraction(actual[component]["lower"]) == _fraction(interval.lower)
+                    assert backend.exact_fraction(actual[component]["upper"]) == _fraction(interval.upper)
+    finally:
+        for buffer in reversed(buffers):
+            buffer.close()
+
+
+def test_resident_binary_rejects_width_mismatch():
+    backend = _backend()
+    left = backend.resident_jet_buffer([_jet(0.0, 0.01, 0.0, 0.0, 384)])
+    right = backend.resident_jet_buffer([
+        _jet(0.0, 0.01, 0.0, 0.0, 384), _jet(0.1, 0.01, 0.0, 0.0, 384)
+    ])
+    try:
+        with pytest.raises(ValueError, match="buffer mismatch"):
+            backend.resident_add_jet2(left, right)
+    finally:
+        right.close()
+        left.close()
 
 
 @pytest.mark.parametrize("precision", [384, 512])

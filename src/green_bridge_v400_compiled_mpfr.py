@@ -223,6 +223,46 @@ class CompiledMPFRBackend:
             ctypes.POINTER(ctypes.c_void_p),
         ]
         resident_gelu.restype = ctypes.c_int
+        resident_layer_norm = self.library.green_v400_resident_jet_buffer_layer_norm
+        resident_layer_norm.argtypes = [
+            ctypes.c_void_p, ctypes.c_uint32, ctypes.POINTER(ctypes.c_uint32),
+            ctypes.POINTER(ctypes.c_uint32), ctypes.POINTER(ctypes.c_void_p),
+        ]
+        resident_layer_norm.restype = ctypes.c_int
+        resident_add = self.library.green_v400_resident_jet_buffer_add
+        resident_add.argtypes = [
+            ctypes.c_void_p, ctypes.c_void_p, ctypes.POINTER(ctypes.c_void_p),
+        ]
+        resident_add.restype = ctypes.c_int
+        resident_sub = self.library.green_v400_resident_jet_buffer_sub
+        resident_sub.argtypes = [
+            ctypes.c_void_p, ctypes.c_void_p, ctypes.POINTER(ctypes.c_void_p),
+        ]
+        resident_sub.restype = ctypes.c_int
+        resident_concat = self.library.green_v400_resident_jet_buffer_concat
+        resident_concat.argtypes = [
+            ctypes.POINTER(ctypes.c_void_p), ctypes.c_uint32,
+            ctypes.POINTER(ctypes.c_void_p),
+        ]
+        resident_concat.restype = ctypes.c_int
+        resident_attention = (
+            self.library.green_v400_resident_jet_buffer_causal_attention_all_heads
+        )
+        resident_attention.argtypes = [
+            ctypes.c_void_p, ctypes.c_void_p, ctypes.c_void_p,
+            ctypes.c_uint32, ctypes.c_uint32, ctypes.c_uint32, ctypes.c_uint32,
+            ctypes.POINTER(ctypes.c_void_p),
+        ]
+        resident_attention.restype = ctypes.c_int
+        resident_contrast = (
+            self.library.green_v400_resident_jet_buffer_fused_contrast_exact
+        )
+        resident_contrast.argtypes = [
+            ctypes.c_void_p, ctypes.POINTER(ctypes.c_char_p),
+            ctypes.POINTER(ctypes.c_int64), ctypes.c_char_p, ctypes.c_int64,
+            ctypes.POINTER(ctypes.c_void_p),
+        ]
+        resident_contrast.restype = ctypes.c_int
         resident_export = self.library.green_v400_resident_jet_buffer_export_json
         resident_export.argtypes = [
             ctypes.c_void_p, ctypes.c_char_p, ctypes.c_uint64,
@@ -431,6 +471,139 @@ class CompiledMPFRBackend:
             raise RuntimeError(f"resident GELU failed with status {status}")
         return CompiledResidentJetBuffer(
             self, handle, values.precision_bits, values.width
+        )
+
+    def resident_layer_norm_jet2(
+        self, values: CompiledResidentJetBuffer, epsilon, gamma, beta,
+    ) -> CompiledResidentJetBuffer:
+        gamma_bits = np.asarray(gamma, dtype="<f4").reshape(-1).view("<u4")
+        beta_bits = np.asarray(beta, dtype="<f4").reshape(-1).view("<u4")
+        if (not values.handle.value or gamma_bits.size != values.width
+                or beta_bits.size != values.width):
+            raise ValueError("resident LayerNorm affine width mismatch or closed buffer")
+        handle = ctypes.c_void_p()
+        status = self.library.green_v400_resident_jet_buffer_layer_norm(
+            values.handle, _bits_f32(epsilon),
+            gamma_bits.ctypes.data_as(ctypes.POINTER(ctypes.c_uint32)),
+            beta_bits.ctypes.data_as(ctypes.POINTER(ctypes.c_uint32)),
+            ctypes.byref(handle),
+        )
+        if status != 0:
+            raise RuntimeError(f"resident LayerNorm failed with status {status}")
+        return CompiledResidentJetBuffer(
+            self, handle, values.precision_bits, values.width
+        )
+
+    def _resident_binary_jet2(
+        self, operation: str, left: CompiledResidentJetBuffer,
+        right: CompiledResidentJetBuffer,
+    ) -> CompiledResidentJetBuffer:
+        if (not left.handle.value or not right.handle.value
+                or left.backend is not self or right.backend is not self
+                or left.precision_bits != right.precision_bits
+                or left.width != right.width):
+            raise ValueError(f"resident {operation} buffer mismatch")
+        handle = ctypes.c_void_p()
+        function = getattr(
+            self.library, f"green_v400_resident_jet_buffer_{operation}"
+        )
+        status = function(left.handle, right.handle, ctypes.byref(handle))
+        if status != 0:
+            raise RuntimeError(f"resident {operation} failed with status {status}")
+        return CompiledResidentJetBuffer(
+            self, handle, left.precision_bits, left.width
+        )
+
+    def resident_add_jet2(
+        self, left: CompiledResidentJetBuffer, right: CompiledResidentJetBuffer,
+    ) -> CompiledResidentJetBuffer:
+        return self._resident_binary_jet2("add", left, right)
+
+    def resident_sub_jet2(
+        self, left: CompiledResidentJetBuffer, right: CompiledResidentJetBuffer,
+    ) -> CompiledResidentJetBuffer:
+        return self._resident_binary_jet2("sub", left, right)
+
+    def resident_concat_jet2(
+        self, values: list[CompiledResidentJetBuffer],
+    ) -> CompiledResidentJetBuffer:
+        if (not values or any(
+            not value.handle.value or value.backend is not self
+            or value.precision_bits != values[0].precision_bits for value in values
+        )):
+            raise ValueError("resident concat buffer mismatch")
+        handles = (ctypes.c_void_p * len(values))(
+            *(value.handle.value for value in values)
+        )
+        handle = ctypes.c_void_p()
+        status = self.library.green_v400_resident_jet_buffer_concat(
+            handles, len(values), ctypes.byref(handle)
+        )
+        if status != 0:
+            raise RuntimeError(f"resident concat failed with status {status}")
+        return CompiledResidentJetBuffer(
+            self, handle, values[0].precision_bits,
+            sum(value.width for value in values),
+        )
+
+    def resident_causal_attention_all_heads_jet2(
+        self, query: CompiledResidentJetBuffer,
+        keys: CompiledResidentJetBuffer, values: CompiledResidentJetBuffer,
+        sequence_length: int, n_heads: int, head_dim: int, pivot: int = 0,
+    ) -> CompiledResidentJetBuffer:
+        d_model = int(n_heads) * int(head_dim)
+        if (any(not item.handle.value or item.backend is not self
+                for item in (query, keys, values))
+                or query.precision_bits != keys.precision_bits
+                or query.precision_bits != values.precision_bits
+                or query.width != d_model
+                or keys.width != int(sequence_length) * d_model
+                or values.width != int(sequence_length) * d_model):
+            raise ValueError("resident attention buffer shape mismatch")
+        handle = ctypes.c_void_p()
+        status = (
+            self.library.green_v400_resident_jet_buffer_causal_attention_all_heads(
+                query.handle, keys.handle, values.handle, sequence_length,
+                n_heads, head_dim, pivot, ctypes.byref(handle),
+            )
+        )
+        if status != 0:
+            raise RuntimeError(f"resident attention failed with status {status}")
+        return CompiledResidentJetBuffer(
+            self, handle, query.precision_bits, d_model
+        )
+
+    def resident_fused_contrast_jet2(
+        self, values: CompiledResidentJetBuffer, fusion_payload: dict,
+    ) -> CompiledResidentJetBuffer:
+        weights = fusion_payload.get("weights", [])
+        if (not values.handle.value or values.backend is not self
+                or fusion_payload.get("d_model") != values.width
+                or len(weights) != values.width):
+            raise ValueError("resident fused contrast shape mismatch")
+
+        def hexadecimal_significand(item: dict) -> bytes:
+            value = int(item["significand"])
+            return (("-" if value < 0 else "") + format(abs(value), "x")).encode("ascii")
+
+        weight_strings = (ctypes.c_char_p * len(weights))(
+            *(hexadecimal_significand(item) for item in weights)
+        )
+        weight_exponents = np.asarray(
+            [item["exponent_2"] for item in weights], dtype="<i8"
+        )
+        bias = fusion_payload["bias"]
+        handle = ctypes.c_void_p()
+        status = self.library.green_v400_resident_jet_buffer_fused_contrast_exact(
+            values.handle, weight_strings,
+            weight_exponents.ctypes.data_as(ctypes.POINTER(ctypes.c_int64)),
+            hexadecimal_significand(bias), int(bias["exponent_2"]),
+            ctypes.byref(handle),
+        )
+        if status != 0:
+            raise RuntimeError(f"resident fused contrast failed with status {status}")
+        return CompiledResidentJetBuffer(
+            self, handle, values.precision_bits, 1
         )
 
     def export_resident_jet_buffer(self, values: CompiledResidentJetBuffer) -> dict:

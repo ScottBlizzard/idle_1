@@ -29,6 +29,7 @@ def main() -> int:
     parser.add_argument("--plan", required=True)
     parser.add_argument("--precision", required=True, type=int, choices=(384, 512))
     parser.add_argument("--output", required=True)
+    parser.add_argument("--resident-buffer-execution", action="store_true")
     args = parser.parse_args()
     output = Path(args.output).resolve()
     if "/mnt/sdb/" not in output.as_posix() or output.exists():
@@ -57,7 +58,9 @@ def main() -> int:
         cold = execute_tensor_program_mpfr(
             program, reader, domain, backend, resident_plan=plan,
             resident_arrays=arrays, resident_static_row_cache=cache,
-            sparse_axis0_execution=True, return_runtime_metrics=True,
+            sparse_axis0_execution=True,
+            resident_buffer_execution=args.resident_buffer_execution,
+            return_runtime_metrics=True,
             successful_node_callback=record_node,
         )
         cold_seconds = time.perf_counter() - started
@@ -78,7 +81,9 @@ def main() -> int:
         warm = execute_tensor_program_mpfr(
             program, reader, domain, backend, resident_plan=plan,
             resident_arrays=arrays, resident_static_row_cache=cache,
-            sparse_axis0_execution=True, return_runtime_metrics=True,
+            sparse_axis0_execution=True,
+            resident_buffer_execution=args.resident_buffer_execution,
+            return_runtime_metrics=True,
         )
         warm_seconds = time.perf_counter() - started
         outputs_identical = all(
@@ -93,6 +98,14 @@ def main() -> int:
             and warm_metrics["static_row_cache_misses_by_kernel"] == {}
             and warm_metrics["tensor_store_fallback_reads"] == 0
         )
+        if args.resident_buffer_execution:
+            row_pass = row_pass and all(
+                warm_metrics["resident_buffer_nodes_by_kernel"].get(kernel, 0) > 0
+                for kernel in (
+                    "layer_norm.v1", "pairwise_affine.v1", "gelu_new.v1",
+                    "residual_add.v1", "static_view.v1",
+                )
+            )
         passed = passed and row_pass
         rows.append({
             "precision_bits": precision,
@@ -115,6 +128,7 @@ def main() -> int:
         "program_semantic_hash": program.semantic_hash(),
         "resident_plan_semantic_hash": plan["resident_plan_semantic_hash"],
         "backend_sha256": backend.library_sha256,
+        "resident_buffer_execution": args.resident_buffer_execution,
         "domain": {"lower": {"numerator": -1, "exponent_2": -14},
                    "upper": {"numerator": 1, "exponent_2": -14}},
         "fixture": "actual-shape closed GPT-2 synthetic tensor store; output values omitted",
