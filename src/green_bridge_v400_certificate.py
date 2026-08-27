@@ -96,8 +96,17 @@ class JointWitnessCertificate:
 
 def certify_cell(graph: RelationalGraph, cell: DyadicCell,
                  precision_bits: int) -> CellCertificate:
-    local = RelationalGraph(graph.nodes, graph.output_id, precision_bits)
-    jet = local.evaluate(cell.interval(precision_bits))
+    domain = cell.interval(precision_bits)
+    if isinstance(graph, RelationalGraph):
+        local = RelationalGraph(graph.nodes, graph.output_id, precision_bits)
+        jet = local.evaluate(domain)
+    else:
+        evaluate_interval = getattr(graph, "evaluate_interval", None)
+        if not callable(evaluate_interval):
+            raise TypeError("certificate evaluator must provide evaluate_interval")
+        jet = evaluate_interval(domain)
+        if jet.precision_bits != precision_bits:
+            raise RuntimeError("certificate evaluator precision mismatch")
     return CellCertificate(cell, jet.value, jet.first, jet.second)
 
 
@@ -109,11 +118,31 @@ def certify_endpoints_and_slope(graph: RelationalGraph, h: Fraction,
                                 precision_bits: int) -> EndpointCertificate:
     if h <= 0:
         raise ValueError("witness radius must be positive")
-    local = RelationalGraph(graph.nodes, graph.output_id, precision_bits)
-    negative = local.evaluate(_point_interval(-h, precision_bits)).value
-    center_jet = local.evaluate(_point_interval(Fraction(0), precision_bits))
-    positive = local.evaluate(_point_interval(h, precision_bits)).value
+    if isinstance(graph, RelationalGraph):
+        evaluator = RelationalGraph(graph.nodes, graph.output_id, precision_bits).evaluate
+    else:
+        evaluator = getattr(graph, "evaluate_interval", None)
+        if not callable(evaluator):
+            raise TypeError("certificate evaluator must provide evaluate_interval")
+    negative_jet = evaluator(_point_interval(-h, precision_bits))
+    center_jet = evaluator(_point_interval(Fraction(0), precision_bits))
+    positive_jet = evaluator(_point_interval(h, precision_bits))
+    if any(jet.precision_bits != precision_bits
+           for jet in (negative_jet, center_jet, positive_jet)):
+        raise RuntimeError("certificate evaluator precision mismatch")
+    negative = negative_jet.value
+    positive = positive_jet.value
     return EndpointCertificate(h, negative, center_jet.value, positive, center_jet.first)
+
+
+def certify_adaptive_cells(evaluator, h: Fraction, precision_bits: int,
+                           plan: CertificatePlan) -> list[CellCertificate] | None:
+    """Public outcome-agnostic adaptive partition entry for interval evaluators."""
+    if not isinstance(plan, CertificatePlan):
+        raise TypeError("adaptive certificate execution requires CertificatePlan")
+    if getattr(evaluator, "contains_scientific_outcome", None) is not False:
+        raise RuntimeError("ADAPTIVE_EVALUATOR_OUTCOME_BOUNDARY_MISSING")
+    return _adaptive_cells(evaluator, h, precision_bits, plan)
 
 
 def compute_m2(cell_certificates: list[CellCertificate]) -> Interval:

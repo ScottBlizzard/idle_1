@@ -14,6 +14,7 @@ from green_bridge_v400_certificate import (
     CellCertificate, CurvatureCertificate, DyadicCell, EndpointCertificate, certify_cell,
     certify_endpoints_and_slope, certify_joint_witness, compute_epsilon_psi,
     compute_m2, integrate_signed_curvature, witness_interval,
+    certify_adaptive_cells,
 )
 import green_bridge_v400_certificate as certificate_module
 from green_bridge_v400_interval import Interval
@@ -95,6 +96,31 @@ def test_subdivision_uses_curvature_weighted_width_priority(monkeypatch):
         DyadicCell(Fraction(0), Fraction(1, 2), 1),
         DyadicCell(Fraction(1, 2), Fraction(1), 1),
     ]
+
+
+def test_public_adaptive_evaluator_requires_outcome_boundary():
+    class Evaluator:
+        def evaluate_interval(self, domain):
+            return _polynomial_graph(2).evaluate(domain)
+
+    with pytest.raises(RuntimeError, match="OUTCOME_BOUNDARY_MISSING"):
+        certify_adaptive_cells(
+            Evaluator(), Fraction(1), P,
+            _plan("f" * 64, max_depth=0, max_cells=2),
+        )
+
+
+def test_public_adaptive_evaluator_returns_resource_inconclusive_partition():
+    class Evaluator:
+        contains_scientific_outcome = False
+
+        def evaluate_interval(self, domain):
+            return _polynomial_graph(3).evaluate(domain)
+
+    assert certify_adaptive_cells(
+        Evaluator(), Fraction(1), P,
+        _plan("f" * 64, max_depth=0, max_cells=2),
+    ) is None
 
 
 def test_linear_endpoint_error_zero():

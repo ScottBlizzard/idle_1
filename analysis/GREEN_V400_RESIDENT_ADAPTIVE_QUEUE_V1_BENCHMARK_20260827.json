@@ -1,0 +1,171 @@
+{
+  "accepted_partition_cells": null,
+  "adaptive_result": "RESOURCE_INCONCLUSIVE",
+  "audit_precision_executed": false,
+  "audit_precision_skip_reason": "official precision exhausted the frozen depth/cell policy",
+  "backend_sha256": "8603cf38258c07c71eff93da4713cc112a9a5c1a6d3ab7bbd591a99823b486aa",
+  "cap_decision_authorized": false,
+  "certificate_plan": {
+    "absolute_width_tolerance": "0x1p-80",
+    "audit_precision": 512,
+    "exact_dyadic_amplitudes": [
+      {
+        "exponent": -14,
+        "numerator": 1
+      }
+    ],
+    "execution_authorized": false,
+    "expected_artifact_paths": [],
+    "initial_partition": "[-h,0],[0,h]",
+    "max_cells": 4,
+    "max_depth": 1,
+    "official_precision": 384,
+    "relative_width_tolerance": "0x1p-40",
+    "row_hash": "38f40999524d465b8ee58fcc8d2d1822caf9af6c36897a72bd404a8fff34fe62",
+    "schema_version": "green-v400-certificate-plan-v1",
+    "split_policy": "curvature-weighted width priority dyadic bisection"
+  },
+  "claim_scope": "official-precision curvature-weighted heap execution under a deliberately small frozen depth/cell policy; RESOURCE_INCONCLUSIVE is retained as such, with no scientific label, threshold decision, or formal runtime bound",
+  "contains_scientific_outcome": false,
+  "created_at_utc": "2026-08-27T07:35:41.556551Z",
+  "elapsed_seconds": 148.93656953098252,
+  "evaluation_count": 6,
+  "evaluation_count_upper_bound_from_leaf_cap": 6,
+  "evaluation_count_within_derived_bound": true,
+  "evaluation_records": [
+    {
+      "domain": {
+        "lower": [
+          -1,
+          16384
+        ],
+        "upper": [
+          0,
+          1
+        ]
+      },
+      "elapsed_seconds": 30.950686522002798,
+      "native_static_cache_hits": 15,
+      "native_static_cache_misses": 7,
+      "ordinal": 0,
+      "precision_bits": 384,
+      "resident_buffer_exported_jet_count": 9221,
+      "resident_buffer_imported_jet_count": 34580,
+      "static_cache_miss_count": 40
+    },
+    {
+      "domain": {
+        "lower": [
+          0,
+          1
+        ],
+        "upper": [
+          1,
+          16384
+        ]
+      },
+      "elapsed_seconds": 24.128609053004766,
+      "native_static_cache_hits": 22,
+      "native_static_cache_misses": 0,
+      "ordinal": 1,
+      "precision_bits": 384,
+      "resident_buffer_exported_jet_count": 9221,
+      "resident_buffer_imported_jet_count": 15360,
+      "static_cache_miss_count": 0
+    },
+    {
+      "domain": {
+        "lower": [
+          0,
+          1
+        ],
+        "upper": [
+          1,
+          32768
+        ]
+      },
+      "elapsed_seconds": 24.031283869000617,
+      "native_static_cache_hits": 22,
+      "native_static_cache_misses": 0,
+      "ordinal": 2,
+      "precision_bits": 384,
+      "resident_buffer_exported_jet_count": 9221,
+      "resident_buffer_imported_jet_count": 15360,
+      "static_cache_miss_count": 0
+    },
+    {
+      "domain": {
+        "lower": [
+          1,
+          32768
+        ],
+        "upper": [
+          1,
+          16384
+        ]
+      },
+      "elapsed_seconds": 23.271895832993323,
+      "native_static_cache_hits": 22,
+      "native_static_cache_misses": 0,
+      "ordinal": 3,
+      "precision_bits": 384,
+      "resident_buffer_exported_jet_count": 9221,
+      "resident_buffer_imported_jet_count": 15360,
+      "static_cache_miss_count": 0
+    },
+    {
+      "domain": {
+        "lower": [
+          -1,
+          16384
+        ],
+        "upper": [
+          -1,
+          32768
+        ]
+      },
+      "elapsed_seconds": 23.38581140700262,
+      "native_static_cache_hits": 22,
+      "native_static_cache_misses": 0,
+      "ordinal": 4,
+      "precision_bits": 384,
+      "resident_buffer_exported_jet_count": 9221,
+      "resident_buffer_imported_jet_count": 15360,
+      "static_cache_miss_count": 0
+    },
+    {
+      "domain": {
+        "lower": [
+          -1,
+          32768
+        ],
+        "upper": [
+          0,
+          1
+        ]
+      },
+      "elapsed_seconds": 23.142390502995113,
+      "native_static_cache_hits": 22,
+      "native_static_cache_misses": 0,
+      "ordinal": 5,
+      "precision_bits": 384,
+      "resident_buffer_exported_jet_count": 9221,
+      "resident_buffer_imported_jet_count": 15360,
+      "static_cache_miss_count": 0
+    }
+  ],
+  "fixture": "actual-shape closed GPT-2 synthetic tensor store; values omitted",
+  "formal_wall_time_upper_bound": false,
+  "initial_partition_order_correct": true,
+  "process_peak_rss_after_kib": 293848,
+  "process_peak_rss_before_kib": 48876,
+  "process_peak_rss_delta_kib": 244972,
+  "program_semantic_hash": "38f40999524d465b8ee58fcc8d2d1822caf9af6c36897a72bd404a8fff34fe62",
+  "radius": {
+    "denominator": 16384,
+    "numerator": 1
+  },
+  "resident_plan_semantic_hash": "0d5625e2f7af118615497e9642481946aec0a436b900e3c0d1661f90ba6f9acf",
+  "schema_version": "green-v400-resident-adaptive-queue-benchmark-v1",
+  "status": "PASS_ADAPTIVE_QUEUE_OBSERVATION_ONLY"
+}

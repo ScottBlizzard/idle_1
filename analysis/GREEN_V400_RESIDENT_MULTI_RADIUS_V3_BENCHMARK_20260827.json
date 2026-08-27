@@ -1,0 +1,286 @@
+{
+  "backend_sha256": "8603cf38258c07c71eff93da4713cc112a9a5c1a6d3ab7bbd591a99823b486aa",
+  "cap_decision_authorized": false,
+  "claim_scope": "deduplicated center plus endpoint and two mandatory initial curvature-cell passes per radius, signed curvature integration, cross-radius witness intersection, exact-payload serialization cost, and same-process peak RSS; no adaptive subdivision, scientific label, threshold decision, or formal bound",
+  "contains_scientific_outcome": false,
+  "created_at_utc": "2026-08-27T07:29:38.285245Z",
+  "fixed_stage_order": [
+    "center",
+    "radius_0_negative_endpoint",
+    "radius_0_positive_endpoint",
+    "radius_0_negative_curvature_cell",
+    "radius_0_positive_curvature_cell",
+    "radius_1_negative_endpoint",
+    "radius_1_positive_endpoint",
+    "radius_1_negative_curvature_cell",
+    "radius_1_positive_curvature_cell"
+  ],
+  "fixture": "actual-shape closed GPT-2 synthetic tensor store; values omitted",
+  "formal_wall_time_upper_bound": false,
+  "precision_nesting_boolean_only": {
+    "center": true,
+    "radius_0_negative_curvature_cell": true,
+    "radius_0_negative_endpoint": true,
+    "radius_0_positive_curvature_cell": true,
+    "radius_0_positive_endpoint": true,
+    "radius_1_negative_curvature_cell": true,
+    "radius_1_negative_endpoint": true,
+    "radius_1_positive_curvature_cell": true,
+    "radius_1_positive_endpoint": true
+  },
+  "process_peak_rss_after_kib": 457160,
+  "process_peak_rss_before_kib": 49364,
+  "process_peak_rss_delta_kib": 407796,
+  "program_semantic_hash": "38f40999524d465b8ee58fcc8d2d1822caf9af6c36897a72bd404a8fff34fe62",
+  "radii": [
+    {
+      "denominator": 16384,
+      "numerator": 1
+    },
+    {
+      "denominator": 32768,
+      "numerator": 1
+    }
+  ],
+  "resident_plan_semantic_hash": "0d5625e2f7af118615497e9642481946aec0a436b900e3c0d1661f90ba6f9acf",
+  "rows": [
+    {
+      "exact_payload_serialization_seconds": 0.001974960003281012,
+      "exact_payload_serialized_bytes": 13449,
+      "exact_payload_sha256": "2129da996b528e1fa82e4f4c45b2b5f19ebdf29ea6f75e0fb8b380edfc28f2b3",
+      "multi_radius_intersection_nonempty": true,
+      "native_static_cache_entry_count": 7,
+      "precision_bits": 384,
+      "signed_certificate_payload_bytes": 10799,
+      "signed_certificate_payload_sha256": "a219b31deca9193a2a64e51596b646139297ab61fec712d6451e3ccc41c5ca16",
+      "stage_elapsed_median_seconds": 23.68417196700466,
+      "stage_elapsed_sum_seconds": 251.40145257904078,
+      "stages": [
+        {
+          "elapsed_seconds": 46.116001316026086,
+          "native_static_cache_hits": 15,
+          "native_static_cache_misses": 7,
+          "resident_buffer_exported_jet_count": 9221,
+          "resident_buffer_imported_jet_count": 34580,
+          "stage": "center",
+          "static_cache_initial_entry_count": 0,
+          "static_cache_miss_count": 40
+        },
+        {
+          "elapsed_seconds": 36.244325580017176,
+          "native_static_cache_hits": 22,
+          "native_static_cache_misses": 0,
+          "resident_buffer_exported_jet_count": 9221,
+          "resident_buffer_imported_jet_count": 15360,
+          "stage": "radius_0_negative_endpoint",
+          "static_cache_initial_entry_count": 40,
+          "static_cache_miss_count": 0
+        },
+        {
+          "elapsed_seconds": 28.528288524976233,
+          "native_static_cache_hits": 22,
+          "native_static_cache_misses": 0,
+          "resident_buffer_exported_jet_count": 9221,
+          "resident_buffer_imported_jet_count": 15360,
+          "stage": "radius_0_positive_endpoint",
+          "static_cache_initial_entry_count": 40,
+          "static_cache_miss_count": 0
+        },
+        {
+          "elapsed_seconds": 23.407495834020665,
+          "native_static_cache_hits": 22,
+          "native_static_cache_misses": 0,
+          "resident_buffer_exported_jet_count": 9221,
+          "resident_buffer_imported_jet_count": 15360,
+          "stage": "radius_0_negative_curvature_cell",
+          "static_cache_initial_entry_count": 40,
+          "static_cache_miss_count": 0
+        },
+        {
+          "elapsed_seconds": 23.20661715400638,
+          "native_static_cache_hits": 22,
+          "native_static_cache_misses": 0,
+          "resident_buffer_exported_jet_count": 9221,
+          "resident_buffer_imported_jet_count": 15360,
+          "stage": "radius_0_positive_curvature_cell",
+          "static_cache_initial_entry_count": 40,
+          "static_cache_miss_count": 0
+        },
+        {
+          "elapsed_seconds": 23.649042559991358,
+          "native_static_cache_hits": 22,
+          "native_static_cache_misses": 0,
+          "resident_buffer_exported_jet_count": 9221,
+          "resident_buffer_imported_jet_count": 15360,
+          "stage": "radius_1_negative_endpoint",
+          "static_cache_initial_entry_count": 40,
+          "static_cache_miss_count": 0
+        },
+        {
+          "elapsed_seconds": 23.694975018996047,
+          "native_static_cache_hits": 22,
+          "native_static_cache_misses": 0,
+          "resident_buffer_exported_jet_count": 9221,
+          "resident_buffer_imported_jet_count": 15360,
+          "stage": "radius_1_positive_endpoint",
+          "static_cache_initial_entry_count": 40,
+          "static_cache_miss_count": 0
+        },
+        {
+          "elapsed_seconds": 23.68417196700466,
+          "native_static_cache_hits": 22,
+          "native_static_cache_misses": 0,
+          "resident_buffer_exported_jet_count": 9221,
+          "resident_buffer_imported_jet_count": 15360,
+          "stage": "radius_1_negative_curvature_cell",
+          "static_cache_initial_entry_count": 40,
+          "static_cache_miss_count": 0
+        },
+        {
+          "elapsed_seconds": 22.870534624002175,
+          "native_static_cache_hits": 22,
+          "native_static_cache_misses": 0,
+          "resident_buffer_exported_jet_count": 9221,
+          "resident_buffer_imported_jet_count": 15360,
+          "stage": "radius_1_positive_curvature_cell",
+          "static_cache_initial_entry_count": 40,
+          "static_cache_miss_count": 0
+        }
+      ],
+      "static_cache_entry_count": 40
+    },
+    {
+      "exact_payload_serialization_seconds": 0.001084190997062251,
+      "exact_payload_serialized_bytes": 17533,
+      "exact_payload_sha256": "6f9853b33d855d6fbeb0acc038210a3bd7fccb0fedf6a05a2ae187746ced80ea",
+      "multi_radius_intersection_nonempty": true,
+      "native_static_cache_entry_count": 7,
+      "precision_bits": 512,
+      "signed_certificate_payload_bytes": 14028,
+      "signed_certificate_payload_sha256": "80910a9bb62cebec9456bc19ec5e6bca67e2b3abf8933088c817a727dd249ca6",
+      "stage_elapsed_median_seconds": 27.21124011100619,
+      "stage_elapsed_sum_seconds": 249.2536450259795,
+      "stages": [
+        {
+          "elapsed_seconds": 34.71173994301353,
+          "native_static_cache_hits": 15,
+          "native_static_cache_misses": 7,
+          "resident_buffer_exported_jet_count": 9221,
+          "resident_buffer_imported_jet_count": 34580,
+          "stage": "center",
+          "static_cache_initial_entry_count": 0,
+          "static_cache_miss_count": 40
+        },
+        {
+          "elapsed_seconds": 27.21124011100619,
+          "native_static_cache_hits": 22,
+          "native_static_cache_misses": 0,
+          "resident_buffer_exported_jet_count": 9221,
+          "resident_buffer_imported_jet_count": 15360,
+          "stage": "radius_0_negative_endpoint",
+          "static_cache_initial_entry_count": 40,
+          "static_cache_miss_count": 0
+        },
+        {
+          "elapsed_seconds": 25.789599114999874,
+          "native_static_cache_hits": 22,
+          "native_static_cache_misses": 0,
+          "resident_buffer_exported_jet_count": 9221,
+          "resident_buffer_imported_jet_count": 15360,
+          "stage": "radius_0_positive_endpoint",
+          "static_cache_initial_entry_count": 40,
+          "static_cache_miss_count": 0
+        },
+        {
+          "elapsed_seconds": 27.552618654008256,
+          "native_static_cache_hits": 22,
+          "native_static_cache_misses": 0,
+          "resident_buffer_exported_jet_count": 9221,
+          "resident_buffer_imported_jet_count": 15360,
+          "stage": "radius_0_negative_curvature_cell",
+          "static_cache_initial_entry_count": 40,
+          "static_cache_miss_count": 0
+        },
+        {
+          "elapsed_seconds": 26.204489472002024,
+          "native_static_cache_hits": 22,
+          "native_static_cache_misses": 0,
+          "resident_buffer_exported_jet_count": 9221,
+          "resident_buffer_imported_jet_count": 15360,
+          "stage": "radius_0_positive_curvature_cell",
+          "static_cache_initial_entry_count": 40,
+          "static_cache_miss_count": 0
+        },
+        {
+          "elapsed_seconds": 28.0210758469766,
+          "native_static_cache_hits": 22,
+          "native_static_cache_misses": 0,
+          "resident_buffer_exported_jet_count": 9221,
+          "resident_buffer_imported_jet_count": 15360,
+          "stage": "radius_1_negative_endpoint",
+          "static_cache_initial_entry_count": 40,
+          "static_cache_miss_count": 0
+        },
+        {
+          "elapsed_seconds": 25.959591835999163,
+          "native_static_cache_hits": 22,
+          "native_static_cache_misses": 0,
+          "resident_buffer_exported_jet_count": 9221,
+          "resident_buffer_imported_jet_count": 15360,
+          "stage": "radius_1_positive_endpoint",
+          "static_cache_initial_entry_count": 40,
+          "static_cache_miss_count": 0
+        },
+        {
+          "elapsed_seconds": 27.748890377988573,
+          "native_static_cache_hits": 22,
+          "native_static_cache_misses": 0,
+          "resident_buffer_exported_jet_count": 9221,
+          "resident_buffer_imported_jet_count": 15360,
+          "stage": "radius_1_negative_curvature_cell",
+          "static_cache_initial_entry_count": 40,
+          "static_cache_miss_count": 0
+        },
+        {
+          "elapsed_seconds": 26.054399669985287,
+          "native_static_cache_hits": 22,
+          "native_static_cache_misses": 0,
+          "resident_buffer_exported_jet_count": 9221,
+          "resident_buffer_imported_jet_count": 15360,
+          "stage": "radius_1_positive_curvature_cell",
+          "static_cache_initial_entry_count": 40,
+          "static_cache_miss_count": 0
+        }
+      ],
+      "static_cache_entry_count": 40
+    }
+  ],
+  "schema_version": "green-v400-resident-multi-radius-benchmark-v2",
+  "signed_certificate_nesting_boolean_only": {
+    "multi_radius_intersection_existence_matches": true,
+    "multi_radius_witness_intersection": true,
+    "radius_0_curvature_m2": true,
+    "radius_0_curvature_negative": true,
+    "radius_0_curvature_positive": true,
+    "radius_0_curvature_secant": true,
+    "radius_0_endpoint_center": true,
+    "radius_0_endpoint_negative": true,
+    "radius_0_endpoint_positive": true,
+    "radius_0_endpoint_slope": true,
+    "radius_0_negative_residual": true,
+    "radius_0_positive_residual": true,
+    "radius_0_witness": true,
+    "radius_1_curvature_m2": true,
+    "radius_1_curvature_negative": true,
+    "radius_1_curvature_positive": true,
+    "radius_1_curvature_secant": true,
+    "radius_1_endpoint_center": true,
+    "radius_1_endpoint_negative": true,
+    "radius_1_endpoint_positive": true,
+    "radius_1_endpoint_slope": true,
+    "radius_1_negative_residual": true,
+    "radius_1_positive_residual": true,
+    "radius_1_witness": true
+  },
+  "status": "PASS_MULTI_RADIUS_OBSERVATION_ONLY"
+}
