@@ -1,0 +1,225 @@
+{
+  "certificate_plan_semantic_hash": "0c509340436ce24e1fd0e1313928df82c293b758a622dc07915738edebe71c5b",
+  "claim_scope": "two nested dyadic radii use the unchanged adaptive policy and one identity-closed successful-Jet2 memo; only exact-domain reuse, resource, and dispatch identity are audited",
+  "contains_scientific_outcome": false,
+  "dispatch_attempt_count_by_precision": {
+    "384": 10
+  },
+  "dispatch_count_by_precision": {
+    "384": 10
+  },
+  "evaluated_domains": [
+    {
+      "lower": [
+        -1,
+        16384
+      ],
+      "precision_bits": 384,
+      "upper": [
+        0,
+        1
+      ]
+    },
+    {
+      "lower": [
+        0,
+        1
+      ],
+      "precision_bits": 384,
+      "upper": [
+        1,
+        16384
+      ]
+    },
+    {
+      "lower": [
+        0,
+        1
+      ],
+      "precision_bits": 384,
+      "upper": [
+        1,
+        32768
+      ]
+    },
+    {
+      "lower": [
+        1,
+        32768
+      ],
+      "precision_bits": 384,
+      "upper": [
+        1,
+        16384
+      ]
+    },
+    {
+      "lower": [
+        -1,
+        16384
+      ],
+      "precision_bits": 384,
+      "upper": [
+        -1,
+        32768
+      ]
+    },
+    {
+      "lower": [
+        -1,
+        32768
+      ],
+      "precision_bits": 384,
+      "upper": [
+        0,
+        1
+      ]
+    },
+    {
+      "lower": [
+        -1,
+        32768
+      ],
+      "precision_bits": 384,
+      "upper": [
+        0,
+        1
+      ]
+    },
+    {
+      "lower": [
+        0,
+        1
+      ],
+      "precision_bits": 384,
+      "upper": [
+        1,
+        32768
+      ]
+    },
+    {
+      "lower": [
+        0,
+        1
+      ],
+      "precision_bits": 384,
+      "upper": [
+        1,
+        65536
+      ]
+    },
+    {
+      "lower": [
+        1,
+        65536
+      ],
+      "precision_bits": 384,
+      "upper": [
+        1,
+        32768
+      ]
+    },
+    {
+      "lower": [
+        -1,
+        32768
+      ],
+      "precision_bits": 384,
+      "upper": [
+        -1,
+        65536
+      ]
+    },
+    {
+      "lower": [
+        -1,
+        65536
+      ],
+      "precision_bits": 384,
+      "upper": [
+        0,
+        1
+      ]
+    }
+  ],
+  "logical_native_requests": 12,
+  "memo_metrics": {
+    "by_precision": {
+      "384": {
+        "hits": 2,
+        "logical_requests": 12,
+        "misses": 10,
+        "waits": 0
+      }
+    },
+    "entry_count": 10,
+    "evaluator_identity_sha256": "cb6dbc202113c51d070b3d0725d48d1a9d465c16c3a6d7c362acfa2695f828c4",
+    "max_entries": 128
+  },
+  "physical_native_dispatches": 10,
+  "process_tree_resource_record": {
+    "children_ru_maxrss_after_kib": 90552,
+    "children_ru_maxrss_before_kib": 0,
+    "descendant_identity_count": 0,
+    "finished_at_utc": "2026-08-27T15:55:04.123857Z",
+    "is_formal_upper_bound": false,
+    "measurement_scope": "sampled_root_and_observed_descendants",
+    "missed_processes_possible": true,
+    "peak_sampled_tree_rss_kib": 180624,
+    "platform": "Linux-5.15.0-67-generic-x86_64-with-glibc2.31",
+    "process_observations": [
+      {
+        "command_sha256": "1d355f4f5d886c15c60c2b8a85a6cdbd2d70245daa17da370ede4f57f980f8f4",
+        "last_rss_kib": 148284,
+        "parent_pid": 460537,
+        "peak_rss_kib": 181008,
+        "pid": 460557,
+        "samples": 21142,
+        "start_ticks": 28103159,
+        "system_ticks": 129,
+        "user_ticks": 22463
+      }
+    ],
+    "root_peak_rss_kib": 181008,
+    "root_pid": 460557,
+    "root_start_ticks": 28103159,
+    "sample_count": 21142,
+    "sample_interval_seconds": 0.01,
+    "schema_version": "green-v400-process-tree-resource-v1",
+    "self_ru_maxrss_after_kib": 181008,
+    "self_ru_maxrss_before_kib": 36212,
+    "started_at_utc": "2026-08-27T15:51:27.641082Z",
+    "wall_seconds": 216.48276274697855
+  },
+  "provenance": {
+    "backend_sha256": "b3b15bce01459e9c5309646271c5066fede13265dd6087f0eb54d1f2b8890033",
+    "blob_sha256": "34bcd45371c08720c23f66d8f723dfc0249779e9e47eee5499c04d6064dc3560",
+    "descriptor_sha256": "bc673467ac237e59e542634d38d02b8eaa12053cbb0abfc39e4dcaa6659ba3ee",
+    "dispatch_sha256": "eb4c907ab4a86f3aac2fda445deed67099f2831c41e9712463688cccf1b6f008",
+    "evaluator_identity_sha256": "cb6dbc202113c51d070b3d0725d48d1a9d465c16c3a6d7c362acfa2695f828c4",
+    "fusion_sha256": "bd734f457bd3baee252af47f1c048dbd606ec15bf6a1b6533751c7bb943319c1",
+    "program_execution_sha256": "38f40999524d465b8ee58fcc8d2d1822caf9af6c36897a72bd404a8fff34fe62",
+    "repository_clean": true,
+    "repository_commit": "41837cbf92ccbf968b8de0e8155c902b484bf87e"
+  },
+  "radii": [
+    {
+      "exponent": -14,
+      "numerator": 1
+    },
+    {
+      "exponent": -15,
+      "numerator": 1
+    }
+  ],
+  "radius_statuses": [
+    "RESOURCE_INCONCLUSIVE",
+    "RESOURCE_INCONCLUSIVE"
+  ],
+  "report_semantic_hash": "26256b659c952ddeadae77684d4216a8c335190f7c895bfcfc13b69e1a1877d5",
+  "retained_numeric_scope": "control domains and cache counters only; no response Jet2 payload retained",
+  "saved_native_dispatches": 2,
+  "schema_version": "green-v400-native-memo-adaptive-audit-v1",
+  "scientific_threshold_applied": false,
+  "status": "PASS_EXACT_DOMAIN_MEMO"
+}
