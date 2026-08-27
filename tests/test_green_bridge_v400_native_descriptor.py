@@ -16,6 +16,10 @@ from green_bridge_v400_native_descriptor import (
     load_native_execution_descriptor, program_execution_identity,
 )
 from green_bridge_v400_compiled_mpfr import CompiledMPFRBackend
+from green_bridge_v400_interval import Interval
+from green_bridge_v400_mpfr_tensor_executor import (
+    execute_tensor_program_mpfr, jet_exact_payload,
+)
 from green_bridge_v400_resident_plan import (
     build_resident_plan, load_resident_plan_arrays,
 )
@@ -164,6 +168,9 @@ def test_compiled_native_envelope_loader_is_hash_closed_and_generation_safe(tmp_
     reader, program, plan, descriptor, built = _descriptor_fixture(tmp_path)
     backend = CompiledMPFRBackend(Path(library))
     payload = built["payload"]
+    _, resident_arrays = load_resident_plan_arrays(
+        plan.manifest_path, program, reader
+    )
     envelope = backend.open_native_plan_envelope(
         descriptor, plan.blob_path,
         descriptor_sha256=built["descriptor_file_sha256"],
@@ -242,6 +249,28 @@ def test_compiled_native_envelope_loader_is_hash_closed_and_generation_safe(tmp_
         finally:
             for buffer in reversed(buffers):
                 buffer.close()
+        domain = Interval.from_bounds(-(2.0 ** -14), 2.0 ** -14, precision)
+        native = backend.dispatch_native_precision_context_cell(context, domain)
+        reference = execute_tensor_program_mpfr(
+            program, reader, domain, backend, resident_plan=plan,
+            resident_arrays=resident_arrays, sparse_axis0_execution=True,
+            resident_buffer_execution=True,
+        )
+        assert native["event_count"] == 81
+        assert native["kernel_tags"] == [
+            NATIVE_DISPATCH_KERNEL_TAGS[node.kernel_id] for node in program.nodes
+        ]
+        for root_name in ("PAT_J", "PAT_B", "TAR_J", "TAR_B", "output"):
+            actual = {
+                component: {
+                    endpoint: list(backend.exact_fraction(
+                        native[root_name][component][endpoint]
+                    ).as_integer_ratio())
+                    for endpoint in ("lower", "upper")
+                }
+                for component in ("value", "first", "second")
+            }
+            assert actual == jet_exact_payload(reference[root_name])
     with pytest.raises(RuntimeError, match="status 2"):
         backend.open_native_precision_context(envelope, 256)
     stale = envelope.handle

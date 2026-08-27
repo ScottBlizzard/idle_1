@@ -18,12 +18,29 @@
 extern "C" int green_v400_resident_jet_buffer_import_f32_constants(
     std::uint32_t precision_bits,std::uint32_t width,
     const std::uint32_t* value_bits,void** output_handle);
+extern "C" int green_v400_resident_jet_buffer_affine_control_f32(
+    std::uint32_t precision_bits,std::uint32_t width,const std::uint32_t* base_bits,
+    const std::uint32_t* direction_bits,const char* domain_lower_significand,
+    std::int64_t domain_lower_exponent,const char* domain_upper_significand,
+    std::int64_t domain_upper_exponent,void** output_handle);
 extern "C" int green_v400_resident_jet_buffer_layer_norm(
     void* input_handle,std::uint32_t epsilon_bits,const std::uint32_t* gamma_bits,
     const std::uint32_t* beta_bits,void** output_handle);
 extern "C" int green_v400_resident_jet_buffer_packed_affine(
     void* input_handle,std::uint32_t output_width,const std::uint32_t* weight_bits,
     const std::uint32_t* bias_bits,void** output_handle);
+extern "C" int green_v400_resident_jet_buffer_gelu_new(
+    void* input_handle,std::uint32_t kappa_bits,std::uint32_t lambda_bits,void** output_handle);
+extern "C" int green_v400_resident_jet_buffer_add(void* left_handle,void* right_handle,void** output_handle);
+extern "C" int green_v400_resident_jet_buffer_sub(void* left_handle,void* right_handle,void** output_handle);
+extern "C" int green_v400_resident_jet_buffer_concat(
+    void* const* input_handles,std::uint32_t input_count,void** output_handle);
+extern "C" int green_v400_resident_jet_buffer_causal_attention_all_heads(
+    void* query_handle,void* keys_handle,void* values_handle,std::uint32_t sequence_length,
+    std::uint32_t n_heads,std::uint32_t head_dim,std::uint32_t pivot,void** output_handle);
+extern "C" int green_v400_resident_jet_buffer_fused_contrast_exact(
+    void* input_handle,const char* const* weight_significands,const std::int64_t* weight_exponents,
+    const char* bias_significand,std::int64_t bias_exponent,void** output_handle);
 extern "C" int green_v400_resident_jet_buffer_export_json(
     void* input_handle,char* output_json,std::uint64_t output_capacity);
 extern "C" void green_v400_resident_jet_buffer_free(void* input_handle);
@@ -239,6 +256,14 @@ bool dyadic(const BinaryValue* value,NativeDyadic& out){
   if(significand=="0"&&exponent!=0)return false;
   if(significand!="0"&&((significand.back()-'0')%2)==0)return false;
   out.significand=std::move(significand);out.exponent_2=exponent;return true;
+}
+std::string decimal_to_hex(const std::string& decimal){
+  const bool negative=!decimal.empty()&&decimal[0]=='-';std::string digits=negative?decimal.substr(1):decimal;
+  if(digits=="0")return "0";std::string reversed;static const char hex[]="0123456789abcdef";
+  while(digits!="0"){std::string quotient;unsigned remainder=0;for(char c:digits){const unsigned value=remainder*10U+(c-'0');
+      const unsigned q=value/16U;remainder=value%16U;if(!quotient.empty()||q)quotient.push_back(static_cast<char>('0'+q));}
+    reversed.push_back(hex[remainder]);digits=quotient.empty()?"0":quotient;}
+  std::reverse(reversed.begin(),reversed.end());return negative?"-"+reversed:reversed;
 }
 bool boolean(const BinaryValue* value,bool& out){if(!value||value->kind!=BinaryValue::kBool)return false;out=value->boolean;return true;}
 bool string_is(const BinaryValue* value,const char* expected){std::string actual;return text(value,actual)&&actual==expected;}
@@ -527,8 +552,10 @@ struct NativePrecisionContext {
   std::vector<std::uint32_t> static_record_indices;
   std::uint64_t static_jet_count=0;
   std::vector<void*> static_projection_buffers;
+  std::vector<void*> base_row_buffers;
   std::uint64_t static_projection_jet_count=0;
   ~NativePrecisionContext(){for(void* buffer:static_projection_buffers)green_v400_resident_jet_buffer_free(buffer);
+    for(void* buffer:base_row_buffers)green_v400_resident_jet_buffer_free(buffer);
     for(void* buffer:static_buffers)green_v400_resident_jet_buffer_free(buffer);}
 };
 std::mutex registry_mutex;std::unordered_map<std::uint64_t,std::shared_ptr<PlanEnvelope>> registry;
@@ -625,17 +652,20 @@ extern "C" int green_v400_native_precision_context_open_v1(std::uint64_t plan_ha
     const NativeRecord* base=find_record(base_name);
     if(!base||base->dtype!="<f4"||base->shape.size()!=2||base->shape[0]!=plan->tables.sequence_length
         ||base->shape[1]!=width||base->nbytes!=static_cast<std::uint64_t>(plan->tables.sequence_length)*width*4)return 3;
+    for(std::uint32_t row=0;row<plan->tables.sequence_length;++row){void* row_buffer=nullptr;
+      const int status=green_v400_resident_jet_buffer_import_f32_constants(
+          precision_bits,width,bits(base)+static_cast<std::size_t>(row)*width,&row_buffer);
+      if(status!=0||!row_buffer)return 12;context->base_row_buffers.push_back(row_buffer);}
+    const std::size_t branch_offset=context->base_row_buffers.size()-plan->tables.sequence_length;
     for(std::uint32_t row=0;row<plan->tables.final_position;++row){
-      void* input=nullptr;void* normalized=nullptr;void* key=nullptr;void* value=nullptr;
-      int status=green_v400_resident_jet_buffer_import_f32_constants(
-          precision_bits,width,bits(base)+static_cast<std::size_t>(row)*width,&input);
-      if(status==0)status=green_v400_resident_jet_buffer_layer_norm(
+      void* input=context->base_row_buffers[branch_offset+row];void* normalized=nullptr;void* key=nullptr;void* value=nullptr;
+      int status=green_v400_resident_jet_buffer_layer_norm(
           input,*bits(epsilon),bits(gamma),bits(beta),&normalized);
       if(status==0)status=green_v400_resident_jet_buffer_packed_affine(
           normalized,width,bits(weight_k),bits(bias_k),&key);
       if(status==0)status=green_v400_resident_jet_buffer_packed_affine(
           normalized,width,bits(weight_v),bits(bias_v),&value);
-      if(input)green_v400_resident_jet_buffer_free(input);if(normalized)green_v400_resident_jet_buffer_free(normalized);
+      if(normalized)green_v400_resident_jet_buffer_free(normalized);
       if(status!=0||!key||!value){if(key)green_v400_resident_jet_buffer_free(key);if(value)green_v400_resident_jet_buffer_free(value);return 12;}
       context->static_projection_buffers.push_back(key);context->static_projection_buffers.push_back(value);
       context->static_projection_jet_count+=static_cast<std::uint64_t>(2)*width;
@@ -665,4 +695,88 @@ extern "C" int green_v400_native_precision_context_projection_export_json_v1(std
 extern "C" int green_v400_native_precision_context_close_v1(std::uint64_t context_handle){
   std::unique_ptr<NativePrecisionContext> removed;{std::lock_guard<std::mutex> lock(context_registry_mutex);
     auto it=context_registry.find(context_handle);if(it==context_registry.end())return 2;removed=std::move(it->second);context_registry.erase(it);}return 0;
+}
+extern "C" int green_v400_native_precision_context_dispatch_cell_v1(
+    std::uint64_t context_handle,const char* domain_lower_significand,std::int64_t domain_lower_exponent,
+    const char* domain_upper_significand,std::int64_t domain_upper_exponent,char* output_json,std::uint64_t output_capacity){
+  if(!domain_lower_significand||!domain_upper_significand||!output_json||output_capacity==0)return 2;
+  std::lock_guard<std::mutex> context_lock(context_registry_mutex);auto context_it=context_registry.find(context_handle);
+  if(context_it==context_registry.end())return 2;NativePrecisionContext& context=*context_it->second;
+  const auto& tables=context.plan->tables;const std::uint32_t width=tables.d_model,sequence=tables.sequence_length;
+  if(tables.nodes.size()!=81||tables.final_position+1!=sequence||context.base_row_buffers.size()!=static_cast<std::size_t>(4)*sequence
+      ||context.static_projection_buffers.size()!=static_cast<std::size_t>(8)*tables.final_position)return 3;
+  struct Owned{std::vector<void*> values;~Owned(){for(void* value:values)green_v400_resident_jet_buffer_free(value);}
+    void* add(void* value){if(value)values.push_back(value);return value;}} owned;
+  int status=0;std::vector<std::uint32_t> events;events.reserve(81);
+  auto mark=[&](std::uint32_t ordinal){if(status!=0)return;if(ordinal!=events.size()||ordinal>=tables.nodes.size())status=20;
+    else events.push_back(tables.nodes[ordinal].kernel_tag);};
+  auto binding_record=[&](std::uint32_t node,std::uint32_t ordinal)->const NativeRecord*{
+    for(const auto& binding:tables.bindings)if(binding.node_index==node&&binding.input_ordinal==ordinal&&binding.source_is_record)
+      return binding.source_index<tables.records.size()?&tables.records[binding.source_index]:nullptr;return nullptr;};
+  auto record_bits=[&](const NativeRecord* record)->const std::uint32_t*{return record?reinterpret_cast<const std::uint32_t*>(
+      static_cast<const std::uint8_t*>(context.plan->blob)+record->offset):nullptr;};
+  auto affine=[&](std::uint32_t node,void* input)->void*{if(status!=0)return nullptr;const NativeRecord* weight=binding_record(node,0);
+    const NativeRecord* bias=binding_record(node,1);void* out=nullptr;const std::uint32_t output_width=tables.nodes[node].output_shape.back();
+    status=(!weight||!bias)?3:green_v400_resident_jet_buffer_packed_affine(input,output_width,record_bits(weight),record_bits(bias),&out);
+    return status==0?owned.add(out):nullptr;};
+  auto layer_norm=[&](std::uint32_t node,void* input)->void*{if(status!=0)return nullptr;const NativeRecord* gamma=binding_record(node,0);
+    const NativeRecord* beta=binding_record(node,1);const NativeRecord* epsilon=binding_record(node,2);void* out=nullptr;
+    status=(!gamma||!beta||!epsilon)?3:green_v400_resident_jet_buffer_layer_norm(input,*record_bits(epsilon),record_bits(gamma),record_bits(beta),&out);
+    return status==0?owned.add(out):nullptr;};
+  auto gelu=[&](std::uint32_t node,void* input)->void*{if(status!=0)return nullptr;const NativeRecord* kappa=binding_record(node,0);
+    const NativeRecord* lambda=binding_record(node,1);void* out=nullptr;status=(!kappa||!lambda)?3:
+      green_v400_resident_jet_buffer_gelu_new(input,*record_bits(kappa),*record_bits(lambda),&out);return status==0?owned.add(out):nullptr;};
+  auto binary=[&](bool add,void* left,void* right)->void*{if(status!=0)return nullptr;void* out=nullptr;status=add?
+      green_v400_resident_jet_buffer_add(left,right,&out):green_v400_resident_jet_buffer_sub(left,right,&out);
+    return status==0?owned.add(out):nullptr;};
+  auto control=[&](std::uint32_t node)->void*{const NativeRecord* base=binding_record(node,0);const NativeRecord* direction=binding_record(node,1);
+    void* out=nullptr;if(!base||!direction){status=3;return nullptr;}status=green_v400_resident_jet_buffer_affine_control_f32(
+      context.precision,width,record_bits(base)+static_cast<std::size_t>(tables.final_position)*width,record_bits(direction),
+      domain_lower_significand,domain_lower_exponent,domain_upper_significand,domain_upper_exponent,&out);
+    return status==0?owned.add(out):nullptr;};
+  auto concatenate=[&](const std::vector<void*>& inputs)->void*{if(status!=0)return nullptr;void* out=nullptr;
+    status=green_v400_resident_jet_buffer_concat(inputs.data(),inputs.size(),&out);return status==0?owned.add(out):nullptr;};
+  auto attention=[&](std::uint32_t node,std::uint32_t branch,void* query,void* dynamic_key,void* dynamic_value)->void*{
+    std::vector<void*> keys,values;keys.reserve(sequence);values.reserve(sequence);
+    for(std::uint32_t row=0;row<tables.final_position;++row){const std::size_t offset=(static_cast<std::size_t>(branch)*tables.final_position+row)*2;
+      keys.push_back(context.static_projection_buffers[offset]);values.push_back(context.static_projection_buffers[offset+1]);}
+    keys.push_back(dynamic_key);values.push_back(dynamic_value);void* key_buffer=concatenate(keys);void* value_buffer=concatenate(values);if(status!=0)return nullptr;
+    void* out=nullptr;status=green_v400_resident_jet_buffer_causal_attention_all_heads(query,key_buffer,value_buffer,sequence,
+      tables.n_heads,tables.d_head,0,&out);return status==0?owned.add(out):nullptr;};
+  auto contrast=[&](void* input)->void*{std::vector<std::string> strings;std::vector<const char*> pointers;std::vector<std::int64_t> exponents;
+    strings.reserve(tables.fusion_weights.size());pointers.reserve(tables.fusion_weights.size());exponents.reserve(tables.fusion_weights.size());
+    for(const auto& weight:tables.fusion_weights){strings.push_back(decimal_to_hex(weight.significand));exponents.push_back(weight.exponent_2);}
+    for(const auto& item:strings)pointers.push_back(item.c_str());const std::string bias=decimal_to_hex(tables.fusion_bias.significand);void* out=nullptr;
+    status=green_v400_resident_jet_buffer_fused_contrast_exact(input,pointers.data(),exponents.data(),bias.c_str(),tables.fusion_bias.exponent_2,&out);
+    return status==0?owned.add(out):nullptr;};
+  auto tail=[&](std::uint32_t start,std::uint32_t branch,void* source)->void*{
+    void* norm1=layer_norm(start,source);mark(start);void* query=affine(start+1,norm1);mark(start+1);
+    void* key=affine(start+2,norm1);mark(start+2);void* value=affine(start+3,norm1);mark(start+3);
+    void* attended=attention(start+4,branch,query,key,value);mark(start+4);void* projected=affine(start+5,attended);mark(start+5);
+    void* residual=binary(true,source,projected);mark(start+6);void* norm2=layer_norm(start+7,residual);mark(start+7);
+    void* mlp=affine(start+8,norm2);mark(start+8);mlp=gelu(start+9,mlp);mark(start+9);mlp=affine(start+10,mlp);mark(start+10);
+    residual=binary(true,residual,mlp);mark(start+11);void* final_norm=layer_norm(start+12,residual);mark(start+12);
+    void* root=contrast(final_norm);mark(start+13);return root;};
+  auto condition=[&](std::uint32_t start,std::uint32_t mid_branch,std::uint32_t post_branch,std::array<void*,2>& roots){
+    void* base=control(start);mark(start);void* controlled_mid=control(start+1);mark(start+1);
+    void* zero_mid=context.base_row_buffers[static_cast<std::size_t>(mid_branch)*sequence+tables.final_position];mark(start+2);
+    void* joint_norm=layer_norm(start+3,controlled_mid);mark(start+3);void* baseline_norm=layer_norm(start+4,zero_mid);mark(start+4);
+    void* joint_selected=affine(start+5,joint_norm);mark(start+5);void* baseline_selected=affine(start+6,baseline_norm);mark(start+6);
+    joint_selected=gelu(start+7,joint_selected);mark(start+7);baseline_selected=gelu(start+8,baseline_selected);mark(start+8);
+    void* delta=binary(false,joint_selected,baseline_selected);mark(start+9);delta=affine(start+10,delta);mark(start+10);
+    void* joint=binary(true,base,delta);mark(start+11);roots[0]=tail(start+12,post_branch,joint);
+    roots[1]=tail(start+26,post_branch,base);
+  };
+  std::array<void*,2> pat{},tar{};condition(0,0,1,pat);condition(40,2,3,tar);
+  void* first=binary(false,pat[0],pat[1]);void* second=binary(false,first,tar[0]);void* output=binary(true,second,tar[1]);mark(80);
+  if(status!=0||events.size()!=81)return status?status:20;
+  auto scalar_json=[&](void* value,std::string& scalar)->bool{std::vector<char> buffer(32768);const int code=green_v400_resident_jet_buffer_export_json(value,buffer.data(),buffer.size());
+    if(code!=0)return false;const std::string payload(buffer.data());const auto left=payload.find('['),right=payload.rfind(']');
+    if(left==std::string::npos||right<=left)return false;scalar=payload.substr(left+1,right-left-1);return true;};
+  std::string pat_j,pat_b,tar_j,tar_b,out;if(!scalar_json(pat[0],pat_j)||!scalar_json(pat[1],pat_b)
+      ||!scalar_json(tar[0],tar_j)||!scalar_json(tar[1],tar_b)||!scalar_json(output,out))return 4;
+  std::string serialized="{\"schema_version\":\"green-v400-native-cell-dispatch-v1\",\"precision_bits\":"+std::to_string(context.precision)+",\"event_count\":81,\"kernel_tags\":[";
+  for(std::size_t i=0;i<events.size();++i){if(i)serialized+=',';serialized+=std::to_string(events[i]);}
+  serialized+="]";serialized+=",\"PAT_J\":"+pat_j+",\"PAT_B\":"+pat_b+",\"TAR_J\":"+tar_j+",\"TAR_B\":"+tar_b+",\"output\":"+out+"}";
+  if(serialized.size()+1>output_capacity)return 4;std::memcpy(output_json,serialized.c_str(),serialized.size()+1);return 0;
 }

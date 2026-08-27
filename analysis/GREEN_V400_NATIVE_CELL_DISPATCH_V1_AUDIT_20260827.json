@@ -1,0 +1,47 @@
+{
+  "all_root_components_nested": true,
+  "backend_sha256": "b3b15bce01459e9c5309646271c5066fede13265dd6087f0eb54d1f2b8890033",
+  "backend_version": "green-v400-compiled-mpfr-v2",
+  "blob_sha256": "34bcd45371c08720c23f66d8f723dfc0249779e9e47eee5499c04d6064dc3560",
+  "cell_domain": {"center": "0", "radius": "2^-14"},
+  "claim_scope": "one C++ entry point executes the frozen 81-node dynamic final-row graph using context-owned historical K/V buffers and returns five exact roots; only hashes, successful event identity, timing, memory, and 512-inside-384 nesting are retained",
+  "contains_scientific_outcome": false,
+  "created_at_utc": "2026-08-27T10:18:37.004898Z",
+  "cross_precision_nesting": {
+    "PAT_B": {"first": true, "second": true, "value": true},
+    "PAT_J": {"first": true, "second": true, "value": true},
+    "TAR_B": {"first": true, "second": true, "value": true},
+    "TAR_J": {"first": true, "second": true, "value": true},
+    "output": {"first": true, "second": true, "value": true}
+  },
+  "descriptor_sha256": "bc673467ac237e59e542634d38d02b8eaa12053cbb0abfc39e4dcaa6659ba3ee",
+  "dispatch_sha256": "eb4c907ab4a86f3aac2fda445deed67099f2831c41e9712463688cccf1b6f008",
+  "full_native_cell_dispatch_ready": true,
+  "fusion_sha256": "bd734f457bd3baee252af47f1c048dbd606ec15bf6a1b6533751c7bb943319c1",
+  "native_execution_ready": true,
+  "precision_observations": [
+    {
+      "cell_dispatch_seconds": 21.220027902978472,
+      "context_build_seconds": 12.459673154022312,
+      "event_count": 81,
+      "kernel_tags_sha256": "00775de35e6d7af796b236b4f7fc08842abc77dc094123436402de3d551fbc31",
+      "precision_bits": 384,
+      "root_payload_sha256": {"PAT_B": "1a69b9917bb95fa57e411a42aadca9c2bab2a4a20be43a6d5a92a5736841db68", "PAT_J": "ba0c7cd1b2390a554d05cb45ccd45b601ae9243df3cd5ec637ac0be14bbb0938", "TAR_B": "22f167650f4efd4cb9ba728da49b41edf412a55731b98ad5069503c867c184fe", "TAR_J": "140cd42185aec7a81f227ec077b594f453538cd425b74c9fb71d6b3fff926976", "output": "4226a4a7fdb9404e867f2e6a827afad83f954a411971f39bec42603c36c08704"}
+    },
+    {
+      "cell_dispatch_seconds": 24.97855571299442,
+      "context_build_seconds": 9.940335051011061,
+      "event_count": 81,
+      "kernel_tags_sha256": "00775de35e6d7af796b236b4f7fc08842abc77dc094123436402de3d551fbc31",
+      "precision_bits": 512,
+      "root_payload_sha256": {"PAT_B": "99f3ebdd96750162d25cea622c30b20ba244b0db14ed1d2b1b40193707303c82", "PAT_J": "3fd8ea8f0c5fb6e8f9753e5b47d0986469d667d70049e13da51f443cc15cd781", "TAR_B": "d8b9931322754ac319402f389d5ac9a8113d20684e2334369085459464de98f0", "TAR_J": "3fc88fb0d4f794390f926ce94823e6c8140d03b5f4df45bfca18e1864f4726eb", "output": "269d3d3dd4237e6b4cbbb59abe36f45be9cd58d41b1347253c8864575c982d58"}
+    }
+  ],
+  "process_peak_rss_after_kib": 197060,
+  "process_peak_rss_before_kib": 38488,
+  "process_peak_rss_delta_kib": 158572,
+  "program_execution_sha256": "38f40999524d465b8ee58fcc8d2d1822caf9af6c36897a72bd404a8fff34fe62",
+  "schema_version": "green-v400-native-cell-dispatch-audit-v1",
+  "scientific_threshold_applied": false,
+  "status": "PASS_NATIVE_81_NODE_CELL_DISPATCH"
+}

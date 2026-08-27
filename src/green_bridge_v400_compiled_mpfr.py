@@ -413,6 +413,12 @@ class CompiledMPFRBackend:
             ctypes.c_uint64, ctypes.c_uint32, ctypes.c_char_p, ctypes.c_uint64,
         ]
         native_projection_export.restype = ctypes.c_int
+        native_dispatch = self.library.green_v400_native_precision_context_dispatch_cell_v1
+        native_dispatch.argtypes = [
+            ctypes.c_uint64, ctypes.c_char_p, ctypes.c_int64,
+            ctypes.c_char_p, ctypes.c_int64, ctypes.c_char_p, ctypes.c_uint64,
+        ]
+        native_dispatch.restype = ctypes.c_int
         native_context_close = self.library.green_v400_native_precision_context_close_v1
         native_context_close.argtypes = [ctypes.c_uint64]
         native_context_close.restype = ctypes.c_int
@@ -551,6 +557,23 @@ class CompiledMPFRBackend:
         )
         if status != 0:
             raise RuntimeError(f"native projection export failed with status {status}")
+        return json.loads(output.value.decode("ascii"))
+
+    def dispatch_native_precision_context_cell(
+        self, context: CompiledNativePrecisionContext, domain: Interval,
+    ) -> dict:
+        if context.backend is not self or context.handle <= 0:
+            raise ValueError("native precision context is closed or belongs to another backend")
+        if domain.precision_bits != context.info["precision_bits"]:
+            raise ValueError("native context/domain precision mismatch")
+        lower = _binary_endpoint(domain.lower)
+        upper = _binary_endpoint(domain.upper)
+        output = ctypes.create_string_buffer(256 * 1024)
+        status = self.library.green_v400_native_precision_context_dispatch_cell_v1(
+            context.handle, lower[0], lower[1], upper[0], upper[1], output, len(output)
+        )
+        if status != 0:
+            raise RuntimeError(f"native cell dispatch failed with status {status}")
         return json.loads(output.value.decode("ascii"))
 
     def affine_jet2(self, weights, bias, values: list[Jet2], precision_bits: int) -> dict:

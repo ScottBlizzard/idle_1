@@ -1049,6 +1049,45 @@ extern "C" int green_v400_resident_jet_buffer_import_f32_constants(
   }
 }
 
+extern "C" int green_v400_resident_jet_buffer_affine_control_f32(
+    std::uint32_t precision_bits, std::uint32_t width,
+    const std::uint32_t* base_bits, const std::uint32_t* direction_bits,
+    const char* domain_lower_significand, std::int64_t domain_lower_exponent,
+    const char* domain_upper_significand, std::int64_t domain_upper_exponent,
+    void** output_handle) {
+  if (output_handle == nullptr) return 2;
+  *output_handle = nullptr;
+  if ((precision_bits != 384 && precision_bits != 512) || width == 0
+      || width > 1000000U || base_bits == nullptr || direction_bits == nullptr
+      || domain_lower_significand == nullptr || domain_upper_significand == nullptr) return 2;
+  try {
+    const mpfr_prec_t precision = static_cast<mpfr_prec_t>(precision_bits);
+    IntervalMP domain(precision);
+    int status = set_exact_binary(
+        domain.lower.get(), domain_lower_significand, domain_lower_exponent);
+    if (status == 0) status = set_exact_binary(
+        domain.upper.get(), domain_upper_significand, domain_upper_exponent);
+    if (status != 0 || mpfr_greater_p(domain.lower.get(), domain.upper.get())) return 3;
+    std::vector<JetMP> values;
+    values.reserve(width);
+    for (std::uint32_t index = 0; index < width; ++index) {
+      IntervalMP base = interval_point_float(float_from_bits(base_bits[index]), precision);
+      IntervalMP direction = interval_point_float(
+          float_from_bits(direction_bits[index]), precision);
+      JetMP jet(precision);
+      jet.value = interval_add(base, interval_mul(direction, domain));
+      jet.first = std::move(direction);
+      mpfr_set_zero(jet.second.lower.get(), 0);
+      mpfr_set_zero(jet.second.upper.get(), 0);
+      values.emplace_back(std::move(jet));
+    }
+    *output_handle = new ResidentJetBuffer(precision, std::move(values));
+    return 0;
+  } catch (...) {
+    return 7;
+  }
+}
+
 extern "C" int green_v400_resident_jet_buffer_packed_affine(
     void* input_handle, std::uint32_t output_width,
     const std::uint32_t* weight_bits, const std::uint32_t* bias_bits,
