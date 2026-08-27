@@ -1,0 +1,153 @@
+{
+  "canonical_pair_rounds": [
+    [
+      {
+        "lower": [
+          -1,
+          16384
+        ],
+        "precision_bits": 384,
+        "upper": [
+          0,
+          1
+        ]
+      },
+      {
+        "lower": [
+          0,
+          1
+        ],
+        "precision_bits": 384,
+        "upper": [
+          1,
+          16384
+        ]
+      }
+    ],
+    [
+      {
+        "lower": [
+          0,
+          1
+        ],
+        "precision_bits": 384,
+        "upper": [
+          1,
+          32768
+        ]
+      },
+      {
+        "lower": [
+          1,
+          32768
+        ],
+        "precision_bits": 384,
+        "upper": [
+          1,
+          16384
+        ]
+      }
+    ],
+    [
+      {
+        "lower": [
+          -1,
+          16384
+        ],
+        "precision_bits": 384,
+        "upper": [
+          -1,
+          32768
+        ]
+      },
+      {
+        "lower": [
+          -1,
+          32768
+        ],
+        "precision_bits": 384,
+        "upper": [
+          0,
+          1
+        ]
+      }
+    ]
+  ],
+  "certificate_plan_semantic_hash": "271e0746a9da9757bf76328807d767bf5f6c97f85605adf560312bbd6418361f",
+  "certificate_status": "RESOURCE_INCONCLUSIVE",
+  "claim_scope": "one frozen heap parent per round; its canonical left/right children execute on independent native contexts and commit in input order regardless of completion order",
+  "contains_scientific_outcome": false,
+  "dispatch_attempt_count_by_precision": {
+    "384": 6
+  },
+  "dispatch_count_by_precision": {
+    "384": 6
+  },
+  "memo_metrics": {
+    "by_precision": {
+      "384": {
+        "hits": 0,
+        "logical_requests": 6,
+        "misses": 6,
+        "waits": 0
+      }
+    },
+    "entry_count": 6,
+    "evaluator_identity_sha256": "cb6dbc202113c51d070b3d0725d48d1a9d465c16c3a6d7c362acfa2695f828c4",
+    "max_entries": 16
+  },
+  "pair_round_count": 3,
+  "process_tree_resource_record": {
+    "children_ru_maxrss_after_kib": 138572,
+    "children_ru_maxrss_before_kib": 0,
+    "descendant_identity_count": 0,
+    "finished_at_utc": "2026-08-27T16:03:33.876758Z",
+    "is_formal_upper_bound": false,
+    "measurement_scope": "sampled_root_and_observed_descendants",
+    "missed_processes_possible": true,
+    "peak_sampled_tree_rss_kib": 295668,
+    "platform": "Linux-5.15.0-67-generic-x86_64-with-glibc2.31",
+    "process_observations": [
+      {
+        "command_sha256": "6c067d96926fae5eececc23478dd2f39f02f6e7f3426d8dbb9319d3259df6ee0",
+        "last_rss_kib": 257924,
+        "parent_pid": 463208,
+        "peak_rss_kib": 295720,
+        "pid": 463227,
+        "samples": 14362,
+        "start_ticks": 28161020,
+        "system_ticks": 128,
+        "user_ticks": 15512
+      }
+    ],
+    "root_peak_rss_kib": 295720,
+    "root_pid": 463227,
+    "root_start_ticks": 28161020,
+    "sample_count": 14362,
+    "sample_interval_seconds": 0.01,
+    "schema_version": "green-v400-process-tree-resource-v1",
+    "self_ru_maxrss_after_kib": 295720,
+    "self_ru_maxrss_before_kib": 36744,
+    "started_at_utc": "2026-08-27T16:01:06.248338Z",
+    "wall_seconds": 147.62841150700115
+  },
+  "provenance": {
+    "backend_sha256": "b3b15bce01459e9c5309646271c5066fede13265dd6087f0eb54d1f2b8890033",
+    "blob_sha256": "34bcd45371c08720c23f66d8f723dfc0249779e9e47eee5499c04d6064dc3560",
+    "descriptor_sha256": "bc673467ac237e59e542634d38d02b8eaa12053cbb0abfc39e4dcaa6659ba3ee",
+    "dispatch_sha256": "eb4c907ab4a86f3aac2fda445deed67099f2831c41e9712463688cccf1b6f008",
+    "evaluator_identity_sha256": "cb6dbc202113c51d070b3d0725d48d1a9d465c16c3a6d7c362acfa2695f828c4",
+    "fusion_sha256": "bd734f457bd3baee252af47f1c048dbd606ec15bf6a1b6533751c7bb943319c1",
+    "independent_native_context_per_worker": true,
+    "program_execution_sha256": "38f40999524d465b8ee58fcc8d2d1822caf9af6c36897a72bd404a8fff34fe62",
+    "repository_clean": true,
+    "repository_commit": "b50f905e56a9614506281b5138abac28c3714c8a",
+    "worker_count": 2
+  },
+  "report_semantic_hash": "5e1f3cc059368b7b0efaff4b61949333b3849fe810cd17d7bc36f0ce220a2657",
+  "resource_reason": "MAX_DEPTH_REACHED",
+  "retained_numeric_scope": "control domains and scheduling/resource counters only; no response Jet2 payload retained",
+  "schema_version": "green-v400-native-sibling-parallel-audit-v1",
+  "scientific_threshold_applied": false,
+  "status": "PASS_CANONICAL_SIBLING_PARALLEL"
+}

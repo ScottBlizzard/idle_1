@@ -319,16 +319,16 @@ class CompiledNativeJointWitnessEvaluator:
             with self._dispatch_locks[domain.precision_bits]:
                 self.dispatch_attempt_count_by_precision[domain.precision_bits] += 1
                 payload = self.backend.dispatch_native_precision_context_cell(context, domain)
-            if (payload.get("event_count") != len(self.expected_kernel_tags)
-                    or tuple(payload.get("kernel_tags", ())) != self.expected_kernel_tags):
-                raise RuntimeError("NATIVE_CERTIFICATE_DISPATCH_IDENTITY_INVALID")
-            output = payload["output"]
-            jet = Jet2(*(
-                self._interval(output[component], domain.precision_bits)
-                for component in ("value", "first", "second")
-            ))
-            self.dispatch_count_by_precision[domain.precision_bits] += 1
-            return jet
+                if (payload.get("event_count") != len(self.expected_kernel_tags)
+                        or tuple(payload.get("kernel_tags", ())) != self.expected_kernel_tags):
+                    raise RuntimeError("NATIVE_CERTIFICATE_DISPATCH_IDENTITY_INVALID")
+                output = payload["output"]
+                jet = Jet2(*(
+                    self._interval(output[component], domain.precision_bits)
+                    for component in ("value", "first", "second")
+                ))
+                self.dispatch_count_by_precision[domain.precision_bits] += 1
+                return jet
 
         if self.exact_domain_memo is None:
             return dispatch_and_validate()
@@ -430,6 +430,13 @@ class CompiledMPFRBackend:
         self.version = self.library.green_v400_mpfr_backend_version().decode("ascii")
         if self.version != "green-v400-compiled-mpfr-v2":
             raise ValueError("compiled MPFR backend version mismatch")
+        build_options = getattr(self.library, "green_v400_mpfr_build_options_v1", None)
+        self.native_build_options_available = build_options is not None
+        if build_options is not None:
+            build_options.argtypes = [
+                ctypes.POINTER(ctypes.c_int), ctypes.POINTER(ctypes.c_int),
+            ]
+            build_options.restype = ctypes.c_int
         function = self.library.green_v400_affine_jet2_f32
         function.argtypes = [
             ctypes.c_uint32, ctypes.c_uint64,
@@ -701,6 +708,89 @@ class CompiledMPFRBackend:
         native_context_close = self.library.green_v400_native_precision_context_close_v1
         native_context_close.argtypes = [ctypes.c_uint64]
         native_context_close.restype = ctypes.c_int
+        concurrency_reset = getattr(
+            self.library, "green_v400_native_dispatch_concurrency_reset_v1", None
+        )
+        concurrency_info = getattr(
+            self.library, "green_v400_native_dispatch_concurrency_info_v1", None
+        )
+        context_dispatch_info = getattr(
+            self.library, "green_v400_native_precision_context_dispatch_info_v1", None
+        )
+        self.native_dispatch_metrics_available = all(
+            function is not None for function in (
+                concurrency_reset, concurrency_info, context_dispatch_info,
+            )
+        )
+        if self.native_dispatch_metrics_available:
+            concurrency_reset.argtypes = []
+            concurrency_reset.restype = ctypes.c_int
+            concurrency_info.argtypes = [
+                ctypes.POINTER(ctypes.c_uint64), ctypes.POINTER(ctypes.c_uint32),
+                ctypes.POINTER(ctypes.c_uint32),
+            ]
+            concurrency_info.restype = ctypes.c_int
+            context_dispatch_info.argtypes = [ctypes.c_uint64] + [
+                ctypes.POINTER(ctypes.c_uint64), ctypes.POINTER(ctypes.c_uint32),
+                ctypes.POINTER(ctypes.c_uint32),
+            ]
+            context_dispatch_info.restype = ctypes.c_int
+
+    def mpfr_build_options(self) -> dict:
+        if not self.native_build_options_available:
+            raise RuntimeError("compiled MPFR backend lacks build-option attestation")
+        tls = ctypes.c_int()
+        shared_cache = ctypes.c_int()
+        status = self.library.green_v400_mpfr_build_options_v1(
+            ctypes.byref(tls), ctypes.byref(shared_cache)
+        )
+        if status != 0:
+            raise RuntimeError(f"MPFR build-option attestation failed with status {status}")
+        return {
+            "tls_enabled": bool(tls.value),
+            "shared_cache_enabled": bool(shared_cache.value),
+        }
+
+    def reset_native_dispatch_concurrency_metrics(self) -> None:
+        if not self.native_dispatch_metrics_available:
+            raise RuntimeError("native dispatch concurrency metrics are unavailable")
+        status = self.library.green_v400_native_dispatch_concurrency_reset_v1()
+        if status != 0:
+            raise RuntimeError(f"native dispatch metric reset failed with status {status}")
+
+    def native_dispatch_concurrency_info(self) -> dict:
+        if not self.native_dispatch_metrics_available:
+            raise RuntimeError("native dispatch concurrency metrics are unavailable")
+        values = [ctypes.c_uint64(), ctypes.c_uint32(), ctypes.c_uint32()]
+        status = self.library.green_v400_native_dispatch_concurrency_info_v1(
+            *(ctypes.byref(value) for value in values)
+        )
+        if status != 0:
+            raise RuntimeError(f"native dispatch metric read failed with status {status}")
+        return {
+            "dispatch_entry_count": values[0].value,
+            "active_dispatch_count": values[1].value,
+            "peak_active_dispatch_count": values[2].value,
+        }
+
+    def native_precision_context_dispatch_info(
+        self, context: CompiledNativePrecisionContext,
+    ) -> dict:
+        if not self.native_dispatch_metrics_available:
+            raise RuntimeError("native dispatch concurrency metrics are unavailable")
+        if context.backend is not self or context.handle <= 0:
+            raise ValueError("native precision context is unavailable")
+        values = [ctypes.c_uint64(), ctypes.c_uint32(), ctypes.c_uint32()]
+        status = self.library.green_v400_native_precision_context_dispatch_info_v1(
+            context.handle, *(ctypes.byref(value) for value in values)
+        )
+        if status != 0:
+            raise RuntimeError(f"native context dispatch metric read failed with status {status}")
+        return {
+            "dispatch_entry_count": values[0].value,
+            "active_dispatch_count": values[1].value,
+            "peak_active_dispatch_count": values[2].value,
+        }
 
     def open_native_plan_envelope(
         self, descriptor_path: Path, blob_path: Path, *, descriptor_sha256: str,

@@ -38,6 +38,8 @@ class _TrackingParallelEvaluator:
         self.pool = pool
         self.certificate_row_hash = pool.certificate_row_hash
         self.pair_rounds: list[list[dict]] = []
+        self._pair_domains = []
+        self._pair_results = []
 
     def evaluate_interval(self, domain):
         return self.pool.evaluate_interval(domain)
@@ -48,7 +50,10 @@ class _TrackingParallelEvaluator:
             "lower": _endpoint(domain.lower),
             "upper": _endpoint(domain.upper),
         } for domain in domains])
-        return self.pool.evaluate_interval_pair(domains)
+        results = self.pool.evaluate_interval_pair(domains)
+        self._pair_domains.append(domains)
+        self._pair_results.append(results)
+        return results
 
 
 def main() -> int:
@@ -76,6 +81,7 @@ def main() -> int:
     )
     with ProcessTreeResourceRecorder(sample_interval_seconds=0.01) as resources:
         backend = CompiledMPFRBackend(library)
+        mpfr_build_options = backend.mpfr_build_options()
         envelope = backend.open_native_plan_envelope(
             descriptor, blob, descriptor_sha256=DESCRIPTOR_SHA,
             program_execution_sha256=PROGRAM_SHA, dispatch_sha256=DISPATCH_SHA,
@@ -100,14 +106,34 @@ def main() -> int:
         )
         pool = ParallelNativeSiblingEvaluator(workers)
         tracking = _TrackingParallelEvaluator(pool)
+        backend.reset_native_dispatch_concurrency_metrics()
         cells = certify_adaptive_cells(
             tracking, Fraction(1, 2**14), 384, plan,
+        )
+        concurrency = backend.native_dispatch_concurrency_info()
+        context_concurrency = tuple(
+            backend.native_precision_context_dispatch_info(context)
+            for context in contexts
         )
         dispatch_counts = pool.dispatch_count_by_precision
         attempt_counts = pool.dispatch_attempt_count_by_precision
         pool.close()
         for context in contexts:
             context.close()
+        reference_context = backend.open_native_precision_context(envelope, 384)
+        reference = CompiledNativeJointWitnessEvaluator(
+            backend, {384: reference_context}, certificate_row_hash=AUDIT_ROW_HASH,
+            expected_kernel_tags=tuple(EXPECTED_KERNEL_TAGS),
+        )
+        sequential_equivalence = []
+        for domains, concurrent_results in zip(
+            tracking._pair_domains, tracking._pair_results
+        ):
+            sequential_equivalence.extend(
+                reference.evaluate_interval(domain) == concurrent
+                for domain, concurrent in zip(domains, concurrent_results)
+            )
+        reference_context.close()
         envelope.close()
 
     status = "RESOURCE_INCONCLUSIVE" if cells is None else "PARTITION_ACCEPTED"
@@ -116,15 +142,27 @@ def main() -> int:
         status == "RESOURCE_INCONCLUSIVE"
         and len(tracking.pair_rounds) == 3
         and dispatch_counts == {384: 6}
+        and mpfr_build_options["tls_enabled"]
+        and concurrency == {
+            "dispatch_entry_count": 6,
+            "active_dispatch_count": 0,
+            "peak_active_dispatch_count": 2,
+        }
+        and context_concurrency == ({
+            "dispatch_entry_count": 3,
+            "active_dispatch_count": 0,
+            "peak_active_dispatch_count": 1,
+        },) * 2
+        and sequential_equivalence == [True] * 6
         and metrics["by_precision"]["384"] == {
             "logical_requests": 6, "hits": 0, "misses": 6, "waits": 0,
         }
     )
     report = {
-        "schema_version": "green-v400-native-sibling-parallel-audit-v1",
+        "schema_version": "green-v400-native-sibling-parallel-audit-v2",
         "contains_scientific_outcome": False,
         "scientific_threshold_applied": False,
-        "status": "PASS_CANONICAL_SIBLING_PARALLEL" if passed else "FAIL",
+        "status": "PASS_PHYSICAL_SIBLING_PARALLEL" if passed else "FAIL",
         "certificate_status": status,
         "resource_reason": "MAX_DEPTH_REACHED" if cells is None else None,
         "certificate_plan_semantic_hash": sha256_canonical(plan),
@@ -133,6 +171,11 @@ def main() -> int:
         "dispatch_count_by_precision": dispatch_counts,
         "dispatch_attempt_count_by_precision": attempt_counts,
         "memo_metrics": metrics,
+        "mpfr_build_options": mpfr_build_options,
+        "native_dispatch_concurrency": concurrency,
+        "per_context_dispatch_concurrency": context_concurrency,
+        "sequential_bit_exact_equivalence_count": sum(sequential_equivalence),
+        "sequential_bit_exact_comparison_count": len(sequential_equivalence),
         "process_tree_resource_record": resources.record.to_dict(),
         "provenance": {
             "repository_commit": _git("rev-parse", "HEAD"),
@@ -150,7 +193,8 @@ def main() -> int:
         "retained_numeric_scope": "control domains and scheduling/resource counters only; no response Jet2 payload retained",
         "claim_scope": (
             "one frozen heap parent per round; its canonical left/right children execute on "
-            "independent native contexts and commit in input order regardless of completion order"
+            "independent native contexts with measured physical overlap, remain bit-exact to "
+            "sequential evaluation, and commit in input order regardless of completion order"
         ),
     }
     report["report_semantic_hash"] = sha256_canonical(report)

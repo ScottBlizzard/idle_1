@@ -546,6 +546,11 @@ bool validate_payload_tables(const std::uint8_t* data,std::size_t size,
 
 struct PlanEnvelope { int dfd=-1,bfd=-1; void* blob=MAP_FAILED; std::uint64_t dsize=0,bsize=0; std::uint32_t records=0,nodes=0,bindings=0,fusion=0; bool payload_validated=false; NativePlanTables tables; ~PlanEnvelope(){if(blob!=MAP_FAILED)::munmap(blob,bsize);if(dfd>=0)::close(dfd);if(bfd>=0)::close(bfd);} };
 struct NativePrecisionContext {
+  std::mutex execution_mutex;
+  bool active=true;
+  std::uint64_t dispatch_entry_count=0;
+  std::uint32_t active_dispatch_count=0;
+  std::uint32_t peak_active_dispatch_count=0;
   std::shared_ptr<PlanEnvelope> plan;
   std::uint32_t precision=0;
   std::vector<void*> static_buffers;
@@ -560,8 +565,30 @@ struct NativePrecisionContext {
 };
 std::mutex registry_mutex;std::unordered_map<std::uint64_t,std::shared_ptr<PlanEnvelope>> registry;
 std::atomic<std::uint64_t> next_handle{1};
-std::mutex context_registry_mutex;std::unordered_map<std::uint64_t,std::unique_ptr<NativePrecisionContext>> context_registry;
+std::mutex context_registry_mutex;std::unordered_map<std::uint64_t,std::shared_ptr<NativePrecisionContext>> context_registry;
 std::atomic<std::uint64_t> next_context_handle{1};
+std::mutex dispatch_metrics_mutex;
+std::uint64_t global_dispatch_entry_count=0;
+std::uint32_t global_active_dispatch_count=0;
+std::uint32_t global_peak_active_dispatch_count=0;
+
+std::shared_ptr<NativePrecisionContext> find_precision_context(std::uint64_t handle){
+  std::lock_guard<std::mutex> lock(context_registry_mutex);auto it=context_registry.find(handle);
+  return it==context_registry.end()?std::shared_ptr<NativePrecisionContext>{}:it->second;
+}
+
+struct NativeDispatchMetricsGuard {
+  explicit NativeDispatchMetricsGuard(NativePrecisionContext& owned_context):context(owned_context){
+    ++context.dispatch_entry_count;++context.active_dispatch_count;
+    context.peak_active_dispatch_count=std::max(context.peak_active_dispatch_count,context.active_dispatch_count);
+    std::lock_guard<std::mutex> lock(dispatch_metrics_mutex);++global_dispatch_entry_count;++global_active_dispatch_count;
+    global_peak_active_dispatch_count=std::max(global_peak_active_dispatch_count,global_active_dispatch_count);
+  }
+  ~NativeDispatchMetricsGuard(){
+    --context.active_dispatch_count;std::lock_guard<std::mutex> lock(dispatch_metrics_mutex);--global_active_dispatch_count;
+  }
+  NativePrecisionContext& context;
+};
 
 }  // namespace
 
@@ -618,7 +645,7 @@ extern "C" int green_v400_native_precision_context_open_v1(std::uint64_t plan_ha
   std::shared_ptr<PlanEnvelope> plan;{std::lock_guard<std::mutex> lock(registry_mutex);auto it=registry.find(plan_handle);
     if(it==registry.end())return 2;plan=it->second;}
   const std::uint32_t endian_probe=1;if(*reinterpret_cast<const std::uint8_t*>(&endian_probe)!=1)return 3;
-  std::unique_ptr<NativePrecisionContext> context(new NativePrecisionContext());context->plan=plan;context->precision=precision_bits;
+  std::shared_ptr<NativePrecisionContext> context(new NativePrecisionContext());context->plan=plan;context->precision=precision_bits;
   const char* static_names[5]={"zero.d_model","PAT.resid_mid","PAT.resid_post","TAR.resid_mid","TAR.resid_post"};
   for(const char* name:static_names){
     std::size_t index=0;while(index<plan->tables.records.size()&&plan->tables.records[index].name!=name)++index;
@@ -672,36 +699,55 @@ extern "C" int green_v400_native_precision_context_open_v1(std::uint64_t plan_ha
     }
   }
   const std::uint64_t handle=next_context_handle.fetch_add(1);if(handle==0)return 10;
-  {std::lock_guard<std::mutex> lock(context_registry_mutex);context_registry.emplace(handle,std::move(context));}
+  {std::lock_guard<std::mutex> lock(context_registry_mutex);context_registry.emplace(handle,context);}
   *out_context_handle=handle;return 0;
 }
 extern "C" int green_v400_native_precision_context_info_v1(std::uint64_t context_handle,std::uint32_t* precision_bits,std::uint32_t* static_buffer_count,std::uint64_t* static_jet_count,std::uint32_t* node_count,std::uint32_t* binding_count){
-  std::lock_guard<std::mutex> lock(context_registry_mutex);auto it=context_registry.find(context_handle);if(it==context_registry.end())return 2;
-  const auto& context=*it->second;if(precision_bits)*precision_bits=context.precision;
+  auto context_ptr=find_precision_context(context_handle);if(!context_ptr)return 2;
+  std::lock_guard<std::mutex> execution_lock(context_ptr->execution_mutex);if(!context_ptr->active)return 2;const auto& context=*context_ptr;if(precision_bits)*precision_bits=context.precision;
   if(static_buffer_count)*static_buffer_count=context.static_buffers.size();if(static_jet_count)*static_jet_count=context.static_jet_count;
   if(node_count)*node_count=context.plan->tables.nodes.size();if(binding_count)*binding_count=context.plan->tables.bindings.size();return 0;
 }
 extern "C" int green_v400_native_precision_context_projection_info_v1(std::uint64_t context_handle,std::uint32_t* projection_buffer_count,std::uint64_t* projection_jet_count,std::uint32_t* historical_row_count,std::uint32_t* branch_count){
-  std::lock_guard<std::mutex> lock(context_registry_mutex);auto it=context_registry.find(context_handle);if(it==context_registry.end())return 2;
-  const auto& context=*it->second;if(projection_buffer_count)*projection_buffer_count=context.static_projection_buffers.size();
+  auto context_ptr=find_precision_context(context_handle);if(!context_ptr)return 2;
+  std::lock_guard<std::mutex> execution_lock(context_ptr->execution_mutex);if(!context_ptr->active)return 2;const auto& context=*context_ptr;if(projection_buffer_count)*projection_buffer_count=context.static_projection_buffers.size();
   if(projection_jet_count)*projection_jet_count=context.static_projection_jet_count;
   if(historical_row_count)*historical_row_count=context.plan->tables.final_position;if(branch_count)*branch_count=4;return 0;
 }
 extern "C" int green_v400_native_precision_context_projection_export_json_v1(std::uint64_t context_handle,std::uint32_t projection_index,char* output_json,std::uint64_t output_capacity){
-  std::lock_guard<std::mutex> lock(context_registry_mutex);auto it=context_registry.find(context_handle);if(it==context_registry.end())return 2;
-  const auto& buffers=it->second->static_projection_buffers;if(projection_index>=buffers.size())return 3;
+  auto context_ptr=find_precision_context(context_handle);if(!context_ptr)return 2;
+  std::lock_guard<std::mutex> execution_lock(context_ptr->execution_mutex);if(!context_ptr->active)return 2;
+  const auto& buffers=context_ptr->static_projection_buffers;if(projection_index>=buffers.size())return 3;
   return green_v400_resident_jet_buffer_export_json(buffers[projection_index],output_json,output_capacity);
 }
 extern "C" int green_v400_native_precision_context_close_v1(std::uint64_t context_handle){
-  std::unique_ptr<NativePrecisionContext> removed;{std::lock_guard<std::mutex> lock(context_registry_mutex);
-    auto it=context_registry.find(context_handle);if(it==context_registry.end())return 2;removed=std::move(it->second);context_registry.erase(it);}return 0;
+  std::shared_ptr<NativePrecisionContext> removed;{std::lock_guard<std::mutex> lock(context_registry_mutex);
+    auto it=context_registry.find(context_handle);if(it==context_registry.end())return 2;removed=it->second;context_registry.erase(it);}
+  std::lock_guard<std::mutex> execution_lock(removed->execution_mutex);removed->active=false;return 0;
+}
+extern "C" int green_v400_native_dispatch_concurrency_reset_v1(){
+  std::lock_guard<std::mutex> lock(dispatch_metrics_mutex);if(global_active_dispatch_count!=0)return 3;
+  global_dispatch_entry_count=0;global_peak_active_dispatch_count=0;return 0;
+}
+extern "C" int green_v400_native_dispatch_concurrency_info_v1(std::uint64_t* dispatch_entry_count,std::uint32_t* active_dispatch_count,std::uint32_t* peak_active_dispatch_count){
+  std::lock_guard<std::mutex> lock(dispatch_metrics_mutex);if(dispatch_entry_count)*dispatch_entry_count=global_dispatch_entry_count;
+  if(active_dispatch_count)*active_dispatch_count=global_active_dispatch_count;
+  if(peak_active_dispatch_count)*peak_active_dispatch_count=global_peak_active_dispatch_count;return 0;
+}
+extern "C" int green_v400_native_precision_context_dispatch_info_v1(std::uint64_t context_handle,std::uint64_t* dispatch_entry_count,std::uint32_t* active_dispatch_count,std::uint32_t* peak_active_dispatch_count){
+  auto context=find_precision_context(context_handle);if(!context)return 2;
+  std::lock_guard<std::mutex> execution_lock(context->execution_mutex);if(!context->active)return 2;
+  if(dispatch_entry_count)*dispatch_entry_count=context->dispatch_entry_count;
+  if(active_dispatch_count)*active_dispatch_count=context->active_dispatch_count;
+  if(peak_active_dispatch_count)*peak_active_dispatch_count=context->peak_active_dispatch_count;return 0;
 }
 extern "C" int green_v400_native_precision_context_dispatch_cell_v1(
     std::uint64_t context_handle,const char* domain_lower_significand,std::int64_t domain_lower_exponent,
     const char* domain_upper_significand,std::int64_t domain_upper_exponent,char* output_json,std::uint64_t output_capacity){
   if(!domain_lower_significand||!domain_upper_significand||!output_json||output_capacity==0)return 2;
-  std::lock_guard<std::mutex> context_lock(context_registry_mutex);auto context_it=context_registry.find(context_handle);
-  if(context_it==context_registry.end())return 2;NativePrecisionContext& context=*context_it->second;
+  auto context_ptr=find_precision_context(context_handle);if(!context_ptr)return 2;
+  std::lock_guard<std::mutex> execution_lock(context_ptr->execution_mutex);if(!context_ptr->active)return 2;
+  NativePrecisionContext& context=*context_ptr;NativeDispatchMetricsGuard dispatch_metrics(context);
   const auto& tables=context.plan->tables;const std::uint32_t width=tables.d_model,sequence=tables.sequence_length;
   if(tables.nodes.size()!=81||tables.final_position+1!=sequence||context.base_row_buffers.size()!=static_cast<std::size_t>(4)*sequence
       ||context.static_projection_buffers.size()!=static_cast<std::size_t>(8)*tables.final_position)return 3;

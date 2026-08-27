@@ -1009,6 +1009,14 @@ extern "C" const char* green_v400_mpfr_backend_version() {
   return "green-v400-compiled-mpfr-v2";
 }
 
+extern "C" int green_v400_mpfr_build_options_v1(
+    int* tls_enabled, int* shared_cache_enabled) {
+  if (tls_enabled == nullptr || shared_cache_enabled == nullptr) return 2;
+  *tls_enabled = mpfr_buildopt_tls_p();
+  *shared_cache_enabled = mpfr_buildopt_sharedcache_p();
+  return 0;
+}
+
 extern "C" int green_v400_resident_jet_buffer_import_exact(
     std::uint32_t precision_bits, std::uint32_t width,
     const char* const* endpoint_significands, const std::int64_t* endpoint_exponents,
