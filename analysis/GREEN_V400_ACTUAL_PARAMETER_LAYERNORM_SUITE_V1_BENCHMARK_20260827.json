@@ -1,0 +1,152 @@
+{
+  "backend_sha256": "0487f7acc5bba1dc87d9abfd41c5aaa3ba0834de2e1780e8e1edca50ae1ffb21",
+  "cap_decision_authorized": false,
+  "contains_scientific_outcome": false,
+  "created_at_utc": "2026-08-27T04:08:03.101739Z",
+  "formal_wall_time_upper_bound": false,
+  "input_policy": "deterministic synthetic Jet2 row with actual closed LayerNorm parameters",
+  "program_semantic_hash": "38f40999524d465b8ee58fcc8d2d1822caf9af6c36897a72bd404a8fff34fe62",
+  "repetitions": 3,
+  "resident_dispatcher_complete": false,
+  "resident_plan_semantic_hash": "0d5625e2f7af118615497e9642481946aec0a436b900e3c0d1661f90ba6f9acf",
+  "rows": [
+    {
+      "beta_name": "block10.ln2.b",
+      "beta_tensor_semantic_sha256": "65452502509269c485b87968d7d2fb37f3bdda863add22b1f446ca257877c60f",
+      "elapsed_seconds": [
+        0.028516458987724036,
+        0.04113691102247685,
+        0.05152845900738612
+      ],
+      "gamma_name": "block10.ln2.w",
+      "gamma_tensor_semantic_sha256": "783386f9d3596310e479181c51d1acd9161c4431ed0a40c4cc2dd3fa48e2c33d",
+      "guardbanded_observed_max_1p25x_seconds": 0.06441057375923265,
+      "median_seconds": 0.04113691102247685,
+      "observed_max_seconds": 0.05152845900738612,
+      "output_exact_payload_sha256": "e570ed712bbeec24b92194ff31f12c28eb82b6794810644bf61edd1f12b775f8",
+      "precision_bits": 384,
+      "width": 768
+    },
+    {
+      "beta_name": "block11.ln1.b",
+      "beta_tensor_semantic_sha256": "676c03e7f050a58ec0243ed53616e1288b6ece347f98a8400768a22aec384309",
+      "elapsed_seconds": [
+        0.05149716101004742,
+        0.03528165598982014,
+        0.03332348700496368
+      ],
+      "gamma_name": "block11.ln1.w",
+      "gamma_tensor_semantic_sha256": "d1b25affdce3860e3206b98526d6efe507c3c28536103d592405109e68ee2eae",
+      "guardbanded_observed_max_1p25x_seconds": 0.06437145126255928,
+      "median_seconds": 0.03528165598982014,
+      "observed_max_seconds": 0.05149716101004742,
+      "output_exact_payload_sha256": "d5c26c7992680390d2023b44370bdfc45c3625ce5f2d92fd6e7b140f634963e6",
+      "precision_bits": 384,
+      "width": 768
+    },
+    {
+      "beta_name": "block11.ln2.b",
+      "beta_tensor_semantic_sha256": "66bf9f31b5f84278f232bb1ec3d99c5fd8afbb764aaf00801333660441150659",
+      "elapsed_seconds": [
+        0.03707923198817298,
+        0.03674508898984641,
+        0.0365773560188245
+      ],
+      "gamma_name": "block11.ln2.w",
+      "gamma_tensor_semantic_sha256": "5e5c7ca04ac18d0d154e2cf4980189639a1950c9ef93fc1eb7566c8733e40eca",
+      "guardbanded_observed_max_1p25x_seconds": 0.04634903998521622,
+      "median_seconds": 0.03674508898984641,
+      "observed_max_seconds": 0.03707923198817298,
+      "output_exact_payload_sha256": "ee18944b86ada293a556ac40ea84584df25dfa64ef760a022135ccaa34664fff",
+      "precision_bits": 384,
+      "width": 768
+    },
+    {
+      "beta_name": "ln_final.b",
+      "beta_tensor_semantic_sha256": "7cb9ba8bde97d2f808f550fda631b45e15d14a49d9faca650235c30822a224bd",
+      "elapsed_seconds": [
+        0.03588266999577172,
+        0.03506702100276016,
+        0.037336169014452025
+      ],
+      "gamma_name": "ln_final.w",
+      "gamma_tensor_semantic_sha256": "de49787cd8916bd792bb1d832bd59ea75249d76048641f411bb855f50aea1352",
+      "guardbanded_observed_max_1p25x_seconds": 0.04667021126806503,
+      "median_seconds": 0.03588266999577172,
+      "observed_max_seconds": 0.037336169014452025,
+      "output_exact_payload_sha256": "190c814987840126fed3e0130bb462b533371e55550d3e72aaddb5efc4639816",
+      "precision_bits": 384,
+      "width": 768
+    },
+    {
+      "beta_name": "block10.ln2.b",
+      "beta_tensor_semantic_sha256": "65452502509269c485b87968d7d2fb37f3bdda863add22b1f446ca257877c60f",
+      "elapsed_seconds": [
+        0.059186188998864964,
+        0.04717372200684622,
+        0.03566516199498437
+      ],
+      "gamma_name": "block10.ln2.w",
+      "gamma_tensor_semantic_sha256": "783386f9d3596310e479181c51d1acd9161c4431ed0a40c4cc2dd3fa48e2c33d",
+      "guardbanded_observed_max_1p25x_seconds": 0.0739827362485812,
+      "median_seconds": 0.04717372200684622,
+      "observed_max_seconds": 0.059186188998864964,
+      "output_exact_payload_sha256": "6648f575104cd8b0b31fb0425638e9ecd789ea887fbf9807f68927a3c1e0102e",
+      "precision_bits": 512,
+      "width": 768
+    },
+    {
+      "beta_name": "block11.ln1.b",
+      "beta_tensor_semantic_sha256": "676c03e7f050a58ec0243ed53616e1288b6ece347f98a8400768a22aec384309",
+      "elapsed_seconds": [
+        0.04042061298969202,
+        0.04007981001632288,
+        0.039706687995931134
+      ],
+      "gamma_name": "block11.ln1.w",
+      "gamma_tensor_semantic_sha256": "d1b25affdce3860e3206b98526d6efe507c3c28536103d592405109e68ee2eae",
+      "guardbanded_observed_max_1p25x_seconds": 0.05052576623711502,
+      "median_seconds": 0.04007981001632288,
+      "observed_max_seconds": 0.04042061298969202,
+      "output_exact_payload_sha256": "307bfc0150fbde2d3415e941c6fb3e1a4aa1de3d1f79c76dda9ec3f57e20c038",
+      "precision_bits": 512,
+      "width": 768
+    },
+    {
+      "beta_name": "block11.ln2.b",
+      "beta_tensor_semantic_sha256": "66bf9f31b5f84278f232bb1ec3d99c5fd8afbb764aaf00801333660441150659",
+      "elapsed_seconds": [
+        0.039864936989033595,
+        0.03982257199822925,
+        0.03986570701817982
+      ],
+      "gamma_name": "block11.ln2.w",
+      "gamma_tensor_semantic_sha256": "5e5c7ca04ac18d0d154e2cf4980189639a1950c9ef93fc1eb7566c8733e40eca",
+      "guardbanded_observed_max_1p25x_seconds": 0.049832133772724774,
+      "median_seconds": 0.039864936989033595,
+      "observed_max_seconds": 0.03986570701817982,
+      "output_exact_payload_sha256": "9687d38007fa567025e2f7e3a68ca23207d933013623b4dc10e9b9c6c6c49afa",
+      "precision_bits": 512,
+      "width": 768
+    },
+    {
+      "beta_name": "ln_final.b",
+      "beta_tensor_semantic_sha256": "7cb9ba8bde97d2f808f550fda631b45e15d14a49d9faca650235c30822a224bd",
+      "elapsed_seconds": [
+        0.0426988739927765,
+        0.061144096980569884,
+        0.05645903298864141
+      ],
+      "gamma_name": "ln_final.w",
+      "gamma_tensor_semantic_sha256": "de49787cd8916bd792bb1d832bd59ea75249d76048641f411bb855f50aea1352",
+      "guardbanded_observed_max_1p25x_seconds": 0.07643012122571236,
+      "median_seconds": 0.05645903298864141,
+      "observed_max_seconds": 0.061144096980569884,
+      "output_exact_payload_sha256": "813bb944c9531e1331c337b2bb9d360ab662941d8ef151f2d698ca312e9eee22",
+      "precision_bits": 512,
+      "width": 768
+    }
+  ],
+  "schema_version": "green-v400-actual-parameter-layernorm-suite-v1",
+  "status": "PASS_ACTUAL_PARAMETER_LAYERNORM_SUITE_OBSERVATION_ONLY"
+}

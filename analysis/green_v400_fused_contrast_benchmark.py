@@ -1,4 +1,4 @@
-"""Outcome-blind full-width resident GELU batch-ABI observation."""
+"""Outcome-blind actual-width exact fused-contrast FFI observation."""
 from __future__ import annotations
 
 import argparse
@@ -57,57 +57,53 @@ def main() -> int:
         raise RuntimeError("at least three repetitions are required")
     library, output = Path(args.library).resolve(), Path(args.output).resolve()
     if "/mnt/sdb/" not in output.as_posix() or output.exists():
-        raise RuntimeError("packed GELU output must be a new file on /mnt/sdb")
+        raise RuntimeError("fused-contrast output must be a new file on /mnt/sdb")
     program = TensorProgram.from_dict(json.loads(Path(args.program).read_text(encoding="utf-8")))
     reader = TensorStoreReader(Path(args.tensor_store))
-    plan, arrays = load_resident_plan_arrays(Path(args.plan), program, reader)
-    records = {record["name"]: record for record in plan["records"]}
-    dimensions = program.resource_formula["dimensions"]
-    widths = (len(dimensions["selected_gates"]), int(dimensions["d_mlp"]))
-    kappa, lam = arrays["gelu.kappa"].reshape(()), arrays["gelu.lambda"].reshape(())
+    plan, _ = load_resident_plan_arrays(Path(args.plan), program, reader)
+    fusion = plan["exact_final_contrast_fusion"]
+    width = int(fusion["d_model"])
     backend = CompiledMPFRBackend(library)
     rows = []
     for precision in (384, 512):
-        for width in widths:
-            inputs = synthetic_inputs(width, precision)
-            hashes, timings = [], []
-            for _ in range(args.repetitions):
-                started = time.perf_counter()
-                payload = backend.gelu_new_layer_jet2(inputs, kappa, lam)
-                timings.append(time.perf_counter() - started)
-                hashes.append(sha256_canonical(payload))
-            if len(set(hashes)) != 1 or len(payload["outputs"]) != width:
-                raise RuntimeError("packed GELU output is incomplete or nondeterministic")
-            rows.append({
-                "precision_bits": precision,
-                "width": width,
-                "elapsed_seconds": timings,
-                "median_seconds": statistics.median(timings),
-                "observed_max_seconds": max(timings),
-                "guardbanded_observed_max_1p25x_seconds": 1.25 * max(timings),
-                "output_exact_payload_sha256": hashes[0],
-            })
+        inputs = synthetic_inputs(width, precision)
+        timings, hashes = [], []
+        for _ in range(args.repetitions):
+            started = time.perf_counter()
+            payload = backend.fused_contrast_jet2(inputs, fusion)
+            timings.append(time.perf_counter() - started)
+            hashes.append(sha256_canonical(payload))
+        if len(set(hashes)) != 1:
+            raise RuntimeError("fused contrast output is nondeterministic")
+        rows.append({
+            "precision_bits": precision,
+            "width": width,
+            "elapsed_seconds": timings,
+            "median_seconds": statistics.median(timings),
+            "observed_max_seconds": max(timings),
+            "guardbanded_observed_max_1p25x_seconds": 1.25 * max(timings),
+            "output_exact_payload_sha256": hashes[0],
+        })
     report = {
-        "schema_version": "green-v400-packed-gelu-width-suite-v2",
+        "schema_version": "green-v400-actual-width-fused-contrast-benchmark-v1",
         "created_at_utc": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
         "contains_scientific_outcome": False,
-        "input_policy": "deterministic synthetic Jet2 row with actual closed GELU constants",
+        "input_policy": "deterministic synthetic Jet2 row with exact closed contrast fusion",
         "resident_plan_semantic_hash": plan["resident_plan_semantic_hash"],
         "program_semantic_hash": program.semantic_hash(),
-        "widths": list(widths),
-        "kappa_tensor_semantic_sha256": records["gelu.kappa"]["tensor_semantic_sha256"],
-        "lambda_tensor_semantic_sha256": records["gelu.lambda"]["tensor_semantic_sha256"],
+        "exact_final_contrast_fusion_sha256": plan["exact_final_contrast_fusion_sha256"],
         "backend_sha256": sha256_file(library),
+        "repetitions": args.repetitions,
         "rows": rows,
-        "status": "PASS_ACTUAL_WIDTH_GELU_BATCH_FFI_OBSERVATION_ONLY",
+        "status": "PASS_ACTUAL_WIDTH_FUSED_CONTRAST_FFI_OBSERVATION_ONLY",
         "resident_dispatcher_complete": False,
         "formal_wall_time_upper_bound": False,
         "cap_decision_authorized": False,
     }
     output.parent.mkdir(parents=True, exist_ok=True)
     output.write_text(json.dumps(report, sort_keys=True, indent=2) + "\n", encoding="utf-8")
-    print(json.dumps({"status": report["status"], "output": str(output), "rows": rows},
-                     sort_keys=True))
+    print(json.dumps({"status": report["status"], "output": str(output),
+                      "rows": rows}, sort_keys=True))
     return 0
 
 

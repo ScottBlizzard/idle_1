@@ -1,0 +1,356 @@
+{
+  "backend_sha256": "0487f7acc5bba1dc87d9abfd41c5aaa3ba0834de2e1780e8e1edca50ae1ffb21",
+  "cap_decision_authorized": false,
+  "call_counts_no_static_cache": {
+    "affine": {
+      "block10.mlp.W_in_selected": 28,
+      "block10.mlp.W_out_selected": 14,
+      "block11.attn.W_K": 28,
+      "block11.attn.W_O": 4,
+      "block11.attn.W_Q": 4,
+      "block11.attn.W_V": 28,
+      "block11.mlp.W_in": 4,
+      "block11.mlp.W_out": 4
+    },
+    "attention": 4,
+    "contrast": 4,
+    "gelu": {
+      "10": 28,
+      "3072": 4
+    },
+    "layernorm": {
+      "block10.ln2.w": 28,
+      "block11.ln1.w": 28,
+      "block11.ln2.w": 4,
+      "ln_final.w": 4
+    }
+  },
+  "composition_policy": "sum per-call medians and 1.25x observed maxima over exact row-liveness call counts; do not apply runtime static-row cache savings",
+  "contains_scientific_outcome": false,
+  "created_at_utc": "2026-08-27T04:10:51.001249Z",
+  "excluded_costs": [
+    "affine-scatter and constant Jet materialization",
+    "residual/subtract/branch arithmetic",
+    "static-row cache hashing and lookup",
+    "Python node dispatch outside timed kernel calls",
+    "program/plan loading and validation",
+    "endpoint-center and multi-radius orchestration",
+    "adaptive queue and curvature integration",
+    "certificate serialization and process-tree RSS"
+  ],
+  "formal_wall_time_upper_bound": false,
+  "numeric_cap_decision_authorized": false,
+  "precision_rows": [
+    {
+      "components": [
+        {
+          "call_count": 28,
+          "guardbanded_observed_max_contribution_seconds": 0.5267436300346162,
+          "identity": "block10.mlp.W_in_selected",
+          "kernel_group": "affine",
+          "median_contribution_seconds": 0.41917114437092096,
+          "per_call_guardbanded_observed_max_seconds": 0.018812272501236293,
+          "per_call_median_seconds": 0.014970398013247177
+        },
+        {
+          "call_count": 14,
+          "guardbanded_observed_max_contribution_seconds": 0.2809812777559273,
+          "identity": "block10.mlp.W_out_selected",
+          "kernel_group": "affine",
+          "median_contribution_seconds": 0.22134789580013603,
+          "per_call_guardbanded_observed_max_seconds": 0.02007009126828052,
+          "per_call_median_seconds": 0.015810563985724002
+        },
+        {
+          "call_count": 4,
+          "guardbanded_observed_max_contribution_seconds": 1.853739390062401,
+          "identity": "block11.attn.W_Q",
+          "kernel_group": "affine",
+          "median_contribution_seconds": 1.4120933279627934,
+          "per_call_guardbanded_observed_max_seconds": 0.46343484751560027,
+          "per_call_median_seconds": 0.35302333199069835
+        },
+        {
+          "call_count": 28,
+          "guardbanded_observed_max_contribution_seconds": 12.81322468916187,
+          "identity": "block11.attn.W_K",
+          "kernel_group": "affine",
+          "median_contribution_seconds": 9.934764728066511,
+          "per_call_guardbanded_observed_max_seconds": 0.4576151674700668,
+          "per_call_median_seconds": 0.3548130260023754
+        },
+        {
+          "call_count": 28,
+          "guardbanded_observed_max_contribution_seconds": 12.365931724198163,
+          "identity": "block11.attn.W_V",
+          "kernel_group": "affine",
+          "median_contribution_seconds": 9.865925495745614,
+          "per_call_guardbanded_observed_max_seconds": 0.44164041872136295,
+          "per_call_median_seconds": 0.3523544819909148
+        },
+        {
+          "call_count": 4,
+          "guardbanded_observed_max_contribution_seconds": 1.9795416000124533,
+          "identity": "block11.attn.W_O",
+          "kernel_group": "affine",
+          "median_contribution_seconds": 1.4747838559560478,
+          "per_call_guardbanded_observed_max_seconds": 0.4948854000031133,
+          "per_call_median_seconds": 0.36869596398901194
+        },
+        {
+          "call_count": 4,
+          "guardbanded_observed_max_contribution_seconds": 7.248091080109589,
+          "identity": "block11.mlp.W_in",
+          "kernel_group": "affine",
+          "median_contribution_seconds": 5.6973741359543055,
+          "per_call_guardbanded_observed_max_seconds": 1.8120227700273972,
+          "per_call_median_seconds": 1.4243435339885764
+        },
+        {
+          "call_count": 4,
+          "guardbanded_observed_max_contribution_seconds": 8.93637100001797,
+          "identity": "block11.mlp.W_out",
+          "kernel_group": "affine",
+          "median_contribution_seconds": 6.906243739998899,
+          "per_call_guardbanded_observed_max_seconds": 2.2340927500044927,
+          "per_call_median_seconds": 1.7265609349997249
+        },
+        {
+          "call_count": 28,
+          "guardbanded_observed_max_contribution_seconds": 1.8034960652585141,
+          "identity": "block10.ln2.w",
+          "kernel_group": "layernorm",
+          "median_contribution_seconds": 1.1518335086293519,
+          "per_call_guardbanded_observed_max_seconds": 0.06441057375923265,
+          "per_call_median_seconds": 0.04113691102247685
+        },
+        {
+          "call_count": 28,
+          "guardbanded_observed_max_contribution_seconds": 1.8024006353516597,
+          "identity": "block11.ln1.w",
+          "kernel_group": "layernorm",
+          "median_contribution_seconds": 0.9878863677149639,
+          "per_call_guardbanded_observed_max_seconds": 0.06437145126255928,
+          "per_call_median_seconds": 0.03528165598982014
+        },
+        {
+          "call_count": 4,
+          "guardbanded_observed_max_contribution_seconds": 0.1853961599408649,
+          "identity": "block11.ln2.w",
+          "kernel_group": "layernorm",
+          "median_contribution_seconds": 0.14698035595938563,
+          "per_call_guardbanded_observed_max_seconds": 0.04634903998521622,
+          "per_call_median_seconds": 0.03674508898984641
+        },
+        {
+          "call_count": 4,
+          "guardbanded_observed_max_contribution_seconds": 0.18668084507226013,
+          "identity": "ln_final.w",
+          "kernel_group": "layernorm",
+          "median_contribution_seconds": 0.14353067998308688,
+          "per_call_guardbanded_observed_max_seconds": 0.04667021126806503,
+          "per_call_median_seconds": 0.03588266999577172
+        },
+        {
+          "call_count": 28,
+          "guardbanded_observed_max_contribution_seconds": 0.03188646922353655,
+          "identity": "10",
+          "kernel_group": "gelu",
+          "median_contribution_seconds": 0.020429024007171392,
+          "per_call_guardbanded_observed_max_seconds": 0.0011388024722691625,
+          "per_call_median_seconds": 0.0007296080002561212
+        },
+        {
+          "call_count": 4,
+          "guardbanded_observed_max_contribution_seconds": 1.1702453850011807,
+          "identity": "3072",
+          "kernel_group": "gelu",
+          "median_contribution_seconds": 0.8954381799558178,
+          "per_call_guardbanded_observed_max_seconds": 0.2925613462502952,
+          "per_call_median_seconds": 0.22385954498895444
+        },
+        {
+          "call_count": 4,
+          "guardbanded_observed_max_contribution_seconds": 2.9786800299189053,
+          "identity": "S12_H12_DH64",
+          "kernel_group": "causal_attention_per_head_aggregate",
+          "median_contribution_seconds": 1.9690913039958104,
+          "per_call_guardbanded_observed_max_seconds": 0.7446700074797263,
+          "per_call_median_seconds": 0.4922728259989526
+        },
+        {
+          "call_count": 4,
+          "guardbanded_observed_max_contribution_seconds": 0.07265208507305942,
+          "identity": "d_model_768",
+          "kernel_group": "fused_contrast",
+          "median_contribution_seconds": 0.05583834392018616,
+          "per_call_guardbanded_observed_max_seconds": 0.018163021268264856,
+          "per_call_median_seconds": 0.01395958598004654
+        }
+      ],
+      "kernel_only_no_cache_guardbanded_observed_max_sum_seconds": 54.23606206619297,
+      "kernel_only_no_cache_median_sum_seconds": 41.302732088021,
+      "precision_bits": 384
+    },
+    {
+      "components": [
+        {
+          "call_count": 28,
+          "guardbanded_observed_max_contribution_seconds": 0.6169618001149502,
+          "identity": "block10.mlp.W_in_selected",
+          "kernel_group": "affine",
+          "median_contribution_seconds": 0.40783618460409343,
+          "per_call_guardbanded_observed_max_seconds": 0.022034350004105363,
+          "per_call_median_seconds": 0.014565578021574765
+        },
+        {
+          "call_count": 14,
+          "guardbanded_observed_max_contribution_seconds": 0.28703997006232385,
+          "identity": "block10.mlp.W_out_selected",
+          "kernel_group": "affine",
+          "median_contribution_seconds": 0.21603135409532115,
+          "per_call_guardbanded_observed_max_seconds": 0.020502855004451703,
+          "per_call_median_seconds": 0.015430811006808653
+        },
+        {
+          "call_count": 4,
+          "guardbanded_observed_max_contribution_seconds": 2.1402793300512712,
+          "identity": "block11.attn.W_Q",
+          "kernel_group": "affine",
+          "median_contribution_seconds": 1.6536928280256689,
+          "per_call_guardbanded_observed_max_seconds": 0.5350698325128178,
+          "per_call_median_seconds": 0.4134232070064172
+        },
+        {
+          "call_count": 28,
+          "guardbanded_observed_max_contribution_seconds": 14.456699285365175,
+          "identity": "block11.attn.W_K",
+          "kernel_group": "affine",
+          "median_contribution_seconds": 11.559361155959778,
+          "per_call_guardbanded_observed_max_seconds": 0.516310688763042,
+          "per_call_median_seconds": 0.4128343269985635
+        },
+        {
+          "call_count": 28,
+          "guardbanded_observed_max_contribution_seconds": 14.881950579874683,
+          "identity": "block11.attn.W_V",
+          "kernel_group": "affine",
+          "median_contribution_seconds": 11.551884259679355,
+          "per_call_guardbanded_observed_max_seconds": 0.5314982349955244,
+          "per_call_median_seconds": 0.4125672949885484
+        },
+        {
+          "call_count": 4,
+          "guardbanded_observed_max_contribution_seconds": 2.160093245038297,
+          "identity": "block11.attn.W_O",
+          "kernel_group": "affine",
+          "median_contribution_seconds": 1.7205614399863407,
+          "per_call_guardbanded_observed_max_seconds": 0.5400233112595743,
+          "per_call_median_seconds": 0.4301403599965852
+        },
+        {
+          "call_count": 4,
+          "guardbanded_observed_max_contribution_seconds": 8.335172514925944,
+          "identity": "block11.mlp.W_in",
+          "kernel_group": "affine",
+          "median_contribution_seconds": 6.635845780023374,
+          "per_call_guardbanded_observed_max_seconds": 2.083793128731486,
+          "per_call_median_seconds": 1.6589614450058434
+        },
+        {
+          "call_count": 4,
+          "guardbanded_observed_max_contribution_seconds": 10.413729154970497,
+          "identity": "block11.mlp.W_out",
+          "kernel_group": "affine",
+          "median_contribution_seconds": 8.182075924007222,
+          "per_call_guardbanded_observed_max_seconds": 2.6034322887426242,
+          "per_call_median_seconds": 2.0455189810018055
+        },
+        {
+          "call_count": 28,
+          "guardbanded_observed_max_contribution_seconds": 2.0715166149602737,
+          "identity": "block10.ln2.w",
+          "kernel_group": "layernorm",
+          "median_contribution_seconds": 1.3208642161916941,
+          "per_call_guardbanded_observed_max_seconds": 0.0739827362485812,
+          "per_call_median_seconds": 0.04717372200684622
+        },
+        {
+          "call_count": 28,
+          "guardbanded_observed_max_contribution_seconds": 1.4147214546392206,
+          "identity": "block11.ln1.w",
+          "kernel_group": "layernorm",
+          "median_contribution_seconds": 1.1222346804570407,
+          "per_call_guardbanded_observed_max_seconds": 0.05052576623711502,
+          "per_call_median_seconds": 0.04007981001632288
+        },
+        {
+          "call_count": 4,
+          "guardbanded_observed_max_contribution_seconds": 0.1993285350908991,
+          "identity": "block11.ln2.w",
+          "kernel_group": "layernorm",
+          "median_contribution_seconds": 0.15945974795613438,
+          "per_call_guardbanded_observed_max_seconds": 0.049832133772724774,
+          "per_call_median_seconds": 0.039864936989033595
+        },
+        {
+          "call_count": 4,
+          "guardbanded_observed_max_contribution_seconds": 0.3057204849028494,
+          "identity": "ln_final.w",
+          "kernel_group": "layernorm",
+          "median_contribution_seconds": 0.22583613195456564,
+          "per_call_guardbanded_observed_max_seconds": 0.07643012122571236,
+          "per_call_median_seconds": 0.05645903298864141
+        },
+        {
+          "call_count": 28,
+          "guardbanded_observed_max_contribution_seconds": 0.36442692988202907,
+          "identity": "10",
+          "kernel_group": "gelu",
+          "median_contribution_seconds": 0.02321729192044586,
+          "per_call_guardbanded_observed_max_seconds": 0.013015247495786753,
+          "per_call_median_seconds": 0.0008291889971587807
+        },
+        {
+          "call_count": 4,
+          "guardbanded_observed_max_contribution_seconds": 1.470064485038165,
+          "identity": "3072",
+          "kernel_group": "gelu",
+          "median_contribution_seconds": 1.0425512080546468,
+          "per_call_guardbanded_observed_max_seconds": 0.36751612125954125,
+          "per_call_median_seconds": 0.2606378020136617
+        },
+        {
+          "call_count": 4,
+          "guardbanded_observed_max_contribution_seconds": 2.516740934952395,
+          "identity": "S12_H12_DH64",
+          "kernel_group": "causal_attention_per_head_aggregate",
+          "median_contribution_seconds": 1.8826782279647887,
+          "per_call_guardbanded_observed_max_seconds": 0.6291852337380988,
+          "per_call_median_seconds": 0.47066955699119717
+        },
+        {
+          "call_count": 4,
+          "guardbanded_observed_max_contribution_seconds": 0.08366315989405848,
+          "identity": "d_model_768",
+          "kernel_group": "fused_contrast",
+          "median_contribution_seconds": 0.06438008800614625,
+          "per_call_guardbanded_observed_max_seconds": 0.02091578997351462,
+          "per_call_median_seconds": 0.016095022001536563
+        }
+      ],
+      "kernel_only_no_cache_guardbanded_observed_max_sum_seconds": 61.71810847976303,
+      "kernel_only_no_cache_median_sum_seconds": 47.768510518886615,
+      "precision_bits": 512
+    }
+  ],
+  "program_semantic_hash": "38f40999524d465b8ee58fcc8d2d1822caf9af6c36897a72bd404a8fff34fe62",
+  "resident_dispatcher_complete": false,
+  "resident_plan_semantic_hash": "0d5625e2f7af118615497e9642481946aec0a436b900e3c0d1661f90ba6f9acf",
+  "row_liveness": {
+    "dense_axis0_row_slot_count": 532,
+    "materialized_axis0_row_count": 292
+  },
+  "schema_version": "green-v400-kernel-only-no-cache-workload-model-v1",
+  "status": "PASS_KERNEL_ONLY_NO_CACHE_OBSERVATIONAL_COMPOSITION"
+}

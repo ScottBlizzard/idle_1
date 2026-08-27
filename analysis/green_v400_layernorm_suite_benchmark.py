@@ -1,4 +1,4 @@
-"""Outcome-blind full-width resident GELU batch-ABI observation."""
+"""Outcome-blind actual-parameter LayerNorm suite observation."""
 from __future__ import annotations
 
 import argparse
@@ -21,6 +21,14 @@ from green_bridge_v400_resident_plan import load_resident_plan_arrays
 from green_bridge_v400_schemas import sha256_canonical
 from green_bridge_v400_tensor_program import TensorProgram
 from green_bridge_v400_tensor_store import TensorStoreReader
+
+
+LAYERNORM_PAIRS = (
+    ("block10.ln2.w", "block10.ln2.b"),
+    ("block11.ln1.w", "block11.ln1.b"),
+    ("block11.ln2.w", "block11.ln2.b"),
+    ("ln_final.w", "ln_final.b"),
+)
 
 
 def sha256_file(path: Path) -> str:
@@ -57,57 +65,63 @@ def main() -> int:
         raise RuntimeError("at least three repetitions are required")
     library, output = Path(args.library).resolve(), Path(args.output).resolve()
     if "/mnt/sdb/" not in output.as_posix() or output.exists():
-        raise RuntimeError("packed GELU output must be a new file on /mnt/sdb")
+        raise RuntimeError("LayerNorm-suite output must be a new file on /mnt/sdb")
     program = TensorProgram.from_dict(json.loads(Path(args.program).read_text(encoding="utf-8")))
     reader = TensorStoreReader(Path(args.tensor_store))
     plan, arrays = load_resident_plan_arrays(Path(args.plan), program, reader)
     records = {record["name"]: record for record in plan["records"]}
-    dimensions = program.resource_formula["dimensions"]
-    widths = (len(dimensions["selected_gates"]), int(dimensions["d_mlp"]))
-    kappa, lam = arrays["gelu.kappa"].reshape(()), arrays["gelu.lambda"].reshape(())
     backend = CompiledMPFRBackend(library)
+    width = int(program.resource_formula["dimensions"]["d_model"])
+    epsilon = arrays["layer_norm.eps"].reshape(())
     rows = []
     for precision in (384, 512):
-        for width in widths:
-            inputs = synthetic_inputs(width, precision)
-            hashes, timings = [], []
+        inputs = synthetic_inputs(width, precision)
+        for gamma_name, beta_name in LAYERNORM_PAIRS:
+            gamma, beta = arrays[gamma_name], arrays[beta_name]
+            timings, hashes = [], []
             for _ in range(args.repetitions):
                 started = time.perf_counter()
-                payload = backend.gelu_new_layer_jet2(inputs, kappa, lam)
+                payload = backend.layer_norm_jet2(inputs, epsilon, gamma, beta)
                 timings.append(time.perf_counter() - started)
                 hashes.append(sha256_canonical(payload))
             if len(set(hashes)) != 1 or len(payload["outputs"]) != width:
-                raise RuntimeError("packed GELU output is incomplete or nondeterministic")
+                raise RuntimeError(f"LayerNorm failed closure for {gamma_name}")
             rows.append({
                 "precision_bits": precision,
+                "gamma_name": gamma_name,
+                "beta_name": beta_name,
                 "width": width,
                 "elapsed_seconds": timings,
                 "median_seconds": statistics.median(timings),
                 "observed_max_seconds": max(timings),
                 "guardbanded_observed_max_1p25x_seconds": 1.25 * max(timings),
                 "output_exact_payload_sha256": hashes[0],
+                "gamma_tensor_semantic_sha256": records[gamma_name][
+                    "tensor_semantic_sha256"
+                ],
+                "beta_tensor_semantic_sha256": records[beta_name][
+                    "tensor_semantic_sha256"
+                ],
             })
     report = {
-        "schema_version": "green-v400-packed-gelu-width-suite-v2",
+        "schema_version": "green-v400-actual-parameter-layernorm-suite-v1",
         "created_at_utc": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
         "contains_scientific_outcome": False,
-        "input_policy": "deterministic synthetic Jet2 row with actual closed GELU constants",
+        "input_policy": "deterministic synthetic Jet2 row with actual closed LayerNorm parameters",
         "resident_plan_semantic_hash": plan["resident_plan_semantic_hash"],
         "program_semantic_hash": program.semantic_hash(),
-        "widths": list(widths),
-        "kappa_tensor_semantic_sha256": records["gelu.kappa"]["tensor_semantic_sha256"],
-        "lambda_tensor_semantic_sha256": records["gelu.lambda"]["tensor_semantic_sha256"],
         "backend_sha256": sha256_file(library),
+        "repetitions": args.repetitions,
         "rows": rows,
-        "status": "PASS_ACTUAL_WIDTH_GELU_BATCH_FFI_OBSERVATION_ONLY",
+        "status": "PASS_ACTUAL_PARAMETER_LAYERNORM_SUITE_OBSERVATION_ONLY",
         "resident_dispatcher_complete": False,
         "formal_wall_time_upper_bound": False,
         "cap_decision_authorized": False,
     }
     output.parent.mkdir(parents=True, exist_ok=True)
     output.write_text(json.dumps(report, sort_keys=True, indent=2) + "\n", encoding="utf-8")
-    print(json.dumps({"status": report["status"], "output": str(output), "rows": rows},
-                     sort_keys=True))
+    print(json.dumps({"status": report["status"], "output": str(output),
+                      "row_count": len(rows)}, sort_keys=True))
     return 0
 
 
