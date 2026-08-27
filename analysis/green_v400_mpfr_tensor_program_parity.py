@@ -16,9 +16,9 @@ from test_green_bridge_v400_gpt2_program import _fixture
 from green_bridge_v400_compiled_mpfr import CompiledMPFRBackend
 from green_bridge_v400_interval import Interval
 from green_bridge_v400_mpfr_tensor_executor import (
-    execute_tensor_program_mpfr, jet_exact_payload,
+    execute_tensor_program_mpfr, jet_exact_payload, tensor_program_required_axis0_rows,
 )
-from green_bridge_v400_resident_plan import build_resident_plan
+from green_bridge_v400_resident_plan import build_resident_plan, load_resident_plan_arrays
 from green_bridge_v400_schemas import sha256_canonical
 
 
@@ -43,7 +43,11 @@ def main() -> int:
     resident_plan = build_resident_plan(
         output_root / "resident_plan", "tiny_gpt2_resident", program, reader
     )
+    resident_plan, resident_arrays = load_resident_plan_arrays(
+        output_root / "resident_plan" / "tiny_gpt2_resident.json", program, reader
+    )
     backend = CompiledMPFRBackend(library)
+    live_rows = tensor_program_required_axis0_rows(program)
     rows, passed = [], True
     for precision in (384, 512):
         domain = Interval.from_bounds(-2.0**-14, 2.0**-14, precision)
@@ -57,7 +61,9 @@ def main() -> int:
         compiled_seconds = time.perf_counter() - started
         started = time.perf_counter()
         resident_fused = execute_tensor_program_mpfr(
-            program, reader, domain, backend, resident_plan=resident_plan
+            program, reader, domain, backend, resident_plan=resident_plan,
+            resident_arrays=resident_arrays, sparse_axis0_execution=True,
+            return_runtime_metrics=True, return_dispatch_trace=True,
         )
         resident_fused_seconds = time.perf_counter() - started
         roots = {}
@@ -77,6 +83,10 @@ def main() -> int:
                     resident_fused_payload
                 ),
             }
+        resident_trace_identical = (
+            resident_fused["dispatch_trace"] == reference["dispatch_trace"]
+        )
+        passed = passed and resident_trace_identical
         rows.append({
             "precision_bits": precision,
             "domain": {"lower": {"numerator": -1, "exponent_2": -14},
@@ -90,9 +100,17 @@ def main() -> int:
                 "program_dispatch_signature_sha256"
             ],
             "successful_dispatch_event_count": len(reference["dispatch_trace"]["events"]),
+            "resident_successful_dispatch_trace_sha256": resident_fused[
+                "dispatch_trace"
+            ]["trace_sha256"],
+            "resident_successful_dispatch_event_count": len(
+                resident_fused["dispatch_trace"]["events"]
+            ),
+            "resident_dispatch_trace_bit_identical": resident_trace_identical,
+            "resident_runtime_metrics": resident_fused["runtime_metrics"],
         })
     report = {
-        "schema_version": "green-v400-full-tensor-program-mpfr-parity-v2",
+        "schema_version": "green-v400-full-tensor-program-mpfr-parity-v6",
         "created_at_utc": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
         "status": "PASS" if passed else "FAIL",
         "fixture": "deterministic tiny Transformer; no noun, prompt, donor, or scientific outcome",
@@ -108,9 +126,17 @@ def main() -> int:
         "resident_plan_semantic_hash": resident_plan["resident_plan_semantic_hash"],
         "resident_plan_claim_status": resident_plan["claim_status"],
         "resident_plan_native_execution_ready": resident_plan["native_execution_ready"],
+        "resident_packed_tensor_inputs_consumed": True,
+        "resident_pairwise_affine_batch_abi_consumed": True,
+        "resident_sparse_axis0_execution_consumed": True,
+        "resident_static_row_cache_consumed": True,
+        "resident_materialized_axis0_row_count": sum(map(len, live_rows.values())),
+        "dense_axis0_row_slot_count": sum(
+            node.output_spec.shape[0] for node in program.nodes if node.output_spec.shape
+        ),
         "rows": rows,
         "claim_scope": (
-            "end-to-end correctness plus resident fused-final-contrast parity only; "
+            "end-to-end correctness plus packed-input, sparse-row, and fused-contrast parity; "
             "the remaining JSON/FFI dispatcher is not a performance backend"
         ),
         "resident_buffer_executor": False,

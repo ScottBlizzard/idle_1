@@ -17,13 +17,15 @@ from green_bridge_v400_gpt2_program import (
 )
 from green_bridge_v400_compiled_mpfr import CompiledMPFRBackend
 from green_bridge_v400_interval import Interval
-from green_bridge_v400_mpfr_tensor_executor import execute_tensor_program_mpfr, jet_exact_payload
+from green_bridge_v400_mpfr_tensor_executor import (
+    execute_tensor_program_mpfr, jet_exact_payload, tensor_program_required_axis0_rows,
+)
 from green_bridge_v400_schemas import sha256_canonical
 from green_bridge_v400_tensor_program import (
     TensorProgram, tensor_program_dispatch_signature, tensor_program_native_trace,
 )
 from green_bridge_v400_tensor_store import TensorStoreReader, write_tensor_store
-from green_bridge_v400_resident_plan import build_resident_plan
+from green_bridge_v400_resident_plan import build_resident_plan, load_resident_plan_arrays
 
 
 def _layer_norm(x, weight, bias, epsilon):
@@ -139,6 +141,21 @@ def test_gpt2_program_is_closed_replayable_and_four_branch(tmp_path):
     }
 
 
+def test_scalar_output_row_liveness_keeps_attention_history(tmp_path):
+    _, dims, program = _fixture(tmp_path)
+    rows = tensor_program_required_axis0_rows(program)
+    assert len(rows) == len([node for node in program.nodes if node.output_spec.shape])
+    for node in program.nodes:
+        if node.kernel_id == "causal_attention.v1":
+            assert rows[node.semantic_id] == (dims.final_position,)
+            q, k, v = node.parent_semantic_ids
+            assert rows[q] == (dims.final_position,)
+            assert rows[k] == tuple(range(dims.final_position + 1))
+            assert rows[v] == tuple(range(dims.final_position + 1))
+        if node.provenance_identity.endswith("block11.mlp.pre"):
+            assert rows[node.semantic_id] == (dims.final_position,)
+
+
 def test_gpt2_program_zero_control_joint_equals_bypass(tmp_path):
     reader, _, program = _fixture(tmp_path)
     replay = execute_tensor_program_numpy(program, reader, 0.0)
@@ -199,9 +216,17 @@ def test_complete_four_branch_mpfr_program_is_bit_identical_compiled(tmp_path, p
     resident_plan = build_resident_plan(
         resident_root, "tiny", program, reader
     )
+    resident_plan, resident_arrays = load_resident_plan_arrays(
+        resident_root / "tiny.json", program, reader
+    )
+    reader.read_semantic = lambda _semantic_hash: (_ for _ in ()).throw(
+        AssertionError("resident execution fell back to the tensor store")
+    )
     resident_compiled = execute_tensor_program_mpfr(
         program, reader, domain, CompiledMPFRBackend(Path(library)),
-        resident_plan=resident_plan,
+        resident_plan=resident_plan, resident_arrays=resident_arrays,
+        sparse_axis0_execution=True, return_runtime_metrics=True,
+        return_dispatch_trace=True,
     )
     assert set(reference) == {"PAT_J", "PAT_B", "TAR_J", "TAR_B", "output", "dispatch_trace"}
     assert set(compiled) == {"PAT_J", "PAT_B", "TAR_J", "TAR_B", "output"}
@@ -211,3 +236,11 @@ def test_complete_four_branch_mpfr_program_is_bit_identical_compiled(tmp_path, p
     for name in ("PAT_J", "PAT_B", "TAR_J", "TAR_B", "output"):
         assert jet_exact_payload(compiled[name]) == jet_exact_payload(reference[name])
         assert jet_exact_payload(resident_compiled[name]) == jet_exact_payload(reference[name])
+    metrics = resident_compiled["runtime_metrics"]
+    assert metrics["materialized_axis0_row_count"] < metrics["dense_axis0_row_slot_count"]
+    assert metrics["static_row_cache_hits_by_kernel"]["layer_norm.v1"] > 0
+    assert metrics["static_row_cache_hits_by_kernel"]["pairwise_affine.v1"] > 0
+    assert metrics["resident_packed_tensor_binding_reads"] > 0
+    assert metrics["tensor_store_fallback_reads"] == 0
+    assert metrics["resident_fused_contrast_nodes"] == 4
+    assert resident_compiled["dispatch_trace"] == reference["dispatch_trace"]
