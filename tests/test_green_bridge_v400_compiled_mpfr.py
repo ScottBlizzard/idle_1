@@ -13,6 +13,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 
 from green_bridge_v400_compiled_mpfr import CompiledMPFRBackend
+from green_bridge_v400_final_contrast_fusion import fuse_final_contrast_exact
 from green_bridge_v400_resident_resources import gpt2_joint_witness_cell_jet2
 from green_bridge_v400_interval import (
     Interval, exp_interval, inv_sqrt_interval, sqrt_interval, tanh_interval,
@@ -197,6 +198,25 @@ def test_resident_joint_witness_cell_benchmark_is_live(precision):
 
 
 @pytest.mark.parametrize("precision", [384, 512])
+def test_packed_affine_layer_matches_individual_exact_columns(precision):
+    backend = _backend()
+    values = [_jet(-0.25 + index / 7, 2.0**(-9-index),
+                   0.125-index/13, -0.0625+index/17, precision)
+              for index in range(4)]
+    weight = np.asarray([
+        [0.5, -0.25, 0.125], [-0.75, 0.375, 0.25],
+        [0.0625, -0.5, 0.875], [0.25, 0.75, -0.125],
+    ], dtype="<f4")
+    bias = np.asarray([0.125, -0.25, 0.5], dtype="<f4")
+    packed = backend.packed_affine_layer_jet2(weight, bias, values)["outputs"]
+    individual = [
+        backend.affine_jet2(weight[:, output], bias[output], values, precision)
+        for output in range(weight.shape[1])
+    ]
+    assert packed == individual
+
+
+@pytest.mark.parametrize("precision", [384, 512])
 def test_compiled_causal_attention_final_head_is_bit_identical(precision):
     backend = _backend()
     query = [_jet(-0.15 + coordinate/9, 2.0**(-10-coordinate),
@@ -248,6 +268,12 @@ def test_compiled_final_contrast_is_bit_identical_to_exact_fusion(precision):
     actual = backend.final_contrast_jet2(
         values, unembed, bias, suffix_ids, coefficients
     )
+    fused_actual = backend.fused_contrast_jet2(
+        values, fuse_final_contrast_exact(
+            unembed, bias, suffix_ids, coefficients
+        ).payload(),
+    )
+    assert fused_actual == actual
     for component in ("value", "first", "second"):
         interval = getattr(expected, component)
         assert backend.exact_fraction(actual[component]["lower"]) == _fraction(interval.lower)

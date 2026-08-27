@@ -718,6 +718,53 @@ std::vector<JetMP> synthetic_affine_layer(
   return outputs;
 }
 
+std::vector<JetMP> packed_affine_layer(
+    const std::vector<JetMP>& inputs, std::uint32_t output_width,
+    const std::uint32_t* weight_bits, const std::uint32_t* bias_bits) {
+  const mpfr_prec_t precision = inputs[0].value.precision;
+  std::vector<MpfrValue> lower_terms, upper_terms;
+  lower_terms.reserve(inputs.size()); upper_terms.reserve(inputs.size());
+  for (std::size_t index = 0; index < inputs.size(); ++index) {
+    lower_terms.emplace_back(precision); upper_terms.emplace_back(precision);
+  }
+  std::vector<MpfrValue*> lower_pointers, upper_pointers;
+  for (std::size_t index = 0; index < inputs.size(); ++index) {
+    lower_pointers.push_back(&lower_terms[index]); upper_pointers.push_back(&upper_terms[index]);
+  }
+  MpfrValue weight_value(precision);
+  std::vector<JetMP> outputs;
+  outputs.reserve(output_width);
+  for (std::uint32_t output = 0; output < output_width; ++output) {
+    outputs.emplace_back(precision);
+    IntervalMP* targets[3] = {
+        &outputs.back().value, &outputs.back().first, &outputs.back().second};
+    for (std::size_t component = 0; component < 3; ++component) {
+      for (std::size_t index = 0; index < inputs.size(); ++index) {
+        mpfr_set_flt(weight_value.get(),
+                     float_from_bits(weight_bits[index * output_width + output]), MPFR_RNDN);
+        const IntervalMP* sources[3] = {
+            &inputs[index].value, &inputs[index].first, &inputs[index].second};
+        const IntervalMP& source = *sources[component];
+        if (mpfr_sgn(weight_value.get()) >= 0) {
+          counted_mul(lower_terms[index].get(), source.lower.get(), weight_value.get(), MPFR_RNDD);
+          counted_mul(upper_terms[index].get(), source.upper.get(), weight_value.get(), MPFR_RNDU);
+        } else {
+          counted_mul(lower_terms[index].get(), source.upper.get(), weight_value.get(), MPFR_RNDD);
+          counted_mul(upper_terms[index].get(), source.lower.get(), weight_value.get(), MPFR_RNDU);
+        }
+      }
+      pairwise_sum(lower_pointers, targets[component]->lower.get(), MPFR_RNDD);
+      pairwise_sum(upper_pointers, targets[component]->upper.get(), MPFR_RNDU);
+    }
+    mpfr_set_flt(weight_value.get(), float_from_bits(bias_bits[output]), MPFR_RNDN);
+    counted_add(outputs.back().value.lower.get(), outputs.back().value.lower.get(),
+                weight_value.get(), MPFR_RNDD);
+    counted_add(outputs.back().value.upper.get(), outputs.back().value.upper.get(),
+                weight_value.get(), MPFR_RNDU);
+  }
+  return outputs;
+}
+
 std::vector<JetMP> layer_norm_identity(const std::vector<JetMP>& inputs) {
   const mpfr_prec_t precision = inputs[0].value.precision;
   const IntervalMP reciprocal_width = interval_point_rational(1U, inputs.size(), precision);
@@ -959,6 +1006,53 @@ extern "C" int green_v400_affine_jet2_exact(
   const std::string serialized = serialize_jet(
       value_lower.get(), value_upper.get(), first_lower.get(), first_upper.get(),
       second_lower.get(), second_upper.get(), precision);
+  if (serialized.size() + 1 > output_capacity) return 4;
+  std::memcpy(output_json, serialized.c_str(), serialized.size() + 1);
+  return 0;
+}
+
+extern "C" int green_v400_packed_affine_layer_jet2_exact(
+    std::uint32_t precision_bits, std::uint32_t input_width,
+    std::uint32_t output_width,
+    const char* const* endpoint_significands, const std::int64_t* endpoint_exponents,
+    const std::uint32_t* weight_bits, const std::uint32_t* bias_bits,
+    char* output_json, std::uint64_t output_capacity) {
+  if (precision_bits < 64 || precision_bits > 4096 || input_width == 0
+      || output_width == 0 || input_width > 100000U || output_width > 100000U
+      || endpoint_significands == nullptr || endpoint_exponents == nullptr
+      || weight_bits == nullptr || bias_bits == nullptr
+      || output_json == nullptr || output_capacity == 0) return 2;
+  const mpfr_prec_t precision = static_cast<mpfr_prec_t>(precision_bits);
+  std::vector<JetMP> inputs;
+  inputs.reserve(input_width);
+  for (std::uint32_t index = 0; index < input_width; ++index) {
+    inputs.emplace_back(precision);
+    IntervalMP* components[3] = {
+        &inputs.back().value, &inputs.back().first, &inputs.back().second};
+    for (std::size_t component = 0; component < 3; ++component) {
+      const std::size_t offset = static_cast<std::size_t>(index) * 6U + component * 2U;
+      int status = set_exact_binary(components[component]->lower.get(),
+                                    endpoint_significands[offset], endpoint_exponents[offset]);
+      if (status != 0) return status;
+      status = set_exact_binary(components[component]->upper.get(),
+                                endpoint_significands[offset + 1U], endpoint_exponents[offset + 1U]);
+      if (status != 0 || mpfr_greater_p(components[component]->lower.get(),
+                                       components[component]->upper.get())) return 3;
+    }
+  }
+  std::vector<JetMP> outputs = packed_affine_layer(
+      inputs, output_width, weight_bits, bias_bits);
+  std::ostringstream stream;
+  stream << "{\"outputs\":[";
+  for (std::size_t index = 0; index < outputs.size(); ++index) {
+    if (index != 0) stream << ',';
+    const JetMP& output = outputs[index];
+    stream << serialize_jet(output.value.lower.get(), output.value.upper.get(),
+                            output.first.lower.get(), output.first.upper.get(),
+                            output.second.lower.get(), output.second.upper.get(), precision);
+  }
+  stream << "]}";
+  const std::string serialized = stream.str();
   if (serialized.size() + 1 > output_capacity) return 4;
   std::memcpy(output_json, serialized.c_str(), serialized.size() + 1);
   return 0;
@@ -1385,6 +1479,60 @@ extern "C" int green_v400_causal_attention_final_head_jet2_exact(
   }
   stream << "]}";
   const std::string serialized = stream.str();
+  if (serialized.size() + 1 > output_capacity) return 4;
+  std::memcpy(output_json, serialized.c_str(), serialized.size() + 1);
+  return 0;
+}
+
+extern "C" int green_v400_fused_contrast_jet2_exact(
+    std::uint32_t precision_bits, std::uint32_t d_model,
+    const char* const* endpoint_significands, const std::int64_t* endpoint_exponents,
+    const char* const* weight_significands, const std::int64_t* weight_exponents,
+    const char* bias_significand, std::int64_t bias_exponent,
+    char* output_json, std::uint64_t output_capacity) {
+  if (precision_bits < 64 || precision_bits > 4096 || d_model == 0
+      || d_model > 1000000U || endpoint_significands == nullptr
+      || endpoint_exponents == nullptr || weight_significands == nullptr
+      || weight_exponents == nullptr || bias_significand == nullptr
+      || output_json == nullptr || output_capacity == 0) return 2;
+  const mpfr_prec_t precision = static_cast<mpfr_prec_t>(precision_bits);
+  std::vector<JetMP> inputs;
+  inputs.reserve(d_model);
+  for (std::uint32_t index = 0; index < d_model; ++index) {
+    inputs.emplace_back(precision);
+    IntervalMP* components[3] = {
+        &inputs.back().value, &inputs.back().first, &inputs.back().second};
+    for (std::size_t component = 0; component < 3; ++component) {
+      const std::size_t offset = static_cast<std::size_t>(index) * 6U + component * 2U;
+      int status = set_exact_binary(components[component]->lower.get(),
+                                    endpoint_significands[offset], endpoint_exponents[offset]);
+      if (status != 0) return status;
+      status = set_exact_binary(components[component]->upper.get(),
+                                endpoint_significands[offset + 1U], endpoint_exponents[offset + 1U]);
+      if (status != 0 || mpfr_greater_p(components[component]->lower.get(),
+                                       components[component]->upper.get())) return 3;
+    }
+  }
+  std::vector<JetMP> terms;
+  terms.reserve(d_model);
+  for (std::uint32_t index = 0; index < d_model; ++index) {
+    IntervalMP weight(precision);
+    int status = set_exact_binary(weight.lower.get(), weight_significands[index],
+                                  weight_exponents[index]);
+    if (status != 0) return status;
+    mpfr_set(weight.upper.get(), weight.lower.get(), MPFR_RNDN);
+    terms.emplace_back(jet_scale_interval(inputs[index], weight));
+  }
+  JetMP result = jet_pairwise_sum(terms);
+  IntervalMP bias(precision);
+  int status = set_exact_binary(bias.lower.get(), bias_significand, bias_exponent);
+  if (status != 0) return status;
+  mpfr_set(bias.upper.get(), bias.lower.get(), MPFR_RNDN);
+  result = jet_add(result, jet_constant(bias));
+  const std::string serialized = serialize_jet(
+      result.value.lower.get(), result.value.upper.get(),
+      result.first.lower.get(), result.first.upper.get(),
+      result.second.lower.get(), result.second.upper.get(), precision);
   if (serialized.size() + 1 > output_capacity) return 4;
   std::memcpy(output_json, serialized.c_str(), serialized.size() + 1);
   return 0;

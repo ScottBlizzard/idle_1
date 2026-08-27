@@ -23,6 +23,7 @@ from green_bridge_v400_tensor_program import (
     TensorProgram, tensor_program_dispatch_signature, tensor_program_native_trace,
 )
 from green_bridge_v400_tensor_store import TensorStoreReader, write_tensor_store
+from green_bridge_v400_resident_plan import build_resident_plan
 
 
 def _layer_norm(x, weight, bias, epsilon):
@@ -193,6 +194,15 @@ def test_complete_four_branch_mpfr_program_is_bit_identical_compiled(tmp_path, p
     compiled = execute_tensor_program_mpfr(
         program, reader, domain, CompiledMPFRBackend(Path(library))
     )
+    resident_root = tmp_path / f"resident_{precision}"
+    resident_root.mkdir()
+    resident_plan = build_resident_plan(
+        resident_root, "tiny", program, reader
+    )
+    resident_compiled = execute_tensor_program_mpfr(
+        program, reader, domain, CompiledMPFRBackend(Path(library)),
+        resident_plan=resident_plan,
+    )
     assert set(reference) == {"PAT_J", "PAT_B", "TAR_J", "TAR_B", "output", "dispatch_trace"}
     assert set(compiled) == {"PAT_J", "PAT_B", "TAR_J", "TAR_B", "output"}
     assert len(reference["dispatch_trace"]["events"]) == 81
@@ -200,3 +210,4 @@ def test_complete_four_branch_mpfr_program_is_bit_identical_compiled(tmp_path, p
             == program.resource_formula["dispatcher_signature_sha256"])
     for name in ("PAT_J", "PAT_B", "TAR_J", "TAR_B", "output"):
         assert jet_exact_payload(compiled[name]) == jet_exact_payload(reference[name])
+        assert jet_exact_payload(resident_compiled[name]) == jet_exact_payload(reference[name])

@@ -1,0 +1,46 @@
+{
+  "backend_sha256": "516784d3a684e785bf9710bf5734e6eaca424c0e42e61f2494ef4c6812b53639",
+  "bias_shape": [
+    3072
+  ],
+  "cap_decision_authorized": false,
+  "contains_scientific_outcome": false,
+  "created_at_utc": "2026-08-27T01:52:30.586518Z",
+  "formal_wall_time_upper_bound": false,
+  "input_policy": "deterministic synthetic Jet2 inputs with actual closed GPT-2 weights",
+  "layer": "block11.mlp.W_in",
+  "program_semantic_hash": "38f40999524d465b8ee58fcc8d2d1822caf9af6c36897a72bd404a8fff34fe62",
+  "resident_dispatcher_complete": false,
+  "resident_plan_semantic_hash": "0d5625e2f7af118615497e9642481946aec0a436b900e3c0d1661f90ba6f9acf",
+  "rows": [
+    {
+      "elapsed_seconds": [
+        1.385909035016084,
+        1.4125702470191754,
+        1.3937642039963976
+      ],
+      "guardbanded_observed_max_1p25x_seconds": 1.7657128087739693,
+      "observed_max_seconds": 1.4125702470191754,
+      "output_exact_payload_sha256": "381fca61f9b2a3d64d1e45c01e3c94bc3f04085733a48a413afe508cb80f9030",
+      "precision_bits": 384
+    },
+    {
+      "elapsed_seconds": [
+        1.6704302319849376,
+        1.6639732999901753,
+        1.654125044005923
+      ],
+      "guardbanded_observed_max_1p25x_seconds": 2.088037789981172,
+      "observed_max_seconds": 1.6704302319849376,
+      "output_exact_payload_sha256": "1b6c6cb621462ba3f02f15c3f231628a89802da8c3dea8b53c0820dc8a8b5bcf",
+      "precision_bits": 512
+    }
+  ],
+  "schema_version": "green-v400-packed-real-weight-affine-benchmark-v1",
+  "status": "PASS_ACTUAL_PACKED_WEIGHT_AFFINE_FFI_OBSERVATION_ONLY",
+  "weight_shape": [
+    768,
+    3072
+  ],
+  "weight_tensor_semantic_sha256": "4a786af81022ddeabe0c6068de3b97fc92bafc77897972f701b92d2d38fa3c5f"
+}

@@ -69,6 +69,14 @@ class CompiledMPFRBackend:
             ctypes.c_char_p, ctypes.c_uint64,
         ]
         exact.restype = ctypes.c_int
+        packed_affine = self.library.green_v400_packed_affine_layer_jet2_exact
+        packed_affine.argtypes = [
+            ctypes.c_uint32, ctypes.c_uint32, ctypes.c_uint32,
+            ctypes.POINTER(ctypes.c_char_p), ctypes.POINTER(ctypes.c_int64),
+            ctypes.POINTER(ctypes.c_uint32), ctypes.POINTER(ctypes.c_uint32),
+            ctypes.c_char_p, ctypes.c_uint64,
+        ]
+        packed_affine.restype = ctypes.c_int
         benchmark = self.library.green_v400_benchmark_affine_jet2_layer
         benchmark.argtypes = [
             ctypes.c_uint32, ctypes.c_uint32, ctypes.c_uint32, ctypes.c_uint32,
@@ -142,6 +150,14 @@ class CompiledMPFRBackend:
             ctypes.c_char_p, ctypes.c_uint64,
         ]
         contrast.restype = ctypes.c_int
+        fused_contrast = self.library.green_v400_fused_contrast_jet2_exact
+        fused_contrast.argtypes = [
+            ctypes.c_uint32, ctypes.c_uint32,
+            ctypes.POINTER(ctypes.c_char_p), ctypes.POINTER(ctypes.c_int64),
+            ctypes.POINTER(ctypes.c_char_p), ctypes.POINTER(ctypes.c_int64),
+            ctypes.c_char_p, ctypes.c_int64, ctypes.c_char_p, ctypes.c_uint64,
+        ]
+        fused_contrast.restype = ctypes.c_int
 
     def affine_jet2(self, weights, bias, values: list[Jet2], precision_bits: int) -> dict:
         weights = np.ascontiguousarray(np.asarray(weights, dtype="<f4").reshape(-1))
@@ -257,6 +273,34 @@ class CompiledMPFRBackend:
             "head_evaluations_per_second": evaluations / elapsed.value,
             "checksum": f"{checksum.value:016x}",
         }
+
+    def packed_affine_layer_jet2(self, weight, bias, values: list[Jet2]) -> dict:
+        if not values:
+            raise ValueError("packed affine layer requires inputs")
+        precision = values[0].precision_bits
+        if any(value.precision_bits != precision for value in values):
+            raise ValueError("packed affine precision mismatch")
+        weight = np.asarray(weight, dtype="<f4", order="C")
+        bias = np.asarray(bias, dtype="<f4").reshape(-1)
+        if weight.ndim != 2 or weight.shape != (len(values), bias.size):
+            raise ValueError("packed affine shape mismatch")
+        encoded = []
+        for value in values:
+            for component in (value.value, value.first, value.second):
+                encoded.extend((_binary_endpoint(component.lower), _binary_endpoint(component.upper)))
+        strings = (ctypes.c_char_p * len(encoded))(*(item[0] for item in encoded))
+        exponents = np.asarray([item[1] for item in encoded], dtype="<i8")
+        output = ctypes.create_string_buffer(max(8192, 4096 * bias.size))
+        status = self.library.green_v400_packed_affine_layer_jet2_exact(
+            precision, len(values), bias.size, strings,
+            exponents.ctypes.data_as(ctypes.POINTER(ctypes.c_int64)),
+            weight.view("<u4").ctypes.data_as(ctypes.POINTER(ctypes.c_uint32)),
+            bias.view("<u4").ctypes.data_as(ctypes.POINTER(ctypes.c_uint32)),
+            output, len(output),
+        )
+        if status != 0:
+            raise RuntimeError(f"compiled packed affine layer failed with status {status}")
+        return json.loads(output.value.decode("ascii"))
 
     def benchmark_gpt2_joint_witness_cell(
         self, precision_bits: int, d_model: int, d_mlp: int,
@@ -377,6 +421,42 @@ class CompiledMPFRBackend:
         )
         if status != 0:
             raise RuntimeError(f"compiled attention jet failed with status {status}")
+        return json.loads(output.value.decode("ascii"))
+
+    def fused_contrast_jet2(self, values: list[Jet2], fusion_payload: dict) -> dict:
+        if not values or fusion_payload.get("d_model") != len(values):
+            raise ValueError("compiled fused contrast shape mismatch")
+        precision = values[0].precision_bits
+        if any(value.precision_bits != precision for value in values):
+            raise ValueError("compiled fused contrast precision mismatch")
+        encoded = []
+        for value in values:
+            for component in (value.value, value.first, value.second):
+                encoded.extend((_binary_endpoint(component.lower), _binary_endpoint(component.upper)))
+        strings = (ctypes.c_char_p * len(encoded))(*(item[0] for item in encoded))
+        exponents = np.asarray([item[1] for item in encoded], dtype="<i8")
+        weights = fusion_payload.get("weights", [])
+        if len(weights) != len(values):
+            raise ValueError("compiled fused contrast weight count mismatch")
+
+        def hexadecimal_significand(item: dict) -> bytes:
+            value = int(item["significand"])
+            return (("-" if value < 0 else "") + format(abs(value), "x")).encode("ascii")
+
+        weight_strings = (ctypes.c_char_p * len(weights))(
+            *(hexadecimal_significand(item) for item in weights)
+        )
+        weight_exponents = np.asarray([item["exponent_2"] for item in weights], dtype="<i8")
+        bias = fusion_payload["bias"]
+        output = ctypes.create_string_buffer(8192)
+        status = self.library.green_v400_fused_contrast_jet2_exact(
+            precision, len(values), strings,
+            exponents.ctypes.data_as(ctypes.POINTER(ctypes.c_int64)), weight_strings,
+            weight_exponents.ctypes.data_as(ctypes.POINTER(ctypes.c_int64)),
+            hexadecimal_significand(bias), int(bias["exponent_2"]), output, len(output),
+        )
+        if status != 0:
+            raise RuntimeError(f"compiled fused contrast failed with status {status}")
         return json.loads(output.value.decode("ascii"))
 
     def final_contrast_jet2(self, values: list[Jet2], unembed, bias,

@@ -18,6 +18,7 @@ from green_bridge_v400_interval import Interval
 from green_bridge_v400_mpfr_tensor_executor import (
     execute_tensor_program_mpfr, jet_exact_payload,
 )
+from green_bridge_v400_resident_plan import build_resident_plan
 from green_bridge_v400_schemas import sha256_canonical
 
 
@@ -39,6 +40,9 @@ def main() -> int:
         raise RuntimeError("parity output root must be a new directory on /mnt/sdb")
     output_root.mkdir(parents=True)
     reader, dims, program = _fixture(output_root)
+    resident_plan = build_resident_plan(
+        output_root / "resident_plan", "tiny_gpt2_resident", program, reader
+    )
     backend = CompiledMPFRBackend(library)
     rows, passed = [], True
     for precision in (384, 512):
@@ -51,16 +55,27 @@ def main() -> int:
         started = time.perf_counter()
         compiled = execute_tensor_program_mpfr(program, reader, domain, backend)
         compiled_seconds = time.perf_counter() - started
+        started = time.perf_counter()
+        resident_fused = execute_tensor_program_mpfr(
+            program, reader, domain, backend, resident_plan=resident_plan
+        )
+        resident_fused_seconds = time.perf_counter() - started
         roots = {}
         for name in ("PAT_J", "PAT_B", "TAR_J", "TAR_B", "output"):
             reference_payload = jet_exact_payload(reference[name])
             compiled_payload = jet_exact_payload(compiled[name])
+            resident_fused_payload = jet_exact_payload(resident_fused[name])
             identical = reference_payload == compiled_payload
-            passed = passed and identical
+            resident_fused_identical = reference_payload == resident_fused_payload
+            passed = passed and identical and resident_fused_identical
             roots[name] = {
                 "bit_identical": identical,
+                "resident_fused_contrast_bit_identical": resident_fused_identical,
                 "reference_exact_payload_sha256": sha256_canonical(reference_payload),
                 "compiled_exact_payload_sha256": sha256_canonical(compiled_payload),
+                "resident_fused_exact_payload_sha256": sha256_canonical(
+                    resident_fused_payload
+                ),
             }
         rows.append({
             "precision_bits": precision,
@@ -68,6 +83,7 @@ def main() -> int:
                        "upper": {"numerator": 1, "exponent_2": -14}},
             "reference_seconds": reference_seconds,
             "compiled_correctness_ffi_seconds": compiled_seconds,
+            "resident_fused_contrast_ffi_seconds": resident_fused_seconds,
             "roots": roots,
             "successful_dispatch_trace_sha256": reference["dispatch_trace"]["trace_sha256"],
             "program_dispatch_signature_sha256": reference["dispatch_trace"][
@@ -76,7 +92,7 @@ def main() -> int:
             "successful_dispatch_event_count": len(reference["dispatch_trace"]["events"]),
         })
     report = {
-        "schema_version": "green-v400-full-tensor-program-mpfr-parity-v1",
+        "schema_version": "green-v400-full-tensor-program-mpfr-parity-v2",
         "created_at_utc": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
         "status": "PASS" if passed else "FAIL",
         "fixture": "deterministic tiny Transformer; no noun, prompt, donor, or scientific outcome",
@@ -89,8 +105,14 @@ def main() -> int:
         ],
         "backend_version": backend.version,
         "backend_sha256": sha256_file(library),
+        "resident_plan_semantic_hash": resident_plan["resident_plan_semantic_hash"],
+        "resident_plan_claim_status": resident_plan["claim_status"],
+        "resident_plan_native_execution_ready": resident_plan["native_execution_ready"],
         "rows": rows,
-        "claim_scope": "end-to-end correctness only; JSON/FFI dispatcher is not a performance backend",
+        "claim_scope": (
+            "end-to-end correctness plus resident fused-final-contrast parity only; "
+            "the remaining JSON/FFI dispatcher is not a performance backend"
+        ),
         "resident_buffer_executor": False,
         "cap_decision_authorized": False,
     }

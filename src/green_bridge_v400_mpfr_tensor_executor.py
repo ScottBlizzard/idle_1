@@ -65,7 +65,7 @@ def _final_contrast_reference(values: list[Jet2], unembed: np.ndarray,
 def execute_tensor_program_mpfr(
     program: TensorProgram, reader: TensorStoreReader, domain: Interval,
     compiled_backend: CompiledMPFRBackend | Path | None = None,
-    *, return_node_values: bool = False,
+    *, resident_plan: dict | None = None, return_node_values: bool = False,
     return_dispatch_trace: bool = False,
 ) -> dict[str, object]:
     """Replay all branch roots over one interval cell; never reads scientific labels/outcomes."""
@@ -77,12 +77,17 @@ def execute_tensor_program_mpfr(
     tensor_cache: dict[str, np.ndarray] = {}
     for ordinal, node in enumerate(program.nodes):
         parents = [values[parent] for parent in node.parent_semantic_ids]
-        tensors = []
-        for ref in node.tensor_inputs:
-            if ref.tensor_sha256 not in tensor_cache:
-                tensor_cache[ref.tensor_sha256] = reader.read_semantic(ref.tensor_sha256)
-            tensors.append(tensor_cache[ref.tensor_sha256])
         kernel = node.kernel_id
+        use_resident_fusion = (
+            resident_plan is not None and compiled_backend is not None
+            and kernel == "final_contrast.v1"
+        )
+        tensors = []
+        if not use_resident_fusion:
+            for ref in node.tensor_inputs:
+                if ref.tensor_sha256 not in tensor_cache:
+                    tensor_cache[ref.tensor_sha256] = reader.read_semantic(ref.tensor_sha256)
+                tensors.append(tensor_cache[ref.tensor_sha256])
         shape = node.output_spec.shape
         if kernel == "affine_scatter.v1":
             base, direction = tensors
@@ -178,14 +183,22 @@ def execute_tensor_program_mpfr(
             output = [[add_jet(left, right) for left, right in zip(left_row, right_row)]
                       for left_row, right_row in zip(parents[0], parents[1])]
         elif kernel == "final_contrast.v1":
-            unembed, bias, suffix_ids, coefficients = tensors
             final_position = int(node.exact_attrs["final_position"])
             row = parents[0][final_position]
-            if compiled_backend is None:
+            if use_resident_fusion:
+                if (resident_plan.get("exact_final_contrast_fusion_sha256")
+                        != program.resource_formula["exact_final_contrast_fusion_sha256"]):
+                    raise ValueError("resident exact-fusion hash disagrees with TensorProgram")
+                output = _decode_jet(compiled_backend.fused_contrast_jet2(
+                    row, resident_plan["exact_final_contrast_fusion"]
+                ), precision)
+            elif compiled_backend is None:
+                unembed, bias, suffix_ids, coefficients = tensors
                 output = _final_contrast_reference(
                     row, unembed, bias, suffix_ids.astype(np.int64), coefficients,
                 )
             else:
+                unembed, bias, suffix_ids, coefficients = tensors
                 output = _decode_jet(compiled_backend.final_contrast_jet2(
                     row, unembed, bias, suffix_ids, coefficients,
                 ), precision)
