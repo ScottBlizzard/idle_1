@@ -17,7 +17,7 @@ The corrected runtime now uses the registry mutex only to acquire a `shared_ptr`
 - MPFR TLS build option: enabled; shared cache: disabled.
 - Concurrent audit dispatch entries: 6; terminal active count: 0; peak global active count: 2.
 - Per-context entries: 3 and 3; terminal active counts: 0 and 0; peak per-context active counts: 1 and 1.
-- Concurrent results exactly equal their sequential native baselines: 6 of 6.
+- After canonical native JSON decoding, every finite value/first/second Jet2 endpoint exactly equals its same-precision sequential baseline: 6 of 6 dispatches. The machine-readable field retains the legacy `bit_exact` label, but this audit did not compare raw JSON bytes.
 - Canonical adaptive pair rounds: 3; result commit order remains input order.
 - Complete audit wall time, including the six-dispatch sequential baseline and context setup/teardown: 238.4912 seconds.
 - Peak sampled process-tree RSS: 314,792 KiB. This is an observation, not a production upper bound.
@@ -26,6 +26,6 @@ The machine-readable evidence is `GREEN_V400_NATIVE_SIBLING_PARALLEL_V2_AUDIT_20
 
 ## Claim boundary
 
-This result authorizes the engineering statement that the two children of one already-selected heap parent can execute simultaneously on two independent native contexts without changing their exact outputs or canonical commit order. It does not authorize popping multiple heap parents per wave, changing adaptive selection, changing certificate semantics, or running real scientific outcomes.
+This result authorizes the engineering statement that the frozen initial negative/positive pair can execute concurrently and, after initialization, the two children of exactly one already-selected heap parent can execute simultaneously on two independent native contexts without changing any decoded finite Jet2 endpoint or canonical commit order. The v2 JSON's shorter `claim_scope` phrase “one frozen heap parent per round” is interpreted with this explicit initial-pair exception. It does not authorize popping multiple heap parents per wave, changing adaptive selection, changing certificate semantics, or running real scientific outcomes. The backend hash identifies the loaded binary; it is not a reproducible-build receipt for the compiler and linker toolchain.
 
 Before production execution, the remaining concurrency-specific checks are mixed 384/512 exact-repeat and nesting under overlap, close/dispatch race stress (preferably with TSan/ASan), and integration with the external resource supervisor. These are engineering gates and do not require a new scientific design decision.

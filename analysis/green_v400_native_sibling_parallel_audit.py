@@ -192,9 +192,10 @@ def main() -> int:
         },
         "retained_numeric_scope": "control domains and scheduling/resource counters only; no response Jet2 payload retained",
         "claim_scope": (
-            "one frozen heap parent per round; its canonical left/right children execute on "
-            "independent native contexts with measured physical overlap, remain bit-exact to "
-            "sequential evaluation, and commit in input order regardless of completion order"
+            "the frozen initial negative/positive pair executes concurrently; thereafter "
+            "exactly one heap-selected parent is processed per round, with only its canonical "
+            "left/right children evaluated concurrently on independent native contexts and "
+            "committed in input order regardless of completion order"
         ),
     }
     report["report_semantic_hash"] = sha256_canonical(report)
