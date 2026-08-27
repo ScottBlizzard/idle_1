@@ -51,3 +51,6 @@ def test_loaded_resident_plan_is_immutable_and_rejects_array_substitution(tmp_pa
     substituted[first_name] = np.asarray(arrays[first_name]).copy()
     with pytest.raises(ValueError, match="array identity mismatch"):
         plan.validate_runtime(program, reader, substituted)
+    plan["records"][0]["offset"] += 64
+    with pytest.raises(ValueError, match="plan identity mismatch"):
+        plan.validate_runtime(program, reader, arrays)

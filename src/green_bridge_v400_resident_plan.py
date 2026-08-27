@@ -63,24 +63,29 @@ class ValidatedResidentPlan(dict):
     update = _immutable
     __ior__ = _immutable
 
-    def validate_runtime(self, program: TensorProgram, reader: TensorStoreReader,
-                         arrays: dict[str, np.ndarray]) -> None:
-        """Reject plan/array substitution at every public resident execution entry."""
+    def validate_manifest_identity(self, program: TensorProgram) -> None:
         semantic_hash = self.get("resident_plan_semantic_hash")
         unhashed = dict(self)
         unhashed.pop("resident_plan_semantic_hash", None)
+        stat = self.blob_path.stat()
         if (semantic_hash != sha256_canonical(unhashed)
                 or self.get("program_semantic_hash") != program.semantic_hash()
                 or self.get("program_dispatch_signature_sha256")
                     != program.resource_formula["dispatcher_signature_sha256"]
-                or self.get("tensor_store_record_closure_sha256")
-                    != reader.manifest.record_closure_sha256
                 or self.get("exact_final_contrast_fusion_sha256")
                     != sha256_canonical(self["exact_final_contrast_fusion"])):
             raise ValueError("resident execution plan identity mismatch")
-        stat = self.blob_path.stat()
         if (stat.st_dev, stat.st_ino, stat.st_size, stat.st_mtime_ns) != self._blob_identity:
             raise ValueError("resident execution blob identity changed after validation")
+
+    def validate_runtime(self, program: TensorProgram, reader: TensorStoreReader,
+                         arrays: dict[str, np.ndarray]) -> None:
+        """Reject plan/array substitution at every public resident execution entry."""
+        self.validate_manifest_identity(program)
+        if (self.get("tensor_store_record_closure_sha256")
+                    != reader.manifest.record_closure_sha256
+        ):
+            raise ValueError("resident execution plan identity mismatch")
         if set(arrays) != {record["name"] for record in self["records"]}:
             raise ValueError("resident execution arrays do not match validated records")
         for record in self["records"]:

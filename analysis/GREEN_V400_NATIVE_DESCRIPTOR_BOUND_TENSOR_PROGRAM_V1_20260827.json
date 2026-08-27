@@ -1,0 +1,4850 @@
+{
+  "branch_roots": {
+    "PAT_B": "8793e43b794042ebcd72fd87e559f85ae9fa5900400b53161b43c1c415ae709d",
+    "PAT_J": "9dfd6811342fd98bda53adbaeb94638d8606ed7124fc7c43fecdab78411f3af8",
+    "TAR_B": "c3368692e30cf9f8efca2f51605705956ec8de393ee93501f66b5150bc8165ca",
+    "TAR_J": "054fe50159e69718e09f32c96f02adcb4358edcf24abb8b17a09f9267d7abd26"
+  },
+  "kernel_registry_hash": "e0222781e0d475f849134ecba377a9abd3c1a4d19049134e53aa82c801868cd3",
+  "model_manifest_hash": "767c4e6484b71fe39b9816d4dc782da755170cbf079249af794085cf6b071fd8",
+  "nodes": [
+    {
+      "dependency_mask_hash": "aa708fd7f87bcada391261d52bc4326a589de2aece1e23d50e5a5484960d13e9",
+      "exact_attrs": {
+        "control": "same_t_times_physical_direction",
+        "dependency_mask_spec": {
+          "axis0_indices": [
+            6
+          ],
+          "dependent_scalar_count": 768,
+          "kind": "axis0_rows",
+          "output_spec": {
+            "dtype": "<f4",
+            "layout": "C",
+            "shape": [
+              7,
+              768
+            ]
+          },
+          "schema_version": "green-v400-dependency-mask-v2"
+        },
+        "depends_on_t": true,
+        "final_position": 6
+      },
+      "kernel_id": "affine_scatter.v1",
+      "output_spec": {
+        "dtype": "<f4",
+        "layout": "C",
+        "shape": [
+          7,
+          768
+        ]
+      },
+      "parent_semantic_ids": [],
+      "provenance_identity": "PAT.shared_residual_bypass",
+      "schema_version": "green-v400-tensor-node-v1",
+      "semantic_id": "479903c5a53c14484fec7b42cea33acf0bd56a523eb3002ed1b02ca68b929b46",
+      "tensor_inputs": [
+        {
+          "dtype": "<f4",
+          "layout": "C",
+          "nbytes": 21504,
+          "schema_version": "green-v400-tensor-ref-v1",
+          "shape": [
+            7,
+            768
+          ],
+          "tensor_sha256": "5a2ffd25a93ef10188d926782caf5cecdb2e8d49a912b4c89baa592cf037dce7"
+        },
+        {
+          "dtype": "<f4",
+          "layout": "C",
+          "nbytes": 3072,
+          "schema_version": "green-v400-tensor-ref-v1",
+          "shape": [
+            768
+          ],
+          "tensor_sha256": "ddda13c178b0f6026dd2f7b22724763c882be79c4799c9f48cf204797e439826"
+        }
+      ]
+    },
+    {
+      "dependency_mask_hash": "aa708fd7f87bcada391261d52bc4326a589de2aece1e23d50e5a5484960d13e9",
+      "exact_attrs": {
+        "control": "same_t_times_physical_direction",
+        "dependency_mask_spec": {
+          "axis0_indices": [
+            6
+          ],
+          "dependent_scalar_count": 768,
+          "kind": "axis0_rows",
+          "output_spec": {
+            "dtype": "<f4",
+            "layout": "C",
+            "shape": [
+              7,
+              768
+            ]
+          },
+          "schema_version": "green-v400-dependency-mask-v2"
+        },
+        "depends_on_t": true,
+        "final_position": 6
+      },
+      "kernel_id": "affine_scatter.v1",
+      "output_spec": {
+        "dtype": "<f4",
+        "layout": "C",
+        "shape": [
+          7,
+          768
+        ]
+      },
+      "parent_semantic_ids": [],
+      "provenance_identity": "PAT.J.resid_mid",
+      "schema_version": "green-v400-tensor-node-v1",
+      "semantic_id": "ec7fcff2e8e92a716011acd4e4d93e35ba89c4a6261829a9fdf6db0818904a99",
+      "tensor_inputs": [
+        {
+          "dtype": "<f4",
+          "layout": "C",
+          "nbytes": 21504,
+          "schema_version": "green-v400-tensor-ref-v1",
+          "shape": [
+            7,
+            768
+          ],
+          "tensor_sha256": "1c107c78663627b328ba373bf9cc7979e75105ae11d500fc40f9d53a7d451643"
+        },
+        {
+          "dtype": "<f4",
+          "layout": "C",
+          "nbytes": 3072,
+          "schema_version": "green-v400-tensor-ref-v1",
+          "shape": [
+            768
+          ],
+          "tensor_sha256": "ddda13c178b0f6026dd2f7b22724763c882be79c4799c9f48cf204797e439826"
+        }
+      ]
+    },
+    {
+      "dependency_mask_hash": "d4c366b84775b991293e2f3e390f323d421e2f307c9a60bde5ec11dcaf402e53",
+      "exact_attrs": {
+        "dependency_mask_spec": {
+          "axis0_indices": [],
+          "dependent_scalar_count": 0,
+          "kind": "empty",
+          "output_spec": {
+            "dtype": "<f4",
+            "layout": "C",
+            "shape": [
+              7,
+              768
+            ]
+          },
+          "schema_version": "green-v400-dependency-mask-v2"
+        },
+        "depends_on_t": false,
+        "operation": "tensor_constant"
+      },
+      "kernel_id": "static_view.v1",
+      "output_spec": {
+        "dtype": "<f4",
+        "layout": "C",
+        "shape": [
+          7,
+          768
+        ]
+      },
+      "parent_semantic_ids": [],
+      "provenance_identity": "PAT.J.zero_control.resid_mid",
+      "schema_version": "green-v400-tensor-node-v1",
+      "semantic_id": "4d8b76595dad49b95f3a489ab2a12a0a3e04f373d82092216b9ddcf4c7ba79ea",
+      "tensor_inputs": [
+        {
+          "dtype": "<f4",
+          "layout": "C",
+          "nbytes": 21504,
+          "schema_version": "green-v400-tensor-ref-v1",
+          "shape": [
+            7,
+            768
+          ],
+          "tensor_sha256": "1c107c78663627b328ba373bf9cc7979e75105ae11d500fc40f9d53a7d451643"
+        }
+      ]
+    },
+    {
+      "dependency_mask_hash": "aa708fd7f87bcada391261d52bc4326a589de2aece1e23d50e5a5484960d13e9",
+      "exact_attrs": {
+        "axis": -1,
+        "dependency_mask_spec": {
+          "axis0_indices": [
+            6
+          ],
+          "dependent_scalar_count": 768,
+          "kind": "axis0_rows",
+          "output_spec": {
+            "dtype": "<f4",
+            "layout": "C",
+            "shape": [
+              7,
+              768
+            ]
+          },
+          "schema_version": "green-v400-dependency-mask-v2"
+        },
+        "depends_on_t": true
+      },
+      "kernel_id": "layer_norm.v1",
+      "output_spec": {
+        "dtype": "<f4",
+        "layout": "C",
+        "shape": [
+          7,
+          768
+        ]
+      },
+      "parent_semantic_ids": [
+        "ec7fcff2e8e92a716011acd4e4d93e35ba89c4a6261829a9fdf6db0818904a99"
+      ],
+      "provenance_identity": "PAT.J.block10.ln2",
+      "schema_version": "green-v400-tensor-node-v1",
+      "semantic_id": "15c3f681aad023f3d4308706bc8e64808f097e75d17e9986d69f6a1585ace610",
+      "tensor_inputs": [
+        {
+          "dtype": "<f4",
+          "layout": "C",
+          "nbytes": 3072,
+          "schema_version": "green-v400-tensor-ref-v1",
+          "shape": [
+            768
+          ],
+          "tensor_sha256": "783386f9d3596310e479181c51d1acd9161c4431ed0a40c4cc2dd3fa48e2c33d"
+        },
+        {
+          "dtype": "<f4",
+          "layout": "C",
+          "nbytes": 3072,
+          "schema_version": "green-v400-tensor-ref-v1",
+          "shape": [
+            768
+          ],
+          "tensor_sha256": "65452502509269c485b87968d7d2fb37f3bdda863add22b1f446ca257877c60f"
+        },
+        {
+          "dtype": "<f4",
+          "layout": "C",
+          "nbytes": 4,
+          "schema_version": "green-v400-tensor-ref-v1",
+          "shape": [],
+          "tensor_sha256": "4558c9f7f06d3993b1ec713b281919d95fadb0a4ac1ea54024ab8d10544e1245"
+        }
+      ]
+    },
+    {
+      "dependency_mask_hash": "d4c366b84775b991293e2f3e390f323d421e2f307c9a60bde5ec11dcaf402e53",
+      "exact_attrs": {
+        "axis": -1,
+        "dependency_mask_spec": {
+          "axis0_indices": [],
+          "dependent_scalar_count": 0,
+          "kind": "empty",
+          "output_spec": {
+            "dtype": "<f4",
+            "layout": "C",
+            "shape": [
+              7,
+              768
+            ]
+          },
+          "schema_version": "green-v400-dependency-mask-v2"
+        },
+        "depends_on_t": false
+      },
+      "kernel_id": "layer_norm.v1",
+      "output_spec": {
+        "dtype": "<f4",
+        "layout": "C",
+        "shape": [
+          7,
+          768
+        ]
+      },
+      "parent_semantic_ids": [
+        "4d8b76595dad49b95f3a489ab2a12a0a3e04f373d82092216b9ddcf4c7ba79ea"
+      ],
+      "provenance_identity": "PAT.J.zero_control.block10.ln2",
+      "schema_version": "green-v400-tensor-node-v1",
+      "semantic_id": "b870d6ba21013310903c3d651d2b5a91936e1668c0e61db97cbd293f188fe44c",
+      "tensor_inputs": [
+        {
+          "dtype": "<f4",
+          "layout": "C",
+          "nbytes": 3072,
+          "schema_version": "green-v400-tensor-ref-v1",
+          "shape": [
+            768
+          ],
+          "tensor_sha256": "783386f9d3596310e479181c51d1acd9161c4431ed0a40c4cc2dd3fa48e2c33d"
+        },
+        {
+          "dtype": "<f4",
+          "layout": "C",
+          "nbytes": 3072,
+          "schema_version": "green-v400-tensor-ref-v1",
+          "shape": [
+            768
+          ],
+          "tensor_sha256": "65452502509269c485b87968d7d2fb37f3bdda863add22b1f446ca257877c60f"
+        },
+        {
+          "dtype": "<f4",
+          "layout": "C",
+          "nbytes": 4,
+          "schema_version": "green-v400-tensor-ref-v1",
+          "shape": [],
+          "tensor_sha256": "4558c9f7f06d3993b1ec713b281919d95fadb0a4ac1ea54024ab8d10544e1245"
+        }
+      ]
+    },
+    {
+      "dependency_mask_hash": "f0893cab19eefea1c8c72ec9e2f0f7830ebac9c5f188c431114194922be53470",
+      "exact_attrs": {
+        "dependency_mask_spec": {
+          "axis0_indices": [
+            6
+          ],
+          "dependent_scalar_count": 10,
+          "kind": "axis0_rows",
+          "output_spec": {
+            "dtype": "<f4",
+            "layout": "C",
+            "shape": [
+              7,
+              10
+            ]
+          },
+          "schema_version": "green-v400-dependency-mask-v2"
+        },
+        "depends_on_t": true,
+        "selected_gates": [
+          2326,
+          1138,
+          2287,
+          606,
+          2848,
+          2305,
+          46,
+          2659,
+          946,
+          1616
+        ],
+        "torch_float_kernel": "batch_addmm",
+        "weight_layout": "input_output"
+      },
+      "kernel_id": "pairwise_affine.v1",
+      "output_spec": {
+        "dtype": "<f4",
+        "layout": "C",
+        "shape": [
+          7,
+          10
+        ]
+      },
+      "parent_semantic_ids": [
+        "15c3f681aad023f3d4308706bc8e64808f097e75d17e9986d69f6a1585ace610"
+      ],
+      "provenance_identity": "PAT.J.block10.selected_pre",
+      "schema_version": "green-v400-tensor-node-v1",
+      "semantic_id": "323162de1618d615a83f032fb5ccf86594b125302d425f0dffaef8d0e260f011",
+      "tensor_inputs": [
+        {
+          "dtype": "<f4",
+          "layout": "C",
+          "nbytes": 30720,
+          "schema_version": "green-v400-tensor-ref-v1",
+          "shape": [
+            768,
+            10
+          ],
+          "tensor_sha256": "910cf8a3674fd0a9c89fc44c7daebf2c1d3d1a172b1cac6d53eedc7ab7348913"
+        },
+        {
+          "dtype": "<f4",
+          "layout": "C",
+          "nbytes": 40,
+          "schema_version": "green-v400-tensor-ref-v1",
+          "shape": [
+            10
+          ],
+          "tensor_sha256": "922d1813c181583ec02a2a2d616049498ba6760d326b6928d556637b5bf386b7"
+        }
+      ]
+    },
+    {
+      "dependency_mask_hash": "21ef01c4d3ea878f64e9f0112ff786926acac96879e36487823401320554c26f",
+      "exact_attrs": {
+        "dependency_mask_spec": {
+          "axis0_indices": [],
+          "dependent_scalar_count": 0,
+          "kind": "empty",
+          "output_spec": {
+            "dtype": "<f4",
+            "layout": "C",
+            "shape": [
+              7,
+              10
+            ]
+          },
+          "schema_version": "green-v400-dependency-mask-v2"
+        },
+        "depends_on_t": false,
+        "selected_gates": [
+          2326,
+          1138,
+          2287,
+          606,
+          2848,
+          2305,
+          46,
+          2659,
+          946,
+          1616
+        ],
+        "torch_float_kernel": "batch_addmm",
+        "weight_layout": "input_output"
+      },
+      "kernel_id": "pairwise_affine.v1",
+      "output_spec": {
+        "dtype": "<f4",
+        "layout": "C",
+        "shape": [
+          7,
+          10
+        ]
+      },
+      "parent_semantic_ids": [
+        "b870d6ba21013310903c3d651d2b5a91936e1668c0e61db97cbd293f188fe44c"
+      ],
+      "provenance_identity": "PAT.J.zero_control.block10.selected_pre",
+      "schema_version": "green-v400-tensor-node-v1",
+      "semantic_id": "3e7f98b193c0ecbce1f0534e7b4cba59166b2659a5fb7fb71dc2bd40c96f3d4f",
+      "tensor_inputs": [
+        {
+          "dtype": "<f4",
+          "layout": "C",
+          "nbytes": 30720,
+          "schema_version": "green-v400-tensor-ref-v1",
+          "shape": [
+            768,
+            10
+          ],
+          "tensor_sha256": "910cf8a3674fd0a9c89fc44c7daebf2c1d3d1a172b1cac6d53eedc7ab7348913"
+        },
+        {
+          "dtype": "<f4",
+          "layout": "C",
+          "nbytes": 40,
+          "schema_version": "green-v400-tensor-ref-v1",
+          "shape": [
+            10
+          ],
+          "tensor_sha256": "922d1813c181583ec02a2a2d616049498ba6760d326b6928d556637b5bf386b7"
+        }
+      ]
+    },
+    {
+      "dependency_mask_hash": "f0893cab19eefea1c8c72ec9e2f0f7830ebac9c5f188c431114194922be53470",
+      "exact_attrs": {
+        "dependency_mask_spec": {
+          "axis0_indices": [
+            6
+          ],
+          "dependent_scalar_count": 10,
+          "kind": "axis0_rows",
+          "output_spec": {
+            "dtype": "<f4",
+            "layout": "C",
+            "shape": [
+              7,
+              10
+            ]
+          },
+          "schema_version": "green-v400-dependency-mask-v2"
+        },
+        "depends_on_t": true
+      },
+      "kernel_id": "gelu_new.v1",
+      "output_spec": {
+        "dtype": "<f4",
+        "layout": "C",
+        "shape": [
+          7,
+          10
+        ]
+      },
+      "parent_semantic_ids": [
+        "323162de1618d615a83f032fb5ccf86594b125302d425f0dffaef8d0e260f011"
+      ],
+      "provenance_identity": "PAT.J.block10.selected_live",
+      "schema_version": "green-v400-tensor-node-v1",
+      "semantic_id": "7aa6dc259fde9513f328eefbbe0c02fac342410f2e7ebc5df63b9fae319b1221",
+      "tensor_inputs": [
+        {
+          "dtype": "<f4",
+          "layout": "C",
+          "nbytes": 4,
+          "schema_version": "green-v400-tensor-ref-v1",
+          "shape": [],
+          "tensor_sha256": "c126878ce0885aca95ea31274595b78ced5731e01eb5373ff37c7ebb65c8870d"
+        },
+        {
+          "dtype": "<f4",
+          "layout": "C",
+          "nbytes": 4,
+          "schema_version": "green-v400-tensor-ref-v1",
+          "shape": [],
+          "tensor_sha256": "d5c3c88f1bfc809c51646f74b7ec2a043bef5ec8246a48a4c5162b608ef11751"
+        }
+      ]
+    },
+    {
+      "dependency_mask_hash": "21ef01c4d3ea878f64e9f0112ff786926acac96879e36487823401320554c26f",
+      "exact_attrs": {
+        "dependency_mask_spec": {
+          "axis0_indices": [],
+          "dependent_scalar_count": 0,
+          "kind": "empty",
+          "output_spec": {
+            "dtype": "<f4",
+            "layout": "C",
+            "shape": [
+              7,
+              10
+            ]
+          },
+          "schema_version": "green-v400-dependency-mask-v2"
+        },
+        "depends_on_t": false
+      },
+      "kernel_id": "gelu_new.v1",
+      "output_spec": {
+        "dtype": "<f4",
+        "layout": "C",
+        "shape": [
+          7,
+          10
+        ]
+      },
+      "parent_semantic_ids": [
+        "3e7f98b193c0ecbce1f0534e7b4cba59166b2659a5fb7fb71dc2bd40c96f3d4f"
+      ],
+      "provenance_identity": "PAT.J.zero_control.block10.selected_live",
+      "schema_version": "green-v400-tensor-node-v1",
+      "semantic_id": "b618dabafac27612fa4b41f421bda454e63cc8bc7607beb4f9be8f859b2a21eb",
+      "tensor_inputs": [
+        {
+          "dtype": "<f4",
+          "layout": "C",
+          "nbytes": 4,
+          "schema_version": "green-v400-tensor-ref-v1",
+          "shape": [],
+          "tensor_sha256": "c126878ce0885aca95ea31274595b78ced5731e01eb5373ff37c7ebb65c8870d"
+        },
+        {
+          "dtype": "<f4",
+          "layout": "C",
+          "nbytes": 4,
+          "schema_version": "green-v400-tensor-ref-v1",
+          "shape": [],
+          "tensor_sha256": "d5c3c88f1bfc809c51646f74b7ec2a043bef5ec8246a48a4c5162b608ef11751"
+        }
+      ]
+    },
+    {
+      "dependency_mask_hash": "f0893cab19eefea1c8c72ec9e2f0f7830ebac9c5f188c431114194922be53470",
+      "exact_attrs": {
+        "dependency_mask_spec": {
+          "axis0_indices": [
+            6
+          ],
+          "dependent_scalar_count": 10,
+          "kind": "axis0_rows",
+          "output_spec": {
+            "dtype": "<f4",
+            "layout": "C",
+            "shape": [
+              7,
+              10
+            ]
+          },
+          "schema_version": "green-v400-dependency-mask-v2"
+        },
+        "depends_on_t": true,
+        "final_position": 6,
+        "operation": "subtract_exact_parent_at_final_position"
+      },
+      "kernel_id": "static_view.v1",
+      "output_spec": {
+        "dtype": "<f4",
+        "layout": "C",
+        "shape": [
+          7,
+          10
+        ]
+      },
+      "parent_semantic_ids": [
+        "7aa6dc259fde9513f328eefbbe0c02fac342410f2e7ebc5df63b9fae319b1221",
+        "b618dabafac27612fa4b41f421bda454e63cc8bc7607beb4f9be8f859b2a21eb"
+      ],
+      "provenance_identity": "PAT.J.block10.selected_delta",
+      "schema_version": "green-v400-tensor-node-v1",
+      "semantic_id": "06f9c1c11ee546aad6c088f66f6899925cb41ea263a5c22b18c2860eb3e98ad2",
+      "tensor_inputs": []
+    },
+    {
+      "dependency_mask_hash": "aa708fd7f87bcada391261d52bc4326a589de2aece1e23d50e5a5484960d13e9",
+      "exact_attrs": {
+        "dependency_mask_spec": {
+          "axis0_indices": [
+            6
+          ],
+          "dependent_scalar_count": 768,
+          "kind": "axis0_rows",
+          "output_spec": {
+            "dtype": "<f4",
+            "layout": "C",
+            "shape": [
+              7,
+              768
+            ]
+          },
+          "schema_version": "green-v400-dependency-mask-v2"
+        },
+        "depends_on_t": true,
+        "torch_float_kernel": "batch_addmm",
+        "weight_layout": "input_output"
+      },
+      "kernel_id": "pairwise_affine.v1",
+      "output_spec": {
+        "dtype": "<f4",
+        "layout": "C",
+        "shape": [
+          7,
+          768
+        ]
+      },
+      "parent_semantic_ids": [
+        "06f9c1c11ee546aad6c088f66f6899925cb41ea263a5c22b18c2860eb3e98ad2"
+      ],
+      "provenance_identity": "PAT.J.block10.selected_out_delta",
+      "schema_version": "green-v400-tensor-node-v1",
+      "semantic_id": "74720f57fc27948836493f4728de8dacca795ccec3ac4a7db7335364ab0ed173",
+      "tensor_inputs": [
+        {
+          "dtype": "<f4",
+          "layout": "C",
+          "nbytes": 30720,
+          "schema_version": "green-v400-tensor-ref-v1",
+          "shape": [
+            10,
+            768
+          ],
+          "tensor_sha256": "e2cf1a001dc402681958de2ba70b69c1054e6748d397841f3b0c99501c262c28"
+        },
+        {
+          "dtype": "<f4",
+          "layout": "C",
+          "nbytes": 3072,
+          "schema_version": "green-v400-tensor-ref-v1",
+          "shape": [
+            768
+          ],
+          "tensor_sha256": "5b9d8b05e077fdfa44a3868d615c93d519be84283dac5045db2678c7d99c9e8d"
+        }
+      ]
+    },
+    {
+      "dependency_mask_hash": "aa708fd7f87bcada391261d52bc4326a589de2aece1e23d50e5a5484960d13e9",
+      "exact_attrs": {
+        "dependency_mask_spec": {
+          "axis0_indices": [
+            6
+          ],
+          "dependent_scalar_count": 768,
+          "kind": "axis0_rows",
+          "output_spec": {
+            "dtype": "<f4",
+            "layout": "C",
+            "shape": [
+              7,
+              768
+            ]
+          },
+          "schema_version": "green-v400-dependency-mask-v2"
+        },
+        "depends_on_t": true
+      },
+      "kernel_id": "residual_add.v1",
+      "output_spec": {
+        "dtype": "<f4",
+        "layout": "C",
+        "shape": [
+          7,
+          768
+        ]
+      },
+      "parent_semantic_ids": [
+        "479903c5a53c14484fec7b42cea33acf0bd56a523eb3002ed1b02ca68b929b46",
+        "74720f57fc27948836493f4728de8dacca795ccec3ac4a7db7335364ab0ed173"
+      ],
+      "provenance_identity": "PAT.J.block10.resid_post",
+      "schema_version": "green-v400-tensor-node-v1",
+      "semantic_id": "dd679e201fd667e3adcbb1a826243421c3d96885d71fee8feb3ecac1fb0b93c6",
+      "tensor_inputs": []
+    },
+    {
+      "dependency_mask_hash": "aa708fd7f87bcada391261d52bc4326a589de2aece1e23d50e5a5484960d13e9",
+      "exact_attrs": {
+        "axis": -1,
+        "dependency_mask_spec": {
+          "axis0_indices": [
+            6
+          ],
+          "dependent_scalar_count": 768,
+          "kind": "axis0_rows",
+          "output_spec": {
+            "dtype": "<f4",
+            "layout": "C",
+            "shape": [
+              7,
+              768
+            ]
+          },
+          "schema_version": "green-v400-dependency-mask-v2"
+        },
+        "depends_on_t": true
+      },
+      "kernel_id": "layer_norm.v1",
+      "output_spec": {
+        "dtype": "<f4",
+        "layout": "C",
+        "shape": [
+          7,
+          768
+        ]
+      },
+      "parent_semantic_ids": [
+        "dd679e201fd667e3adcbb1a826243421c3d96885d71fee8feb3ecac1fb0b93c6"
+      ],
+      "provenance_identity": "PAT.J.block11.ln1",
+      "schema_version": "green-v400-tensor-node-v1",
+      "semantic_id": "48b97f195c90a7441fb362c45f16426a37129598c396e60f5b58292a1acfff1f",
+      "tensor_inputs": [
+        {
+          "dtype": "<f4",
+          "layout": "C",
+          "nbytes": 3072,
+          "schema_version": "green-v400-tensor-ref-v1",
+          "shape": [
+            768
+          ],
+          "tensor_sha256": "d1b25affdce3860e3206b98526d6efe507c3c28536103d592405109e68ee2eae"
+        },
+        {
+          "dtype": "<f4",
+          "layout": "C",
+          "nbytes": 3072,
+          "schema_version": "green-v400-tensor-ref-v1",
+          "shape": [
+            768
+          ],
+          "tensor_sha256": "676c03e7f050a58ec0243ed53616e1288b6ece347f98a8400768a22aec384309"
+        },
+        {
+          "dtype": "<f4",
+          "layout": "C",
+          "nbytes": 4,
+          "schema_version": "green-v400-tensor-ref-v1",
+          "shape": [],
+          "tensor_sha256": "4558c9f7f06d3993b1ec713b281919d95fadb0a4ac1ea54024ab8d10544e1245"
+        }
+      ]
+    },
+    {
+      "dependency_mask_hash": "aa708fd7f87bcada391261d52bc4326a589de2aece1e23d50e5a5484960d13e9",
+      "exact_attrs": {
+        "dependency_mask_spec": {
+          "axis0_indices": [
+            6
+          ],
+          "dependent_scalar_count": 768,
+          "kind": "axis0_rows",
+          "output_spec": {
+            "dtype": "<f4",
+            "layout": "C",
+            "shape": [
+              7,
+              768
+            ]
+          },
+          "schema_version": "green-v400-dependency-mask-v2"
+        },
+        "depends_on_t": true,
+        "torch_float_kernel": "linear",
+        "weight_layout": "input_output"
+      },
+      "kernel_id": "pairwise_affine.v1",
+      "output_spec": {
+        "dtype": "<f4",
+        "layout": "C",
+        "shape": [
+          7,
+          768
+        ]
+      },
+      "parent_semantic_ids": [
+        "48b97f195c90a7441fb362c45f16426a37129598c396e60f5b58292a1acfff1f"
+      ],
+      "provenance_identity": "PAT.J.block11.attn.q",
+      "schema_version": "green-v400-tensor-node-v1",
+      "semantic_id": "f5cffe375f10354f8936d2200f653623e8da32542a9805b22421910c46258d00",
+      "tensor_inputs": [
+        {
+          "dtype": "<f4",
+          "layout": "C",
+          "nbytes": 2359296,
+          "schema_version": "green-v400-tensor-ref-v1",
+          "shape": [
+            768,
+            768
+          ],
+          "tensor_sha256": "8dfa5242708f284ca32cc04dbaa24a4dd50672a525fd34fa59c69fb040bd3d01"
+        },
+        {
+          "dtype": "<f4",
+          "layout": "C",
+          "nbytes": 3072,
+          "schema_version": "green-v400-tensor-ref-v1",
+          "shape": [
+            768
+          ],
+          "tensor_sha256": "d9201e1011de6a5a2b07dae4116d51fad59038dbbc9eaa8ce523fc398f3a29c2"
+        }
+      ]
+    },
+    {
+      "dependency_mask_hash": "aa708fd7f87bcada391261d52bc4326a589de2aece1e23d50e5a5484960d13e9",
+      "exact_attrs": {
+        "dependency_mask_spec": {
+          "axis0_indices": [
+            6
+          ],
+          "dependent_scalar_count": 768,
+          "kind": "axis0_rows",
+          "output_spec": {
+            "dtype": "<f4",
+            "layout": "C",
+            "shape": [
+              7,
+              768
+            ]
+          },
+          "schema_version": "green-v400-dependency-mask-v2"
+        },
+        "depends_on_t": true,
+        "torch_float_kernel": "linear",
+        "weight_layout": "input_output"
+      },
+      "kernel_id": "pairwise_affine.v1",
+      "output_spec": {
+        "dtype": "<f4",
+        "layout": "C",
+        "shape": [
+          7,
+          768
+        ]
+      },
+      "parent_semantic_ids": [
+        "48b97f195c90a7441fb362c45f16426a37129598c396e60f5b58292a1acfff1f"
+      ],
+      "provenance_identity": "PAT.J.block11.attn.k",
+      "schema_version": "green-v400-tensor-node-v1",
+      "semantic_id": "88e49420d927fa07a4749efea5b558c6256f5fd29d6036717bf2939fe56b6b78",
+      "tensor_inputs": [
+        {
+          "dtype": "<f4",
+          "layout": "C",
+          "nbytes": 2359296,
+          "schema_version": "green-v400-tensor-ref-v1",
+          "shape": [
+            768,
+            768
+          ],
+          "tensor_sha256": "ac0fc32a9bcbaa2657a18246b33a1848a6d10a5e161a128f4dd0c77c54b0f051"
+        },
+        {
+          "dtype": "<f4",
+          "layout": "C",
+          "nbytes": 3072,
+          "schema_version": "green-v400-tensor-ref-v1",
+          "shape": [
+            768
+          ],
+          "tensor_sha256": "495f1a49ce1e7ca59e8cb8c41134245cf5b8e41da7185ecb6197fad579c92f3b"
+        }
+      ]
+    },
+    {
+      "dependency_mask_hash": "aa708fd7f87bcada391261d52bc4326a589de2aece1e23d50e5a5484960d13e9",
+      "exact_attrs": {
+        "dependency_mask_spec": {
+          "axis0_indices": [
+            6
+          ],
+          "dependent_scalar_count": 768,
+          "kind": "axis0_rows",
+          "output_spec": {
+            "dtype": "<f4",
+            "layout": "C",
+            "shape": [
+              7,
+              768
+            ]
+          },
+          "schema_version": "green-v400-dependency-mask-v2"
+        },
+        "depends_on_t": true,
+        "torch_float_kernel": "linear",
+        "weight_layout": "input_output"
+      },
+      "kernel_id": "pairwise_affine.v1",
+      "output_spec": {
+        "dtype": "<f4",
+        "layout": "C",
+        "shape": [
+          7,
+          768
+        ]
+      },
+      "parent_semantic_ids": [
+        "48b97f195c90a7441fb362c45f16426a37129598c396e60f5b58292a1acfff1f"
+      ],
+      "provenance_identity": "PAT.J.block11.attn.v",
+      "schema_version": "green-v400-tensor-node-v1",
+      "semantic_id": "3acd66569a316ff05658833e428c65973816924263de4889814fb657a60dddec",
+      "tensor_inputs": [
+        {
+          "dtype": "<f4",
+          "layout": "C",
+          "nbytes": 2359296,
+          "schema_version": "green-v400-tensor-ref-v1",
+          "shape": [
+            768,
+            768
+          ],
+          "tensor_sha256": "1fd2e67e15c213a9c1daf1cf15efb61e222cf3e2c01819e1fe822f596989af36"
+        },
+        {
+          "dtype": "<f4",
+          "layout": "C",
+          "nbytes": 3072,
+          "schema_version": "green-v400-tensor-ref-v1",
+          "shape": [
+            768
+          ],
+          "tensor_sha256": "f36a4547385d39b140a4f2cb7c8d130b0c36b14d534f6994fb5e700ca762f41a"
+        }
+      ]
+    },
+    {
+      "dependency_mask_hash": "aa708fd7f87bcada391261d52bc4326a589de2aece1e23d50e5a5484960d13e9",
+      "exact_attrs": {
+        "d_head": 64,
+        "dependency_mask_spec": {
+          "axis0_indices": [
+            6
+          ],
+          "dependent_scalar_count": 768,
+          "kind": "axis0_rows",
+          "output_spec": {
+            "dtype": "<f4",
+            "layout": "C",
+            "shape": [
+              7,
+              768
+            ]
+          },
+          "schema_version": "green-v400-dependency-mask-v2"
+        },
+        "depends_on_t": true,
+        "mask": "causal_delete_future",
+        "n_heads": 12,
+        "score_scale": "inverse_sqrt_d_head",
+        "softmax_pivot": {
+          "index": 0,
+          "kind": "fixed_index"
+        }
+      },
+      "kernel_id": "causal_attention.v1",
+      "output_spec": {
+        "dtype": "<f4",
+        "layout": "C",
+        "shape": [
+          7,
+          768
+        ]
+      },
+      "parent_semantic_ids": [
+        "f5cffe375f10354f8936d2200f653623e8da32542a9805b22421910c46258d00",
+        "88e49420d927fa07a4749efea5b558c6256f5fd29d6036717bf2939fe56b6b78",
+        "3acd66569a316ff05658833e428c65973816924263de4889814fb657a60dddec"
+      ],
+      "provenance_identity": "PAT.J.block11.attn.pattern_value",
+      "schema_version": "green-v400-tensor-node-v1",
+      "semantic_id": "6578912d55fad7a60ce6c778ba1be56546739e1c462d66e000c80053b72fc252",
+      "tensor_inputs": []
+    },
+    {
+      "dependency_mask_hash": "aa708fd7f87bcada391261d52bc4326a589de2aece1e23d50e5a5484960d13e9",
+      "exact_attrs": {
+        "dependency_mask_spec": {
+          "axis0_indices": [
+            6
+          ],
+          "dependent_scalar_count": 768,
+          "kind": "axis0_rows",
+          "output_spec": {
+            "dtype": "<f4",
+            "layout": "C",
+            "shape": [
+              7,
+              768
+            ]
+          },
+          "schema_version": "green-v400-dependency-mask-v2"
+        },
+        "depends_on_t": true,
+        "torch_float_kernel": "linear",
+        "weight_layout": "input_output"
+      },
+      "kernel_id": "pairwise_affine.v1",
+      "output_spec": {
+        "dtype": "<f4",
+        "layout": "C",
+        "shape": [
+          7,
+          768
+        ]
+      },
+      "parent_semantic_ids": [
+        "6578912d55fad7a60ce6c778ba1be56546739e1c462d66e000c80053b72fc252"
+      ],
+      "provenance_identity": "PAT.J.block11.attn.out",
+      "schema_version": "green-v400-tensor-node-v1",
+      "semantic_id": "9fe6d5f5ec268bd644bb154834ffad17f346df33fa30b57abf48d1c332a46228",
+      "tensor_inputs": [
+        {
+          "dtype": "<f4",
+          "layout": "C",
+          "nbytes": 2359296,
+          "schema_version": "green-v400-tensor-ref-v1",
+          "shape": [
+            768,
+            768
+          ],
+          "tensor_sha256": "c4ff9c5df42b1da4f99cd617f10b599ed74ec0856576af3bd3d1b3be83c2859b"
+        },
+        {
+          "dtype": "<f4",
+          "layout": "C",
+          "nbytes": 3072,
+          "schema_version": "green-v400-tensor-ref-v1",
+          "shape": [
+            768
+          ],
+          "tensor_sha256": "e6fb51287078c5f747a3239930aa0f4f7abef3dc99371e880354ff92e581e2e0"
+        }
+      ]
+    },
+    {
+      "dependency_mask_hash": "aa708fd7f87bcada391261d52bc4326a589de2aece1e23d50e5a5484960d13e9",
+      "exact_attrs": {
+        "dependency_mask_spec": {
+          "axis0_indices": [
+            6
+          ],
+          "dependent_scalar_count": 768,
+          "kind": "axis0_rows",
+          "output_spec": {
+            "dtype": "<f4",
+            "layout": "C",
+            "shape": [
+              7,
+              768
+            ]
+          },
+          "schema_version": "green-v400-dependency-mask-v2"
+        },
+        "depends_on_t": true
+      },
+      "kernel_id": "residual_add.v1",
+      "output_spec": {
+        "dtype": "<f4",
+        "layout": "C",
+        "shape": [
+          7,
+          768
+        ]
+      },
+      "parent_semantic_ids": [
+        "dd679e201fd667e3adcbb1a826243421c3d96885d71fee8feb3ecac1fb0b93c6",
+        "9fe6d5f5ec268bd644bb154834ffad17f346df33fa30b57abf48d1c332a46228"
+      ],
+      "provenance_identity": "PAT.J.block11.resid_mid",
+      "schema_version": "green-v400-tensor-node-v1",
+      "semantic_id": "6d41152c3423031e89f7c9be4300fa8fb6f802865a0c22dc46c9f7c5a460f6c3",
+      "tensor_inputs": []
+    },
+    {
+      "dependency_mask_hash": "aa708fd7f87bcada391261d52bc4326a589de2aece1e23d50e5a5484960d13e9",
+      "exact_attrs": {
+        "axis": -1,
+        "dependency_mask_spec": {
+          "axis0_indices": [
+            6
+          ],
+          "dependent_scalar_count": 768,
+          "kind": "axis0_rows",
+          "output_spec": {
+            "dtype": "<f4",
+            "layout": "C",
+            "shape": [
+              7,
+              768
+            ]
+          },
+          "schema_version": "green-v400-dependency-mask-v2"
+        },
+        "depends_on_t": true
+      },
+      "kernel_id": "layer_norm.v1",
+      "output_spec": {
+        "dtype": "<f4",
+        "layout": "C",
+        "shape": [
+          7,
+          768
+        ]
+      },
+      "parent_semantic_ids": [
+        "6d41152c3423031e89f7c9be4300fa8fb6f802865a0c22dc46c9f7c5a460f6c3"
+      ],
+      "provenance_identity": "PAT.J.block11.ln2",
+      "schema_version": "green-v400-tensor-node-v1",
+      "semantic_id": "b8b6fbe718ee9e371213479971d058120539198d050a48f765f76637115bb8ef",
+      "tensor_inputs": [
+        {
+          "dtype": "<f4",
+          "layout": "C",
+          "nbytes": 3072,
+          "schema_version": "green-v400-tensor-ref-v1",
+          "shape": [
+            768
+          ],
+          "tensor_sha256": "5e5c7ca04ac18d0d154e2cf4980189639a1950c9ef93fc1eb7566c8733e40eca"
+        },
+        {
+          "dtype": "<f4",
+          "layout": "C",
+          "nbytes": 3072,
+          "schema_version": "green-v400-tensor-ref-v1",
+          "shape": [
+            768
+          ],
+          "tensor_sha256": "66bf9f31b5f84278f232bb1ec3d99c5fd8afbb764aaf00801333660441150659"
+        },
+        {
+          "dtype": "<f4",
+          "layout": "C",
+          "nbytes": 4,
+          "schema_version": "green-v400-tensor-ref-v1",
+          "shape": [],
+          "tensor_sha256": "4558c9f7f06d3993b1ec713b281919d95fadb0a4ac1ea54024ab8d10544e1245"
+        }
+      ]
+    },
+    {
+      "dependency_mask_hash": "0830685bcc0f16da8bdcd8e6a4865dcd0a15fe69e9f43cb6539db1f7df973b7f",
+      "exact_attrs": {
+        "dependency_mask_spec": {
+          "axis0_indices": [
+            6
+          ],
+          "dependent_scalar_count": 3072,
+          "kind": "axis0_rows",
+          "output_spec": {
+            "dtype": "<f4",
+            "layout": "C",
+            "shape": [
+              7,
+              3072
+            ]
+          },
+          "schema_version": "green-v400-dependency-mask-v2"
+        },
+        "depends_on_t": true,
+        "weight_layout": "input_output"
+      },
+      "kernel_id": "pairwise_affine.v1",
+      "output_spec": {
+        "dtype": "<f4",
+        "layout": "C",
+        "shape": [
+          7,
+          3072
+        ]
+      },
+      "parent_semantic_ids": [
+        "b8b6fbe718ee9e371213479971d058120539198d050a48f765f76637115bb8ef"
+      ],
+      "provenance_identity": "PAT.J.block11.mlp.pre",
+      "schema_version": "green-v400-tensor-node-v1",
+      "semantic_id": "e92eca472c692e6c875969dabbafa2822963115bbc54f23d04cb92ada955ef38",
+      "tensor_inputs": [
+        {
+          "dtype": "<f4",
+          "layout": "C",
+          "nbytes": 9437184,
+          "schema_version": "green-v400-tensor-ref-v1",
+          "shape": [
+            768,
+            3072
+          ],
+          "tensor_sha256": "4a786af81022ddeabe0c6068de3b97fc92bafc77897972f701b92d2d38fa3c5f"
+        },
+        {
+          "dtype": "<f4",
+          "layout": "C",
+          "nbytes": 12288,
+          "schema_version": "green-v400-tensor-ref-v1",
+          "shape": [
+            3072
+          ],
+          "tensor_sha256": "cd3e4bf39ad1b8bbd236b9dbf22de8259b1842a1010fec30098aad9fb375349b"
+        }
+      ]
+    },
+    {
+      "dependency_mask_hash": "0830685bcc0f16da8bdcd8e6a4865dcd0a15fe69e9f43cb6539db1f7df973b7f",
+      "exact_attrs": {
+        "dependency_mask_spec": {
+          "axis0_indices": [
+            6
+          ],
+          "dependent_scalar_count": 3072,
+          "kind": "axis0_rows",
+          "output_spec": {
+            "dtype": "<f4",
+            "layout": "C",
+            "shape": [
+              7,
+              3072
+            ]
+          },
+          "schema_version": "green-v400-dependency-mask-v2"
+        },
+        "depends_on_t": true
+      },
+      "kernel_id": "gelu_new.v1",
+      "output_spec": {
+        "dtype": "<f4",
+        "layout": "C",
+        "shape": [
+          7,
+          3072
+        ]
+      },
+      "parent_semantic_ids": [
+        "e92eca472c692e6c875969dabbafa2822963115bbc54f23d04cb92ada955ef38"
+      ],
+      "provenance_identity": "PAT.J.block11.mlp.post",
+      "schema_version": "green-v400-tensor-node-v1",
+      "semantic_id": "257b6d7ff56baa6686a5981d0eb2aea4d381f7ca945826dd881daceb40ee0521",
+      "tensor_inputs": [
+        {
+          "dtype": "<f4",
+          "layout": "C",
+          "nbytes": 4,
+          "schema_version": "green-v400-tensor-ref-v1",
+          "shape": [],
+          "tensor_sha256": "c126878ce0885aca95ea31274595b78ced5731e01eb5373ff37c7ebb65c8870d"
+        },
+        {
+          "dtype": "<f4",
+          "layout": "C",
+          "nbytes": 4,
+          "schema_version": "green-v400-tensor-ref-v1",
+          "shape": [],
+          "tensor_sha256": "d5c3c88f1bfc809c51646f74b7ec2a043bef5ec8246a48a4c5162b608ef11751"
+        }
+      ]
+    },
+    {
+      "dependency_mask_hash": "aa708fd7f87bcada391261d52bc4326a589de2aece1e23d50e5a5484960d13e9",
+      "exact_attrs": {
+        "dependency_mask_spec": {
+          "axis0_indices": [
+            6
+          ],
+          "dependent_scalar_count": 768,
+          "kind": "axis0_rows",
+          "output_spec": {
+            "dtype": "<f4",
+            "layout": "C",
+            "shape": [
+              7,
+              768
+            ]
+          },
+          "schema_version": "green-v400-dependency-mask-v2"
+        },
+        "depends_on_t": true,
+        "weight_layout": "input_output"
+      },
+      "kernel_id": "pairwise_affine.v1",
+      "output_spec": {
+        "dtype": "<f4",
+        "layout": "C",
+        "shape": [
+          7,
+          768
+        ]
+      },
+      "parent_semantic_ids": [
+        "257b6d7ff56baa6686a5981d0eb2aea4d381f7ca945826dd881daceb40ee0521"
+      ],
+      "provenance_identity": "PAT.J.block11.mlp.out",
+      "schema_version": "green-v400-tensor-node-v1",
+      "semantic_id": "9f69056a639cbb0d8f2d3ac8023393cbb4ba7aeac585fc231116dada10b8e9d1",
+      "tensor_inputs": [
+        {
+          "dtype": "<f4",
+          "layout": "C",
+          "nbytes": 9437184,
+          "schema_version": "green-v400-tensor-ref-v1",
+          "shape": [
+            3072,
+            768
+          ],
+          "tensor_sha256": "142e3cd7e04bd9f0753f84f35fce9a521d6cda4ad78b79f6c7bf55ce9dc6a076"
+        },
+        {
+          "dtype": "<f4",
+          "layout": "C",
+          "nbytes": 3072,
+          "schema_version": "green-v400-tensor-ref-v1",
+          "shape": [
+            768
+          ],
+          "tensor_sha256": "80b5520fb10332b6ffa4db0279b568d3e9be9e10a5298758e6107a9b1e6304a9"
+        }
+      ]
+    },
+    {
+      "dependency_mask_hash": "aa708fd7f87bcada391261d52bc4326a589de2aece1e23d50e5a5484960d13e9",
+      "exact_attrs": {
+        "dependency_mask_spec": {
+          "axis0_indices": [
+            6
+          ],
+          "dependent_scalar_count": 768,
+          "kind": "axis0_rows",
+          "output_spec": {
+            "dtype": "<f4",
+            "layout": "C",
+            "shape": [
+              7,
+              768
+            ]
+          },
+          "schema_version": "green-v400-dependency-mask-v2"
+        },
+        "depends_on_t": true
+      },
+      "kernel_id": "residual_add.v1",
+      "output_spec": {
+        "dtype": "<f4",
+        "layout": "C",
+        "shape": [
+          7,
+          768
+        ]
+      },
+      "parent_semantic_ids": [
+        "6d41152c3423031e89f7c9be4300fa8fb6f802865a0c22dc46c9f7c5a460f6c3",
+        "9f69056a639cbb0d8f2d3ac8023393cbb4ba7aeac585fc231116dada10b8e9d1"
+      ],
+      "provenance_identity": "PAT.J.block11.resid_post",
+      "schema_version": "green-v400-tensor-node-v1",
+      "semantic_id": "01a2d95a20ef3a7e73bf00fddcee0f157b887e85b7ec96311737b100d7b51082",
+      "tensor_inputs": []
+    },
+    {
+      "dependency_mask_hash": "aa708fd7f87bcada391261d52bc4326a589de2aece1e23d50e5a5484960d13e9",
+      "exact_attrs": {
+        "axis": -1,
+        "dependency_mask_spec": {
+          "axis0_indices": [
+            6
+          ],
+          "dependent_scalar_count": 768,
+          "kind": "axis0_rows",
+          "output_spec": {
+            "dtype": "<f4",
+            "layout": "C",
+            "shape": [
+              7,
+              768
+            ]
+          },
+          "schema_version": "green-v400-dependency-mask-v2"
+        },
+        "depends_on_t": true
+      },
+      "kernel_id": "layer_norm.v1",
+      "output_spec": {
+        "dtype": "<f4",
+        "layout": "C",
+        "shape": [
+          7,
+          768
+        ]
+      },
+      "parent_semantic_ids": [
+        "01a2d95a20ef3a7e73bf00fddcee0f157b887e85b7ec96311737b100d7b51082"
+      ],
+      "provenance_identity": "PAT.J.ln_final",
+      "schema_version": "green-v400-tensor-node-v1",
+      "semantic_id": "69b7b8bd5a53608d4c75afd9dd463daa2de5754241cc697e94ebcd4fb61dd4e6",
+      "tensor_inputs": [
+        {
+          "dtype": "<f4",
+          "layout": "C",
+          "nbytes": 3072,
+          "schema_version": "green-v400-tensor-ref-v1",
+          "shape": [
+            768
+          ],
+          "tensor_sha256": "de49787cd8916bd792bb1d832bd59ea75249d76048641f411bb855f50aea1352"
+        },
+        {
+          "dtype": "<f4",
+          "layout": "C",
+          "nbytes": 3072,
+          "schema_version": "green-v400-tensor-ref-v1",
+          "shape": [
+            768
+          ],
+          "tensor_sha256": "7cb9ba8bde97d2f808f550fda631b45e15d14a49d9faca650235c30822a224bd"
+        },
+        {
+          "dtype": "<f4",
+          "layout": "C",
+          "nbytes": 4,
+          "schema_version": "green-v400-tensor-ref-v1",
+          "shape": [],
+          "tensor_sha256": "4558c9f7f06d3993b1ec713b281919d95fadb0a4ac1ea54024ab8d10544e1245"
+        }
+      ]
+    },
+    {
+      "dependency_mask_hash": "3a2c15486d363d38ac639d55979a3121cdfcce211b622ee7e2cbfda36556b891",
+      "exact_attrs": {
+        "contrast_width": 100,
+        "dependency_mask_spec": {
+          "axis0_indices": [],
+          "dependent_scalar_count": 1,
+          "kind": "dense",
+          "output_spec": {
+            "dtype": "<f8",
+            "layout": "C",
+            "shape": []
+          },
+          "schema_version": "green-v400-dependency-mask-v2"
+        },
+        "depends_on_t": true,
+        "final_position": 6,
+        "reduction": "fixed_balanced_pairwise",
+        "scalarization": "exact_affine_fusion_to_residual_contrast"
+      },
+      "kernel_id": "final_contrast.v1",
+      "output_spec": {
+        "dtype": "<f8",
+        "layout": "C",
+        "shape": []
+      },
+      "parent_semantic_ids": [
+        "69b7b8bd5a53608d4c75afd9dd463daa2de5754241cc697e94ebcd4fb61dd4e6"
+      ],
+      "provenance_identity": "PAT.J.final_contrast",
+      "schema_version": "green-v400-tensor-node-v1",
+      "semantic_id": "9dfd6811342fd98bda53adbaeb94638d8606ed7124fc7c43fecdab78411f3af8",
+      "tensor_inputs": [
+        {
+          "dtype": "<f4",
+          "layout": "C",
+          "nbytes": 154389504,
+          "schema_version": "green-v400-tensor-ref-v1",
+          "shape": [
+            768,
+            50257
+          ],
+          "tensor_sha256": "7e449d0450b72db17d4c5fa68e3fc75e9ccd202cad8e5977faa92ad9ccb0fdb4"
+        },
+        {
+          "dtype": "<f4",
+          "layout": "C",
+          "nbytes": 201028,
+          "schema_version": "green-v400-tensor-ref-v1",
+          "shape": [
+            50257
+          ],
+          "tensor_sha256": "03614157867e6026cc491595481a29019ba2077b921832d94c79936eb936369c"
+        },
+        {
+          "dtype": "<i8",
+          "layout": "C",
+          "nbytes": 800,
+          "schema_version": "green-v400-tensor-ref-v1",
+          "shape": [
+            100
+          ],
+          "tensor_sha256": "7a7e3559a6f7e07dceb6261220feadff8ce5dc51cbc370fb35fc64e232c90836"
+        },
+        {
+          "dtype": "<f8",
+          "layout": "C",
+          "nbytes": 800,
+          "schema_version": "green-v400-tensor-ref-v1",
+          "shape": [
+            100
+          ],
+          "tensor_sha256": "be790babbc81de813b409c5068ff010207a66f4df8b67df26570ed2571916d6d"
+        }
+      ]
+    },
+    {
+      "dependency_mask_hash": "aa708fd7f87bcada391261d52bc4326a589de2aece1e23d50e5a5484960d13e9",
+      "exact_attrs": {
+        "axis": -1,
+        "dependency_mask_spec": {
+          "axis0_indices": [
+            6
+          ],
+          "dependent_scalar_count": 768,
+          "kind": "axis0_rows",
+          "output_spec": {
+            "dtype": "<f4",
+            "layout": "C",
+            "shape": [
+              7,
+              768
+            ]
+          },
+          "schema_version": "green-v400-dependency-mask-v2"
+        },
+        "depends_on_t": true
+      },
+      "kernel_id": "layer_norm.v1",
+      "output_spec": {
+        "dtype": "<f4",
+        "layout": "C",
+        "shape": [
+          7,
+          768
+        ]
+      },
+      "parent_semantic_ids": [
+        "479903c5a53c14484fec7b42cea33acf0bd56a523eb3002ed1b02ca68b929b46"
+      ],
+      "provenance_identity": "PAT.B.block11.ln1",
+      "schema_version": "green-v400-tensor-node-v1",
+      "semantic_id": "73ab1b15bad4aceaa96b9bac2b93a7c57ae76875af367d9d60a1aa0f47c95051",
+      "tensor_inputs": [
+        {
+          "dtype": "<f4",
+          "layout": "C",
+          "nbytes": 3072,
+          "schema_version": "green-v400-tensor-ref-v1",
+          "shape": [
+            768
+          ],
+          "tensor_sha256": "d1b25affdce3860e3206b98526d6efe507c3c28536103d592405109e68ee2eae"
+        },
+        {
+          "dtype": "<f4",
+          "layout": "C",
+          "nbytes": 3072,
+          "schema_version": "green-v400-tensor-ref-v1",
+          "shape": [
+            768
+          ],
+          "tensor_sha256": "676c03e7f050a58ec0243ed53616e1288b6ece347f98a8400768a22aec384309"
+        },
+        {
+          "dtype": "<f4",
+          "layout": "C",
+          "nbytes": 4,
+          "schema_version": "green-v400-tensor-ref-v1",
+          "shape": [],
+          "tensor_sha256": "4558c9f7f06d3993b1ec713b281919d95fadb0a4ac1ea54024ab8d10544e1245"
+        }
+      ]
+    },
+    {
+      "dependency_mask_hash": "aa708fd7f87bcada391261d52bc4326a589de2aece1e23d50e5a5484960d13e9",
+      "exact_attrs": {
+        "dependency_mask_spec": {
+          "axis0_indices": [
+            6
+          ],
+          "dependent_scalar_count": 768,
+          "kind": "axis0_rows",
+          "output_spec": {
+            "dtype": "<f4",
+            "layout": "C",
+            "shape": [
+              7,
+              768
+            ]
+          },
+          "schema_version": "green-v400-dependency-mask-v2"
+        },
+        "depends_on_t": true,
+        "torch_float_kernel": "linear",
+        "weight_layout": "input_output"
+      },
+      "kernel_id": "pairwise_affine.v1",
+      "output_spec": {
+        "dtype": "<f4",
+        "layout": "C",
+        "shape": [
+          7,
+          768
+        ]
+      },
+      "parent_semantic_ids": [
+        "73ab1b15bad4aceaa96b9bac2b93a7c57ae76875af367d9d60a1aa0f47c95051"
+      ],
+      "provenance_identity": "PAT.B.block11.attn.q",
+      "schema_version": "green-v400-tensor-node-v1",
+      "semantic_id": "499c6bee877469dfcdbce25facc0c5f242827203ff801e798994cc4236cfe40b",
+      "tensor_inputs": [
+        {
+          "dtype": "<f4",
+          "layout": "C",
+          "nbytes": 2359296,
+          "schema_version": "green-v400-tensor-ref-v1",
+          "shape": [
+            768,
+            768
+          ],
+          "tensor_sha256": "8dfa5242708f284ca32cc04dbaa24a4dd50672a525fd34fa59c69fb040bd3d01"
+        },
+        {
+          "dtype": "<f4",
+          "layout": "C",
+          "nbytes": 3072,
+          "schema_version": "green-v400-tensor-ref-v1",
+          "shape": [
+            768
+          ],
+          "tensor_sha256": "d9201e1011de6a5a2b07dae4116d51fad59038dbbc9eaa8ce523fc398f3a29c2"
+        }
+      ]
+    },
+    {
+      "dependency_mask_hash": "aa708fd7f87bcada391261d52bc4326a589de2aece1e23d50e5a5484960d13e9",
+      "exact_attrs": {
+        "dependency_mask_spec": {
+          "axis0_indices": [
+            6
+          ],
+          "dependent_scalar_count": 768,
+          "kind": "axis0_rows",
+          "output_spec": {
+            "dtype": "<f4",
+            "layout": "C",
+            "shape": [
+              7,
+              768
+            ]
+          },
+          "schema_version": "green-v400-dependency-mask-v2"
+        },
+        "depends_on_t": true,
+        "torch_float_kernel": "linear",
+        "weight_layout": "input_output"
+      },
+      "kernel_id": "pairwise_affine.v1",
+      "output_spec": {
+        "dtype": "<f4",
+        "layout": "C",
+        "shape": [
+          7,
+          768
+        ]
+      },
+      "parent_semantic_ids": [
+        "73ab1b15bad4aceaa96b9bac2b93a7c57ae76875af367d9d60a1aa0f47c95051"
+      ],
+      "provenance_identity": "PAT.B.block11.attn.k",
+      "schema_version": "green-v400-tensor-node-v1",
+      "semantic_id": "1ad72d0143354bdd59f363bd0bd50a6fcd7af0835b37b54fe4380c7c57e0d412",
+      "tensor_inputs": [
+        {
+          "dtype": "<f4",
+          "layout": "C",
+          "nbytes": 2359296,
+          "schema_version": "green-v400-tensor-ref-v1",
+          "shape": [
+            768,
+            768
+          ],
+          "tensor_sha256": "ac0fc32a9bcbaa2657a18246b33a1848a6d10a5e161a128f4dd0c77c54b0f051"
+        },
+        {
+          "dtype": "<f4",
+          "layout": "C",
+          "nbytes": 3072,
+          "schema_version": "green-v400-tensor-ref-v1",
+          "shape": [
+            768
+          ],
+          "tensor_sha256": "495f1a49ce1e7ca59e8cb8c41134245cf5b8e41da7185ecb6197fad579c92f3b"
+        }
+      ]
+    },
+    {
+      "dependency_mask_hash": "aa708fd7f87bcada391261d52bc4326a589de2aece1e23d50e5a5484960d13e9",
+      "exact_attrs": {
+        "dependency_mask_spec": {
+          "axis0_indices": [
+            6
+          ],
+          "dependent_scalar_count": 768,
+          "kind": "axis0_rows",
+          "output_spec": {
+            "dtype": "<f4",
+            "layout": "C",
+            "shape": [
+              7,
+              768
+            ]
+          },
+          "schema_version": "green-v400-dependency-mask-v2"
+        },
+        "depends_on_t": true,
+        "torch_float_kernel": "linear",
+        "weight_layout": "input_output"
+      },
+      "kernel_id": "pairwise_affine.v1",
+      "output_spec": {
+        "dtype": "<f4",
+        "layout": "C",
+        "shape": [
+          7,
+          768
+        ]
+      },
+      "parent_semantic_ids": [
+        "73ab1b15bad4aceaa96b9bac2b93a7c57ae76875af367d9d60a1aa0f47c95051"
+      ],
+      "provenance_identity": "PAT.B.block11.attn.v",
+      "schema_version": "green-v400-tensor-node-v1",
+      "semantic_id": "f44151b9f4f8d9319c11ecdd4a439605ea96d586f33cb13034234682e756c416",
+      "tensor_inputs": [
+        {
+          "dtype": "<f4",
+          "layout": "C",
+          "nbytes": 2359296,
+          "schema_version": "green-v400-tensor-ref-v1",
+          "shape": [
+            768,
+            768
+          ],
+          "tensor_sha256": "1fd2e67e15c213a9c1daf1cf15efb61e222cf3e2c01819e1fe822f596989af36"
+        },
+        {
+          "dtype": "<f4",
+          "layout": "C",
+          "nbytes": 3072,
+          "schema_version": "green-v400-tensor-ref-v1",
+          "shape": [
+            768
+          ],
+          "tensor_sha256": "f36a4547385d39b140a4f2cb7c8d130b0c36b14d534f6994fb5e700ca762f41a"
+        }
+      ]
+    },
+    {
+      "dependency_mask_hash": "aa708fd7f87bcada391261d52bc4326a589de2aece1e23d50e5a5484960d13e9",
+      "exact_attrs": {
+        "d_head": 64,
+        "dependency_mask_spec": {
+          "axis0_indices": [
+            6
+          ],
+          "dependent_scalar_count": 768,
+          "kind": "axis0_rows",
+          "output_spec": {
+            "dtype": "<f4",
+            "layout": "C",
+            "shape": [
+              7,
+              768
+            ]
+          },
+          "schema_version": "green-v400-dependency-mask-v2"
+        },
+        "depends_on_t": true,
+        "mask": "causal_delete_future",
+        "n_heads": 12,
+        "score_scale": "inverse_sqrt_d_head",
+        "softmax_pivot": {
+          "index": 0,
+          "kind": "fixed_index"
+        }
+      },
+      "kernel_id": "causal_attention.v1",
+      "output_spec": {
+        "dtype": "<f4",
+        "layout": "C",
+        "shape": [
+          7,
+          768
+        ]
+      },
+      "parent_semantic_ids": [
+        "499c6bee877469dfcdbce25facc0c5f242827203ff801e798994cc4236cfe40b",
+        "1ad72d0143354bdd59f363bd0bd50a6fcd7af0835b37b54fe4380c7c57e0d412",
+        "f44151b9f4f8d9319c11ecdd4a439605ea96d586f33cb13034234682e756c416"
+      ],
+      "provenance_identity": "PAT.B.block11.attn.pattern_value",
+      "schema_version": "green-v400-tensor-node-v1",
+      "semantic_id": "57b2a26ebf91451ae22b7d65b9168d1a0f6ed3e83a160e79f90cd43c26089add",
+      "tensor_inputs": []
+    },
+    {
+      "dependency_mask_hash": "aa708fd7f87bcada391261d52bc4326a589de2aece1e23d50e5a5484960d13e9",
+      "exact_attrs": {
+        "dependency_mask_spec": {
+          "axis0_indices": [
+            6
+          ],
+          "dependent_scalar_count": 768,
+          "kind": "axis0_rows",
+          "output_spec": {
+            "dtype": "<f4",
+            "layout": "C",
+            "shape": [
+              7,
+              768
+            ]
+          },
+          "schema_version": "green-v400-dependency-mask-v2"
+        },
+        "depends_on_t": true,
+        "torch_float_kernel": "linear",
+        "weight_layout": "input_output"
+      },
+      "kernel_id": "pairwise_affine.v1",
+      "output_spec": {
+        "dtype": "<f4",
+        "layout": "C",
+        "shape": [
+          7,
+          768
+        ]
+      },
+      "parent_semantic_ids": [
+        "57b2a26ebf91451ae22b7d65b9168d1a0f6ed3e83a160e79f90cd43c26089add"
+      ],
+      "provenance_identity": "PAT.B.block11.attn.out",
+      "schema_version": "green-v400-tensor-node-v1",
+      "semantic_id": "db4793a09a62ade69f835f1cbc50f267d29181773848462301ffad3655a772a2",
+      "tensor_inputs": [
+        {
+          "dtype": "<f4",
+          "layout": "C",
+          "nbytes": 2359296,
+          "schema_version": "green-v400-tensor-ref-v1",
+          "shape": [
+            768,
+            768
+          ],
+          "tensor_sha256": "c4ff9c5df42b1da4f99cd617f10b599ed74ec0856576af3bd3d1b3be83c2859b"
+        },
+        {
+          "dtype": "<f4",
+          "layout": "C",
+          "nbytes": 3072,
+          "schema_version": "green-v400-tensor-ref-v1",
+          "shape": [
+            768
+          ],
+          "tensor_sha256": "e6fb51287078c5f747a3239930aa0f4f7abef3dc99371e880354ff92e581e2e0"
+        }
+      ]
+    },
+    {
+      "dependency_mask_hash": "aa708fd7f87bcada391261d52bc4326a589de2aece1e23d50e5a5484960d13e9",
+      "exact_attrs": {
+        "dependency_mask_spec": {
+          "axis0_indices": [
+            6
+          ],
+          "dependent_scalar_count": 768,
+          "kind": "axis0_rows",
+          "output_spec": {
+            "dtype": "<f4",
+            "layout": "C",
+            "shape": [
+              7,
+              768
+            ]
+          },
+          "schema_version": "green-v400-dependency-mask-v2"
+        },
+        "depends_on_t": true
+      },
+      "kernel_id": "residual_add.v1",
+      "output_spec": {
+        "dtype": "<f4",
+        "layout": "C",
+        "shape": [
+          7,
+          768
+        ]
+      },
+      "parent_semantic_ids": [
+        "479903c5a53c14484fec7b42cea33acf0bd56a523eb3002ed1b02ca68b929b46",
+        "db4793a09a62ade69f835f1cbc50f267d29181773848462301ffad3655a772a2"
+      ],
+      "provenance_identity": "PAT.B.block11.resid_mid",
+      "schema_version": "green-v400-tensor-node-v1",
+      "semantic_id": "30c88efb84ff31d305f1af4e427cee9f3e45fe0dd260ab5cce11ca3c45689d03",
+      "tensor_inputs": []
+    },
+    {
+      "dependency_mask_hash": "aa708fd7f87bcada391261d52bc4326a589de2aece1e23d50e5a5484960d13e9",
+      "exact_attrs": {
+        "axis": -1,
+        "dependency_mask_spec": {
+          "axis0_indices": [
+            6
+          ],
+          "dependent_scalar_count": 768,
+          "kind": "axis0_rows",
+          "output_spec": {
+            "dtype": "<f4",
+            "layout": "C",
+            "shape": [
+              7,
+              768
+            ]
+          },
+          "schema_version": "green-v400-dependency-mask-v2"
+        },
+        "depends_on_t": true
+      },
+      "kernel_id": "layer_norm.v1",
+      "output_spec": {
+        "dtype": "<f4",
+        "layout": "C",
+        "shape": [
+          7,
+          768
+        ]
+      },
+      "parent_semantic_ids": [
+        "30c88efb84ff31d305f1af4e427cee9f3e45fe0dd260ab5cce11ca3c45689d03"
+      ],
+      "provenance_identity": "PAT.B.block11.ln2",
+      "schema_version": "green-v400-tensor-node-v1",
+      "semantic_id": "cdc46efaf33a38431c7837dc3cb49437631cd6a673361bd664c0008c0ef900df",
+      "tensor_inputs": [
+        {
+          "dtype": "<f4",
+          "layout": "C",
+          "nbytes": 3072,
+          "schema_version": "green-v400-tensor-ref-v1",
+          "shape": [
+            768
+          ],
+          "tensor_sha256": "5e5c7ca04ac18d0d154e2cf4980189639a1950c9ef93fc1eb7566c8733e40eca"
+        },
+        {
+          "dtype": "<f4",
+          "layout": "C",
+          "nbytes": 3072,
+          "schema_version": "green-v400-tensor-ref-v1",
+          "shape": [
+            768
+          ],
+          "tensor_sha256": "66bf9f31b5f84278f232bb1ec3d99c5fd8afbb764aaf00801333660441150659"
+        },
+        {
+          "dtype": "<f4",
+          "layout": "C",
+          "nbytes": 4,
+          "schema_version": "green-v400-tensor-ref-v1",
+          "shape": [],
+          "tensor_sha256": "4558c9f7f06d3993b1ec713b281919d95fadb0a4ac1ea54024ab8d10544e1245"
+        }
+      ]
+    },
+    {
+      "dependency_mask_hash": "0830685bcc0f16da8bdcd8e6a4865dcd0a15fe69e9f43cb6539db1f7df973b7f",
+      "exact_attrs": {
+        "dependency_mask_spec": {
+          "axis0_indices": [
+            6
+          ],
+          "dependent_scalar_count": 3072,
+          "kind": "axis0_rows",
+          "output_spec": {
+            "dtype": "<f4",
+            "layout": "C",
+            "shape": [
+              7,
+              3072
+            ]
+          },
+          "schema_version": "green-v400-dependency-mask-v2"
+        },
+        "depends_on_t": true,
+        "weight_layout": "input_output"
+      },
+      "kernel_id": "pairwise_affine.v1",
+      "output_spec": {
+        "dtype": "<f4",
+        "layout": "C",
+        "shape": [
+          7,
+          3072
+        ]
+      },
+      "parent_semantic_ids": [
+        "cdc46efaf33a38431c7837dc3cb49437631cd6a673361bd664c0008c0ef900df"
+      ],
+      "provenance_identity": "PAT.B.block11.mlp.pre",
+      "schema_version": "green-v400-tensor-node-v1",
+      "semantic_id": "0d830a083484a53ab141f572248c62ef9bd43b3154e2711109ac6eae8e96ce04",
+      "tensor_inputs": [
+        {
+          "dtype": "<f4",
+          "layout": "C",
+          "nbytes": 9437184,
+          "schema_version": "green-v400-tensor-ref-v1",
+          "shape": [
+            768,
+            3072
+          ],
+          "tensor_sha256": "4a786af81022ddeabe0c6068de3b97fc92bafc77897972f701b92d2d38fa3c5f"
+        },
+        {
+          "dtype": "<f4",
+          "layout": "C",
+          "nbytes": 12288,
+          "schema_version": "green-v400-tensor-ref-v1",
+          "shape": [
+            3072
+          ],
+          "tensor_sha256": "cd3e4bf39ad1b8bbd236b9dbf22de8259b1842a1010fec30098aad9fb375349b"
+        }
+      ]
+    },
+    {
+      "dependency_mask_hash": "0830685bcc0f16da8bdcd8e6a4865dcd0a15fe69e9f43cb6539db1f7df973b7f",
+      "exact_attrs": {
+        "dependency_mask_spec": {
+          "axis0_indices": [
+            6
+          ],
+          "dependent_scalar_count": 3072,
+          "kind": "axis0_rows",
+          "output_spec": {
+            "dtype": "<f4",
+            "layout": "C",
+            "shape": [
+              7,
+              3072
+            ]
+          },
+          "schema_version": "green-v400-dependency-mask-v2"
+        },
+        "depends_on_t": true
+      },
+      "kernel_id": "gelu_new.v1",
+      "output_spec": {
+        "dtype": "<f4",
+        "layout": "C",
+        "shape": [
+          7,
+          3072
+        ]
+      },
+      "parent_semantic_ids": [
+        "0d830a083484a53ab141f572248c62ef9bd43b3154e2711109ac6eae8e96ce04"
+      ],
+      "provenance_identity": "PAT.B.block11.mlp.post",
+      "schema_version": "green-v400-tensor-node-v1",
+      "semantic_id": "4a39f915b301829d6fecc523f16bf907ad55f43e09d86347107e44a6a533bffe",
+      "tensor_inputs": [
+        {
+          "dtype": "<f4",
+          "layout": "C",
+          "nbytes": 4,
+          "schema_version": "green-v400-tensor-ref-v1",
+          "shape": [],
+          "tensor_sha256": "c126878ce0885aca95ea31274595b78ced5731e01eb5373ff37c7ebb65c8870d"
+        },
+        {
+          "dtype": "<f4",
+          "layout": "C",
+          "nbytes": 4,
+          "schema_version": "green-v400-tensor-ref-v1",
+          "shape": [],
+          "tensor_sha256": "d5c3c88f1bfc809c51646f74b7ec2a043bef5ec8246a48a4c5162b608ef11751"
+        }
+      ]
+    },
+    {
+      "dependency_mask_hash": "aa708fd7f87bcada391261d52bc4326a589de2aece1e23d50e5a5484960d13e9",
+      "exact_attrs": {
+        "dependency_mask_spec": {
+          "axis0_indices": [
+            6
+          ],
+          "dependent_scalar_count": 768,
+          "kind": "axis0_rows",
+          "output_spec": {
+            "dtype": "<f4",
+            "layout": "C",
+            "shape": [
+              7,
+              768
+            ]
+          },
+          "schema_version": "green-v400-dependency-mask-v2"
+        },
+        "depends_on_t": true,
+        "weight_layout": "input_output"
+      },
+      "kernel_id": "pairwise_affine.v1",
+      "output_spec": {
+        "dtype": "<f4",
+        "layout": "C",
+        "shape": [
+          7,
+          768
+        ]
+      },
+      "parent_semantic_ids": [
+        "4a39f915b301829d6fecc523f16bf907ad55f43e09d86347107e44a6a533bffe"
+      ],
+      "provenance_identity": "PAT.B.block11.mlp.out",
+      "schema_version": "green-v400-tensor-node-v1",
+      "semantic_id": "c5182486476b9530c49645331fa7f36509d1ba0f3201dfee4c599a8963f96004",
+      "tensor_inputs": [
+        {
+          "dtype": "<f4",
+          "layout": "C",
+          "nbytes": 9437184,
+          "schema_version": "green-v400-tensor-ref-v1",
+          "shape": [
+            3072,
+            768
+          ],
+          "tensor_sha256": "142e3cd7e04bd9f0753f84f35fce9a521d6cda4ad78b79f6c7bf55ce9dc6a076"
+        },
+        {
+          "dtype": "<f4",
+          "layout": "C",
+          "nbytes": 3072,
+          "schema_version": "green-v400-tensor-ref-v1",
+          "shape": [
+            768
+          ],
+          "tensor_sha256": "80b5520fb10332b6ffa4db0279b568d3e9be9e10a5298758e6107a9b1e6304a9"
+        }
+      ]
+    },
+    {
+      "dependency_mask_hash": "aa708fd7f87bcada391261d52bc4326a589de2aece1e23d50e5a5484960d13e9",
+      "exact_attrs": {
+        "dependency_mask_spec": {
+          "axis0_indices": [
+            6
+          ],
+          "dependent_scalar_count": 768,
+          "kind": "axis0_rows",
+          "output_spec": {
+            "dtype": "<f4",
+            "layout": "C",
+            "shape": [
+              7,
+              768
+            ]
+          },
+          "schema_version": "green-v400-dependency-mask-v2"
+        },
+        "depends_on_t": true
+      },
+      "kernel_id": "residual_add.v1",
+      "output_spec": {
+        "dtype": "<f4",
+        "layout": "C",
+        "shape": [
+          7,
+          768
+        ]
+      },
+      "parent_semantic_ids": [
+        "30c88efb84ff31d305f1af4e427cee9f3e45fe0dd260ab5cce11ca3c45689d03",
+        "c5182486476b9530c49645331fa7f36509d1ba0f3201dfee4c599a8963f96004"
+      ],
+      "provenance_identity": "PAT.B.block11.resid_post",
+      "schema_version": "green-v400-tensor-node-v1",
+      "semantic_id": "5e6e7ca90896bca75f09cdc3e824a837ab88faa9dc5f95236ce8251df449a363",
+      "tensor_inputs": []
+    },
+    {
+      "dependency_mask_hash": "aa708fd7f87bcada391261d52bc4326a589de2aece1e23d50e5a5484960d13e9",
+      "exact_attrs": {
+        "axis": -1,
+        "dependency_mask_spec": {
+          "axis0_indices": [
+            6
+          ],
+          "dependent_scalar_count": 768,
+          "kind": "axis0_rows",
+          "output_spec": {
+            "dtype": "<f4",
+            "layout": "C",
+            "shape": [
+              7,
+              768
+            ]
+          },
+          "schema_version": "green-v400-dependency-mask-v2"
+        },
+        "depends_on_t": true
+      },
+      "kernel_id": "layer_norm.v1",
+      "output_spec": {
+        "dtype": "<f4",
+        "layout": "C",
+        "shape": [
+          7,
+          768
+        ]
+      },
+      "parent_semantic_ids": [
+        "5e6e7ca90896bca75f09cdc3e824a837ab88faa9dc5f95236ce8251df449a363"
+      ],
+      "provenance_identity": "PAT.B.ln_final",
+      "schema_version": "green-v400-tensor-node-v1",
+      "semantic_id": "b565a65da4ca0d76bc6481571b35f3a86a24efd68543912a0d351a4be20cf695",
+      "tensor_inputs": [
+        {
+          "dtype": "<f4",
+          "layout": "C",
+          "nbytes": 3072,
+          "schema_version": "green-v400-tensor-ref-v1",
+          "shape": [
+            768
+          ],
+          "tensor_sha256": "de49787cd8916bd792bb1d832bd59ea75249d76048641f411bb855f50aea1352"
+        },
+        {
+          "dtype": "<f4",
+          "layout": "C",
+          "nbytes": 3072,
+          "schema_version": "green-v400-tensor-ref-v1",
+          "shape": [
+            768
+          ],
+          "tensor_sha256": "7cb9ba8bde97d2f808f550fda631b45e15d14a49d9faca650235c30822a224bd"
+        },
+        {
+          "dtype": "<f4",
+          "layout": "C",
+          "nbytes": 4,
+          "schema_version": "green-v400-tensor-ref-v1",
+          "shape": [],
+          "tensor_sha256": "4558c9f7f06d3993b1ec713b281919d95fadb0a4ac1ea54024ab8d10544e1245"
+        }
+      ]
+    },
+    {
+      "dependency_mask_hash": "3a2c15486d363d38ac639d55979a3121cdfcce211b622ee7e2cbfda36556b891",
+      "exact_attrs": {
+        "contrast_width": 100,
+        "dependency_mask_spec": {
+          "axis0_indices": [],
+          "dependent_scalar_count": 1,
+          "kind": "dense",
+          "output_spec": {
+            "dtype": "<f8",
+            "layout": "C",
+            "shape": []
+          },
+          "schema_version": "green-v400-dependency-mask-v2"
+        },
+        "depends_on_t": true,
+        "final_position": 6,
+        "reduction": "fixed_balanced_pairwise",
+        "scalarization": "exact_affine_fusion_to_residual_contrast"
+      },
+      "kernel_id": "final_contrast.v1",
+      "output_spec": {
+        "dtype": "<f8",
+        "layout": "C",
+        "shape": []
+      },
+      "parent_semantic_ids": [
+        "b565a65da4ca0d76bc6481571b35f3a86a24efd68543912a0d351a4be20cf695"
+      ],
+      "provenance_identity": "PAT.B.final_contrast",
+      "schema_version": "green-v400-tensor-node-v1",
+      "semantic_id": "8793e43b794042ebcd72fd87e559f85ae9fa5900400b53161b43c1c415ae709d",
+      "tensor_inputs": [
+        {
+          "dtype": "<f4",
+          "layout": "C",
+          "nbytes": 154389504,
+          "schema_version": "green-v400-tensor-ref-v1",
+          "shape": [
+            768,
+            50257
+          ],
+          "tensor_sha256": "7e449d0450b72db17d4c5fa68e3fc75e9ccd202cad8e5977faa92ad9ccb0fdb4"
+        },
+        {
+          "dtype": "<f4",
+          "layout": "C",
+          "nbytes": 201028,
+          "schema_version": "green-v400-tensor-ref-v1",
+          "shape": [
+            50257
+          ],
+          "tensor_sha256": "03614157867e6026cc491595481a29019ba2077b921832d94c79936eb936369c"
+        },
+        {
+          "dtype": "<i8",
+          "layout": "C",
+          "nbytes": 800,
+          "schema_version": "green-v400-tensor-ref-v1",
+          "shape": [
+            100
+          ],
+          "tensor_sha256": "7a7e3559a6f7e07dceb6261220feadff8ce5dc51cbc370fb35fc64e232c90836"
+        },
+        {
+          "dtype": "<f8",
+          "layout": "C",
+          "nbytes": 800,
+          "schema_version": "green-v400-tensor-ref-v1",
+          "shape": [
+            100
+          ],
+          "tensor_sha256": "be790babbc81de813b409c5068ff010207a66f4df8b67df26570ed2571916d6d"
+        }
+      ]
+    },
+    {
+      "dependency_mask_hash": "aa708fd7f87bcada391261d52bc4326a589de2aece1e23d50e5a5484960d13e9",
+      "exact_attrs": {
+        "control": "same_t_times_physical_direction",
+        "dependency_mask_spec": {
+          "axis0_indices": [
+            6
+          ],
+          "dependent_scalar_count": 768,
+          "kind": "axis0_rows",
+          "output_spec": {
+            "dtype": "<f4",
+            "layout": "C",
+            "shape": [
+              7,
+              768
+            ]
+          },
+          "schema_version": "green-v400-dependency-mask-v2"
+        },
+        "depends_on_t": true,
+        "final_position": 6
+      },
+      "kernel_id": "affine_scatter.v1",
+      "output_spec": {
+        "dtype": "<f4",
+        "layout": "C",
+        "shape": [
+          7,
+          768
+        ]
+      },
+      "parent_semantic_ids": [],
+      "provenance_identity": "TAR.shared_residual_bypass",
+      "schema_version": "green-v400-tensor-node-v1",
+      "semantic_id": "1b7cf513a880e4ddd7c28e9d62b328087731b64ade0e76bad0dbd74ba9f37bf8",
+      "tensor_inputs": [
+        {
+          "dtype": "<f4",
+          "layout": "C",
+          "nbytes": 21504,
+          "schema_version": "green-v400-tensor-ref-v1",
+          "shape": [
+            7,
+            768
+          ],
+          "tensor_sha256": "3828f4e28a12bb0791d4dee48d33649b5b563ac222553817ceeb3ec44b4d69e9"
+        },
+        {
+          "dtype": "<f4",
+          "layout": "C",
+          "nbytes": 3072,
+          "schema_version": "green-v400-tensor-ref-v1",
+          "shape": [
+            768
+          ],
+          "tensor_sha256": "ddda13c178b0f6026dd2f7b22724763c882be79c4799c9f48cf204797e439826"
+        }
+      ]
+    },
+    {
+      "dependency_mask_hash": "aa708fd7f87bcada391261d52bc4326a589de2aece1e23d50e5a5484960d13e9",
+      "exact_attrs": {
+        "control": "same_t_times_physical_direction",
+        "dependency_mask_spec": {
+          "axis0_indices": [
+            6
+          ],
+          "dependent_scalar_count": 768,
+          "kind": "axis0_rows",
+          "output_spec": {
+            "dtype": "<f4",
+            "layout": "C",
+            "shape": [
+              7,
+              768
+            ]
+          },
+          "schema_version": "green-v400-dependency-mask-v2"
+        },
+        "depends_on_t": true,
+        "final_position": 6
+      },
+      "kernel_id": "affine_scatter.v1",
+      "output_spec": {
+        "dtype": "<f4",
+        "layout": "C",
+        "shape": [
+          7,
+          768
+        ]
+      },
+      "parent_semantic_ids": [],
+      "provenance_identity": "TAR.J.resid_mid",
+      "schema_version": "green-v400-tensor-node-v1",
+      "semantic_id": "263a47f409031d8d5c1e1b600046bf9d247fa6175676453d03527e9610473be9",
+      "tensor_inputs": [
+        {
+          "dtype": "<f4",
+          "layout": "C",
+          "nbytes": 21504,
+          "schema_version": "green-v400-tensor-ref-v1",
+          "shape": [
+            7,
+            768
+          ],
+          "tensor_sha256": "5cd69df29340fd6fdb24f779b85b4538e13e1d4508f6f8325199586af13f5fd5"
+        },
+        {
+          "dtype": "<f4",
+          "layout": "C",
+          "nbytes": 3072,
+          "schema_version": "green-v400-tensor-ref-v1",
+          "shape": [
+            768
+          ],
+          "tensor_sha256": "ddda13c178b0f6026dd2f7b22724763c882be79c4799c9f48cf204797e439826"
+        }
+      ]
+    },
+    {
+      "dependency_mask_hash": "d4c366b84775b991293e2f3e390f323d421e2f307c9a60bde5ec11dcaf402e53",
+      "exact_attrs": {
+        "dependency_mask_spec": {
+          "axis0_indices": [],
+          "dependent_scalar_count": 0,
+          "kind": "empty",
+          "output_spec": {
+            "dtype": "<f4",
+            "layout": "C",
+            "shape": [
+              7,
+              768
+            ]
+          },
+          "schema_version": "green-v400-dependency-mask-v2"
+        },
+        "depends_on_t": false,
+        "operation": "tensor_constant"
+      },
+      "kernel_id": "static_view.v1",
+      "output_spec": {
+        "dtype": "<f4",
+        "layout": "C",
+        "shape": [
+          7,
+          768
+        ]
+      },
+      "parent_semantic_ids": [],
+      "provenance_identity": "TAR.J.zero_control.resid_mid",
+      "schema_version": "green-v400-tensor-node-v1",
+      "semantic_id": "919737e0b97da9f964abcf1098cce462efd4b6315e87ece7a8e72e978e9a172d",
+      "tensor_inputs": [
+        {
+          "dtype": "<f4",
+          "layout": "C",
+          "nbytes": 21504,
+          "schema_version": "green-v400-tensor-ref-v1",
+          "shape": [
+            7,
+            768
+          ],
+          "tensor_sha256": "5cd69df29340fd6fdb24f779b85b4538e13e1d4508f6f8325199586af13f5fd5"
+        }
+      ]
+    },
+    {
+      "dependency_mask_hash": "aa708fd7f87bcada391261d52bc4326a589de2aece1e23d50e5a5484960d13e9",
+      "exact_attrs": {
+        "axis": -1,
+        "dependency_mask_spec": {
+          "axis0_indices": [
+            6
+          ],
+          "dependent_scalar_count": 768,
+          "kind": "axis0_rows",
+          "output_spec": {
+            "dtype": "<f4",
+            "layout": "C",
+            "shape": [
+              7,
+              768
+            ]
+          },
+          "schema_version": "green-v400-dependency-mask-v2"
+        },
+        "depends_on_t": true
+      },
+      "kernel_id": "layer_norm.v1",
+      "output_spec": {
+        "dtype": "<f4",
+        "layout": "C",
+        "shape": [
+          7,
+          768
+        ]
+      },
+      "parent_semantic_ids": [
+        "263a47f409031d8d5c1e1b600046bf9d247fa6175676453d03527e9610473be9"
+      ],
+      "provenance_identity": "TAR.J.block10.ln2",
+      "schema_version": "green-v400-tensor-node-v1",
+      "semantic_id": "3114bfb48a9b3fb1497615d890bd404624a5042dcffe0399eeab5396fe46f2d5",
+      "tensor_inputs": [
+        {
+          "dtype": "<f4",
+          "layout": "C",
+          "nbytes": 3072,
+          "schema_version": "green-v400-tensor-ref-v1",
+          "shape": [
+            768
+          ],
+          "tensor_sha256": "783386f9d3596310e479181c51d1acd9161c4431ed0a40c4cc2dd3fa48e2c33d"
+        },
+        {
+          "dtype": "<f4",
+          "layout": "C",
+          "nbytes": 3072,
+          "schema_version": "green-v400-tensor-ref-v1",
+          "shape": [
+            768
+          ],
+          "tensor_sha256": "65452502509269c485b87968d7d2fb37f3bdda863add22b1f446ca257877c60f"
+        },
+        {
+          "dtype": "<f4",
+          "layout": "C",
+          "nbytes": 4,
+          "schema_version": "green-v400-tensor-ref-v1",
+          "shape": [],
+          "tensor_sha256": "4558c9f7f06d3993b1ec713b281919d95fadb0a4ac1ea54024ab8d10544e1245"
+        }
+      ]
+    },
+    {
+      "dependency_mask_hash": "d4c366b84775b991293e2f3e390f323d421e2f307c9a60bde5ec11dcaf402e53",
+      "exact_attrs": {
+        "axis": -1,
+        "dependency_mask_spec": {
+          "axis0_indices": [],
+          "dependent_scalar_count": 0,
+          "kind": "empty",
+          "output_spec": {
+            "dtype": "<f4",
+            "layout": "C",
+            "shape": [
+              7,
+              768
+            ]
+          },
+          "schema_version": "green-v400-dependency-mask-v2"
+        },
+        "depends_on_t": false
+      },
+      "kernel_id": "layer_norm.v1",
+      "output_spec": {
+        "dtype": "<f4",
+        "layout": "C",
+        "shape": [
+          7,
+          768
+        ]
+      },
+      "parent_semantic_ids": [
+        "919737e0b97da9f964abcf1098cce462efd4b6315e87ece7a8e72e978e9a172d"
+      ],
+      "provenance_identity": "TAR.J.zero_control.block10.ln2",
+      "schema_version": "green-v400-tensor-node-v1",
+      "semantic_id": "21cb34210443fdec49b4bdff7ea93f3f38e7335dc2989396c36230b7617eec67",
+      "tensor_inputs": [
+        {
+          "dtype": "<f4",
+          "layout": "C",
+          "nbytes": 3072,
+          "schema_version": "green-v400-tensor-ref-v1",
+          "shape": [
+            768
+          ],
+          "tensor_sha256": "783386f9d3596310e479181c51d1acd9161c4431ed0a40c4cc2dd3fa48e2c33d"
+        },
+        {
+          "dtype": "<f4",
+          "layout": "C",
+          "nbytes": 3072,
+          "schema_version": "green-v400-tensor-ref-v1",
+          "shape": [
+            768
+          ],
+          "tensor_sha256": "65452502509269c485b87968d7d2fb37f3bdda863add22b1f446ca257877c60f"
+        },
+        {
+          "dtype": "<f4",
+          "layout": "C",
+          "nbytes": 4,
+          "schema_version": "green-v400-tensor-ref-v1",
+          "shape": [],
+          "tensor_sha256": "4558c9f7f06d3993b1ec713b281919d95fadb0a4ac1ea54024ab8d10544e1245"
+        }
+      ]
+    },
+    {
+      "dependency_mask_hash": "f0893cab19eefea1c8c72ec9e2f0f7830ebac9c5f188c431114194922be53470",
+      "exact_attrs": {
+        "dependency_mask_spec": {
+          "axis0_indices": [
+            6
+          ],
+          "dependent_scalar_count": 10,
+          "kind": "axis0_rows",
+          "output_spec": {
+            "dtype": "<f4",
+            "layout": "C",
+            "shape": [
+              7,
+              10
+            ]
+          },
+          "schema_version": "green-v400-dependency-mask-v2"
+        },
+        "depends_on_t": true,
+        "selected_gates": [
+          2326,
+          1138,
+          2287,
+          606,
+          2848,
+          2305,
+          46,
+          2659,
+          946,
+          1616
+        ],
+        "torch_float_kernel": "batch_addmm",
+        "weight_layout": "input_output"
+      },
+      "kernel_id": "pairwise_affine.v1",
+      "output_spec": {
+        "dtype": "<f4",
+        "layout": "C",
+        "shape": [
+          7,
+          10
+        ]
+      },
+      "parent_semantic_ids": [
+        "3114bfb48a9b3fb1497615d890bd404624a5042dcffe0399eeab5396fe46f2d5"
+      ],
+      "provenance_identity": "TAR.J.block10.selected_pre",
+      "schema_version": "green-v400-tensor-node-v1",
+      "semantic_id": "9b0fc683370248a97abefefe00a6f2b9d2bdcc54002834514a67c4f619669a37",
+      "tensor_inputs": [
+        {
+          "dtype": "<f4",
+          "layout": "C",
+          "nbytes": 30720,
+          "schema_version": "green-v400-tensor-ref-v1",
+          "shape": [
+            768,
+            10
+          ],
+          "tensor_sha256": "910cf8a3674fd0a9c89fc44c7daebf2c1d3d1a172b1cac6d53eedc7ab7348913"
+        },
+        {
+          "dtype": "<f4",
+          "layout": "C",
+          "nbytes": 40,
+          "schema_version": "green-v400-tensor-ref-v1",
+          "shape": [
+            10
+          ],
+          "tensor_sha256": "922d1813c181583ec02a2a2d616049498ba6760d326b6928d556637b5bf386b7"
+        }
+      ]
+    },
+    {
+      "dependency_mask_hash": "21ef01c4d3ea878f64e9f0112ff786926acac96879e36487823401320554c26f",
+      "exact_attrs": {
+        "dependency_mask_spec": {
+          "axis0_indices": [],
+          "dependent_scalar_count": 0,
+          "kind": "empty",
+          "output_spec": {
+            "dtype": "<f4",
+            "layout": "C",
+            "shape": [
+              7,
+              10
+            ]
+          },
+          "schema_version": "green-v400-dependency-mask-v2"
+        },
+        "depends_on_t": false,
+        "selected_gates": [
+          2326,
+          1138,
+          2287,
+          606,
+          2848,
+          2305,
+          46,
+          2659,
+          946,
+          1616
+        ],
+        "torch_float_kernel": "batch_addmm",
+        "weight_layout": "input_output"
+      },
+      "kernel_id": "pairwise_affine.v1",
+      "output_spec": {
+        "dtype": "<f4",
+        "layout": "C",
+        "shape": [
+          7,
+          10
+        ]
+      },
+      "parent_semantic_ids": [
+        "21cb34210443fdec49b4bdff7ea93f3f38e7335dc2989396c36230b7617eec67"
+      ],
+      "provenance_identity": "TAR.J.zero_control.block10.selected_pre",
+      "schema_version": "green-v400-tensor-node-v1",
+      "semantic_id": "d02e620cc3afb7cd6ede7651f7c631b686c1dc7731515fce0bb821b046e5e2ce",
+      "tensor_inputs": [
+        {
+          "dtype": "<f4",
+          "layout": "C",
+          "nbytes": 30720,
+          "schema_version": "green-v400-tensor-ref-v1",
+          "shape": [
+            768,
+            10
+          ],
+          "tensor_sha256": "910cf8a3674fd0a9c89fc44c7daebf2c1d3d1a172b1cac6d53eedc7ab7348913"
+        },
+        {
+          "dtype": "<f4",
+          "layout": "C",
+          "nbytes": 40,
+          "schema_version": "green-v400-tensor-ref-v1",
+          "shape": [
+            10
+          ],
+          "tensor_sha256": "922d1813c181583ec02a2a2d616049498ba6760d326b6928d556637b5bf386b7"
+        }
+      ]
+    },
+    {
+      "dependency_mask_hash": "f0893cab19eefea1c8c72ec9e2f0f7830ebac9c5f188c431114194922be53470",
+      "exact_attrs": {
+        "dependency_mask_spec": {
+          "axis0_indices": [
+            6
+          ],
+          "dependent_scalar_count": 10,
+          "kind": "axis0_rows",
+          "output_spec": {
+            "dtype": "<f4",
+            "layout": "C",
+            "shape": [
+              7,
+              10
+            ]
+          },
+          "schema_version": "green-v400-dependency-mask-v2"
+        },
+        "depends_on_t": true
+      },
+      "kernel_id": "gelu_new.v1",
+      "output_spec": {
+        "dtype": "<f4",
+        "layout": "C",
+        "shape": [
+          7,
+          10
+        ]
+      },
+      "parent_semantic_ids": [
+        "9b0fc683370248a97abefefe00a6f2b9d2bdcc54002834514a67c4f619669a37"
+      ],
+      "provenance_identity": "TAR.J.block10.selected_live",
+      "schema_version": "green-v400-tensor-node-v1",
+      "semantic_id": "928ef6f0b41f9c799aace29a3121700cff3089dcffc2136b1f8e1f31c9803af1",
+      "tensor_inputs": [
+        {
+          "dtype": "<f4",
+          "layout": "C",
+          "nbytes": 4,
+          "schema_version": "green-v400-tensor-ref-v1",
+          "shape": [],
+          "tensor_sha256": "c126878ce0885aca95ea31274595b78ced5731e01eb5373ff37c7ebb65c8870d"
+        },
+        {
+          "dtype": "<f4",
+          "layout": "C",
+          "nbytes": 4,
+          "schema_version": "green-v400-tensor-ref-v1",
+          "shape": [],
+          "tensor_sha256": "d5c3c88f1bfc809c51646f74b7ec2a043bef5ec8246a48a4c5162b608ef11751"
+        }
+      ]
+    },
+    {
+      "dependency_mask_hash": "21ef01c4d3ea878f64e9f0112ff786926acac96879e36487823401320554c26f",
+      "exact_attrs": {
+        "dependency_mask_spec": {
+          "axis0_indices": [],
+          "dependent_scalar_count": 0,
+          "kind": "empty",
+          "output_spec": {
+            "dtype": "<f4",
+            "layout": "C",
+            "shape": [
+              7,
+              10
+            ]
+          },
+          "schema_version": "green-v400-dependency-mask-v2"
+        },
+        "depends_on_t": false
+      },
+      "kernel_id": "gelu_new.v1",
+      "output_spec": {
+        "dtype": "<f4",
+        "layout": "C",
+        "shape": [
+          7,
+          10
+        ]
+      },
+      "parent_semantic_ids": [
+        "d02e620cc3afb7cd6ede7651f7c631b686c1dc7731515fce0bb821b046e5e2ce"
+      ],
+      "provenance_identity": "TAR.J.zero_control.block10.selected_live",
+      "schema_version": "green-v400-tensor-node-v1",
+      "semantic_id": "72fdfb65804511d8943f43a9d670c0aa32c522a37906965234f2748a94345a65",
+      "tensor_inputs": [
+        {
+          "dtype": "<f4",
+          "layout": "C",
+          "nbytes": 4,
+          "schema_version": "green-v400-tensor-ref-v1",
+          "shape": [],
+          "tensor_sha256": "c126878ce0885aca95ea31274595b78ced5731e01eb5373ff37c7ebb65c8870d"
+        },
+        {
+          "dtype": "<f4",
+          "layout": "C",
+          "nbytes": 4,
+          "schema_version": "green-v400-tensor-ref-v1",
+          "shape": [],
+          "tensor_sha256": "d5c3c88f1bfc809c51646f74b7ec2a043bef5ec8246a48a4c5162b608ef11751"
+        }
+      ]
+    },
+    {
+      "dependency_mask_hash": "f0893cab19eefea1c8c72ec9e2f0f7830ebac9c5f188c431114194922be53470",
+      "exact_attrs": {
+        "dependency_mask_spec": {
+          "axis0_indices": [
+            6
+          ],
+          "dependent_scalar_count": 10,
+          "kind": "axis0_rows",
+          "output_spec": {
+            "dtype": "<f4",
+            "layout": "C",
+            "shape": [
+              7,
+              10
+            ]
+          },
+          "schema_version": "green-v400-dependency-mask-v2"
+        },
+        "depends_on_t": true,
+        "final_position": 6,
+        "operation": "subtract_exact_parent_at_final_position"
+      },
+      "kernel_id": "static_view.v1",
+      "output_spec": {
+        "dtype": "<f4",
+        "layout": "C",
+        "shape": [
+          7,
+          10
+        ]
+      },
+      "parent_semantic_ids": [
+        "928ef6f0b41f9c799aace29a3121700cff3089dcffc2136b1f8e1f31c9803af1",
+        "72fdfb65804511d8943f43a9d670c0aa32c522a37906965234f2748a94345a65"
+      ],
+      "provenance_identity": "TAR.J.block10.selected_delta",
+      "schema_version": "green-v400-tensor-node-v1",
+      "semantic_id": "63c6588a8eba6835a31f333357af820b7e3680d03006a7f757428e71b33026f7",
+      "tensor_inputs": []
+    },
+    {
+      "dependency_mask_hash": "aa708fd7f87bcada391261d52bc4326a589de2aece1e23d50e5a5484960d13e9",
+      "exact_attrs": {
+        "dependency_mask_spec": {
+          "axis0_indices": [
+            6
+          ],
+          "dependent_scalar_count": 768,
+          "kind": "axis0_rows",
+          "output_spec": {
+            "dtype": "<f4",
+            "layout": "C",
+            "shape": [
+              7,
+              768
+            ]
+          },
+          "schema_version": "green-v400-dependency-mask-v2"
+        },
+        "depends_on_t": true,
+        "torch_float_kernel": "batch_addmm",
+        "weight_layout": "input_output"
+      },
+      "kernel_id": "pairwise_affine.v1",
+      "output_spec": {
+        "dtype": "<f4",
+        "layout": "C",
+        "shape": [
+          7,
+          768
+        ]
+      },
+      "parent_semantic_ids": [
+        "63c6588a8eba6835a31f333357af820b7e3680d03006a7f757428e71b33026f7"
+      ],
+      "provenance_identity": "TAR.J.block10.selected_out_delta",
+      "schema_version": "green-v400-tensor-node-v1",
+      "semantic_id": "f8d9039224b7ba0f6043efe9752f659e58d6f0ae23ce88eedd2451404fc63117",
+      "tensor_inputs": [
+        {
+          "dtype": "<f4",
+          "layout": "C",
+          "nbytes": 30720,
+          "schema_version": "green-v400-tensor-ref-v1",
+          "shape": [
+            10,
+            768
+          ],
+          "tensor_sha256": "e2cf1a001dc402681958de2ba70b69c1054e6748d397841f3b0c99501c262c28"
+        },
+        {
+          "dtype": "<f4",
+          "layout": "C",
+          "nbytes": 3072,
+          "schema_version": "green-v400-tensor-ref-v1",
+          "shape": [
+            768
+          ],
+          "tensor_sha256": "5b9d8b05e077fdfa44a3868d615c93d519be84283dac5045db2678c7d99c9e8d"
+        }
+      ]
+    },
+    {
+      "dependency_mask_hash": "aa708fd7f87bcada391261d52bc4326a589de2aece1e23d50e5a5484960d13e9",
+      "exact_attrs": {
+        "dependency_mask_spec": {
+          "axis0_indices": [
+            6
+          ],
+          "dependent_scalar_count": 768,
+          "kind": "axis0_rows",
+          "output_spec": {
+            "dtype": "<f4",
+            "layout": "C",
+            "shape": [
+              7,
+              768
+            ]
+          },
+          "schema_version": "green-v400-dependency-mask-v2"
+        },
+        "depends_on_t": true
+      },
+      "kernel_id": "residual_add.v1",
+      "output_spec": {
+        "dtype": "<f4",
+        "layout": "C",
+        "shape": [
+          7,
+          768
+        ]
+      },
+      "parent_semantic_ids": [
+        "1b7cf513a880e4ddd7c28e9d62b328087731b64ade0e76bad0dbd74ba9f37bf8",
+        "f8d9039224b7ba0f6043efe9752f659e58d6f0ae23ce88eedd2451404fc63117"
+      ],
+      "provenance_identity": "TAR.J.block10.resid_post",
+      "schema_version": "green-v400-tensor-node-v1",
+      "semantic_id": "9f370ce3f8aa6fc92c9da91792ac124193607876d736f0aaa9bb4bcab699b8b2",
+      "tensor_inputs": []
+    },
+    {
+      "dependency_mask_hash": "aa708fd7f87bcada391261d52bc4326a589de2aece1e23d50e5a5484960d13e9",
+      "exact_attrs": {
+        "axis": -1,
+        "dependency_mask_spec": {
+          "axis0_indices": [
+            6
+          ],
+          "dependent_scalar_count": 768,
+          "kind": "axis0_rows",
+          "output_spec": {
+            "dtype": "<f4",
+            "layout": "C",
+            "shape": [
+              7,
+              768
+            ]
+          },
+          "schema_version": "green-v400-dependency-mask-v2"
+        },
+        "depends_on_t": true
+      },
+      "kernel_id": "layer_norm.v1",
+      "output_spec": {
+        "dtype": "<f4",
+        "layout": "C",
+        "shape": [
+          7,
+          768
+        ]
+      },
+      "parent_semantic_ids": [
+        "9f370ce3f8aa6fc92c9da91792ac124193607876d736f0aaa9bb4bcab699b8b2"
+      ],
+      "provenance_identity": "TAR.J.block11.ln1",
+      "schema_version": "green-v400-tensor-node-v1",
+      "semantic_id": "6d168a9c961c30c6a83af0a1bec73bd41effdfec50d4650ec6c6d31be81d706b",
+      "tensor_inputs": [
+        {
+          "dtype": "<f4",
+          "layout": "C",
+          "nbytes": 3072,
+          "schema_version": "green-v400-tensor-ref-v1",
+          "shape": [
+            768
+          ],
+          "tensor_sha256": "d1b25affdce3860e3206b98526d6efe507c3c28536103d592405109e68ee2eae"
+        },
+        {
+          "dtype": "<f4",
+          "layout": "C",
+          "nbytes": 3072,
+          "schema_version": "green-v400-tensor-ref-v1",
+          "shape": [
+            768
+          ],
+          "tensor_sha256": "676c03e7f050a58ec0243ed53616e1288b6ece347f98a8400768a22aec384309"
+        },
+        {
+          "dtype": "<f4",
+          "layout": "C",
+          "nbytes": 4,
+          "schema_version": "green-v400-tensor-ref-v1",
+          "shape": [],
+          "tensor_sha256": "4558c9f7f06d3993b1ec713b281919d95fadb0a4ac1ea54024ab8d10544e1245"
+        }
+      ]
+    },
+    {
+      "dependency_mask_hash": "aa708fd7f87bcada391261d52bc4326a589de2aece1e23d50e5a5484960d13e9",
+      "exact_attrs": {
+        "dependency_mask_spec": {
+          "axis0_indices": [
+            6
+          ],
+          "dependent_scalar_count": 768,
+          "kind": "axis0_rows",
+          "output_spec": {
+            "dtype": "<f4",
+            "layout": "C",
+            "shape": [
+              7,
+              768
+            ]
+          },
+          "schema_version": "green-v400-dependency-mask-v2"
+        },
+        "depends_on_t": true,
+        "torch_float_kernel": "linear",
+        "weight_layout": "input_output"
+      },
+      "kernel_id": "pairwise_affine.v1",
+      "output_spec": {
+        "dtype": "<f4",
+        "layout": "C",
+        "shape": [
+          7,
+          768
+        ]
+      },
+      "parent_semantic_ids": [
+        "6d168a9c961c30c6a83af0a1bec73bd41effdfec50d4650ec6c6d31be81d706b"
+      ],
+      "provenance_identity": "TAR.J.block11.attn.q",
+      "schema_version": "green-v400-tensor-node-v1",
+      "semantic_id": "de8a11c091892782c2a9c7c7797e7aa8fbb9613e149d3b297fd24ca70e0b9299",
+      "tensor_inputs": [
+        {
+          "dtype": "<f4",
+          "layout": "C",
+          "nbytes": 2359296,
+          "schema_version": "green-v400-tensor-ref-v1",
+          "shape": [
+            768,
+            768
+          ],
+          "tensor_sha256": "8dfa5242708f284ca32cc04dbaa24a4dd50672a525fd34fa59c69fb040bd3d01"
+        },
+        {
+          "dtype": "<f4",
+          "layout": "C",
+          "nbytes": 3072,
+          "schema_version": "green-v400-tensor-ref-v1",
+          "shape": [
+            768
+          ],
+          "tensor_sha256": "d9201e1011de6a5a2b07dae4116d51fad59038dbbc9eaa8ce523fc398f3a29c2"
+        }
+      ]
+    },
+    {
+      "dependency_mask_hash": "aa708fd7f87bcada391261d52bc4326a589de2aece1e23d50e5a5484960d13e9",
+      "exact_attrs": {
+        "dependency_mask_spec": {
+          "axis0_indices": [
+            6
+          ],
+          "dependent_scalar_count": 768,
+          "kind": "axis0_rows",
+          "output_spec": {
+            "dtype": "<f4",
+            "layout": "C",
+            "shape": [
+              7,
+              768
+            ]
+          },
+          "schema_version": "green-v400-dependency-mask-v2"
+        },
+        "depends_on_t": true,
+        "torch_float_kernel": "linear",
+        "weight_layout": "input_output"
+      },
+      "kernel_id": "pairwise_affine.v1",
+      "output_spec": {
+        "dtype": "<f4",
+        "layout": "C",
+        "shape": [
+          7,
+          768
+        ]
+      },
+      "parent_semantic_ids": [
+        "6d168a9c961c30c6a83af0a1bec73bd41effdfec50d4650ec6c6d31be81d706b"
+      ],
+      "provenance_identity": "TAR.J.block11.attn.k",
+      "schema_version": "green-v400-tensor-node-v1",
+      "semantic_id": "80bf66fd1190403e2dac9fb1eee1a1b2a33dd634fadcc4375c6998f9143429c9",
+      "tensor_inputs": [
+        {
+          "dtype": "<f4",
+          "layout": "C",
+          "nbytes": 2359296,
+          "schema_version": "green-v400-tensor-ref-v1",
+          "shape": [
+            768,
+            768
+          ],
+          "tensor_sha256": "ac0fc32a9bcbaa2657a18246b33a1848a6d10a5e161a128f4dd0c77c54b0f051"
+        },
+        {
+          "dtype": "<f4",
+          "layout": "C",
+          "nbytes": 3072,
+          "schema_version": "green-v400-tensor-ref-v1",
+          "shape": [
+            768
+          ],
+          "tensor_sha256": "495f1a49ce1e7ca59e8cb8c41134245cf5b8e41da7185ecb6197fad579c92f3b"
+        }
+      ]
+    },
+    {
+      "dependency_mask_hash": "aa708fd7f87bcada391261d52bc4326a589de2aece1e23d50e5a5484960d13e9",
+      "exact_attrs": {
+        "dependency_mask_spec": {
+          "axis0_indices": [
+            6
+          ],
+          "dependent_scalar_count": 768,
+          "kind": "axis0_rows",
+          "output_spec": {
+            "dtype": "<f4",
+            "layout": "C",
+            "shape": [
+              7,
+              768
+            ]
+          },
+          "schema_version": "green-v400-dependency-mask-v2"
+        },
+        "depends_on_t": true,
+        "torch_float_kernel": "linear",
+        "weight_layout": "input_output"
+      },
+      "kernel_id": "pairwise_affine.v1",
+      "output_spec": {
+        "dtype": "<f4",
+        "layout": "C",
+        "shape": [
+          7,
+          768
+        ]
+      },
+      "parent_semantic_ids": [
+        "6d168a9c961c30c6a83af0a1bec73bd41effdfec50d4650ec6c6d31be81d706b"
+      ],
+      "provenance_identity": "TAR.J.block11.attn.v",
+      "schema_version": "green-v400-tensor-node-v1",
+      "semantic_id": "686ba0349835fa6eefeaaab4fffa320c2d4bef9462baecdffb7be815f2dd0bf9",
+      "tensor_inputs": [
+        {
+          "dtype": "<f4",
+          "layout": "C",
+          "nbytes": 2359296,
+          "schema_version": "green-v400-tensor-ref-v1",
+          "shape": [
+            768,
+            768
+          ],
+          "tensor_sha256": "1fd2e67e15c213a9c1daf1cf15efb61e222cf3e2c01819e1fe822f596989af36"
+        },
+        {
+          "dtype": "<f4",
+          "layout": "C",
+          "nbytes": 3072,
+          "schema_version": "green-v400-tensor-ref-v1",
+          "shape": [
+            768
+          ],
+          "tensor_sha256": "f36a4547385d39b140a4f2cb7c8d130b0c36b14d534f6994fb5e700ca762f41a"
+        }
+      ]
+    },
+    {
+      "dependency_mask_hash": "aa708fd7f87bcada391261d52bc4326a589de2aece1e23d50e5a5484960d13e9",
+      "exact_attrs": {
+        "d_head": 64,
+        "dependency_mask_spec": {
+          "axis0_indices": [
+            6
+          ],
+          "dependent_scalar_count": 768,
+          "kind": "axis0_rows",
+          "output_spec": {
+            "dtype": "<f4",
+            "layout": "C",
+            "shape": [
+              7,
+              768
+            ]
+          },
+          "schema_version": "green-v400-dependency-mask-v2"
+        },
+        "depends_on_t": true,
+        "mask": "causal_delete_future",
+        "n_heads": 12,
+        "score_scale": "inverse_sqrt_d_head",
+        "softmax_pivot": {
+          "index": 0,
+          "kind": "fixed_index"
+        }
+      },
+      "kernel_id": "causal_attention.v1",
+      "output_spec": {
+        "dtype": "<f4",
+        "layout": "C",
+        "shape": [
+          7,
+          768
+        ]
+      },
+      "parent_semantic_ids": [
+        "de8a11c091892782c2a9c7c7797e7aa8fbb9613e149d3b297fd24ca70e0b9299",
+        "80bf66fd1190403e2dac9fb1eee1a1b2a33dd634fadcc4375c6998f9143429c9",
+        "686ba0349835fa6eefeaaab4fffa320c2d4bef9462baecdffb7be815f2dd0bf9"
+      ],
+      "provenance_identity": "TAR.J.block11.attn.pattern_value",
+      "schema_version": "green-v400-tensor-node-v1",
+      "semantic_id": "68984fcb83b881463ca7fcd49853455a43c4275b2aa703727b625008b60bd6f7",
+      "tensor_inputs": []
+    },
+    {
+      "dependency_mask_hash": "aa708fd7f87bcada391261d52bc4326a589de2aece1e23d50e5a5484960d13e9",
+      "exact_attrs": {
+        "dependency_mask_spec": {
+          "axis0_indices": [
+            6
+          ],
+          "dependent_scalar_count": 768,
+          "kind": "axis0_rows",
+          "output_spec": {
+            "dtype": "<f4",
+            "layout": "C",
+            "shape": [
+              7,
+              768
+            ]
+          },
+          "schema_version": "green-v400-dependency-mask-v2"
+        },
+        "depends_on_t": true,
+        "torch_float_kernel": "linear",
+        "weight_layout": "input_output"
+      },
+      "kernel_id": "pairwise_affine.v1",
+      "output_spec": {
+        "dtype": "<f4",
+        "layout": "C",
+        "shape": [
+          7,
+          768
+        ]
+      },
+      "parent_semantic_ids": [
+        "68984fcb83b881463ca7fcd49853455a43c4275b2aa703727b625008b60bd6f7"
+      ],
+      "provenance_identity": "TAR.J.block11.attn.out",
+      "schema_version": "green-v400-tensor-node-v1",
+      "semantic_id": "115f8d6bb2a5ce45f4fcc5ed257566856f78aa6a55d7b6788be7ca3f9b7f7ca1",
+      "tensor_inputs": [
+        {
+          "dtype": "<f4",
+          "layout": "C",
+          "nbytes": 2359296,
+          "schema_version": "green-v400-tensor-ref-v1",
+          "shape": [
+            768,
+            768
+          ],
+          "tensor_sha256": "c4ff9c5df42b1da4f99cd617f10b599ed74ec0856576af3bd3d1b3be83c2859b"
+        },
+        {
+          "dtype": "<f4",
+          "layout": "C",
+          "nbytes": 3072,
+          "schema_version": "green-v400-tensor-ref-v1",
+          "shape": [
+            768
+          ],
+          "tensor_sha256": "e6fb51287078c5f747a3239930aa0f4f7abef3dc99371e880354ff92e581e2e0"
+        }
+      ]
+    },
+    {
+      "dependency_mask_hash": "aa708fd7f87bcada391261d52bc4326a589de2aece1e23d50e5a5484960d13e9",
+      "exact_attrs": {
+        "dependency_mask_spec": {
+          "axis0_indices": [
+            6
+          ],
+          "dependent_scalar_count": 768,
+          "kind": "axis0_rows",
+          "output_spec": {
+            "dtype": "<f4",
+            "layout": "C",
+            "shape": [
+              7,
+              768
+            ]
+          },
+          "schema_version": "green-v400-dependency-mask-v2"
+        },
+        "depends_on_t": true
+      },
+      "kernel_id": "residual_add.v1",
+      "output_spec": {
+        "dtype": "<f4",
+        "layout": "C",
+        "shape": [
+          7,
+          768
+        ]
+      },
+      "parent_semantic_ids": [
+        "9f370ce3f8aa6fc92c9da91792ac124193607876d736f0aaa9bb4bcab699b8b2",
+        "115f8d6bb2a5ce45f4fcc5ed257566856f78aa6a55d7b6788be7ca3f9b7f7ca1"
+      ],
+      "provenance_identity": "TAR.J.block11.resid_mid",
+      "schema_version": "green-v400-tensor-node-v1",
+      "semantic_id": "cf500a29f1173bc5eb01ec345d756734a91472c29c08e91b7e3b65d7be90a8ae",
+      "tensor_inputs": []
+    },
+    {
+      "dependency_mask_hash": "aa708fd7f87bcada391261d52bc4326a589de2aece1e23d50e5a5484960d13e9",
+      "exact_attrs": {
+        "axis": -1,
+        "dependency_mask_spec": {
+          "axis0_indices": [
+            6
+          ],
+          "dependent_scalar_count": 768,
+          "kind": "axis0_rows",
+          "output_spec": {
+            "dtype": "<f4",
+            "layout": "C",
+            "shape": [
+              7,
+              768
+            ]
+          },
+          "schema_version": "green-v400-dependency-mask-v2"
+        },
+        "depends_on_t": true
+      },
+      "kernel_id": "layer_norm.v1",
+      "output_spec": {
+        "dtype": "<f4",
+        "layout": "C",
+        "shape": [
+          7,
+          768
+        ]
+      },
+      "parent_semantic_ids": [
+        "cf500a29f1173bc5eb01ec345d756734a91472c29c08e91b7e3b65d7be90a8ae"
+      ],
+      "provenance_identity": "TAR.J.block11.ln2",
+      "schema_version": "green-v400-tensor-node-v1",
+      "semantic_id": "18c264652b15dd9790b8f63c670ce2c13f399948577333ebcdb7564e5138c875",
+      "tensor_inputs": [
+        {
+          "dtype": "<f4",
+          "layout": "C",
+          "nbytes": 3072,
+          "schema_version": "green-v400-tensor-ref-v1",
+          "shape": [
+            768
+          ],
+          "tensor_sha256": "5e5c7ca04ac18d0d154e2cf4980189639a1950c9ef93fc1eb7566c8733e40eca"
+        },
+        {
+          "dtype": "<f4",
+          "layout": "C",
+          "nbytes": 3072,
+          "schema_version": "green-v400-tensor-ref-v1",
+          "shape": [
+            768
+          ],
+          "tensor_sha256": "66bf9f31b5f84278f232bb1ec3d99c5fd8afbb764aaf00801333660441150659"
+        },
+        {
+          "dtype": "<f4",
+          "layout": "C",
+          "nbytes": 4,
+          "schema_version": "green-v400-tensor-ref-v1",
+          "shape": [],
+          "tensor_sha256": "4558c9f7f06d3993b1ec713b281919d95fadb0a4ac1ea54024ab8d10544e1245"
+        }
+      ]
+    },
+    {
+      "dependency_mask_hash": "0830685bcc0f16da8bdcd8e6a4865dcd0a15fe69e9f43cb6539db1f7df973b7f",
+      "exact_attrs": {
+        "dependency_mask_spec": {
+          "axis0_indices": [
+            6
+          ],
+          "dependent_scalar_count": 3072,
+          "kind": "axis0_rows",
+          "output_spec": {
+            "dtype": "<f4",
+            "layout": "C",
+            "shape": [
+              7,
+              3072
+            ]
+          },
+          "schema_version": "green-v400-dependency-mask-v2"
+        },
+        "depends_on_t": true,
+        "weight_layout": "input_output"
+      },
+      "kernel_id": "pairwise_affine.v1",
+      "output_spec": {
+        "dtype": "<f4",
+        "layout": "C",
+        "shape": [
+          7,
+          3072
+        ]
+      },
+      "parent_semantic_ids": [
+        "18c264652b15dd9790b8f63c670ce2c13f399948577333ebcdb7564e5138c875"
+      ],
+      "provenance_identity": "TAR.J.block11.mlp.pre",
+      "schema_version": "green-v400-tensor-node-v1",
+      "semantic_id": "fdf1c58679052a6bd4bb20221601f5973f470d26c8dd3b3f9b15ddcd59b79733",
+      "tensor_inputs": [
+        {
+          "dtype": "<f4",
+          "layout": "C",
+          "nbytes": 9437184,
+          "schema_version": "green-v400-tensor-ref-v1",
+          "shape": [
+            768,
+            3072
+          ],
+          "tensor_sha256": "4a786af81022ddeabe0c6068de3b97fc92bafc77897972f701b92d2d38fa3c5f"
+        },
+        {
+          "dtype": "<f4",
+          "layout": "C",
+          "nbytes": 12288,
+          "schema_version": "green-v400-tensor-ref-v1",
+          "shape": [
+            3072
+          ],
+          "tensor_sha256": "cd3e4bf39ad1b8bbd236b9dbf22de8259b1842a1010fec30098aad9fb375349b"
+        }
+      ]
+    },
+    {
+      "dependency_mask_hash": "0830685bcc0f16da8bdcd8e6a4865dcd0a15fe69e9f43cb6539db1f7df973b7f",
+      "exact_attrs": {
+        "dependency_mask_spec": {
+          "axis0_indices": [
+            6
+          ],
+          "dependent_scalar_count": 3072,
+          "kind": "axis0_rows",
+          "output_spec": {
+            "dtype": "<f4",
+            "layout": "C",
+            "shape": [
+              7,
+              3072
+            ]
+          },
+          "schema_version": "green-v400-dependency-mask-v2"
+        },
+        "depends_on_t": true
+      },
+      "kernel_id": "gelu_new.v1",
+      "output_spec": {
+        "dtype": "<f4",
+        "layout": "C",
+        "shape": [
+          7,
+          3072
+        ]
+      },
+      "parent_semantic_ids": [
+        "fdf1c58679052a6bd4bb20221601f5973f470d26c8dd3b3f9b15ddcd59b79733"
+      ],
+      "provenance_identity": "TAR.J.block11.mlp.post",
+      "schema_version": "green-v400-tensor-node-v1",
+      "semantic_id": "df4fd996c0e1436c4abc4cc49ba4d4ebce624cd828d767df9c41943398a5ba19",
+      "tensor_inputs": [
+        {
+          "dtype": "<f4",
+          "layout": "C",
+          "nbytes": 4,
+          "schema_version": "green-v400-tensor-ref-v1",
+          "shape": [],
+          "tensor_sha256": "c126878ce0885aca95ea31274595b78ced5731e01eb5373ff37c7ebb65c8870d"
+        },
+        {
+          "dtype": "<f4",
+          "layout": "C",
+          "nbytes": 4,
+          "schema_version": "green-v400-tensor-ref-v1",
+          "shape": [],
+          "tensor_sha256": "d5c3c88f1bfc809c51646f74b7ec2a043bef5ec8246a48a4c5162b608ef11751"
+        }
+      ]
+    },
+    {
+      "dependency_mask_hash": "aa708fd7f87bcada391261d52bc4326a589de2aece1e23d50e5a5484960d13e9",
+      "exact_attrs": {
+        "dependency_mask_spec": {
+          "axis0_indices": [
+            6
+          ],
+          "dependent_scalar_count": 768,
+          "kind": "axis0_rows",
+          "output_spec": {
+            "dtype": "<f4",
+            "layout": "C",
+            "shape": [
+              7,
+              768
+            ]
+          },
+          "schema_version": "green-v400-dependency-mask-v2"
+        },
+        "depends_on_t": true,
+        "weight_layout": "input_output"
+      },
+      "kernel_id": "pairwise_affine.v1",
+      "output_spec": {
+        "dtype": "<f4",
+        "layout": "C",
+        "shape": [
+          7,
+          768
+        ]
+      },
+      "parent_semantic_ids": [
+        "df4fd996c0e1436c4abc4cc49ba4d4ebce624cd828d767df9c41943398a5ba19"
+      ],
+      "provenance_identity": "TAR.J.block11.mlp.out",
+      "schema_version": "green-v400-tensor-node-v1",
+      "semantic_id": "4ada9747ebdc175e6859d10aaf63b6a6b03f0b3833d832799f0a0ee6905b34d4",
+      "tensor_inputs": [
+        {
+          "dtype": "<f4",
+          "layout": "C",
+          "nbytes": 9437184,
+          "schema_version": "green-v400-tensor-ref-v1",
+          "shape": [
+            3072,
+            768
+          ],
+          "tensor_sha256": "142e3cd7e04bd9f0753f84f35fce9a521d6cda4ad78b79f6c7bf55ce9dc6a076"
+        },
+        {
+          "dtype": "<f4",
+          "layout": "C",
+          "nbytes": 3072,
+          "schema_version": "green-v400-tensor-ref-v1",
+          "shape": [
+            768
+          ],
+          "tensor_sha256": "80b5520fb10332b6ffa4db0279b568d3e9be9e10a5298758e6107a9b1e6304a9"
+        }
+      ]
+    },
+    {
+      "dependency_mask_hash": "aa708fd7f87bcada391261d52bc4326a589de2aece1e23d50e5a5484960d13e9",
+      "exact_attrs": {
+        "dependency_mask_spec": {
+          "axis0_indices": [
+            6
+          ],
+          "dependent_scalar_count": 768,
+          "kind": "axis0_rows",
+          "output_spec": {
+            "dtype": "<f4",
+            "layout": "C",
+            "shape": [
+              7,
+              768
+            ]
+          },
+          "schema_version": "green-v400-dependency-mask-v2"
+        },
+        "depends_on_t": true
+      },
+      "kernel_id": "residual_add.v1",
+      "output_spec": {
+        "dtype": "<f4",
+        "layout": "C",
+        "shape": [
+          7,
+          768
+        ]
+      },
+      "parent_semantic_ids": [
+        "cf500a29f1173bc5eb01ec345d756734a91472c29c08e91b7e3b65d7be90a8ae",
+        "4ada9747ebdc175e6859d10aaf63b6a6b03f0b3833d832799f0a0ee6905b34d4"
+      ],
+      "provenance_identity": "TAR.J.block11.resid_post",
+      "schema_version": "green-v400-tensor-node-v1",
+      "semantic_id": "23b395647091e3a8c54b537331eccb496011bfd9950673751000618f46079122",
+      "tensor_inputs": []
+    },
+    {
+      "dependency_mask_hash": "aa708fd7f87bcada391261d52bc4326a589de2aece1e23d50e5a5484960d13e9",
+      "exact_attrs": {
+        "axis": -1,
+        "dependency_mask_spec": {
+          "axis0_indices": [
+            6
+          ],
+          "dependent_scalar_count": 768,
+          "kind": "axis0_rows",
+          "output_spec": {
+            "dtype": "<f4",
+            "layout": "C",
+            "shape": [
+              7,
+              768
+            ]
+          },
+          "schema_version": "green-v400-dependency-mask-v2"
+        },
+        "depends_on_t": true
+      },
+      "kernel_id": "layer_norm.v1",
+      "output_spec": {
+        "dtype": "<f4",
+        "layout": "C",
+        "shape": [
+          7,
+          768
+        ]
+      },
+      "parent_semantic_ids": [
+        "23b395647091e3a8c54b537331eccb496011bfd9950673751000618f46079122"
+      ],
+      "provenance_identity": "TAR.J.ln_final",
+      "schema_version": "green-v400-tensor-node-v1",
+      "semantic_id": "bf777c4c093e4d3f6a83da399134a0ae8cdbdfd50bb49f9713ded88df9182ecc",
+      "tensor_inputs": [
+        {
+          "dtype": "<f4",
+          "layout": "C",
+          "nbytes": 3072,
+          "schema_version": "green-v400-tensor-ref-v1",
+          "shape": [
+            768
+          ],
+          "tensor_sha256": "de49787cd8916bd792bb1d832bd59ea75249d76048641f411bb855f50aea1352"
+        },
+        {
+          "dtype": "<f4",
+          "layout": "C",
+          "nbytes": 3072,
+          "schema_version": "green-v400-tensor-ref-v1",
+          "shape": [
+            768
+          ],
+          "tensor_sha256": "7cb9ba8bde97d2f808f550fda631b45e15d14a49d9faca650235c30822a224bd"
+        },
+        {
+          "dtype": "<f4",
+          "layout": "C",
+          "nbytes": 4,
+          "schema_version": "green-v400-tensor-ref-v1",
+          "shape": [],
+          "tensor_sha256": "4558c9f7f06d3993b1ec713b281919d95fadb0a4ac1ea54024ab8d10544e1245"
+        }
+      ]
+    },
+    {
+      "dependency_mask_hash": "3a2c15486d363d38ac639d55979a3121cdfcce211b622ee7e2cbfda36556b891",
+      "exact_attrs": {
+        "contrast_width": 100,
+        "dependency_mask_spec": {
+          "axis0_indices": [],
+          "dependent_scalar_count": 1,
+          "kind": "dense",
+          "output_spec": {
+            "dtype": "<f8",
+            "layout": "C",
+            "shape": []
+          },
+          "schema_version": "green-v400-dependency-mask-v2"
+        },
+        "depends_on_t": true,
+        "final_position": 6,
+        "reduction": "fixed_balanced_pairwise",
+        "scalarization": "exact_affine_fusion_to_residual_contrast"
+      },
+      "kernel_id": "final_contrast.v1",
+      "output_spec": {
+        "dtype": "<f8",
+        "layout": "C",
+        "shape": []
+      },
+      "parent_semantic_ids": [
+        "bf777c4c093e4d3f6a83da399134a0ae8cdbdfd50bb49f9713ded88df9182ecc"
+      ],
+      "provenance_identity": "TAR.J.final_contrast",
+      "schema_version": "green-v400-tensor-node-v1",
+      "semantic_id": "054fe50159e69718e09f32c96f02adcb4358edcf24abb8b17a09f9267d7abd26",
+      "tensor_inputs": [
+        {
+          "dtype": "<f4",
+          "layout": "C",
+          "nbytes": 154389504,
+          "schema_version": "green-v400-tensor-ref-v1",
+          "shape": [
+            768,
+            50257
+          ],
+          "tensor_sha256": "7e449d0450b72db17d4c5fa68e3fc75e9ccd202cad8e5977faa92ad9ccb0fdb4"
+        },
+        {
+          "dtype": "<f4",
+          "layout": "C",
+          "nbytes": 201028,
+          "schema_version": "green-v400-tensor-ref-v1",
+          "shape": [
+            50257
+          ],
+          "tensor_sha256": "03614157867e6026cc491595481a29019ba2077b921832d94c79936eb936369c"
+        },
+        {
+          "dtype": "<i8",
+          "layout": "C",
+          "nbytes": 800,
+          "schema_version": "green-v400-tensor-ref-v1",
+          "shape": [
+            100
+          ],
+          "tensor_sha256": "7a7e3559a6f7e07dceb6261220feadff8ce5dc51cbc370fb35fc64e232c90836"
+        },
+        {
+          "dtype": "<f8",
+          "layout": "C",
+          "nbytes": 800,
+          "schema_version": "green-v400-tensor-ref-v1",
+          "shape": [
+            100
+          ],
+          "tensor_sha256": "be790babbc81de813b409c5068ff010207a66f4df8b67df26570ed2571916d6d"
+        }
+      ]
+    },
+    {
+      "dependency_mask_hash": "aa708fd7f87bcada391261d52bc4326a589de2aece1e23d50e5a5484960d13e9",
+      "exact_attrs": {
+        "axis": -1,
+        "dependency_mask_spec": {
+          "axis0_indices": [
+            6
+          ],
+          "dependent_scalar_count": 768,
+          "kind": "axis0_rows",
+          "output_spec": {
+            "dtype": "<f4",
+            "layout": "C",
+            "shape": [
+              7,
+              768
+            ]
+          },
+          "schema_version": "green-v400-dependency-mask-v2"
+        },
+        "depends_on_t": true
+      },
+      "kernel_id": "layer_norm.v1",
+      "output_spec": {
+        "dtype": "<f4",
+        "layout": "C",
+        "shape": [
+          7,
+          768
+        ]
+      },
+      "parent_semantic_ids": [
+        "1b7cf513a880e4ddd7c28e9d62b328087731b64ade0e76bad0dbd74ba9f37bf8"
+      ],
+      "provenance_identity": "TAR.B.block11.ln1",
+      "schema_version": "green-v400-tensor-node-v1",
+      "semantic_id": "a0de85b85c354357ea7d0653c8b6ca94b05152700643da748a446fca65e1695e",
+      "tensor_inputs": [
+        {
+          "dtype": "<f4",
+          "layout": "C",
+          "nbytes": 3072,
+          "schema_version": "green-v400-tensor-ref-v1",
+          "shape": [
+            768
+          ],
+          "tensor_sha256": "d1b25affdce3860e3206b98526d6efe507c3c28536103d592405109e68ee2eae"
+        },
+        {
+          "dtype": "<f4",
+          "layout": "C",
+          "nbytes": 3072,
+          "schema_version": "green-v400-tensor-ref-v1",
+          "shape": [
+            768
+          ],
+          "tensor_sha256": "676c03e7f050a58ec0243ed53616e1288b6ece347f98a8400768a22aec384309"
+        },
+        {
+          "dtype": "<f4",
+          "layout": "C",
+          "nbytes": 4,
+          "schema_version": "green-v400-tensor-ref-v1",
+          "shape": [],
+          "tensor_sha256": "4558c9f7f06d3993b1ec713b281919d95fadb0a4ac1ea54024ab8d10544e1245"
+        }
+      ]
+    },
+    {
+      "dependency_mask_hash": "aa708fd7f87bcada391261d52bc4326a589de2aece1e23d50e5a5484960d13e9",
+      "exact_attrs": {
+        "dependency_mask_spec": {
+          "axis0_indices": [
+            6
+          ],
+          "dependent_scalar_count": 768,
+          "kind": "axis0_rows",
+          "output_spec": {
+            "dtype": "<f4",
+            "layout": "C",
+            "shape": [
+              7,
+              768
+            ]
+          },
+          "schema_version": "green-v400-dependency-mask-v2"
+        },
+        "depends_on_t": true,
+        "torch_float_kernel": "linear",
+        "weight_layout": "input_output"
+      },
+      "kernel_id": "pairwise_affine.v1",
+      "output_spec": {
+        "dtype": "<f4",
+        "layout": "C",
+        "shape": [
+          7,
+          768
+        ]
+      },
+      "parent_semantic_ids": [
+        "a0de85b85c354357ea7d0653c8b6ca94b05152700643da748a446fca65e1695e"
+      ],
+      "provenance_identity": "TAR.B.block11.attn.q",
+      "schema_version": "green-v400-tensor-node-v1",
+      "semantic_id": "ff54e80304c42c967a0bfb74c94a68ec27e5ccb4b2a148c952f7de3a0a879b83",
+      "tensor_inputs": [
+        {
+          "dtype": "<f4",
+          "layout": "C",
+          "nbytes": 2359296,
+          "schema_version": "green-v400-tensor-ref-v1",
+          "shape": [
+            768,
+            768
+          ],
+          "tensor_sha256": "8dfa5242708f284ca32cc04dbaa24a4dd50672a525fd34fa59c69fb040bd3d01"
+        },
+        {
+          "dtype": "<f4",
+          "layout": "C",
+          "nbytes": 3072,
+          "schema_version": "green-v400-tensor-ref-v1",
+          "shape": [
+            768
+          ],
+          "tensor_sha256": "d9201e1011de6a5a2b07dae4116d51fad59038dbbc9eaa8ce523fc398f3a29c2"
+        }
+      ]
+    },
+    {
+      "dependency_mask_hash": "aa708fd7f87bcada391261d52bc4326a589de2aece1e23d50e5a5484960d13e9",
+      "exact_attrs": {
+        "dependency_mask_spec": {
+          "axis0_indices": [
+            6
+          ],
+          "dependent_scalar_count": 768,
+          "kind": "axis0_rows",
+          "output_spec": {
+            "dtype": "<f4",
+            "layout": "C",
+            "shape": [
+              7,
+              768
+            ]
+          },
+          "schema_version": "green-v400-dependency-mask-v2"
+        },
+        "depends_on_t": true,
+        "torch_float_kernel": "linear",
+        "weight_layout": "input_output"
+      },
+      "kernel_id": "pairwise_affine.v1",
+      "output_spec": {
+        "dtype": "<f4",
+        "layout": "C",
+        "shape": [
+          7,
+          768
+        ]
+      },
+      "parent_semantic_ids": [
+        "a0de85b85c354357ea7d0653c8b6ca94b05152700643da748a446fca65e1695e"
+      ],
+      "provenance_identity": "TAR.B.block11.attn.k",
+      "schema_version": "green-v400-tensor-node-v1",
+      "semantic_id": "444533a2ae26e779efd182941d830949523c95ee525bcd12dd080414c5a880f3",
+      "tensor_inputs": [
+        {
+          "dtype": "<f4",
+          "layout": "C",
+          "nbytes": 2359296,
+          "schema_version": "green-v400-tensor-ref-v1",
+          "shape": [
+            768,
+            768
+          ],
+          "tensor_sha256": "ac0fc32a9bcbaa2657a18246b33a1848a6d10a5e161a128f4dd0c77c54b0f051"
+        },
+        {
+          "dtype": "<f4",
+          "layout": "C",
+          "nbytes": 3072,
+          "schema_version": "green-v400-tensor-ref-v1",
+          "shape": [
+            768
+          ],
+          "tensor_sha256": "495f1a49ce1e7ca59e8cb8c41134245cf5b8e41da7185ecb6197fad579c92f3b"
+        }
+      ]
+    },
+    {
+      "dependency_mask_hash": "aa708fd7f87bcada391261d52bc4326a589de2aece1e23d50e5a5484960d13e9",
+      "exact_attrs": {
+        "dependency_mask_spec": {
+          "axis0_indices": [
+            6
+          ],
+          "dependent_scalar_count": 768,
+          "kind": "axis0_rows",
+          "output_spec": {
+            "dtype": "<f4",
+            "layout": "C",
+            "shape": [
+              7,
+              768
+            ]
+          },
+          "schema_version": "green-v400-dependency-mask-v2"
+        },
+        "depends_on_t": true,
+        "torch_float_kernel": "linear",
+        "weight_layout": "input_output"
+      },
+      "kernel_id": "pairwise_affine.v1",
+      "output_spec": {
+        "dtype": "<f4",
+        "layout": "C",
+        "shape": [
+          7,
+          768
+        ]
+      },
+      "parent_semantic_ids": [
+        "a0de85b85c354357ea7d0653c8b6ca94b05152700643da748a446fca65e1695e"
+      ],
+      "provenance_identity": "TAR.B.block11.attn.v",
+      "schema_version": "green-v400-tensor-node-v1",
+      "semantic_id": "78dabbe0120fa720f138a3c4f0dff4ad3758c90774d765560d2e13c3a47721d4",
+      "tensor_inputs": [
+        {
+          "dtype": "<f4",
+          "layout": "C",
+          "nbytes": 2359296,
+          "schema_version": "green-v400-tensor-ref-v1",
+          "shape": [
+            768,
+            768
+          ],
+          "tensor_sha256": "1fd2e67e15c213a9c1daf1cf15efb61e222cf3e2c01819e1fe822f596989af36"
+        },
+        {
+          "dtype": "<f4",
+          "layout": "C",
+          "nbytes": 3072,
+          "schema_version": "green-v400-tensor-ref-v1",
+          "shape": [
+            768
+          ],
+          "tensor_sha256": "f36a4547385d39b140a4f2cb7c8d130b0c36b14d534f6994fb5e700ca762f41a"
+        }
+      ]
+    },
+    {
+      "dependency_mask_hash": "aa708fd7f87bcada391261d52bc4326a589de2aece1e23d50e5a5484960d13e9",
+      "exact_attrs": {
+        "d_head": 64,
+        "dependency_mask_spec": {
+          "axis0_indices": [
+            6
+          ],
+          "dependent_scalar_count": 768,
+          "kind": "axis0_rows",
+          "output_spec": {
+            "dtype": "<f4",
+            "layout": "C",
+            "shape": [
+              7,
+              768
+            ]
+          },
+          "schema_version": "green-v400-dependency-mask-v2"
+        },
+        "depends_on_t": true,
+        "mask": "causal_delete_future",
+        "n_heads": 12,
+        "score_scale": "inverse_sqrt_d_head",
+        "softmax_pivot": {
+          "index": 0,
+          "kind": "fixed_index"
+        }
+      },
+      "kernel_id": "causal_attention.v1",
+      "output_spec": {
+        "dtype": "<f4",
+        "layout": "C",
+        "shape": [
+          7,
+          768
+        ]
+      },
+      "parent_semantic_ids": [
+        "ff54e80304c42c967a0bfb74c94a68ec27e5ccb4b2a148c952f7de3a0a879b83",
+        "444533a2ae26e779efd182941d830949523c95ee525bcd12dd080414c5a880f3",
+        "78dabbe0120fa720f138a3c4f0dff4ad3758c90774d765560d2e13c3a47721d4"
+      ],
+      "provenance_identity": "TAR.B.block11.attn.pattern_value",
+      "schema_version": "green-v400-tensor-node-v1",
+      "semantic_id": "853688fa031304f9c3eb44059e9273d99b6c7044231703dccf36b2f1b05097ed",
+      "tensor_inputs": []
+    },
+    {
+      "dependency_mask_hash": "aa708fd7f87bcada391261d52bc4326a589de2aece1e23d50e5a5484960d13e9",
+      "exact_attrs": {
+        "dependency_mask_spec": {
+          "axis0_indices": [
+            6
+          ],
+          "dependent_scalar_count": 768,
+          "kind": "axis0_rows",
+          "output_spec": {
+            "dtype": "<f4",
+            "layout": "C",
+            "shape": [
+              7,
+              768
+            ]
+          },
+          "schema_version": "green-v400-dependency-mask-v2"
+        },
+        "depends_on_t": true,
+        "torch_float_kernel": "linear",
+        "weight_layout": "input_output"
+      },
+      "kernel_id": "pairwise_affine.v1",
+      "output_spec": {
+        "dtype": "<f4",
+        "layout": "C",
+        "shape": [
+          7,
+          768
+        ]
+      },
+      "parent_semantic_ids": [
+        "853688fa031304f9c3eb44059e9273d99b6c7044231703dccf36b2f1b05097ed"
+      ],
+      "provenance_identity": "TAR.B.block11.attn.out",
+      "schema_version": "green-v400-tensor-node-v1",
+      "semantic_id": "d9a8ea57aeacb0410b98062d8fdd2efceaec8d10f18eff6c884f06abe6178d41",
+      "tensor_inputs": [
+        {
+          "dtype": "<f4",
+          "layout": "C",
+          "nbytes": 2359296,
+          "schema_version": "green-v400-tensor-ref-v1",
+          "shape": [
+            768,
+            768
+          ],
+          "tensor_sha256": "c4ff9c5df42b1da4f99cd617f10b599ed74ec0856576af3bd3d1b3be83c2859b"
+        },
+        {
+          "dtype": "<f4",
+          "layout": "C",
+          "nbytes": 3072,
+          "schema_version": "green-v400-tensor-ref-v1",
+          "shape": [
+            768
+          ],
+          "tensor_sha256": "e6fb51287078c5f747a3239930aa0f4f7abef3dc99371e880354ff92e581e2e0"
+        }
+      ]
+    },
+    {
+      "dependency_mask_hash": "aa708fd7f87bcada391261d52bc4326a589de2aece1e23d50e5a5484960d13e9",
+      "exact_attrs": {
+        "dependency_mask_spec": {
+          "axis0_indices": [
+            6
+          ],
+          "dependent_scalar_count": 768,
+          "kind": "axis0_rows",
+          "output_spec": {
+            "dtype": "<f4",
+            "layout": "C",
+            "shape": [
+              7,
+              768
+            ]
+          },
+          "schema_version": "green-v400-dependency-mask-v2"
+        },
+        "depends_on_t": true
+      },
+      "kernel_id": "residual_add.v1",
+      "output_spec": {
+        "dtype": "<f4",
+        "layout": "C",
+        "shape": [
+          7,
+          768
+        ]
+      },
+      "parent_semantic_ids": [
+        "1b7cf513a880e4ddd7c28e9d62b328087731b64ade0e76bad0dbd74ba9f37bf8",
+        "d9a8ea57aeacb0410b98062d8fdd2efceaec8d10f18eff6c884f06abe6178d41"
+      ],
+      "provenance_identity": "TAR.B.block11.resid_mid",
+      "schema_version": "green-v400-tensor-node-v1",
+      "semantic_id": "531450c75ab344b20d87cf2f12426a19d0e1b31246cf3c7a40129c595b04166c",
+      "tensor_inputs": []
+    },
+    {
+      "dependency_mask_hash": "aa708fd7f87bcada391261d52bc4326a589de2aece1e23d50e5a5484960d13e9",
+      "exact_attrs": {
+        "axis": -1,
+        "dependency_mask_spec": {
+          "axis0_indices": [
+            6
+          ],
+          "dependent_scalar_count": 768,
+          "kind": "axis0_rows",
+          "output_spec": {
+            "dtype": "<f4",
+            "layout": "C",
+            "shape": [
+              7,
+              768
+            ]
+          },
+          "schema_version": "green-v400-dependency-mask-v2"
+        },
+        "depends_on_t": true
+      },
+      "kernel_id": "layer_norm.v1",
+      "output_spec": {
+        "dtype": "<f4",
+        "layout": "C",
+        "shape": [
+          7,
+          768
+        ]
+      },
+      "parent_semantic_ids": [
+        "531450c75ab344b20d87cf2f12426a19d0e1b31246cf3c7a40129c595b04166c"
+      ],
+      "provenance_identity": "TAR.B.block11.ln2",
+      "schema_version": "green-v400-tensor-node-v1",
+      "semantic_id": "f764d529dba68f05ffa3be537752e0df6ec55fac947eb48dcb871309ed33ec37",
+      "tensor_inputs": [
+        {
+          "dtype": "<f4",
+          "layout": "C",
+          "nbytes": 3072,
+          "schema_version": "green-v400-tensor-ref-v1",
+          "shape": [
+            768
+          ],
+          "tensor_sha256": "5e5c7ca04ac18d0d154e2cf4980189639a1950c9ef93fc1eb7566c8733e40eca"
+        },
+        {
+          "dtype": "<f4",
+          "layout": "C",
+          "nbytes": 3072,
+          "schema_version": "green-v400-tensor-ref-v1",
+          "shape": [
+            768
+          ],
+          "tensor_sha256": "66bf9f31b5f84278f232bb1ec3d99c5fd8afbb764aaf00801333660441150659"
+        },
+        {
+          "dtype": "<f4",
+          "layout": "C",
+          "nbytes": 4,
+          "schema_version": "green-v400-tensor-ref-v1",
+          "shape": [],
+          "tensor_sha256": "4558c9f7f06d3993b1ec713b281919d95fadb0a4ac1ea54024ab8d10544e1245"
+        }
+      ]
+    },
+    {
+      "dependency_mask_hash": "0830685bcc0f16da8bdcd8e6a4865dcd0a15fe69e9f43cb6539db1f7df973b7f",
+      "exact_attrs": {
+        "dependency_mask_spec": {
+          "axis0_indices": [
+            6
+          ],
+          "dependent_scalar_count": 3072,
+          "kind": "axis0_rows",
+          "output_spec": {
+            "dtype": "<f4",
+            "layout": "C",
+            "shape": [
+              7,
+              3072
+            ]
+          },
+          "schema_version": "green-v400-dependency-mask-v2"
+        },
+        "depends_on_t": true,
+        "weight_layout": "input_output"
+      },
+      "kernel_id": "pairwise_affine.v1",
+      "output_spec": {
+        "dtype": "<f4",
+        "layout": "C",
+        "shape": [
+          7,
+          3072
+        ]
+      },
+      "parent_semantic_ids": [
+        "f764d529dba68f05ffa3be537752e0df6ec55fac947eb48dcb871309ed33ec37"
+      ],
+      "provenance_identity": "TAR.B.block11.mlp.pre",
+      "schema_version": "green-v400-tensor-node-v1",
+      "semantic_id": "067f91926fed7eb396dd3450778477d2e73b1f808a5b213ec9e22bcfe0e59ca8",
+      "tensor_inputs": [
+        {
+          "dtype": "<f4",
+          "layout": "C",
+          "nbytes": 9437184,
+          "schema_version": "green-v400-tensor-ref-v1",
+          "shape": [
+            768,
+            3072
+          ],
+          "tensor_sha256": "4a786af81022ddeabe0c6068de3b97fc92bafc77897972f701b92d2d38fa3c5f"
+        },
+        {
+          "dtype": "<f4",
+          "layout": "C",
+          "nbytes": 12288,
+          "schema_version": "green-v400-tensor-ref-v1",
+          "shape": [
+            3072
+          ],
+          "tensor_sha256": "cd3e4bf39ad1b8bbd236b9dbf22de8259b1842a1010fec30098aad9fb375349b"
+        }
+      ]
+    },
+    {
+      "dependency_mask_hash": "0830685bcc0f16da8bdcd8e6a4865dcd0a15fe69e9f43cb6539db1f7df973b7f",
+      "exact_attrs": {
+        "dependency_mask_spec": {
+          "axis0_indices": [
+            6
+          ],
+          "dependent_scalar_count": 3072,
+          "kind": "axis0_rows",
+          "output_spec": {
+            "dtype": "<f4",
+            "layout": "C",
+            "shape": [
+              7,
+              3072
+            ]
+          },
+          "schema_version": "green-v400-dependency-mask-v2"
+        },
+        "depends_on_t": true
+      },
+      "kernel_id": "gelu_new.v1",
+      "output_spec": {
+        "dtype": "<f4",
+        "layout": "C",
+        "shape": [
+          7,
+          3072
+        ]
+      },
+      "parent_semantic_ids": [
+        "067f91926fed7eb396dd3450778477d2e73b1f808a5b213ec9e22bcfe0e59ca8"
+      ],
+      "provenance_identity": "TAR.B.block11.mlp.post",
+      "schema_version": "green-v400-tensor-node-v1",
+      "semantic_id": "44483114b727d4008e68802cb587065b0d85316db0377e29a06af706bbc2705a",
+      "tensor_inputs": [
+        {
+          "dtype": "<f4",
+          "layout": "C",
+          "nbytes": 4,
+          "schema_version": "green-v400-tensor-ref-v1",
+          "shape": [],
+          "tensor_sha256": "c126878ce0885aca95ea31274595b78ced5731e01eb5373ff37c7ebb65c8870d"
+        },
+        {
+          "dtype": "<f4",
+          "layout": "C",
+          "nbytes": 4,
+          "schema_version": "green-v400-tensor-ref-v1",
+          "shape": [],
+          "tensor_sha256": "d5c3c88f1bfc809c51646f74b7ec2a043bef5ec8246a48a4c5162b608ef11751"
+        }
+      ]
+    },
+    {
+      "dependency_mask_hash": "aa708fd7f87bcada391261d52bc4326a589de2aece1e23d50e5a5484960d13e9",
+      "exact_attrs": {
+        "dependency_mask_spec": {
+          "axis0_indices": [
+            6
+          ],
+          "dependent_scalar_count": 768,
+          "kind": "axis0_rows",
+          "output_spec": {
+            "dtype": "<f4",
+            "layout": "C",
+            "shape": [
+              7,
+              768
+            ]
+          },
+          "schema_version": "green-v400-dependency-mask-v2"
+        },
+        "depends_on_t": true,
+        "weight_layout": "input_output"
+      },
+      "kernel_id": "pairwise_affine.v1",
+      "output_spec": {
+        "dtype": "<f4",
+        "layout": "C",
+        "shape": [
+          7,
+          768
+        ]
+      },
+      "parent_semantic_ids": [
+        "44483114b727d4008e68802cb587065b0d85316db0377e29a06af706bbc2705a"
+      ],
+      "provenance_identity": "TAR.B.block11.mlp.out",
+      "schema_version": "green-v400-tensor-node-v1",
+      "semantic_id": "60863cdf70611319d18edf875331ed41526dddafd068befff88826eb3dec660a",
+      "tensor_inputs": [
+        {
+          "dtype": "<f4",
+          "layout": "C",
+          "nbytes": 9437184,
+          "schema_version": "green-v400-tensor-ref-v1",
+          "shape": [
+            3072,
+            768
+          ],
+          "tensor_sha256": "142e3cd7e04bd9f0753f84f35fce9a521d6cda4ad78b79f6c7bf55ce9dc6a076"
+        },
+        {
+          "dtype": "<f4",
+          "layout": "C",
+          "nbytes": 3072,
+          "schema_version": "green-v400-tensor-ref-v1",
+          "shape": [
+            768
+          ],
+          "tensor_sha256": "80b5520fb10332b6ffa4db0279b568d3e9be9e10a5298758e6107a9b1e6304a9"
+        }
+      ]
+    },
+    {
+      "dependency_mask_hash": "aa708fd7f87bcada391261d52bc4326a589de2aece1e23d50e5a5484960d13e9",
+      "exact_attrs": {
+        "dependency_mask_spec": {
+          "axis0_indices": [
+            6
+          ],
+          "dependent_scalar_count": 768,
+          "kind": "axis0_rows",
+          "output_spec": {
+            "dtype": "<f4",
+            "layout": "C",
+            "shape": [
+              7,
+              768
+            ]
+          },
+          "schema_version": "green-v400-dependency-mask-v2"
+        },
+        "depends_on_t": true
+      },
+      "kernel_id": "residual_add.v1",
+      "output_spec": {
+        "dtype": "<f4",
+        "layout": "C",
+        "shape": [
+          7,
+          768
+        ]
+      },
+      "parent_semantic_ids": [
+        "531450c75ab344b20d87cf2f12426a19d0e1b31246cf3c7a40129c595b04166c",
+        "60863cdf70611319d18edf875331ed41526dddafd068befff88826eb3dec660a"
+      ],
+      "provenance_identity": "TAR.B.block11.resid_post",
+      "schema_version": "green-v400-tensor-node-v1",
+      "semantic_id": "3730cad31db94e7bde10c130557d50a035a90398a7c038197fc021c28dfc9dfc",
+      "tensor_inputs": []
+    },
+    {
+      "dependency_mask_hash": "aa708fd7f87bcada391261d52bc4326a589de2aece1e23d50e5a5484960d13e9",
+      "exact_attrs": {
+        "axis": -1,
+        "dependency_mask_spec": {
+          "axis0_indices": [
+            6
+          ],
+          "dependent_scalar_count": 768,
+          "kind": "axis0_rows",
+          "output_spec": {
+            "dtype": "<f4",
+            "layout": "C",
+            "shape": [
+              7,
+              768
+            ]
+          },
+          "schema_version": "green-v400-dependency-mask-v2"
+        },
+        "depends_on_t": true
+      },
+      "kernel_id": "layer_norm.v1",
+      "output_spec": {
+        "dtype": "<f4",
+        "layout": "C",
+        "shape": [
+          7,
+          768
+        ]
+      },
+      "parent_semantic_ids": [
+        "3730cad31db94e7bde10c130557d50a035a90398a7c038197fc021c28dfc9dfc"
+      ],
+      "provenance_identity": "TAR.B.ln_final",
+      "schema_version": "green-v400-tensor-node-v1",
+      "semantic_id": "ca5106d9c9c1afc41f33418d2fe334dbe8376d7bea666d269d6ff319cfbb22cf",
+      "tensor_inputs": [
+        {
+          "dtype": "<f4",
+          "layout": "C",
+          "nbytes": 3072,
+          "schema_version": "green-v400-tensor-ref-v1",
+          "shape": [
+            768
+          ],
+          "tensor_sha256": "de49787cd8916bd792bb1d832bd59ea75249d76048641f411bb855f50aea1352"
+        },
+        {
+          "dtype": "<f4",
+          "layout": "C",
+          "nbytes": 3072,
+          "schema_version": "green-v400-tensor-ref-v1",
+          "shape": [
+            768
+          ],
+          "tensor_sha256": "7cb9ba8bde97d2f808f550fda631b45e15d14a49d9faca650235c30822a224bd"
+        },
+        {
+          "dtype": "<f4",
+          "layout": "C",
+          "nbytes": 4,
+          "schema_version": "green-v400-tensor-ref-v1",
+          "shape": [],
+          "tensor_sha256": "4558c9f7f06d3993b1ec713b281919d95fadb0a4ac1ea54024ab8d10544e1245"
+        }
+      ]
+    },
+    {
+      "dependency_mask_hash": "3a2c15486d363d38ac639d55979a3121cdfcce211b622ee7e2cbfda36556b891",
+      "exact_attrs": {
+        "contrast_width": 100,
+        "dependency_mask_spec": {
+          "axis0_indices": [],
+          "dependent_scalar_count": 1,
+          "kind": "dense",
+          "output_spec": {
+            "dtype": "<f8",
+            "layout": "C",
+            "shape": []
+          },
+          "schema_version": "green-v400-dependency-mask-v2"
+        },
+        "depends_on_t": true,
+        "final_position": 6,
+        "reduction": "fixed_balanced_pairwise",
+        "scalarization": "exact_affine_fusion_to_residual_contrast"
+      },
+      "kernel_id": "final_contrast.v1",
+      "output_spec": {
+        "dtype": "<f8",
+        "layout": "C",
+        "shape": []
+      },
+      "parent_semantic_ids": [
+        "ca5106d9c9c1afc41f33418d2fe334dbe8376d7bea666d269d6ff319cfbb22cf"
+      ],
+      "provenance_identity": "TAR.B.final_contrast",
+      "schema_version": "green-v400-tensor-node-v1",
+      "semantic_id": "c3368692e30cf9f8efca2f51605705956ec8de393ee93501f66b5150bc8165ca",
+      "tensor_inputs": [
+        {
+          "dtype": "<f4",
+          "layout": "C",
+          "nbytes": 154389504,
+          "schema_version": "green-v400-tensor-ref-v1",
+          "shape": [
+            768,
+            50257
+          ],
+          "tensor_sha256": "7e449d0450b72db17d4c5fa68e3fc75e9ccd202cad8e5977faa92ad9ccb0fdb4"
+        },
+        {
+          "dtype": "<f4",
+          "layout": "C",
+          "nbytes": 201028,
+          "schema_version": "green-v400-tensor-ref-v1",
+          "shape": [
+            50257
+          ],
+          "tensor_sha256": "03614157867e6026cc491595481a29019ba2077b921832d94c79936eb936369c"
+        },
+        {
+          "dtype": "<i8",
+          "layout": "C",
+          "nbytes": 800,
+          "schema_version": "green-v400-tensor-ref-v1",
+          "shape": [
+            100
+          ],
+          "tensor_sha256": "7a7e3559a6f7e07dceb6261220feadff8ce5dc51cbc370fb35fc64e232c90836"
+        },
+        {
+          "dtype": "<f8",
+          "layout": "C",
+          "nbytes": 800,
+          "schema_version": "green-v400-tensor-ref-v1",
+          "shape": [
+            100
+          ],
+          "tensor_sha256": "be790babbc81de813b409c5068ff010207a66f4df8b67df26570ed2571916d6d"
+        }
+      ]
+    },
+    {
+      "dependency_mask_hash": "3a2c15486d363d38ac639d55979a3121cdfcce211b622ee7e2cbfda36556b891",
+      "exact_attrs": {
+        "dependency_mask_spec": {
+          "axis0_indices": [],
+          "dependent_scalar_count": 1,
+          "kind": "dense",
+          "output_spec": {
+            "dtype": "<f8",
+            "layout": "C",
+            "shape": []
+          },
+          "schema_version": "green-v400-dependency-mask-v2"
+        },
+        "depends_on_t": true,
+        "order": [
+          "PAT_J",
+          "PAT_B",
+          "TAR_J",
+          "TAR_B"
+        ],
+        "reduction": "PAT_J_minus_PAT_B_minus_TAR_J_plus_TAR_B",
+        "weights": [
+          1,
+          -1,
+          -1,
+          1
+        ]
+      },
+      "kernel_id": "branch_linear_combination.v1",
+      "output_spec": {
+        "dtype": "<f8",
+        "layout": "C",
+        "shape": []
+      },
+      "parent_semantic_ids": [
+        "9dfd6811342fd98bda53adbaeb94638d8606ed7124fc7c43fecdab78411f3af8",
+        "8793e43b794042ebcd72fd87e559f85ae9fa5900400b53161b43c1c415ae709d",
+        "054fe50159e69718e09f32c96f02adcb4358edcf24abb8b17a09f9267d7abd26",
+        "c3368692e30cf9f8efca2f51605705956ec8de393ee93501f66b5150bc8165ca"
+      ],
+      "provenance_identity": "binding_joint_witness_psi",
+      "schema_version": "green-v400-tensor-node-v1",
+      "semantic_id": "4d8c25f529d22db7e9e62e9b4d5e5702cc81d5b333d173b2928ac54cf62f424a",
+      "tensor_inputs": []
+    }
+  ],
+  "output_root": "4d8c25f529d22db7e9e62e9b4d5e5702cc81d5b333d173b2928ac54cf62f424a",
+  "resource_formula": {
+    "cap_infeasibility_proved": true,
+    "coefficient_terms_four_branch_cell": 28419072,
+    "coefficient_terms_per_branch_cell": 7104768,
+    "dense_arithmetic_mpfr_ops_lower_bound_per_precision_cell": 341028864,
+    "dependency_mask_closure_sha256": "fcbde3c117c71c5b82335599dc5a1f35bba54bd9a30ddc0e76484cb852a46c93",
+    "dependent_scalar_outputs_total": 66113,
+    "dimensions": {
+      "contrast_width": 100,
+      "d_head": 64,
+      "d_mlp": 3072,
+      "d_model": 768,
+      "final_position": 6,
+      "n_heads": 12,
+      "selected_gates": [
+        2326,
+        1138,
+        2287,
+        606,
+        2848,
+        2305,
+        46,
+        2659,
+        946,
+        1616
+      ],
+      "sequence_length": 7
+    },
+    "directed_arithmetic_dominates_dense_lower_bound": true,
+    "directed_enclosure_arithmetic_primitive_taxonomy": {
+      "excluded": [
+        "mpfr_set/copy",
+        "mpfr_neg",
+        "comparison",
+        "serialization",
+        "synthetic fixture initialization div_2ui"
+      ],
+      "included": [
+        "mpfr_add/sub",
+        "mpfr_mul",
+        "mpfr_div/div_ui",
+        "mpfr_sqrt",
+        "mpfr_tanh",
+        "mpfr_exp"
+      ],
+      "schema_version": "green-v400-directed-enclosure-arithmetic-v1"
+    },
+    "directed_enclosure_arithmetic_primitives_per_precision_cell": 350146650,
+    "dispatcher_signature_sha256": "eb4c907ab4a86f3aac2fda445deed67099f2831c41e9712463688cccf1b6f008",
+    "exact_final_contrast_fusion_sha256": "bd734f457bd3baee252af47f1c048dbd606ec15bf6a1b6533751c7bb943319c1",
+    "formula_version": "green-v400-gpt2-tail-resource-v2-lower-bound",
+    "frozen_mpfr_ops_cap_per_row": 100000000,
+    "minimum_cells": 2,
+    "minimum_dense_arithmetic_mpfr_ops_lower_bound_per_precision_row_radius": 682057728,
+    "native_execution_descriptor": {
+      "claim_status": "PASS_NATIVE_DESCRIPTOR_PREPARE_ONLY",
+      "descriptor_file_sha256": "bc673467ac237e59e542634d38d02b8eaa12053cbb0abfc39e4dcaa6659ba3ee",
+      "descriptor_payload_sha256": "b6b383fb8d2924feeeaafd98deff6e53f8bb8e753a077b9abf6f3277d7f33a42",
+      "native_execution_ready": false,
+      "prebind_source_program_semantic_hash": "38f40999524d465b8ee58fcc8d2d1822caf9af6c36897a72bd404a8fff34fe62",
+      "program_execution_semantic_hash": "38f40999524d465b8ee58fcc8d2d1822caf9af6c36897a72bd404a8fff34fe62",
+      "schema_version": "green-v400-native-execution-descriptor-binding-v1"
+    },
+    "proof_assumptions": {
+      "cap_scope": "the cap covers the entire row across radii; one mandatory radius lower bound already exceeds it",
+      "mandatory_initial_cells": 2,
+      "mpfr_ops_per_dense_coefficient_term_lower_bound": 12,
+      "scope": "one precision; dense coefficient arithmetic only"
+    },
+    "tensor_store_closure": "d3b5131e08fd57358c84b6ba9c482c2f1b2fe2c100ab573490eb9fe8e053e9fb"
+  },
+  "scalarization_merkle_root": "131af50e2a824954de254f495d28ad088916429679c1154238703376f81efe86",
+  "schema_version": "green-v400-tensor-program-v1"
+}
