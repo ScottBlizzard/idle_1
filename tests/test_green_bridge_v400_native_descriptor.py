@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from fractions import Fraction
 from pathlib import Path
 import hashlib
 import os
@@ -15,7 +16,10 @@ from green_bridge_v400_native_descriptor import (
     decode_canonical_binary, descriptor_payload, encode_canonical_binary,
     load_native_execution_descriptor, program_execution_identity,
 )
-from green_bridge_v400_compiled_mpfr import CompiledMPFRBackend
+from green_bridge_v400_compiled_mpfr import (
+    CompiledMPFRBackend, CompiledNativeJointWitnessEvaluator,
+)
+from green_bridge_v400_certificate import certify_adaptive_cells
 from green_bridge_v400_interval import Interval
 from green_bridge_v400_mpfr_tensor_executor import (
     execute_tensor_program_mpfr, jet_exact_payload,
@@ -24,6 +28,7 @@ from green_bridge_v400_resident_plan import (
     build_resident_plan, load_resident_plan_arrays,
 )
 from green_bridge_v400_tensor_program import NATIVE_DISPATCH_KERNEL_TAGS, TensorProgram
+from green_bridge_v400_schemas import CertificatePlan, Dyadic
 from test_green_bridge_v400_gpt2_program import _fixture
 
 
@@ -271,6 +276,22 @@ def test_compiled_native_envelope_loader_is_hash_closed_and_generation_safe(tmp_
                 for component in ("value", "first", "second")
             }
             assert actual == jet_exact_payload(reference[root_name])
+    row_hash = "a" * 64
+    evaluator = CompiledNativeJointWitnessEvaluator(
+        backend, {384: contexts[0], 512: contexts[1]},
+        certificate_row_hash=row_hash,
+        expected_kernel_tags=tuple(trace["kernel_tags"]),
+    )
+    certificate_plan = CertificatePlan(
+        "green-v400-certificate-plan-v1", row_hash, (Dyadic(1, -14),),
+        "[-h,0],[0,h]", "curvature-weighted width priority dyadic bisection",
+        "0x1p+100", "0x1p+100", 0, 2, 384, 512, (), False,
+    )
+    cells = certify_adaptive_cells(
+        evaluator, Fraction(1, 2**14), 384, certificate_plan,
+    )
+    assert cells is not None and len(cells) == 2
+    assert evaluator.dispatch_count_by_precision == {384: 2, 512: 0}
     with pytest.raises(RuntimeError, match="status 2"):
         backend.open_native_precision_context(envelope, 256)
     stale = envelope.handle

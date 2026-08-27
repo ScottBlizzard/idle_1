@@ -140,6 +140,52 @@ class CompiledNativePrecisionContext:
             pass
 
 
+class CompiledNativeJointWitnessEvaluator:
+    """Outcome-blind adapter from retained native contexts to certificate Jet2."""
+
+    contains_scientific_outcome = False
+
+    def __init__(self, backend, contexts: dict[int, CompiledNativePrecisionContext], *,
+                 certificate_row_hash: str, expected_kernel_tags: tuple[int, ...]):
+        if len(certificate_row_hash) != 64:
+            raise ValueError("native certificate row hash must be SHA-256")
+        if not contexts:
+            raise ValueError("native evaluator requires at least one precision context")
+        for precision, context in contexts.items():
+            if (context.backend is not backend or context.handle <= 0
+                    or context.info["precision_bits"] != int(precision)):
+                raise ValueError("native evaluator context identity mismatch")
+        if not expected_kernel_tags:
+            raise ValueError("native evaluator requires the frozen dispatch trace")
+        self.backend = backend
+        self.contexts = dict(contexts)
+        self.certificate_row_hash = certificate_row_hash
+        self.expected_kernel_tags = tuple(int(tag) for tag in expected_kernel_tags)
+        self.dispatch_count_by_precision = {int(key): 0 for key in contexts}
+
+    @staticmethod
+    def _interval(payload: dict, precision_bits: int) -> Interval:
+        lower = _exact_fraction(payload["lower"])
+        upper = _exact_fraction(payload["upper"])
+        return Interval.from_bounds(lower, upper, precision_bits)
+
+    def evaluate_interval(self, domain: Interval) -> Jet2:
+        context = self.contexts.get(domain.precision_bits)
+        if context is None:
+            raise RuntimeError("native evaluator precision context is unavailable")
+        payload = self.backend.dispatch_native_precision_context_cell(context, domain)
+        if (payload.get("event_count") != len(self.expected_kernel_tags)
+                or tuple(payload.get("kernel_tags", ())) != self.expected_kernel_tags):
+            raise RuntimeError("NATIVE_CERTIFICATE_DISPATCH_IDENTITY_INVALID")
+        output = payload["output"]
+        jet = Jet2(*(
+            self._interval(output[component], domain.precision_bits)
+            for component in ("value", "first", "second")
+        ))
+        self.dispatch_count_by_precision[domain.precision_bits] += 1
+        return jet
+
+
 class CompiledMPFRBackend:
     def __init__(self, library_path: Path):
         self.library_path = Path(library_path).resolve()
