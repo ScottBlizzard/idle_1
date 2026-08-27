@@ -1,0 +1,177 @@
+{
+  "backend_sha256": "8603cf38258c07c71eff93da4713cc112a9a5c1a6d3ab7bbd591a99823b486aa",
+  "cap_decision_authorized": false,
+  "claim_scope": "endpoint/center and two mandatory initial curvature-cell execution, signed two-cell curvature integration, exact-payload serialization cost, and same-process peak RSS; no adaptive subdivision, scientific label, threshold decision, or formal bound",
+  "contains_scientific_outcome": false,
+  "created_at_utc": "2026-08-27T07:16:33.667362Z",
+  "fixed_stage_order": [
+    "negative_endpoint",
+    "center",
+    "positive_endpoint",
+    "negative_curvature_cell",
+    "positive_curvature_cell"
+  ],
+  "fixture": "actual-shape closed GPT-2 synthetic tensor store; values omitted",
+  "formal_wall_time_upper_bound": false,
+  "precision_nesting_boolean_only": {
+    "center": true,
+    "negative_curvature_cell": true,
+    "negative_endpoint": true,
+    "positive_curvature_cell": true,
+    "positive_endpoint": true
+  },
+  "process_peak_rss_after_kib": 371964,
+  "process_peak_rss_before_kib": 49536,
+  "process_peak_rss_delta_kib": 322428,
+  "program_semantic_hash": "38f40999524d465b8ee58fcc8d2d1822caf9af6c36897a72bd404a8fff34fe62",
+  "radius": {
+    "denominator": 16384,
+    "numerator": 1
+  },
+  "resident_plan_semantic_hash": "0d5625e2f7af118615497e9642481946aec0a436b900e3c0d1661f90ba6f9acf",
+  "rows": [
+    {
+      "exact_payload_serialization_seconds": 0.0010790679953061044,
+      "exact_payload_serialized_bytes": 7335,
+      "exact_payload_sha256": "92306c709601e3b6ab3fcd4e10548aabf9613d1ada1ee5998e9d390e0ecdf367",
+      "native_static_cache_entry_count": 7,
+      "precision_bits": 384,
+      "signed_certificate_payload_bytes": 5112,
+      "signed_certificate_payload_sha256": "6755d080a6cc8781b043444dc74f37b9404ab16fe3b39e59c995ff0e548ca3d0",
+      "stage_elapsed_median_seconds": 23.459086300979834,
+      "stage_elapsed_sum_seconds": 122.85188008093974,
+      "stages": [
+        {
+          "elapsed_seconds": 29.85283333598636,
+          "native_static_cache_hits": 15,
+          "native_static_cache_misses": 7,
+          "resident_buffer_exported_jet_count": 9221,
+          "resident_buffer_imported_jet_count": 34580,
+          "stage": "negative_endpoint",
+          "static_cache_initial_entry_count": 0,
+          "static_cache_miss_count": 40
+        },
+        {
+          "elapsed_seconds": 23.220782947988482,
+          "native_static_cache_hits": 22,
+          "native_static_cache_misses": 0,
+          "resident_buffer_exported_jet_count": 9221,
+          "resident_buffer_imported_jet_count": 15360,
+          "stage": "center",
+          "static_cache_initial_entry_count": 40,
+          "static_cache_miss_count": 0
+        },
+        {
+          "elapsed_seconds": 23.480516902985983,
+          "native_static_cache_hits": 22,
+          "native_static_cache_misses": 0,
+          "resident_buffer_exported_jet_count": 9221,
+          "resident_buffer_imported_jet_count": 15360,
+          "stage": "positive_endpoint",
+          "static_cache_initial_entry_count": 40,
+          "static_cache_miss_count": 0
+        },
+        {
+          "elapsed_seconds": 22.838660592999076,
+          "native_static_cache_hits": 22,
+          "native_static_cache_misses": 0,
+          "resident_buffer_exported_jet_count": 9221,
+          "resident_buffer_imported_jet_count": 15360,
+          "stage": "negative_curvature_cell",
+          "static_cache_initial_entry_count": 40,
+          "static_cache_miss_count": 0
+        },
+        {
+          "elapsed_seconds": 23.459086300979834,
+          "native_static_cache_hits": 22,
+          "native_static_cache_misses": 0,
+          "resident_buffer_exported_jet_count": 9221,
+          "resident_buffer_imported_jet_count": 15360,
+          "stage": "positive_curvature_cell",
+          "static_cache_initial_entry_count": 40,
+          "static_cache_miss_count": 0
+        }
+      ],
+      "static_cache_entry_count": 40
+    },
+    {
+      "exact_payload_serialization_seconds": 0.0009662490047048777,
+      "exact_payload_serialized_bytes": 9565,
+      "exact_payload_sha256": "ee64ab3d5ee11fab4cee4da08348f7600c894eb1220aa297c456ba8ac71944d8",
+      "native_static_cache_entry_count": 7,
+      "precision_bits": 512,
+      "signed_certificate_payload_bytes": 6655,
+      "signed_certificate_payload_sha256": "626e4bcef1d53262dbaaea8289b9c5533ad028f2461e79e676509f840d683b2b",
+      "stage_elapsed_median_seconds": 27.011665497993818,
+      "stage_elapsed_sum_seconds": 151.8984197799582,
+      "stages": [
+        {
+          "elapsed_seconds": 35.054125026013935,
+          "native_static_cache_hits": 15,
+          "native_static_cache_misses": 7,
+          "resident_buffer_exported_jet_count": 9221,
+          "resident_buffer_imported_jet_count": 34580,
+          "stage": "negative_endpoint",
+          "static_cache_initial_entry_count": 0,
+          "static_cache_miss_count": 40
+        },
+        {
+          "elapsed_seconds": 27.011665497993818,
+          "native_static_cache_hits": 22,
+          "native_static_cache_misses": 0,
+          "resident_buffer_exported_jet_count": 9221,
+          "resident_buffer_imported_jet_count": 15360,
+          "stage": "center",
+          "static_cache_initial_entry_count": 40,
+          "static_cache_miss_count": 0
+        },
+        {
+          "elapsed_seconds": 26.427178186975652,
+          "native_static_cache_hits": 22,
+          "native_static_cache_misses": 0,
+          "resident_buffer_exported_jet_count": 9221,
+          "resident_buffer_imported_jet_count": 15360,
+          "stage": "positive_endpoint",
+          "static_cache_initial_entry_count": 40,
+          "static_cache_miss_count": 0
+        },
+        {
+          "elapsed_seconds": 26.321796042990172,
+          "native_static_cache_hits": 22,
+          "native_static_cache_misses": 0,
+          "resident_buffer_exported_jet_count": 9221,
+          "resident_buffer_imported_jet_count": 15360,
+          "stage": "negative_curvature_cell",
+          "static_cache_initial_entry_count": 40,
+          "static_cache_miss_count": 0
+        },
+        {
+          "elapsed_seconds": 37.083655025984626,
+          "native_static_cache_hits": 22,
+          "native_static_cache_misses": 0,
+          "resident_buffer_exported_jet_count": 9221,
+          "resident_buffer_imported_jet_count": 15360,
+          "stage": "positive_curvature_cell",
+          "static_cache_initial_entry_count": 40,
+          "static_cache_miss_count": 0
+        }
+      ],
+      "static_cache_entry_count": 40
+    }
+  ],
+  "schema_version": "green-v400-resident-endpoint-center-benchmark-v1",
+  "signed_certificate_nesting_boolean_only": {
+    "curvature_m2": true,
+    "curvature_negative": true,
+    "curvature_positive": true,
+    "curvature_secant": true,
+    "endpoint_center": true,
+    "endpoint_negative": true,
+    "endpoint_positive": true,
+    "endpoint_slope": true,
+    "negative_residual": true,
+    "positive_residual": true,
+    "witness": true
+  },
+  "status": "PASS_SIGNED_CURVATURE_OBSERVATION_ONLY"
+}

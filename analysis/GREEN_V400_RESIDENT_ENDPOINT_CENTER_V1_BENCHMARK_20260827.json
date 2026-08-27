@@ -1,0 +1,160 @@
+{
+  "backend_sha256": "8603cf38258c07c71eff93da4713cc112a9a5c1a6d3ab7bbd591a99823b486aa",
+  "cap_decision_authorized": false,
+  "claim_scope": "endpoint/center and two mandatory initial curvature-cell execution, exact-payload serialization cost, and same-process peak RSS; no adaptive subdivision, signed integration, scientific label, or formal bound",
+  "contains_scientific_outcome": false,
+  "created_at_utc": "2026-08-27T07:10:05.941650Z",
+  "fixed_stage_order": [
+    "negative_endpoint",
+    "center",
+    "positive_endpoint",
+    "negative_curvature_cell",
+    "positive_curvature_cell"
+  ],
+  "fixture": "actual-shape closed GPT-2 synthetic tensor store; values omitted",
+  "formal_wall_time_upper_bound": false,
+  "precision_nesting_boolean_only": {
+    "center": true,
+    "negative_curvature_cell": true,
+    "negative_endpoint": true,
+    "positive_curvature_cell": true,
+    "positive_endpoint": true
+  },
+  "process_peak_rss_after_kib": 371156,
+  "process_peak_rss_before_kib": 49192,
+  "process_peak_rss_delta_kib": 321964,
+  "program_semantic_hash": "38f40999524d465b8ee58fcc8d2d1822caf9af6c36897a72bd404a8fff34fe62",
+  "radius": {
+    "denominator": 16384,
+    "numerator": 1
+  },
+  "resident_plan_semantic_hash": "0d5625e2f7af118615497e9642481946aec0a436b900e3c0d1661f90ba6f9acf",
+  "rows": [
+    {
+      "exact_payload_serialization_seconds": 0.0009627830004319549,
+      "exact_payload_serialized_bytes": 7335,
+      "exact_payload_sha256": "92306c709601e3b6ab3fcd4e10548aabf9613d1ada1ee5998e9d390e0ecdf367",
+      "native_static_cache_entry_count": 7,
+      "precision_bits": 384,
+      "stage_elapsed_median_seconds": 26.114373388991226,
+      "stage_elapsed_sum_seconds": 143.8429844409984,
+      "stages": [
+        {
+          "elapsed_seconds": 34.528637562005315,
+          "native_static_cache_hits": 15,
+          "native_static_cache_misses": 7,
+          "resident_buffer_exported_jet_count": 9221,
+          "resident_buffer_imported_jet_count": 34580,
+          "stage": "negative_endpoint",
+          "static_cache_initial_entry_count": 0,
+          "static_cache_miss_count": 40
+        },
+        {
+          "elapsed_seconds": 36.68391396899824,
+          "native_static_cache_hits": 22,
+          "native_static_cache_misses": 0,
+          "resident_buffer_exported_jet_count": 9221,
+          "resident_buffer_imported_jet_count": 15360,
+          "stage": "center",
+          "static_cache_initial_entry_count": 40,
+          "static_cache_miss_count": 0
+        },
+        {
+          "elapsed_seconds": 26.114373388991226,
+          "native_static_cache_hits": 22,
+          "native_static_cache_misses": 0,
+          "resident_buffer_exported_jet_count": 9221,
+          "resident_buffer_imported_jet_count": 15360,
+          "stage": "positive_endpoint",
+          "static_cache_initial_entry_count": 40,
+          "static_cache_miss_count": 0
+        },
+        {
+          "elapsed_seconds": 23.095027097995626,
+          "native_static_cache_hits": 22,
+          "native_static_cache_misses": 0,
+          "resident_buffer_exported_jet_count": 9221,
+          "resident_buffer_imported_jet_count": 15360,
+          "stage": "negative_curvature_cell",
+          "static_cache_initial_entry_count": 40,
+          "static_cache_miss_count": 0
+        },
+        {
+          "elapsed_seconds": 23.421032423008,
+          "native_static_cache_hits": 22,
+          "native_static_cache_misses": 0,
+          "resident_buffer_exported_jet_count": 9221,
+          "resident_buffer_imported_jet_count": 15360,
+          "stage": "positive_curvature_cell",
+          "static_cache_initial_entry_count": 40,
+          "static_cache_miss_count": 0
+        }
+      ],
+      "static_cache_entry_count": 40
+    },
+    {
+      "exact_payload_serialization_seconds": 0.0011527180031407624,
+      "exact_payload_serialized_bytes": 9565,
+      "exact_payload_sha256": "ee64ab3d5ee11fab4cee4da08348f7600c894eb1220aa297c456ba8ac71944d8",
+      "native_static_cache_entry_count": 7,
+      "precision_bits": 512,
+      "stage_elapsed_median_seconds": 26.607564086007187,
+      "stage_elapsed_sum_seconds": 139.12717754903133,
+      "stages": [
+        {
+          "elapsed_seconds": 33.483108606014866,
+          "native_static_cache_hits": 15,
+          "native_static_cache_misses": 7,
+          "resident_buffer_exported_jet_count": 9221,
+          "resident_buffer_imported_jet_count": 34580,
+          "stage": "negative_endpoint",
+          "static_cache_initial_entry_count": 0,
+          "static_cache_miss_count": 40
+        },
+        {
+          "elapsed_seconds": 26.60308741198969,
+          "native_static_cache_hits": 22,
+          "native_static_cache_misses": 0,
+          "resident_buffer_exported_jet_count": 9221,
+          "resident_buffer_imported_jet_count": 15360,
+          "stage": "center",
+          "static_cache_initial_entry_count": 40,
+          "static_cache_miss_count": 0
+        },
+        {
+          "elapsed_seconds": 26.631730024004355,
+          "native_static_cache_hits": 22,
+          "native_static_cache_misses": 0,
+          "resident_buffer_exported_jet_count": 9221,
+          "resident_buffer_imported_jet_count": 15360,
+          "stage": "positive_endpoint",
+          "static_cache_initial_entry_count": 40,
+          "static_cache_miss_count": 0
+        },
+        {
+          "elapsed_seconds": 26.607564086007187,
+          "native_static_cache_hits": 22,
+          "native_static_cache_misses": 0,
+          "resident_buffer_exported_jet_count": 9221,
+          "resident_buffer_imported_jet_count": 15360,
+          "stage": "negative_curvature_cell",
+          "static_cache_initial_entry_count": 40,
+          "static_cache_miss_count": 0
+        },
+        {
+          "elapsed_seconds": 25.80168742101523,
+          "native_static_cache_hits": 22,
+          "native_static_cache_misses": 0,
+          "resident_buffer_exported_jet_count": 9221,
+          "resident_buffer_imported_jet_count": 15360,
+          "stage": "positive_curvature_cell",
+          "static_cache_initial_entry_count": 40,
+          "static_cache_miss_count": 0
+        }
+      ],
+      "static_cache_entry_count": 40
+    }
+  ],
+  "schema_version": "green-v400-resident-endpoint-center-benchmark-v1",
+  "status": "PASS_ENDPOINT_CENTER_OBSERVATION_ONLY"
+}
