@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import ctypes
 from fractions import Fraction
+import hashlib
 import json
 from pathlib import Path
 
@@ -26,6 +27,8 @@ def _exact_fraction(payload: dict) -> Fraction:
     negative = raw.startswith("-")
     digits = raw[1:] if negative else raw
     significand = int(digits, 16) * (-1 if negative else 1)
+    if significand == 0:
+        return Fraction(0, 1)
     exponent = int(payload["exponent_2"])
     return (Fraction(significand * (1 << exponent), 1) if exponent >= 0
             else Fraction(significand, 1 << (-exponent)))
@@ -42,15 +45,45 @@ def _binary_endpoint(value) -> tuple[bytes, int]:
     return f"{sign}{abs(numerator):x}".encode("ascii"), exponent
 
 
+class CompiledResidentJetBuffer:
+    """Owned opaque native Jet2 vector; intermediate values never cross JSON/FFI."""
+
+    def __init__(self, backend, handle: ctypes.c_void_p, precision_bits: int, width: int):
+        if not handle.value or width <= 0:
+            raise ValueError("invalid compiled resident Jet2 buffer")
+        self.backend = backend
+        self.handle = handle
+        self.precision_bits = int(precision_bits)
+        self.width = int(width)
+
+    def close(self) -> None:
+        if self.handle.value:
+            self.backend.library.green_v400_resident_jet_buffer_free(self.handle)
+            self.handle = ctypes.c_void_p()
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc_value, traceback):
+        self.close()
+
+    def __del__(self):
+        try:
+            self.close()
+        except Exception:
+            pass
+
+
 class CompiledMPFRBackend:
     def __init__(self, library_path: Path):
         self.library_path = Path(library_path).resolve()
         if not self.library_path.is_file():
             raise FileNotFoundError(self.library_path)
+        self.library_sha256 = hashlib.sha256(self.library_path.read_bytes()).hexdigest()
         self.library = ctypes.CDLL(str(self.library_path))
         self.library.green_v400_mpfr_backend_version.restype = ctypes.c_char_p
         self.version = self.library.green_v400_mpfr_backend_version().decode("ascii")
-        if self.version != "green-v400-compiled-mpfr-v1":
+        if self.version != "green-v400-compiled-mpfr-v2":
             raise ValueError("compiled MPFR backend version mismatch")
         function = self.library.green_v400_affine_jet2_f32
         function.argtypes = [
@@ -172,6 +205,35 @@ class CompiledMPFRBackend:
             ctypes.c_char_p, ctypes.c_int64, ctypes.c_char_p, ctypes.c_uint64,
         ]
         fused_contrast.restype = ctypes.c_int
+        resident_import = self.library.green_v400_resident_jet_buffer_import_exact
+        resident_import.argtypes = [
+            ctypes.c_uint32, ctypes.c_uint32, ctypes.POINTER(ctypes.c_char_p),
+            ctypes.POINTER(ctypes.c_int64), ctypes.POINTER(ctypes.c_void_p),
+        ]
+        resident_import.restype = ctypes.c_int
+        resident_affine = self.library.green_v400_resident_jet_buffer_packed_affine
+        resident_affine.argtypes = [
+            ctypes.c_void_p, ctypes.c_uint32, ctypes.POINTER(ctypes.c_uint32),
+            ctypes.POINTER(ctypes.c_uint32), ctypes.POINTER(ctypes.c_void_p),
+        ]
+        resident_affine.restype = ctypes.c_int
+        resident_gelu = self.library.green_v400_resident_jet_buffer_gelu_new
+        resident_gelu.argtypes = [
+            ctypes.c_void_p, ctypes.c_uint32, ctypes.c_uint32,
+            ctypes.POINTER(ctypes.c_void_p),
+        ]
+        resident_gelu.restype = ctypes.c_int
+        resident_export = self.library.green_v400_resident_jet_buffer_export_json
+        resident_export.argtypes = [
+            ctypes.c_void_p, ctypes.c_char_p, ctypes.c_uint64,
+        ]
+        resident_export.restype = ctypes.c_int
+        resident_width = self.library.green_v400_resident_jet_buffer_width
+        resident_width.argtypes = [ctypes.c_void_p]
+        resident_width.restype = ctypes.c_uint32
+        resident_free = self.library.green_v400_resident_jet_buffer_free
+        resident_free.argtypes = [ctypes.c_void_p]
+        resident_free.restype = None
 
     def affine_jet2(self, weights, bias, values: list[Jet2], precision_bits: int) -> dict:
         weights = np.ascontiguousarray(np.asarray(weights, dtype="<f4").reshape(-1))
@@ -314,6 +376,75 @@ class CompiledMPFRBackend:
         )
         if status != 0:
             raise RuntimeError(f"compiled packed affine layer failed with status {status}")
+        return json.loads(output.value.decode("ascii"))
+
+    def resident_jet_buffer(self, values: list[Jet2]) -> CompiledResidentJetBuffer:
+        if not values:
+            raise ValueError("resident Jet2 buffer requires values")
+        precision = values[0].precision_bits
+        if any(value.precision_bits != precision for value in values):
+            raise ValueError("resident Jet2 buffer precision mismatch")
+        encoded = []
+        for value in values:
+            for component in (value.value, value.first, value.second):
+                encoded.extend((_binary_endpoint(component.lower), _binary_endpoint(component.upper)))
+        strings = (ctypes.c_char_p * len(encoded))(*(item[0] for item in encoded))
+        exponents = np.asarray([item[1] for item in encoded], dtype="<i8")
+        handle = ctypes.c_void_p()
+        status = self.library.green_v400_resident_jet_buffer_import_exact(
+            precision, len(values), strings,
+            exponents.ctypes.data_as(ctypes.POINTER(ctypes.c_int64)), ctypes.byref(handle),
+        )
+        if status != 0:
+            raise RuntimeError(f"compiled resident Jet2 import failed with status {status}")
+        return CompiledResidentJetBuffer(self, handle, precision, len(values))
+
+    def resident_packed_affine_layer_jet2(
+        self, values: CompiledResidentJetBuffer, weight, bias,
+    ) -> CompiledResidentJetBuffer:
+        weight = np.asarray(weight, dtype="<f4", order="C")
+        bias = np.asarray(bias, dtype="<f4").reshape(-1)
+        if (not values.handle.value or weight.ndim != 2
+                or weight.shape != (values.width, bias.size)):
+            raise ValueError("resident packed affine shape mismatch")
+        handle = ctypes.c_void_p()
+        status = self.library.green_v400_resident_jet_buffer_packed_affine(
+            values.handle, bias.size,
+            weight.view("<u4").ctypes.data_as(ctypes.POINTER(ctypes.c_uint32)),
+            bias.view("<u4").ctypes.data_as(ctypes.POINTER(ctypes.c_uint32)),
+            ctypes.byref(handle),
+        )
+        if status != 0:
+            raise RuntimeError(f"resident packed affine failed with status {status}")
+        return CompiledResidentJetBuffer(self, handle, values.precision_bits, bias.size)
+
+    def resident_gelu_new_layer_jet2(
+        self, values: CompiledResidentJetBuffer, kappa, lam,
+    ) -> CompiledResidentJetBuffer:
+        if not values.handle.value:
+            raise ValueError("resident GELU input buffer is closed")
+        handle = ctypes.c_void_p()
+        status = self.library.green_v400_resident_jet_buffer_gelu_new(
+            values.handle, _bits_f32(kappa), _bits_f32(lam), ctypes.byref(handle)
+        )
+        if status != 0:
+            raise RuntimeError(f"resident GELU failed with status {status}")
+        return CompiledResidentJetBuffer(
+            self, handle, values.precision_bits, values.width
+        )
+
+    def export_resident_jet_buffer(self, values: CompiledResidentJetBuffer) -> dict:
+        if not values.handle.value:
+            raise ValueError("resident Jet2 export buffer is closed")
+        native_width = self.library.green_v400_resident_jet_buffer_width(values.handle)
+        if native_width != values.width:
+            raise RuntimeError("resident Jet2 native width mismatch")
+        output = ctypes.create_string_buffer(max(8192, 4096 * values.width))
+        status = self.library.green_v400_resident_jet_buffer_export_json(
+            values.handle, output, len(output)
+        )
+        if status != 0:
+            raise RuntimeError(f"resident Jet2 export failed with status {status}")
         return json.loads(output.value.decode("ascii"))
 
     def benchmark_gpt2_joint_witness_cell(

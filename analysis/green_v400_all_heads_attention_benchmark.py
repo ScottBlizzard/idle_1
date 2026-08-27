@@ -1,4 +1,4 @@
-"""Outcome-blind actual-shape all-head versus per-head attention FFI observation."""
+"""Outcome-blind program-shape all-head versus per-head attention FFI observation."""
 from __future__ import annotations
 
 import argparse
@@ -18,6 +18,7 @@ from green_bridge_v400_compiled_mpfr import CompiledMPFRBackend
 from green_bridge_v400_interval import Interval
 from green_bridge_v400_interval_jet import Jet2
 from green_bridge_v400_schemas import sha256_canonical
+from green_bridge_v400_tensor_program import TensorProgram
 
 
 def sha256_file(path: Path) -> str:
@@ -41,39 +42,46 @@ def synthetic_jet(index: int, precision: int) -> Jet2:
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--library", required=True)
+    parser.add_argument("--program", required=True)
     parser.add_argument("--output", required=True)
     parser.add_argument("--repetitions", type=int, default=7)
-    parser.add_argument("--sequence-length", type=int, default=12)
-    parser.add_argument("--n-heads", type=int, default=12)
-    parser.add_argument("--head-dim", type=int, default=64)
     args = parser.parse_args()
     if args.repetitions < 3:
         raise RuntimeError("at least three repetitions are required")
     library, output = Path(args.library).resolve(), Path(args.output).resolve()
     if "/mnt/sdb/" not in output.as_posix() or output.exists():
         raise RuntimeError("attention benchmark output must be a new file on /mnt/sdb")
-    d_model = args.n_heads * args.head_dim
+    program = TensorProgram.from_dict(json.loads(
+        Path(args.program).read_text(encoding="utf-8")
+    ))
+    dimensions = program.resource_formula["dimensions"]
+    sequence_length = int(dimensions["sequence_length"])
+    n_heads = int(dimensions["n_heads"])
+    head_dim = int(dimensions["d_head"])
+    d_model = int(dimensions["d_model"])
+    if n_heads * head_dim != d_model:
+        raise RuntimeError("program attention dimensions are inconsistent")
     backend = CompiledMPFRBackend(library)
     rows = []
     for precision in (384, 512):
         query = [synthetic_jet(index, precision) for index in range(d_model)]
         keys = [[synthetic_jet(10_000 + token*d_model + index, precision)
-                 for index in range(d_model)] for token in range(args.sequence_length)]
+                 for index in range(d_model)] for token in range(sequence_length)]
         values = [[synthetic_jet(100_000 + token*d_model + index, precision)
-                   for index in range(d_model)] for token in range(args.sequence_length)]
+                   for index in range(d_model)] for token in range(sequence_length)]
         batch_times, individual_times, batch_hashes, individual_hashes = [], [], [], []
         def run_batch():
             started = time.perf_counter()
             result = backend.causal_attention_final_all_heads_jet2(
-                query, keys, values, args.n_heads, pivot=0
+                query, keys, values, n_heads, pivot=0
             )["outputs"]
             return result, time.perf_counter() - started
 
         def run_individual():
             started = time.perf_counter()
             result = []
-            for head in range(args.n_heads):
-                start, stop = head * args.head_dim, (head + 1) * args.head_dim
+            for head in range(n_heads):
+                start, stop = head * head_dim, (head + 1) * head_dim
                 result.extend(backend.causal_attention_final_head_jet2(
                     query[start:stop], [row[start:stop] for row in keys],
                     [row[start:stop] for row in values], pivot=0,
@@ -111,15 +119,16 @@ def main() -> int:
             "output_exact_payload_sha256": batch_hashes[0],
         })
     report = {
-        "schema_version": "green-v400-actual-shape-all-heads-attention-benchmark-v2",
+        "schema_version": "green-v400-program-shape-all-heads-attention-benchmark-v3",
         "created_at_utc": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
         "contains_scientific_outcome": False,
         "input_policy": "deterministic synthetic Jet2 query/key/value tensors",
-        "dimensions": {"sequence_length": args.sequence_length, "n_heads": args.n_heads,
-                       "head_dim": args.head_dim, "d_model": d_model},
+        "program_semantic_hash": program.semantic_hash(),
+        "dimensions": {"sequence_length": sequence_length, "n_heads": n_heads,
+                       "head_dim": head_dim, "d_model": d_model},
         "backend_sha256": sha256_file(library),
         "rows": rows,
-        "status": "PASS_ACTUAL_SHAPE_ALL_HEADS_ATTENTION_FFI_OBSERVATION_ONLY",
+        "status": "PASS_PROGRAM_SHAPE_ALL_HEADS_ATTENTION_FFI_OBSERVATION_ONLY",
         "execution_order_policy": "alternate all-head-first and per-head-first by repetition",
         "performance_decision": "NO_STABLE_SPEEDUP_KEEP_DISABLED_BY_DEFAULT",
         "resident_dispatcher_complete": False,

@@ -48,6 +48,15 @@ def main() -> int:
                 or artifact.get("formal_wall_time_upper_bound") is not False
                 or artifact.get("cap_decision_authorized") is not False):
             raise RuntimeError(f"ineligible {name} benchmark artifact")
+    dimensions = program.resource_formula["dimensions"]
+    expected_attention_dimensions = {
+        "sequence_length": int(dimensions["sequence_length"]),
+        "n_heads": int(dimensions["n_heads"]),
+        "head_dim": int(dimensions["d_head"]),
+        "d_model": int(dimensions["d_model"]),
+    }
+    if artifacts["attention"].get("dimensions") != expected_attention_dimensions:
+        raise RuntimeError("attention benchmark dimensions disagree with TensorProgram")
     backend_hashes = {artifact["backend_sha256"] for artifact in artifacts.values()}
     if len(backend_hashes) != 1:
         raise RuntimeError("kernel benchmarks use different native backends")

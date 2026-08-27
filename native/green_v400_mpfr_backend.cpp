@@ -129,6 +129,12 @@ void pairwise_sum(std::vector<MpfrValue*>& terms, mpfr_ptr output,
 }
 
 std::string exact_binary(mpfr_srcptr value, mpfr_prec_t precision) {
+  if (mpfr_zero_p(value)) {
+    std::ostringstream zero_stream;
+    zero_stream << "{\"significand_hex\":\"0\",\"exponent_2\":0,\"precision_bits\":"
+                << precision << "}";
+    return zero_stream.str();
+  }
   mpz_t significand;
   mpz_init(significand);
   const mpfr_exp_t exponent = mpfr_get_z_2exp(significand, value);
@@ -277,6 +283,48 @@ struct JetMP {
   IntervalMP first;
   IntervalMP second;
 };
+
+constexpr std::uint64_t kResidentJetBufferMagic = 0x47523430304a4554ULL;
+
+struct ResidentJetBuffer {
+  ResidentJetBuffer(mpfr_prec_t precision, std::vector<JetMP>&& values)
+      : magic(kResidentJetBufferMagic), precision(precision), values(std::move(values)) {}
+  std::uint64_t magic;
+  mpfr_prec_t precision;
+  std::vector<JetMP> values;
+};
+
+ResidentJetBuffer* resident_buffer(void* handle) {
+  ResidentJetBuffer* buffer = static_cast<ResidentJetBuffer*>(handle);
+  return buffer != nullptr && buffer->magic == kResidentJetBufferMagic ? buffer : nullptr;
+}
+
+int parse_exact_jets(std::uint32_t precision_bits, std::uint32_t width,
+                     const char* const* endpoint_significands,
+                     const std::int64_t* endpoint_exponents,
+                     std::vector<JetMP>& outputs) {
+  if (precision_bits < 64 || precision_bits > 4096 || width == 0 || width > 1000000U
+      || endpoint_significands == nullptr || endpoint_exponents == nullptr) return 2;
+  const mpfr_prec_t precision = static_cast<mpfr_prec_t>(precision_bits);
+  outputs.reserve(width);
+  for (std::uint32_t index = 0; index < width; ++index) {
+    outputs.emplace_back(precision);
+    IntervalMP* components[3] = {
+        &outputs.back().value, &outputs.back().first, &outputs.back().second};
+    for (std::size_t component = 0; component < 3; ++component) {
+      const std::size_t offset = static_cast<std::size_t>(index) * 6U + 2U * component;
+      int status = set_exact_binary(components[component]->lower.get(),
+                                    endpoint_significands[offset], endpoint_exponents[offset]);
+      if (status != 0) return status;
+      status = set_exact_binary(components[component]->upper.get(),
+                                endpoint_significands[offset + 1U],
+                                endpoint_exponents[offset + 1U]);
+      if (status != 0 || mpfr_greater_p(components[component]->lower.get(),
+                                       components[component]->upper.get())) return 3;
+    }
+  }
+  return 0;
+}
 
 IntervalMP interval_point_float(float raw, mpfr_prec_t precision) {
   IntervalMP result(precision);
@@ -929,7 +977,98 @@ JetMP synthetic_joint_witness_cell(
 }  // namespace
 
 extern "C" const char* green_v400_mpfr_backend_version() {
-  return "green-v400-compiled-mpfr-v1";
+  return "green-v400-compiled-mpfr-v2";
+}
+
+extern "C" int green_v400_resident_jet_buffer_import_exact(
+    std::uint32_t precision_bits, std::uint32_t width,
+    const char* const* endpoint_significands, const std::int64_t* endpoint_exponents,
+    void** output_handle) {
+  if (output_handle == nullptr) return 2;
+  *output_handle = nullptr;
+  try {
+    std::vector<JetMP> values;
+    const int status = parse_exact_jets(
+        precision_bits, width, endpoint_significands, endpoint_exponents, values);
+    if (status != 0) return status;
+    *output_handle = new ResidentJetBuffer(
+        static_cast<mpfr_prec_t>(precision_bits), std::move(values));
+    return 0;
+  } catch (...) {
+    return 7;
+  }
+}
+
+extern "C" int green_v400_resident_jet_buffer_packed_affine(
+    void* input_handle, std::uint32_t output_width,
+    const std::uint32_t* weight_bits, const std::uint32_t* bias_bits,
+    void** output_handle) {
+  if (output_handle == nullptr) return 2;
+  *output_handle = nullptr;
+  ResidentJetBuffer* input = resident_buffer(input_handle);
+  if (input == nullptr || input->values.empty() || output_width == 0
+      || output_width > 100000U || weight_bits == nullptr || bias_bits == nullptr) return 2;
+  try {
+    std::vector<JetMP> values = packed_affine_layer(
+        input->values, output_width, weight_bits, bias_bits);
+    *output_handle = new ResidentJetBuffer(input->precision, std::move(values));
+    return 0;
+  } catch (...) {
+    return 7;
+  }
+}
+
+extern "C" int green_v400_resident_jet_buffer_gelu_new(
+    void* input_handle, std::uint32_t kappa_bits, std::uint32_t lambda_bits,
+    void** output_handle) {
+  if (output_handle == nullptr) return 2;
+  *output_handle = nullptr;
+  ResidentJetBuffer* input = resident_buffer(input_handle);
+  if (input == nullptr || input->values.empty()) return 2;
+  try {
+    std::vector<JetMP> values;
+    values.reserve(input->values.size());
+    for (const JetMP& jet : input->values)
+      values.emplace_back(jet_gelu_new(
+          jet, float_from_bits(kappa_bits), float_from_bits(lambda_bits)));
+    *output_handle = new ResidentJetBuffer(input->precision, std::move(values));
+    return 0;
+  } catch (...) {
+    return 7;
+  }
+}
+
+extern "C" int green_v400_resident_jet_buffer_export_json(
+    void* input_handle, char* output_json, std::uint64_t output_capacity) {
+  ResidentJetBuffer* input = resident_buffer(input_handle);
+  if (input == nullptr || output_json == nullptr || output_capacity == 0) return 2;
+  std::ostringstream stream;
+  stream << "{\"outputs\":[";
+  for (std::size_t index = 0; index < input->values.size(); ++index) {
+    if (index != 0) stream << ',';
+    const JetMP& output = input->values[index];
+    stream << serialize_jet(output.value.lower.get(), output.value.upper.get(),
+                            output.first.lower.get(), output.first.upper.get(),
+                            output.second.lower.get(), output.second.upper.get(),
+                            input->precision);
+  }
+  stream << "]}";
+  const std::string serialized = stream.str();
+  if (serialized.size() + 1 > output_capacity) return 4;
+  std::memcpy(output_json, serialized.c_str(), serialized.size() + 1);
+  return 0;
+}
+
+extern "C" std::uint32_t green_v400_resident_jet_buffer_width(void* input_handle) {
+  ResidentJetBuffer* input = resident_buffer(input_handle);
+  return input == nullptr ? 0U : static_cast<std::uint32_t>(input->values.size());
+}
+
+extern "C" void green_v400_resident_jet_buffer_free(void* input_handle) {
+  ResidentJetBuffer* input = resident_buffer(input_handle);
+  if (input == nullptr) return;
+  input->magic = 0;
+  delete input;
 }
 
 extern "C" int green_v400_affine_jet2_f32(

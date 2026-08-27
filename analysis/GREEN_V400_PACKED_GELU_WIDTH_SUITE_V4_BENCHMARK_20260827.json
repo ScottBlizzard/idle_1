@@ -1,0 +1,73 @@
+{
+  "backend_sha256": "8bc34bbed3dda4707a92388c3fd2728a8cb6361f6bd62aec7aed93c0dab62e52",
+  "cap_decision_authorized": false,
+  "contains_scientific_outcome": false,
+  "created_at_utc": "2026-08-27T06:13:02.444955Z",
+  "formal_wall_time_upper_bound": false,
+  "input_policy": "deterministic synthetic Jet2 row with actual closed GELU constants",
+  "kappa_tensor_semantic_sha256": "c126878ce0885aca95ea31274595b78ced5731e01eb5373ff37c7ebb65c8870d",
+  "lambda_tensor_semantic_sha256": "d5c3c88f1bfc809c51646f74b7ec2a043bef5ec8246a48a4c5162b608ef11751",
+  "program_semantic_hash": "38f40999524d465b8ee58fcc8d2d1822caf9af6c36897a72bd404a8fff34fe62",
+  "resident_dispatcher_complete": false,
+  "resident_plan_semantic_hash": "0d5625e2f7af118615497e9642481946aec0a436b900e3c0d1661f90ba6f9acf",
+  "rows": [
+    {
+      "elapsed_seconds": [
+        0.0009349789761472493,
+        0.0007261330028995872,
+        0.0005950209742877632
+      ],
+      "guardbanded_observed_max_1p25x_seconds": 0.0011687237201840617,
+      "median_seconds": 0.0007261330028995872,
+      "observed_max_seconds": 0.0009349789761472493,
+      "output_exact_payload_sha256": "66cc75f765efffc4f850ee888d5d679e54d7ec9e47d62e44d9689272ff80bc5f",
+      "precision_bits": 384,
+      "width": 10
+    },
+    {
+      "elapsed_seconds": [
+        0.26712570001836866,
+        0.21426105999853462,
+        0.2995717220182996
+      ],
+      "guardbanded_observed_max_1p25x_seconds": 0.37446465252287453,
+      "median_seconds": 0.26712570001836866,
+      "observed_max_seconds": 0.2995717220182996,
+      "output_exact_payload_sha256": "f881202fa42c241bc671f71db8ff20574801d273a8a559c29703d8661aac5041",
+      "precision_bits": 384,
+      "width": 3072
+    },
+    {
+      "elapsed_seconds": [
+        0.010964109998894855,
+        0.0008967230096459389,
+        0.0006935349956620485
+      ],
+      "guardbanded_observed_max_1p25x_seconds": 0.01370513749861857,
+      "median_seconds": 0.0008967230096459389,
+      "observed_max_seconds": 0.010964109998894855,
+      "output_exact_payload_sha256": "90fc43b3761e04b2d47a9bac80c259f254dc9efc3b39e9e7960e0c08d608c1f1",
+      "precision_bits": 512,
+      "width": 10
+    },
+    {
+      "elapsed_seconds": [
+        0.30753054199158214,
+        0.24952612799825147,
+        0.2975451259990223
+      ],
+      "guardbanded_observed_max_1p25x_seconds": 0.3844131774894777,
+      "median_seconds": 0.2975451259990223,
+      "observed_max_seconds": 0.30753054199158214,
+      "output_exact_payload_sha256": "6f2d0cff1964c800b9f860846a31acbefce7249b52d0f3817f69cbf282320c81",
+      "precision_bits": 512,
+      "width": 3072
+    }
+  ],
+  "schema_version": "green-v400-packed-gelu-width-suite-v2",
+  "status": "PASS_ACTUAL_WIDTH_GELU_BATCH_FFI_OBSERVATION_ONLY",
+  "widths": [
+    10,
+    3072
+  ]
+}

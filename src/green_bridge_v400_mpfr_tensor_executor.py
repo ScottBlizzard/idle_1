@@ -1,8 +1,11 @@
 """Exact outcome-blind TensorProgram replay with Python or compiled MPFR kernels."""
 from __future__ import annotations
 
+from dataclasses import dataclass, field
 from fractions import Fraction
 from pathlib import Path
+import time
+from typing import Callable
 
 import gmpy2
 import numpy as np
@@ -21,9 +24,56 @@ from green_bridge_v400_transformer_ops import (
 )
 
 
+@dataclass
+class ResidentStaticRowCache:
+    """Cross-cell cache closed to one program, packed plan, backend, and precision."""
+
+    program_semantic_hash: str
+    resident_plan_semantic_hash: str
+    backend_sha256: str
+    precision_bits: int
+    _entries: dict[tuple[object, ...], list[Jet2]] = field(
+        default_factory=dict, repr=False
+    )
+
+    @classmethod
+    def build(cls, program: TensorProgram, resident_plan: dict,
+              compiled_backend: CompiledMPFRBackend, precision_bits: int):
+        if precision_bits <= 0:
+            raise ValueError("resident static-row cache precision must be positive")
+        if resident_plan.get("program_semantic_hash") != program.semantic_hash():
+            raise ValueError("resident static-row cache plan/program mismatch")
+        plan_hash = resident_plan.get("resident_plan_semantic_hash")
+        if not isinstance(plan_hash, str) or len(plan_hash) != 64:
+            raise ValueError("resident static-row cache plan hash is invalid")
+        return cls(
+            program.semantic_hash(), plan_hash, compiled_backend.library_sha256,
+            int(precision_bits),
+        )
+
+    def validate(self, program: TensorProgram, resident_plan: dict,
+                 compiled_backend: CompiledMPFRBackend, precision_bits: int) -> None:
+        expected = (
+            program.semantic_hash(), resident_plan.get("resident_plan_semantic_hash"),
+            compiled_backend.library_sha256, int(precision_bits),
+        )
+        actual = (
+            self.program_semantic_hash, self.resident_plan_semantic_hash,
+            self.backend_sha256, self.precision_bits,
+        )
+        if actual != expected:
+            raise ValueError("resident static-row cache identity mismatch")
+
+    @property
+    def entry_count(self) -> int:
+        return len(self._entries)
+
+
 def _decode_interval(payload: dict, precision: int) -> Interval:
     def rational(endpoint: dict):
         significand = int(endpoint["significand_hex"], 16)
+        if significand == 0:
+            return gmpy2.mpq(0)
         exponent = int(endpoint["exponent_2"])
         return (gmpy2.mpq(significand) * (gmpy2.mpq(2) ** exponent))
     return Interval.from_bounds(rational(payload["lower"]), rational(payload["upper"]), precision)
@@ -80,7 +130,7 @@ def tensor_program_required_axis0_rows(program: TensorProgram) -> dict[str, tupl
 
     rowwise = {
         "layer_norm.v1", "pairwise_affine.v1", "gelu_new.v1",
-        "residual_add.v1", "static_view.v1",
+        "residual_add.v1",
     }
     for node in reversed(program.nodes):
         if node.semantic_id not in active:
@@ -97,6 +147,21 @@ def tensor_program_required_axis0_rows(program: TensorProgram) -> dict[str, tupl
                 raise ValueError("row-wise live node has no live rows")
             for parent_id in node.parent_semantic_ids:
                 require(parent_id, set(rows))
+        elif kernel == "static_view.v1":
+            rows = required.get(node.semantic_id)
+            if rows is None:
+                raise ValueError("static-view live node has no live rows")
+            operation = node.exact_attrs.get("operation")
+            if operation == "tensor_constant":
+                if node.parent_semantic_ids:
+                    raise ValueError("tensor-constant static view cannot have parents")
+            elif operation == "subtract_exact_parent_at_final_position":
+                final_position = int(node.exact_attrs["final_position"])
+                if final_position in rows:
+                    for parent_id in node.parent_semantic_ids:
+                        require(parent_id, {final_position})
+            else:
+                raise ValueError("unsupported live-row static-view operation")
         elif kernel == "causal_attention.v1":
             rows = required.get(node.semantic_id)
             if rows is None or len(node.parent_semantic_ids) != 3:
@@ -118,10 +183,12 @@ def execute_tensor_program_mpfr(
     compiled_backend: CompiledMPFRBackend | Path | None = None,
     *, resident_plan: dict | None = None,
     resident_arrays: dict[str, np.ndarray] | None = None,
+    resident_static_row_cache: ResidentStaticRowCache | None = None,
     sparse_axis0_execution: bool = False,
     return_node_values: bool = False,
     return_dispatch_trace: bool = False,
     return_runtime_metrics: bool = False,
+    successful_node_callback: Callable[[dict], None] | None = None,
 ) -> dict[str, object]:
     """Replay all branch roots over one interval cell; never reads scientific labels/outcomes."""
     precision = domain.precision_bits
@@ -145,12 +212,41 @@ def execute_tensor_program_mpfr(
             record["tensor_semantic_sha256"]: resident_arrays[record["name"]]
             for record in resident_plan["records"]
         }
+    if resident_static_row_cache is not None:
+        if (resident_plan is None or resident_arrays is None
+                or compiled_backend is None or not sparse_axis0_execution):
+            raise ValueError(
+                "resident static-row cache requires sparse packed resident execution"
+            )
+        resident_static_row_cache.validate(
+            program, resident_plan, compiled_backend, precision
+        )
     if sparse_axis0_execution and (resident_arrays is None or return_node_values):
         raise ValueError("sparse row execution requires resident arrays and root-only output")
     live_rows = tensor_program_required_axis0_rows(program) if sparse_axis0_execution else {}
-    static_row_cache: dict[tuple[str, str, str, int, str], list[Jet2]] = {}
+    static_row_cache = (
+        resident_static_row_cache._entries
+        if resident_static_row_cache is not None else {}
+    )
+    static_row_cache_initial_entry_count = len(static_row_cache)
     cache_hits: dict[str, int] = {}
     cache_misses: dict[str, int] = {}
+    static_node_identities = {
+        node.semantic_id: (
+            node.kernel_id,
+            sha256_canonical(node.exact_attrs),
+            sha256_canonical([ref.tensor_sha256 for ref in node.tensor_inputs]),
+        )
+        for node in program.nodes
+    }
+
+    def exact_row_key(row: list[Jet2]) -> tuple[object, ...]:
+        return tuple(
+            endpoint
+            for jet in row
+            for component in (jet.value, jet.first, jet.second)
+            for endpoint in (component.lower, component.upper)
+        )
 
     def static_row_cache_key(node, row_index: int, row: list[Jet2]):
         if not sparse_axis0_execution:
@@ -158,13 +254,7 @@ def execute_tensor_program_mpfr(
         dynamic_rows = set(node.exact_attrs["dependency_mask_spec"]["axis0_indices"])
         if row_index in dynamic_rows:
             return None
-        return (
-            node.kernel_id,
-            sha256_canonical(node.exact_attrs),
-            sha256_canonical([ref.tensor_sha256 for ref in node.tensor_inputs]),
-            precision,
-            sha256_canonical([jet_exact_payload(jet) for jet in row]),
-        )
+        return static_node_identities[node.semantic_id] + (precision, exact_row_key(row))
 
     def cached_static_row(key, kernel: str):
         if key is not None and key in static_row_cache:
@@ -178,6 +268,7 @@ def execute_tensor_program_mpfr(
         if key is not None:
             static_row_cache[key] = row
     for ordinal, node in enumerate(program.nodes):
+        node_started = time.perf_counter() if successful_node_callback is not None else None
         parents = [values[parent] for parent in node.parent_semantic_ids]
         kernel = node.kernel_id
         use_resident_fusion = (
@@ -384,6 +475,13 @@ def execute_tensor_program_mpfr(
             "output_spec": node.output_spec.to_dict(),
             "dependency_mask_hash": node.dependency_mask_hash,
         })
+        if successful_node_callback is not None:
+            successful_node_callback({
+                "ordinal": ordinal,
+                "semantic_id": node.semantic_id,
+                "kernel_id": node.kernel_id,
+                "elapsed_seconds": time.perf_counter() - node_started,
+            })
     result = {
         **{name: values[root] for name, root in program.branch_roots.items()},
         "output": values[program.output_root],
@@ -417,6 +515,8 @@ def execute_tensor_program_mpfr(
             "static_row_cache_hits_by_kernel": cache_hits,
             "static_row_cache_misses_by_kernel": cache_misses,
             "static_row_cache_entry_count": len(static_row_cache),
+            "static_row_cache_initial_entry_count": static_row_cache_initial_entry_count,
+            "resident_static_row_cache_enabled": resident_static_row_cache is not None,
             "resident_packed_tensor_binding_reads": resident_packed_binding_reads,
             "tensor_store_fallback_reads": tensor_store_fallback_reads,
             "resident_fused_contrast_nodes": resident_fused_contrast_nodes,

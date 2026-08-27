@@ -1,0 +1,57 @@
+{
+  "backend_sha256": "8bc34bbed3dda4707a92388c3fd2728a8cb6361f6bd62aec7aed93c0dab62e52",
+  "cap_decision_authorized": false,
+  "contains_scientific_outcome": false,
+  "created_at_utc": "2026-08-27T06:18:08.029840Z",
+  "dimensions": {
+    "hidden_width": 3072,
+    "input_width": 768,
+    "output_width": 768
+  },
+  "formal_wall_time_upper_bound": false,
+  "input_policy": "deterministic synthetic Jet2 row; actual packed GPT-2 MLP weights",
+  "program_semantic_hash": "38f40999524d465b8ee58fcc8d2d1822caf9af6c36897a72bd404a8fff34fe62",
+  "resident_dispatcher_complete": false,
+  "resident_plan_semantic_hash": "0d5625e2f7af118615497e9642481946aec0a436b900e3c0d1661f90ba6f9acf",
+  "rows": [
+    {
+      "bit_identical": true,
+      "deterministic": true,
+      "json_roundtrip_elapsed_seconds": [
+        5.9259994289895985,
+        3.8776206400070805,
+        3.9736962350143585
+      ],
+      "json_roundtrip_median_seconds": 3.9736962350143585,
+      "median_speedup_ratio": 1.2114897908660824,
+      "precision_bits": 384,
+      "resident_buffer_elapsed_seconds": [
+        4.630676830012817,
+        3.2800080239831004,
+        3.268390274984995
+      ],
+      "resident_buffer_median_seconds": 3.2800080239831004
+    },
+    {
+      "bit_identical": true,
+      "deterministic": true,
+      "json_roundtrip_elapsed_seconds": [
+        4.557256086001871,
+        4.406761966005433,
+        4.626091640995583
+      ],
+      "json_roundtrip_median_seconds": 4.557256086001871,
+      "median_speedup_ratio": 1.1963226013484316,
+      "precision_bits": 512,
+      "resident_buffer_elapsed_seconds": [
+        3.852956756018102,
+        3.80550320900511,
+        3.809387268003775
+      ],
+      "resident_buffer_median_seconds": 3.809387268003775
+    }
+  ],
+  "schema_version": "green-v400-resident-mlp-chain-benchmark-v1",
+  "status": "PASS_RESIDENT_MLP_CHAIN_OBSERVATION_ONLY",
+  "timing_scope": "Python-input through final Python JSON; native intermediates are opaque"
+}

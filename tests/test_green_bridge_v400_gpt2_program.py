@@ -18,7 +18,8 @@ from green_bridge_v400_gpt2_program import (
 from green_bridge_v400_compiled_mpfr import CompiledMPFRBackend
 from green_bridge_v400_interval import Interval
 from green_bridge_v400_mpfr_tensor_executor import (
-    execute_tensor_program_mpfr, jet_exact_payload, tensor_program_required_axis0_rows,
+    ResidentStaticRowCache, execute_tensor_program_mpfr, jet_exact_payload,
+    tensor_program_required_axis0_rows,
 )
 from green_bridge_v400_schemas import sha256_canonical
 from green_bridge_v400_tensor_program import (
@@ -154,6 +155,8 @@ def test_scalar_output_row_liveness_keeps_attention_history(tmp_path):
             assert rows[v] == tuple(range(dims.final_position + 1))
         if node.provenance_identity.endswith("block11.mlp.pre"):
             assert rows[node.semantic_id] == (dims.final_position,)
+        if ".zero_control.block10.selected_pre" in node.provenance_identity:
+            assert rows[node.semantic_id] == (dims.final_position,)
 
 
 def test_gpt2_program_zero_control_joint_equals_bypass(tmp_path):
@@ -176,6 +179,23 @@ def test_gpt2_program_nonzero_control_is_deterministic(tmp_path):
     assert np.isfinite(first["output"])
     for key in first:
         assert np.asarray(first[key]).tobytes() == np.asarray(second[key]).tobytes()
+
+
+def test_mpfr_successful_node_callback_contains_timing_not_values(tmp_path):
+    reader, _, program = _fixture(tmp_path)
+    events = []
+    execute_tensor_program_mpfr(
+        program, reader, Interval.point(0, 128), successful_node_callback=events.append
+    )
+    assert len(events) == 81
+    assert [event["ordinal"] for event in events] == list(range(81))
+    assert [event["kernel_id"] for event in events] == [
+        node.kernel_id for node in program.nodes
+    ]
+    assert all(set(event) == {
+        "ordinal", "semantic_id", "kernel_id", "elapsed_seconds"
+    } for event in events)
+    assert all(event["elapsed_seconds"] >= 0 for event in events)
 
 
 def test_gpt2_program_torch_replay_matches_numpy_fixture(tmp_path):
@@ -245,3 +265,62 @@ def test_complete_four_branch_mpfr_program_is_bit_identical_compiled(tmp_path, p
     assert metrics["resident_fused_contrast_nodes"] == 4
     assert metrics["resident_gelu_batch_rows"] > 0
     assert resident_compiled["dispatch_trace"] == reference["dispatch_trace"]
+
+
+@pytest.mark.parametrize("precision", [384, 512])
+def test_resident_static_rows_are_reused_across_interval_cells(tmp_path, precision):
+    library = os.environ.get("GREEN_V400_MPFR_BACKEND")
+    if not library:
+        pytest.skip("compiled MPFR backend is not configured")
+    reader, _, program = _fixture(tmp_path)
+    backend = CompiledMPFRBackend(Path(library))
+    resident_root = tmp_path / f"resident_cache_{precision}"
+    resident_root.mkdir()
+    build_resident_plan(resident_root, "tiny", program, reader)
+    resident_plan, resident_arrays = load_resident_plan_arrays(
+        resident_root / "tiny.json", program, reader
+    )
+    cache = ResidentStaticRowCache.build(program, resident_plan, backend, precision)
+    first_domain = Interval.from_bounds(-2.0**-14, 0.0, precision)
+    second_domain = Interval.from_bounds(0.0, 2.0**-14, precision)
+    first = execute_tensor_program_mpfr(
+        program, reader, first_domain, backend, resident_plan=resident_plan,
+        resident_arrays=resident_arrays, resident_static_row_cache=cache,
+        sparse_axis0_execution=True, return_runtime_metrics=True,
+    )
+    first_entries = cache.entry_count
+    second = execute_tensor_program_mpfr(
+        program, reader, second_domain, backend, resident_plan=resident_plan,
+        resident_arrays=resident_arrays, resident_static_row_cache=cache,
+        sparse_axis0_execution=True, return_runtime_metrics=True,
+    )
+    reference = execute_tensor_program_mpfr(program, reader, second_domain)
+    assert first_entries > 0
+    assert cache.entry_count == first_entries
+    assert first["runtime_metrics"]["static_row_cache_initial_entry_count"] == 0
+    assert second["runtime_metrics"]["static_row_cache_initial_entry_count"] == first_entries
+    assert second["runtime_metrics"]["static_row_cache_misses_by_kernel"] == {}
+    assert second["runtime_metrics"]["resident_static_row_cache_enabled"] is True
+    for name in ("PAT_J", "PAT_B", "TAR_J", "TAR_B", "output"):
+        assert jet_exact_payload(second[name]) == jet_exact_payload(reference[name])
+
+
+def test_resident_static_row_cache_rejects_identity_mismatch(tmp_path):
+    library = os.environ.get("GREEN_V400_MPFR_BACKEND")
+    if not library:
+        pytest.skip("compiled MPFR backend is not configured")
+    reader, _, program = _fixture(tmp_path)
+    backend = CompiledMPFRBackend(Path(library))
+    resident_root = tmp_path / "resident_cache_identity"
+    resident_root.mkdir()
+    build_resident_plan(resident_root, "tiny", program, reader)
+    resident_plan, resident_arrays = load_resident_plan_arrays(
+        resident_root / "tiny.json", program, reader
+    )
+    cache = ResidentStaticRowCache.build(program, resident_plan, backend, 384)
+    with pytest.raises(ValueError, match="identity mismatch"):
+        execute_tensor_program_mpfr(
+            program, reader, Interval.point(0, 512), backend,
+            resident_plan=resident_plan, resident_arrays=resident_arrays,
+            resident_static_row_cache=cache, sparse_axis0_execution=True,
+        )

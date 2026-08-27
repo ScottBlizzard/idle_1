@@ -18,7 +18,7 @@ from green_bridge_v400_resident_resources import gpt2_joint_witness_cell_jet2
 from green_bridge_v400_interval import (
     Interval, exp_interval, inv_sqrt_interval, sqrt_interval, tanh_interval,
 )
-from green_bridge_v400_interval_jet import Jet2
+from green_bridge_v400_interval_jet import Jet2, constant_jet
 from green_bridge_v400_transformer_ops import (
     affine_map_jets, attention_head_jets, gelu_new_jet, layernorm_jets,
 )
@@ -42,6 +42,16 @@ def _jet(center: float, radius: float, first: float, second: float, precision: i
 def _fraction(value) -> Fraction:
     rational = gmpy2.mpq(value)
     return Fraction(int(rational.numerator), int(rational.denominator))
+
+
+def _decode_compiled_jet(backend, payload: dict, precision: int) -> Jet2:
+    return Jet2(*(
+        Interval.from_bounds(
+            backend.exact_fraction(payload[component]["lower"]),
+            backend.exact_fraction(payload[component]["upper"]), precision,
+        )
+        for component in ("value", "first", "second")
+    ))
 
 
 @pytest.mark.parametrize("precision", [384, 512])
@@ -182,6 +192,28 @@ def test_compiled_layer_norm_rejects_nonpositive_variance():
 
 
 @pytest.mark.parametrize("precision", [384, 512])
+def test_compiled_exact_zero_endpoints_are_canonical(precision):
+    backend = _backend()
+    values = [constant_jet(Interval.point(value, precision))
+              for value in (-0.5, -0.125, 0.25, 0.75)]
+    actual = backend.layer_norm_jet2(
+        values, np.float32(1e-5), np.ones(4, dtype="<f4"),
+        np.zeros(4, dtype="<f4"),
+    )["outputs"]
+    for output in actual:
+        for component in ("first", "second"):
+            for endpoint in ("lower", "upper"):
+                assert output[component][endpoint]["significand_hex"] == "0"
+                assert output[component][endpoint]["exponent_2"] == 0
+
+
+def test_python_decoder_short_circuits_noncanonical_zero_exponent():
+    payload = {"significand_hex": "0", "exponent_2": -1073741823,
+               "precision_bits": 384}
+    assert CompiledMPFRBackend.exact_fraction(payload) == Fraction(0, 1)
+
+
+@pytest.mark.parametrize("precision", [384, 512])
 def test_compiled_nonlinear_benchmarks_are_live(precision):
     backend = _backend()
     gelu = backend.benchmark_gelu(precision, 8)
@@ -229,6 +261,46 @@ def test_packed_affine_layer_matches_individual_exact_columns(precision):
         for output in range(weight.shape[1])
     ]
     assert packed == individual
+
+
+@pytest.mark.parametrize("precision", [384, 512])
+def test_resident_jet_buffer_mlp_chain_matches_json_roundtrips(precision):
+    backend = _backend()
+    inputs = [_jet(-0.25 + index / 7, 2.0**(-9-index),
+                   0.125-index/13, -0.0625+index/17, precision)
+              for index in range(4)]
+    first_weight = (np.arange(32, dtype="<f4").reshape(4, 8) - 13) / np.float32(31)
+    first_bias = (np.arange(8, dtype="<f4") - 3) / np.float32(29)
+    second_weight = (np.arange(24, dtype="<f4").reshape(8, 3) - 9) / np.float32(37)
+    second_bias = np.asarray([0.125, -0.25, 0.5], dtype="<f4")
+    kappa = np.float32(np.sqrt(2.0 / np.pi))
+    lam = np.float32(0.044715)
+    first_json = backend.packed_affine_layer_jet2(
+        first_weight, first_bias, inputs
+    )["outputs"]
+    first_jets = [_decode_compiled_jet(backend, item, precision) for item in first_json]
+    gelu_json = backend.gelu_new_layer_jet2(first_jets, kappa, lam)["outputs"]
+    gelu_jets = [_decode_compiled_jet(backend, item, precision) for item in gelu_json]
+    expected = backend.packed_affine_layer_jet2(
+        second_weight, second_bias, gelu_jets
+    )["outputs"]
+    buffers = []
+    try:
+        buffers.append(backend.resident_jet_buffer(inputs))
+        buffers.append(backend.resident_packed_affine_layer_jet2(
+            buffers[-1], first_weight, first_bias
+        ))
+        buffers.append(backend.resident_gelu_new_layer_jet2(
+            buffers[-1], kappa, lam
+        ))
+        buffers.append(backend.resident_packed_affine_layer_jet2(
+            buffers[-1], second_weight, second_bias
+        ))
+        assert [buffer.width for buffer in buffers] == [4, 8, 8, 3]
+        assert backend.export_resident_jet_buffer(buffers[-1])["outputs"] == expected
+    finally:
+        for buffer in reversed(buffers):
+            buffer.close()
 
 
 @pytest.mark.parametrize("precision", [384, 512])

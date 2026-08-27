@@ -16,7 +16,8 @@ from test_green_bridge_v400_gpt2_program import _fixture
 from green_bridge_v400_compiled_mpfr import CompiledMPFRBackend
 from green_bridge_v400_interval import Interval
 from green_bridge_v400_mpfr_tensor_executor import (
-    execute_tensor_program_mpfr, jet_exact_payload, tensor_program_required_axis0_rows,
+    ResidentStaticRowCache, execute_tensor_program_mpfr, jet_exact_payload,
+    tensor_program_required_axis0_rows,
 )
 from green_bridge_v400_resident_plan import build_resident_plan, load_resident_plan_arrays
 from green_bridge_v400_schemas import sha256_canonical
@@ -51,6 +52,9 @@ def main() -> int:
     rows, passed = [], True
     for precision in (384, 512):
         domain = Interval.from_bounds(-2.0**-14, 2.0**-14, precision)
+        resident_static_cache = ResidentStaticRowCache.build(
+            program, resident_plan, backend, precision
+        )
         started = time.perf_counter()
         reference = execute_tensor_program_mpfr(
             program, reader, domain, return_dispatch_trace=True
@@ -63,17 +67,28 @@ def main() -> int:
         resident_fused = execute_tensor_program_mpfr(
             program, reader, domain, backend, resident_plan=resident_plan,
             resident_arrays=resident_arrays, sparse_axis0_execution=True,
+            resident_static_row_cache=resident_static_cache,
             return_runtime_metrics=True, return_dispatch_trace=True,
         )
         resident_fused_seconds = time.perf_counter() - started
+        started = time.perf_counter()
+        resident_warm = execute_tensor_program_mpfr(
+            program, reader, domain, backend, resident_plan=resident_plan,
+            resident_arrays=resident_arrays, sparse_axis0_execution=True,
+            resident_static_row_cache=resident_static_cache,
+            return_runtime_metrics=True, return_dispatch_trace=True,
+        )
+        resident_warm_seconds = time.perf_counter() - started
         roots = {}
         for name in ("PAT_J", "PAT_B", "TAR_J", "TAR_B", "output"):
             reference_payload = jet_exact_payload(reference[name])
             compiled_payload = jet_exact_payload(compiled[name])
             resident_fused_payload = jet_exact_payload(resident_fused[name])
+            resident_warm_payload = jet_exact_payload(resident_warm[name])
             identical = reference_payload == compiled_payload
             resident_fused_identical = reference_payload == resident_fused_payload
-            passed = passed and identical and resident_fused_identical
+            resident_warm_identical = reference_payload == resident_warm_payload
+            passed = passed and identical and resident_fused_identical and resident_warm_identical
             roots[name] = {
                 "bit_identical": identical,
                 "resident_fused_contrast_bit_identical": resident_fused_identical,
@@ -82,11 +97,16 @@ def main() -> int:
                 "resident_fused_exact_payload_sha256": sha256_canonical(
                     resident_fused_payload
                 ),
+                "resident_warm_static_cache_bit_identical": resident_warm_identical,
             }
         resident_trace_identical = (
             resident_fused["dispatch_trace"] == reference["dispatch_trace"]
         )
         passed = passed and resident_trace_identical
+        resident_warm_trace_identical = (
+            resident_warm["dispatch_trace"] == reference["dispatch_trace"]
+        )
+        passed = passed and resident_warm_trace_identical
         rows.append({
             "precision_bits": precision,
             "domain": {"lower": {"numerator": -1, "exponent_2": -14},
@@ -94,6 +114,8 @@ def main() -> int:
             "reference_seconds": reference_seconds,
             "compiled_correctness_ffi_seconds": compiled_seconds,
             "resident_fused_contrast_ffi_seconds": resident_fused_seconds,
+            "resident_warm_static_cache_ffi_seconds": resident_warm_seconds,
+            "resident_cold_over_warm_ratio": resident_fused_seconds / resident_warm_seconds,
             "roots": roots,
             "successful_dispatch_trace_sha256": reference["dispatch_trace"]["trace_sha256"],
             "program_dispatch_signature_sha256": reference["dispatch_trace"][
@@ -108,9 +130,11 @@ def main() -> int:
             ),
             "resident_dispatch_trace_bit_identical": resident_trace_identical,
             "resident_runtime_metrics": resident_fused["runtime_metrics"],
+            "resident_warm_dispatch_trace_bit_identical": resident_warm_trace_identical,
+            "resident_warm_runtime_metrics": resident_warm["runtime_metrics"],
         })
     report = {
-        "schema_version": "green-v400-full-tensor-program-mpfr-parity-v10",
+        "schema_version": "green-v400-full-tensor-program-mpfr-parity-v12",
         "created_at_utc": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
         "status": "PASS" if passed else "FAIL",
         "fixture": "deterministic tiny Transformer; no noun, prompt, donor, or scientific outcome",
@@ -136,13 +160,17 @@ def main() -> int:
         ),
         "resident_sparse_axis0_execution_consumed": True,
         "resident_static_row_cache_consumed": True,
+        "resident_cross_cell_static_row_cache_consumed": True,
+        "canonical_zero_endpoint_serialization_consumed": True,
+        "python_zero_decode_short_circuit_consumed": True,
         "resident_materialized_axis0_row_count": sum(map(len, live_rows.values())),
         "dense_axis0_row_slot_count": sum(
             node.output_spec.shape[0] for node in program.nodes if node.output_spec.shape
         ),
         "rows": rows,
         "claim_scope": (
-            "end-to-end correctness plus packed-input, sparse-row, and fused-contrast parity; "
+            "end-to-end correctness plus packed-input, sparse-row, fused-contrast, and "
+            "identity-bound cross-cell static-row parity; "
             "the remaining JSON/FFI dispatcher is not a performance backend"
         ),
         "resident_buffer_executor": False,
