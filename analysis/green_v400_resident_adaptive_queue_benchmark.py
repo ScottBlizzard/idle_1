@@ -26,6 +26,14 @@ from green_bridge_v400_tensor_program import TensorProgram
 from green_bridge_v400_tensor_store import TensorStoreReader
 
 
+APPROVED_SYNTHETIC_PROGRAM_SHA256 = (
+    "38f40999524d465b8ee58fcc8d2d1822caf9af6c36897a72bd404a8fff34fe62"
+)
+APPROVED_SYNTHETIC_RESIDENT_PLAN_SHA256 = (
+    "0d5625e2f7af118615497e9642481946aec0a436b900e3c0d1661f90ba6f9acf"
+)
+
+
 def _fraction(value) -> Fraction:
     exact = gmpy2.mpq(value)
     return Fraction(int(exact.numerator), int(exact.denominator))
@@ -42,14 +50,16 @@ class ResidentProgramEvaluator:
         self.resident_arrays = resident_arrays
         self.caches = {}
         self.records = []
+        self.certificate_row_hash = program.semantic_hash()
 
     def evaluate_interval(self, domain):
         precision = domain.precision_bits
-        cache = self.caches.setdefault(
-            precision, ResidentStaticRowCache.build(
+        cache = self.caches.get(precision)
+        if cache is None:
+            cache = ResidentStaticRowCache.build(
                 self.program, self.resident_plan, self.backend, precision
             )
-        )
+            self.caches[precision] = cache
         started = time.perf_counter()
         result = execute_tensor_program_mpfr(
             self.program, self.reader, domain, self.backend,
@@ -118,6 +128,10 @@ def main() -> int:
     resident_plan, resident_arrays = load_resident_plan_arrays(
         Path(args.plan), program, reader
     )
+    if (program.semantic_hash() != APPROVED_SYNTHETIC_PROGRAM_SHA256
+            or resident_plan["resident_plan_semantic_hash"]
+                != APPROVED_SYNTHETIC_RESIDENT_PLAN_SHA256):
+        raise RuntimeError("OUTCOME_BLIND_SYNTHETIC_FIXTURE_IDENTITY_MISMATCH")
     backend = CompiledMPFRBackend(Path(args.library))
     certificate_plan = CertificatePlan(
         "green-v400-certificate-plan-v1", program.semantic_hash(),
@@ -131,11 +145,13 @@ def main() -> int:
     )
     peak_before_kib = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
     started = time.perf_counter()
-    partition = certify_adaptive_cells(evaluator, radius, 384, certificate_plan)
-    total_seconds = time.perf_counter() - started
-    peak_after_kib = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
-    records = evaluator.records
-    evaluator.close()
+    try:
+        partition = certify_adaptive_cells(evaluator, radius, 384, certificate_plan)
+        total_seconds = time.perf_counter() - started
+        peak_after_kib = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
+        records = list(evaluator.records)
+    finally:
+        evaluator.close()
     expected_initial = (
         {"lower": [-radius.numerator, radius.denominator], "upper": [0, 1]},
         {"lower": [0, 1], "upper": [radius.numerator, radius.denominator]},

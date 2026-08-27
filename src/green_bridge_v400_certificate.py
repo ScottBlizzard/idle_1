@@ -4,14 +4,16 @@ from __future__ import annotations
 from dataclasses import dataclass
 from fractions import Fraction
 import heapq
+import json
+from pathlib import Path
 from typing import Iterable
 
 import gmpy2
 
 from green_bridge_v400_interval import EmptyIntersection, Interval
-from green_bridge_v400_mpfr import ROUND_UP, directed_binary
 from green_bridge_v400_relational_graph import RelationalGraph
-from green_bridge_v400_schemas import CertificatePlan
+from green_bridge_v400_schemas import CertificatePlan, JointWitnessRowSpec
+from green_bridge_v400_schemas import sha256_canonical
 
 
 @dataclass(frozen=True)
@@ -74,8 +76,11 @@ class RadiusCertificate:
     official_witness: Interval
     audit_witness: Interval
     endpoint: EndpointCertificate
+    audit_endpoint: EndpointCertificate
     curvature: CurvatureCertificate
+    audit_curvature: CurvatureCertificate
     endpoint_error: EndpointErrorCertificate
+    audit_endpoint_error: EndpointErrorCertificate
     official_cells: tuple[CellCertificate, ...]
     audit_cells: tuple[CellCertificate, ...]
     audit_nested: bool
@@ -92,6 +97,147 @@ class JointWitnessCertificate:
     cells: tuple[CellCertificate, ...]
     radii: tuple[RadiusCertificate, ...] = ()
     audit_nested: bool = False
+    row_hash: str = ""
+    audit_witness_interval: Interval | None = None
+    resource_reason: str | None = None
+
+
+def _exact_mpfr_payload(value) -> list[int]:
+    exact = gmpy2.mpq(value)
+    return [int(exact.numerator), int(exact.denominator)]
+
+
+def _interval_payload(interval: Interval | None) -> dict | None:
+    if interval is None:
+        return None
+    return {
+        "precision_bits": interval.precision_bits,
+        "lower": _exact_mpfr_payload(interval.lower),
+        "upper": _exact_mpfr_payload(interval.upper),
+    }
+
+
+def _cell_payload(certificate: CellCertificate) -> dict:
+    return {
+        "cell": {
+            "lower": [certificate.cell.lower.numerator, certificate.cell.lower.denominator],
+            "upper": [certificate.cell.upper.numerator, certificate.cell.upper.denominator],
+            "depth": certificate.cell.depth,
+        },
+        "value": _interval_payload(certificate.value),
+        "first": _interval_payload(certificate.first),
+        "second": _interval_payload(certificate.second),
+    }
+
+
+def _endpoint_payload(certificate: EndpointCertificate | None) -> dict | None:
+    if certificate is None:
+        return None
+    return {
+        "h": [certificate.h.numerator, certificate.h.denominator],
+        "negative": _interval_payload(certificate.negative),
+        "center": _interval_payload(certificate.center),
+        "positive": _interval_payload(certificate.positive),
+        "slope": _interval_payload(certificate.slope),
+    }
+
+
+def _curvature_payload(certificate: CurvatureCertificate | None) -> dict | None:
+    if certificate is None:
+        return None
+    return {
+        "positive": _interval_payload(certificate.positive),
+        "negative": _interval_payload(certificate.negative),
+        "secant": _interval_payload(certificate.secant),
+        "m2": _interval_payload(certificate.m2),
+    }
+
+
+def _endpoint_error_payload(
+    certificate: EndpointErrorCertificate | None,
+) -> dict | None:
+    if certificate is None:
+        return None
+    return {
+        "positive_residual": _interval_payload(certificate.positive_residual),
+        "negative_residual": _interval_payload(certificate.negative_residual),
+        "epsilon_psi": _exact_mpfr_payload(certificate.epsilon_psi),
+    }
+
+
+def joint_witness_certificate_payload(
+    certificate: JointWitnessCertificate, *, row_spec: JointWitnessRowSpec,
+    plan: CertificatePlan,
+) -> dict:
+    """Serialize the current certificate object for synthetic rows only.
+
+    The current dataclasses do not yet carry the binding per-operation rounding
+    and runtime provenance, so this payload must not be represented as the final
+    formal certificate artifact.
+    """
+    if not isinstance(row_spec, JointWitnessRowSpec) or not isinstance(plan, CertificatePlan):
+        raise TypeError("certificate serialization requires validated row and plan schemas")
+    if row_spec.split != "synthetic" or plan.execution_authorized:
+        raise RuntimeError("REAL_CERTIFICATE_SERIALIZATION_UNAUTHORIZED")
+    if plan.row_hash != row_spec.row_hash or certificate.row_hash != row_spec.row_hash:
+        raise ValueError("certificate serialization identity mismatch")
+    radii = []
+    for radius in certificate.radii:
+        radii.append({
+            "h": [radius.h.numerator, radius.h.denominator],
+            "official_witness": _interval_payload(radius.official_witness),
+            "audit_witness": _interval_payload(radius.audit_witness),
+            "endpoint": _endpoint_payload(radius.endpoint),
+            "audit_endpoint": _endpoint_payload(radius.audit_endpoint),
+            "curvature": _curvature_payload(radius.curvature),
+            "audit_curvature": _curvature_payload(radius.audit_curvature),
+            "endpoint_error": _endpoint_error_payload(radius.endpoint_error),
+            "audit_endpoint_error": _endpoint_error_payload(radius.audit_endpoint_error),
+            "official_cells": [_cell_payload(cell) for cell in radius.official_cells],
+            "audit_cells": [_cell_payload(cell) for cell in radius.audit_cells],
+            "audit_nested": radius.audit_nested,
+        })
+    payload = {
+        "schema_version": "green-v400-joint-witness-certificate-v1",
+        "serialization_scope": "current_in_memory_certificate_object_only",
+        "binding_component_accounting_complete": False,
+        "row_hash": row_spec.row_hash,
+        "row_spec_semantic_hash": sha256_canonical(row_spec),
+        "certificate_plan_semantic_hash": sha256_canonical(plan),
+        "certificate_plan": plan.to_dict(),
+        "contains_scientific_outcome": False,
+        "computation_status": certificate.status,
+        "resource_reason": certificate.resource_reason,
+        "h": [certificate.h.numerator, certificate.h.denominator],
+        "witness_interval": _interval_payload(certificate.witness_interval),
+        "audit_witness_interval": _interval_payload(certificate.audit_witness_interval),
+        "endpoint": _endpoint_payload(certificate.endpoint),
+        "curvature": _curvature_payload(certificate.curvature),
+        "endpoint_error": _endpoint_error_payload(certificate.endpoint_error),
+        "cells": [_cell_payload(cell) for cell in certificate.cells],
+        "radii": radii,
+        "audit_nested": certificate.audit_nested,
+    }
+    payload["certificate_semantic_hash"] = sha256_canonical(payload)
+    return payload
+
+
+def write_joint_witness_certificate(
+    path: Path, certificate: JointWitnessCertificate, *,
+    row_spec: JointWitnessRowSpec, plan: CertificatePlan,
+) -> dict:
+    """Write one immutable canonical certificate file and return its payload."""
+    output = Path(path)
+    if output.exists():
+        raise FileExistsError("certificate output is immutable")
+    payload = joint_witness_certificate_payload(
+        certificate, row_spec=row_spec, plan=plan,
+    )
+    encoded = json.dumps(payload, sort_keys=True, separators=(",", ":")) + "\n"
+    output.parent.mkdir(parents=True, exist_ok=True)
+    with output.open("x", encoding="utf-8", newline="\n") as handle:
+        handle.write(encoded)
+    return payload
 
 
 def certify_cell(graph: RelationalGraph, cell: DyadicCell,
@@ -142,6 +288,8 @@ def certify_adaptive_cells(evaluator, h: Fraction, precision_bits: int,
         raise TypeError("adaptive certificate execution requires CertificatePlan")
     if getattr(evaluator, "contains_scientific_outcome", None) is not False:
         raise RuntimeError("ADAPTIVE_EVALUATOR_OUTCOME_BOUNDARY_MISSING")
+    if getattr(evaluator, "certificate_row_hash", None) != plan.row_hash:
+        raise RuntimeError("ADAPTIVE_EVALUATOR_PLAN_IDENTITY_MISMATCH")
     return _adaptive_cells(evaluator, h, precision_bits, plan)
 
 
@@ -218,25 +366,22 @@ def _interval_nested(inner: Interval, outer: Interval) -> bool:
     return outer.lower <= inner.lower <= inner.upper <= outer.upper
 
 
-def _cell_tolerance(certificate: CellCertificate, absolute: Fraction,
-                    relative: Fraction) -> gmpy2.mpfr:
-    scale = max(gmpy2.mpfr(1), certificate.second.magnitude())
-    # The binding protocol requires both the absolute and relative width
-    # criteria to hold.  Therefore the effective scalar threshold is the
-    # smaller limit, not the more permissive one.
-    return min(gmpy2.mpfr(absolute.numerator) / absolute.denominator,
-               (gmpy2.mpfr(relative.numerator) / relative.denominator) * scale)
+def _cell_tolerance_met(certificate: CellCertificate, absolute: Fraction,
+                        relative: Fraction) -> bool:
+    """Compare both frozen tolerances as exact rationals, independent of context."""
+    width = gmpy2.mpq(certificate.second.width())
+    scale = max(gmpy2.mpq(1), gmpy2.mpq(certificate.second.magnitude()))
+    absolute_limit = gmpy2.mpq(absolute.numerator, absolute.denominator)
+    relative_limit = gmpy2.mpq(relative.numerator, relative.denominator) * scale
+    return width <= absolute_limit and width <= relative_limit
 
 
-def _cell_priority(certificate: CellCertificate, h: Fraction) -> gmpy2.mpfr:
+def _cell_priority(certificate: CellCertificate, h: Fraction) -> gmpy2.mpq:
     """Return w(J) * wid(Q_J) with an exact curvature-kernel weight."""
     weight = _weight(certificate.cell, h)
-    return directed_binary(
-        "mul",
-        gmpy2.mpq(weight.numerator, weight.denominator),
-        certificate.second.width(),
-        precision_bits=certificate.second.precision_bits,
-        rounding=ROUND_UP,
+    return (
+        gmpy2.mpq(weight.numerator, weight.denominator)
+        * gmpy2.mpq(certificate.second.width())
     )
 
 
@@ -258,8 +403,10 @@ def _validate_partition(certificates: list[CellCertificate], h: Fraction) -> Non
             raise RuntimeError("CERTIFICATE_PARTITION_GAP_OR_OVERLAP")
 
 
-def _adaptive_cells(graph: RelationalGraph, h: Fraction, precision_bits: int,
-                    plan: CertificatePlan) -> list[CellCertificate] | None:
+def _adaptive_cells_with_reason(
+    graph: RelationalGraph, h: Fraction, precision_bits: int,
+    plan: CertificatePlan,
+) -> tuple[list[CellCertificate] | None, str | None]:
     absolute = _hex_fraction(plan.absolute_width_tolerance)
     relative = _hex_fraction(plan.relative_width_tolerance)
     pending: list[tuple[gmpy2.mpfr, Fraction, int, CellCertificate]] = []
@@ -271,13 +418,13 @@ def _adaptive_cells(graph: RelationalGraph, h: Fraction, precision_bits: int,
     while pending:
         _, _, _, certificate = heapq.heappop(pending)
         cell = certificate.cell
-        if certificate.second.width() <= _cell_tolerance(certificate, absolute, relative):
+        if _cell_tolerance_met(certificate, absolute, relative):
             accepted.append(certificate)
             continue
         if cell.depth >= plan.max_depth:
-            return None
+            return None, "MAX_DEPTH_REACHED"
         if len(accepted) + len(pending) + 2 > plan.max_cells:
-            return None
+            return None, "MAX_CELLS_REACHED"
         left, right = cell.bisect()
         for child in (left, right):
             child_certificate = certify_cell(graph, child, precision_bits)
@@ -288,7 +435,12 @@ def _adaptive_cells(graph: RelationalGraph, h: Fraction, precision_bits: int,
             )
     accepted.sort(key=lambda item: item.cell.lower)
     _validate_partition(accepted, h)
-    return accepted
+    return accepted, None
+
+
+def _adaptive_cells(graph: RelationalGraph, h: Fraction, precision_bits: int,
+                    plan: CertificatePlan) -> list[CellCertificate] | None:
+    return _adaptive_cells_with_reason(graph, h, precision_bits, plan)[0]
 
 
 def _audit_same_partition(graph: RelationalGraph,
@@ -299,10 +451,12 @@ def _audit_same_partition(graph: RelationalGraph,
 
 
 def _radius_certificate(graph: RelationalGraph, h: Fraction,
-                        plan: CertificatePlan) -> RadiusCertificate | None:
-    official = _adaptive_cells(graph, h, plan.official_precision_bits, plan)
+                        plan: CertificatePlan) -> tuple[RadiusCertificate | None, str | None]:
+    official, resource_reason = _adaptive_cells_with_reason(
+        graph, h, plan.official_precision_bits, plan
+    )
     if official is None:
-        return None
+        return None, resource_reason
     audit = _audit_same_partition(graph, official, plan.audit_precision_bits)
     for low, high in zip(official, audit):
         if not all((_interval_nested(high.value, low.value),
@@ -324,12 +478,23 @@ def _radius_certificate(graph: RelationalGraph, h: Fraction,
     audit_curvature = integrate_signed_curvature(audit, h)
     error = compute_epsilon_psi(endpoint, curvature)
     audit_error = compute_epsilon_psi(audit_endpoint, audit_curvature)
+    if not all(_interval_nested(high, low) for high, low in (
+        (audit_curvature.positive, curvature.positive),
+        (audit_curvature.negative, curvature.negative),
+        (audit_curvature.secant, curvature.secant),
+        (audit_curvature.m2, curvature.m2),
+        (audit_error.positive_residual, error.positive_residual),
+        (audit_error.negative_residual, error.negative_residual),
+    )) or gmpy2.mpq(audit_error.epsilon_psi) > gmpy2.mpq(error.epsilon_psi):
+        raise RuntimeError("CERTIFICATE_COMPONENT_NESTING_INVALID")
     witness = witness_interval(endpoint, curvature, error)
     audit_witness = witness_interval(audit_endpoint, audit_curvature, audit_error)
     if not _interval_nested(audit_witness, witness):
         raise RuntimeError("CERTIFICATE_WITNESS_NESTING_INVALID")
-    return RadiusCertificate(h, witness, audit_witness, endpoint, curvature,
-                             error, tuple(official), tuple(audit), True)
+    return RadiusCertificate(
+        h, witness, audit_witness, endpoint, audit_endpoint, curvature,
+        audit_curvature, error, audit_error, tuple(official), tuple(audit), True,
+    ), None
 
 
 def certify_joint_witness(row_spec, plan) -> JointWitnessCertificate:
@@ -346,24 +511,32 @@ def certify_joint_witness(row_spec, plan) -> JointWitnessCertificate:
         graph = extract_joint_witness_graph(row_spec)
     radius_certificates: list[RadiusCertificate] = []
     intersection: Interval | None = None
+    audit_intersection: Interval | None = None
     for radius in plan.radii:
         h = radius.as_fraction()
-        result = _radius_certificate(graph, h, plan)
+        result, resource_reason = _radius_certificate(graph, h, plan)
         if result is None:
-            return JointWitnessCertificate("RESOURCE_INCONCLUSIVE", h, None, None,
-                                           None, None, (), tuple(radius_certificates), False)
+            return JointWitnessCertificate(
+                "RESOURCE_INCONCLUSIVE", h, None, None, None, None, (),
+                tuple(radius_certificates), False, row_spec.row_hash, None,
+                resource_reason,
+            )
         radius_certificates.append(result)
         try:
             intersection = (result.official_witness if intersection is None
                             else intersection.intersect(result.official_witness))
+            audit_intersection = (
+                result.audit_witness if audit_intersection is None
+                else audit_intersection.intersect(result.audit_witness)
+            )
         except EmptyIntersection:
-            return JointWitnessCertificate("RADIUS_INTERSECTION_EMPTY", h, None,
-                                           result.endpoint, result.curvature,
-                                           result.endpoint_error,
-                                           result.official_cells,
-                                           tuple(radius_certificates), True)
+            raise RuntimeError("CERTIFICATE_IMPLEMENTATION_INVALID")
+        if not _interval_nested(audit_intersection, intersection):
+            raise RuntimeError("CERTIFICATE_CROSS_RADIUS_NESTING_INVALID")
     final = radius_certificates[-1]
-    return JointWitnessCertificate("CERTIFIED", final.h, intersection,
-                                   final.endpoint, final.curvature,
-                                   final.endpoint_error, final.official_cells,
-                                   tuple(radius_certificates), True)
+    return JointWitnessCertificate(
+        "INTERVAL_COMPUTED", final.h, intersection, final.endpoint,
+        final.curvature, final.endpoint_error, final.official_cells,
+        tuple(radius_certificates), True, row_spec.row_hash,
+        audit_intersection, None,
+    )

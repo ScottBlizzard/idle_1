@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from fractions import Fraction
 from pathlib import Path
+import json
 import sys
 
 import gmpy2
@@ -15,6 +16,7 @@ from green_bridge_v400_certificate import (
     certify_endpoints_and_slope, certify_joint_witness, compute_epsilon_psi,
     compute_m2, integrate_signed_curvature, witness_interval,
     certify_adaptive_cells,
+    joint_witness_certificate_payload, write_joint_witness_certificate,
 )
 import green_bridge_v400_certificate as certificate_module
 from green_bridge_v400_interval import Interval
@@ -68,8 +70,14 @@ def test_width_stop_requires_absolute_and_relative_tolerances():
     )
     absolute = Fraction(1, 2**80)
     relative = Fraction(1, 2**40)
-    tolerance = certificate_module._cell_tolerance(certificate, absolute, relative)
-    assert tolerance == gmpy2.mpfr(absolute.numerator) / absolute.denominator
+    assert not certificate_module._cell_tolerance_met(
+        certificate, absolute, relative
+    )
+    narrow = CellCertificate(
+        cell, Interval.point(0, P), Interval.point(0, P),
+        Interval.from_bounds(0, Fraction(1, 2**81), P),
+    )
+    assert certificate_module._cell_tolerance_met(narrow, absolute, relative)
 
 
 def test_subdivision_uses_curvature_weighted_width_priority(monkeypatch):
@@ -113,6 +121,7 @@ def test_public_adaptive_evaluator_requires_outcome_boundary():
 def test_public_adaptive_evaluator_returns_resource_inconclusive_partition():
     class Evaluator:
         contains_scientific_outcome = False
+        certificate_row_hash = "f" * 64
 
         def evaluate_interval(self, domain):
             return _polynomial_graph(3).evaluate(domain)
@@ -121,6 +130,21 @@ def test_public_adaptive_evaluator_returns_resource_inconclusive_partition():
         Evaluator(), Fraction(1), P,
         _plan("f" * 64, max_depth=0, max_cells=2),
     ) is None
+
+
+def test_public_adaptive_evaluator_requires_plan_identity():
+    class Evaluator:
+        contains_scientific_outcome = False
+        certificate_row_hash = "e" * 64
+
+        def evaluate_interval(self, domain):
+            return _polynomial_graph(3).evaluate(domain)
+
+    with pytest.raises(RuntimeError, match="PLAN_IDENTITY_MISMATCH"):
+        certify_adaptive_cells(
+            Evaluator(), Fraction(1), P,
+            _plan("f" * 64, max_depth=0, max_cells=2),
+        )
 
 
 def test_linear_endpoint_error_zero():
@@ -225,7 +249,7 @@ def test_certificate_plan_round_trip_and_multi_radius_execution():
     plan = _plan(row.row_hash, radii=(Dyadic(1, 0), Dyadic(1, -1), Dyadic(1, -2)))
     assert CertificatePlan.from_dict(plan.to_dict()) == plan
     result = certify_joint_witness(row, plan)
-    assert result.status == "CERTIFIED"
+    assert result.status == "INTERVAL_COMPUTED"
     assert result.audit_nested
     assert len(result.radii) == 3
     assert result.witness_interval is not None
@@ -248,3 +272,64 @@ def test_legacy_plan_object_is_rejected_instead_of_silent_default():
                               ("PAT_J", "PAT_B", "TAR_J", "TAR_B"), payload)
     with pytest.raises(TypeError, match="validated CertificatePlan"):
         certify_joint_witness(row, object())
+
+
+def test_exact_certificate_file_round_trip_is_immutable(tmp_path):
+    graph = _polynomial_graph(2)
+    payload = {
+        "precision_bits": P, "output_id": graph.output_id,
+        "nodes": [
+            {"node_id": node.node_id, "op": node.op, "parents": list(node.parents),
+             "params": node.params, "provenance": node.provenance,
+             "depends_on_t": node.depends_on_t}
+            for node in graph.nodes.values()
+        ],
+    }
+    row = JointWitnessRowSpec(
+        "green-v400-row-v1", "c" * 64, "synthetic", "1" * 64,
+        "2" * 64, "3" * 64, "4" * 64, "5" * 64,
+        ("PAT_J", "PAT_B", "TAR_J", "TAR_B"), payload,
+    )
+    certificate = certify_joint_witness(row, _plan(row.row_hash))
+    output = tmp_path / "certificate.json"
+    written = write_joint_witness_certificate(
+        output, certificate, row_spec=row, plan=_plan(row.row_hash),
+    )
+    loaded = json.loads(output.read_text(encoding="utf-8"))
+    assert loaded == written
+    assert loaded["serialization_scope"] == "current_in_memory_certificate_object_only"
+    assert loaded["binding_component_accounting_complete"] is False
+    assert loaded["contains_scientific_outcome"] is False
+    assert loaded["audit_witness_interval"] is not None
+    assert loaded["radii"][0]["audit_endpoint"] is not None
+    assert loaded["radii"][0]["audit_curvature"] is not None
+    assert loaded["radii"][0]["audit_endpoint_error"] is not None
+    semantic_hash = loaded.pop("certificate_semantic_hash")
+    from green_bridge_v400_schemas import sha256_canonical
+    assert semantic_hash == sha256_canonical(loaded)
+    with pytest.raises(FileExistsError, match="immutable"):
+        write_joint_witness_certificate(
+            output, certificate, row_spec=row, plan=_plan(row.row_hash),
+        )
+
+
+def test_real_certificate_serialization_is_unconditionally_blocked():
+    synthetic = JointWitnessRowSpec(
+        "green-v400-row-v1", "d" * 64, "synthetic", "1" * 64,
+        "2" * 64, "3" * 64, "4" * 64, "5" * 64,
+        ("PAT_J", "PAT_B", "TAR_J", "TAR_B"), {
+            "precision_bits": P, "output_id": "t", "nodes": [{
+                "node_id": "t", "op": "affine_control", "parents": [],
+                "params": {"base": 0, "direction": 1},
+                "provenance": "control", "depends_on_t": True,
+            }],
+        },
+    )
+    certificate = certify_joint_witness(synthetic, _plan("d" * 64))
+    real = JointWitnessRowSpec(**(
+        synthetic.to_dict() | {"split": "formal_prepare_pool"}
+    ))
+    with pytest.raises(RuntimeError, match="UNAUTHORIZED"):
+        joint_witness_certificate_payload(
+            certificate, row_spec=real, plan=_plan("d" * 64),
+        )

@@ -30,6 +30,14 @@ from green_bridge_v400_tensor_program import TensorProgram
 from green_bridge_v400_tensor_store import TensorStoreReader
 
 
+APPROVED_SYNTHETIC_PROGRAM_SHA256 = (
+    "38f40999524d465b8ee58fcc8d2d1822caf9af6c36897a72bd404a8fff34fe62"
+)
+APPROVED_SYNTHETIC_RESIDENT_PLAN_SHA256 = (
+    "0d5625e2f7af118615497e9642481946aec0a436b900e3c0d1661f90ba6f9acf"
+)
+
+
 def _nested_clear(inner, outer) -> bool:
     return all(
         outer_component.lower <= inner_component.lower
@@ -81,6 +89,10 @@ def main() -> int:
     ))
     reader = TensorStoreReader(Path(args.tensor_manifest))
     plan, arrays = load_resident_plan_arrays(Path(args.plan), program, reader)
+    if (program.semantic_hash() != APPROVED_SYNTHETIC_PROGRAM_SHA256
+            or plan["resident_plan_semantic_hash"]
+                != APPROVED_SYNTHETIC_RESIDENT_PLAN_SHA256):
+        raise RuntimeError("OUTCOME_BLIND_SYNTHETIC_FIXTURE_IDENTITY_MISMATCH")
     backend = CompiledMPFRBackend(Path(args.library))
     domain_specs = [("center", Fraction(0), Fraction(0))]
     for radius_index, radius in enumerate(radii):
@@ -281,15 +293,14 @@ def main() -> int:
             ),
             f"{prefix}_witness": _interval_nested(witness_512, witness_384),
         })
-    intersection_nonempty_matches = (
-        certificates_by_precision[384]["multi_radius_intersection_nonempty"]
-        == certificates_by_precision[512]["multi_radius_intersection_nonempty"]
+    both_intersections_nonempty = all(
+        certificates_by_precision[precision]["multi_radius_intersection_nonempty"]
+        for precision in (384, 512)
     )
-    certificate_nesting["multi_radius_intersection_existence_matches"] = (
-        intersection_nonempty_matches
+    certificate_nesting["multi_radius_intersections_nonempty"] = (
+        both_intersections_nonempty
     )
-    if (intersection_nonempty_matches
-            and certificates_by_precision[384]["combined_witness"] is not None):
+    if both_intersections_nonempty:
         certificate_nesting["multi_radius_witness_intersection"] = _interval_nested(
             certificates_by_precision[512]["combined_witness"],
             certificates_by_precision[384]["combined_witness"],

@@ -33,6 +33,69 @@ RESIDENT_TENSOR_NAMES = (
 )
 
 
+_VALIDATED_PLAN_TOKEN = object()
+
+
+class ValidatedResidentPlan(dict):
+    """Opaque mapping returned only after manifest/blob closure validation."""
+
+    def __init__(self, manifest: dict, manifest_path: Path, blob_path: Path, token):
+        if token is not _VALIDATED_PLAN_TOKEN:
+            raise TypeError("validated resident plans must be created by the loader")
+        super().__init__(manifest)
+        self.manifest_path = Path(manifest_path).resolve()
+        self.blob_path = Path(blob_path).resolve()
+        stat = self.blob_path.stat()
+        self._blob_identity = (
+            stat.st_dev, stat.st_ino, stat.st_size, stat.st_mtime_ns,
+        )
+
+    @staticmethod
+    def _immutable(*_args, **_kwargs):
+        raise TypeError("validated resident plan is immutable")
+
+    __setitem__ = _immutable
+    __delitem__ = _immutable
+    clear = _immutable
+    pop = _immutable
+    popitem = _immutable
+    setdefault = _immutable
+    update = _immutable
+    __ior__ = _immutable
+
+    def validate_runtime(self, program: TensorProgram, reader: TensorStoreReader,
+                         arrays: dict[str, np.ndarray]) -> None:
+        """Reject plan/array substitution at every public resident execution entry."""
+        semantic_hash = self.get("resident_plan_semantic_hash")
+        unhashed = dict(self)
+        unhashed.pop("resident_plan_semantic_hash", None)
+        if (semantic_hash != sha256_canonical(unhashed)
+                or self.get("program_semantic_hash") != program.semantic_hash()
+                or self.get("program_dispatch_signature_sha256")
+                    != program.resource_formula["dispatcher_signature_sha256"]
+                or self.get("tensor_store_record_closure_sha256")
+                    != reader.manifest.record_closure_sha256
+                or self.get("exact_final_contrast_fusion_sha256")
+                    != sha256_canonical(self["exact_final_contrast_fusion"])):
+            raise ValueError("resident execution plan identity mismatch")
+        stat = self.blob_path.stat()
+        if (stat.st_dev, stat.st_ino, stat.st_size, stat.st_mtime_ns) != self._blob_identity:
+            raise ValueError("resident execution blob identity changed after validation")
+        if set(arrays) != {record["name"] for record in self["records"]}:
+            raise ValueError("resident execution arrays do not match validated records")
+        for record in self["records"]:
+            array = arrays[record["name"]]
+            filename = getattr(array, "filename", None)
+            if (not isinstance(array, np.memmap) or filename is None
+                    or Path(filename).resolve() != self.blob_path
+                    or getattr(array, "offset", None) != record["offset"]
+                    or array.dtype.str != record["dtype"]
+                    or tuple(array.shape) != tuple(record["shape"])
+                    or array.nbytes != record["nbytes"]
+                    or array.ctypes.data % self["alignment_bytes"] != 0):
+                raise ValueError("resident execution array identity mismatch")
+
+
 def _sha256_file(path: Path) -> str:
     digest = hashlib.sha256()
     with path.open("rb") as handle:
@@ -256,4 +319,8 @@ def load_resident_plan_arrays(manifest_path: Path, program: TensorProgram,
         if array.ctypes.data % 64 != 0:
             raise RuntimeError("resident mmap base does not satisfy 64-byte alignment")
         arrays[record["name"]] = array
-    return manifest, arrays
+    validated = ValidatedResidentPlan(
+        manifest, path, blob, _VALIDATED_PLAN_TOKEN
+    )
+    validated.validate_runtime(program, reader, arrays)
+    return validated, arrays

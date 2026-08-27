@@ -20,6 +20,7 @@ from green_bridge_v400_interval_jet import (
 from green_bridge_v400_tensor_program import TensorProgram
 from green_bridge_v400_tensor_program import tensor_program_dispatch_signature
 from green_bridge_v400_schemas import sha256_canonical
+from green_bridge_v400_resident_plan import ValidatedResidentPlan
 from green_bridge_v400_tensor_store import TensorStoreReader
 from green_bridge_v400_transformer_ops import (
     affine_map_jets, attention_head_jets, gelu_new_jet, layernorm_jets,
@@ -49,6 +50,8 @@ class ResidentStaticRowCache:
               compiled_backend: CompiledMPFRBackend, precision_bits: int):
         if precision_bits <= 0:
             raise ValueError("resident static-row cache precision must be positive")
+        if not isinstance(resident_plan, ValidatedResidentPlan):
+            raise TypeError("resident static-row cache requires a validated resident plan")
         if resident_plan.get("program_semantic_hash") != program.semantic_hash():
             raise ValueError("resident static-row cache plan/program mismatch")
         plan_hash = resident_plan.get("resident_plan_semantic_hash")
@@ -241,9 +244,9 @@ def execute_tensor_program_mpfr(
     if resident_arrays is not None:
         if resident_plan is None or compiled_backend is None:
             raise ValueError("resident arrays require a resident plan and compiled backend")
-        record_names = {record["name"] for record in resident_plan.get("records", [])}
-        if set(resident_arrays) != record_names:
-            raise ValueError("resident arrays do not exactly match resident-plan records")
+        if not isinstance(resident_plan, ValidatedResidentPlan):
+            raise TypeError("resident execution requires a validated resident plan")
+        resident_plan.validate_runtime(program, reader, resident_arrays)
         resident_by_semantic = {
             record["tensor_semantic_sha256"]: resident_arrays[record["name"]]
             for record in resident_plan["records"]
