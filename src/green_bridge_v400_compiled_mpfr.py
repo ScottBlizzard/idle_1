@@ -324,6 +324,11 @@ class CompiledMPFRBackend:
         native_close = self.library.green_v400_native_plan_envelope_close_v1
         native_close.argtypes = [ctypes.c_uint64]
         native_close.restype = ctypes.c_int
+        native_payload_validated = (
+            self.library.green_v400_native_plan_payload_validated_v1
+        )
+        native_payload_validated.argtypes = [ctypes.c_uint64]
+        native_payload_validated.restype = ctypes.c_int
 
     def open_native_plan_envelope(
         self, descriptor_path: Path, blob_path: Path, *, descriptor_sha256: str,
@@ -349,10 +354,14 @@ class CompiledMPFRBackend:
         if status != 0:
             self.library.green_v400_native_plan_envelope_close_v1(handle.value)
             raise RuntimeError(f"native plan envelope info failed with status {status}")
+        if self.library.green_v400_native_plan_payload_validated_v1(handle.value) != 1:
+            self.library.green_v400_native_plan_envelope_close_v1(handle.value)
+            raise RuntimeError("native plan envelope payload-table validation was not retained")
         return CompiledNativePlanEnvelope(self, handle.value, {
             "descriptor_nbytes": values64[0].value, "blob_nbytes": values64[1].value,
             "record_count": values32[0].value, "node_count": values32[1].value,
             "binding_count": values32[2].value, "fusion_weight_count": values32[3].value,
+            "payload_tables_validated": True,
         })
 
     def affine_jet2(self, weights, bias, values: list[Jet2], precision_bits: int) -> dict:

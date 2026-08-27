@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from pathlib import Path
+import hashlib
 import os
 import sys
 
@@ -178,6 +179,7 @@ def test_compiled_native_envelope_loader_is_hash_closed_and_generation_safe(tmp_
         "blob_nbytes": payload["blob_nbytes"], "record_count": 32,
         "node_count": 81, "binding_count": 150,
         "fusion_weight_count": len(payload["exact_final_contrast_fusion"]["weights"]),
+        "payload_tables_validated": True,
     }
     stale = envelope.handle
     envelope.close()
@@ -205,6 +207,47 @@ def test_compiled_native_envelope_loader_is_hash_closed_and_generation_safe(tmp_
         backend.open_native_plan_envelope(
             descriptor, corrupted_blob,
             descriptor_sha256=built["descriptor_file_sha256"],
+            program_execution_sha256=payload["program_execution_semantic_hash"],
+            dispatch_sha256=payload["program_dispatch_signature_sha256"],
+            blob_sha256=payload["blob_sha256"],
+            fusion_sha256=payload["exact_final_contrast_fusion_sha256"],
+            blob_nbytes=payload["blob_nbytes"],
+            fusion_weight_count=len(payload["exact_final_contrast_fusion"]["weights"]),
+        )
+    substituted_payload = descriptor_payload(program, plan)
+    substituted_payload["records"][0]["offset"] += 64
+    substituted_encoded = encode_canonical_binary(substituted_payload)
+    substituted_descriptor = tmp_path / "native-semantic-substitution.desc"
+    substituted_descriptor.write_bytes(
+        _header_for(substituted_payload, substituted_encoded) + substituted_encoded
+    )
+    substituted_sha = hashlib.sha256(substituted_descriptor.read_bytes()).hexdigest()
+    with pytest.raises(RuntimeError, match="status 11"):
+        backend.open_native_plan_envelope(
+            substituted_descriptor, plan.blob_path,
+            descriptor_sha256=substituted_sha,
+            program_execution_sha256=payload["program_execution_semantic_hash"],
+            dispatch_sha256=payload["program_dispatch_signature_sha256"],
+            blob_sha256=payload["blob_sha256"],
+            fusion_sha256=payload["exact_final_contrast_fusion_sha256"],
+            blob_nbytes=payload["blob_nbytes"],
+            fusion_weight_count=len(payload["exact_final_contrast_fusion"]["weights"]),
+        )
+    invalid_utf8_raw = bytearray(descriptor.read_bytes())
+    invalid_utf8_raw[invalid_utf8_raw.index(b"PASS_NATIVE_DESCRIPTOR_PREPARE_ONLY")] = 0xff
+    invalid_fields = list(DESCRIPTOR_HEADER.unpack(
+        invalid_utf8_raw[:DESCRIPTOR_HEADER_SIZE]
+    ))
+    invalid_fields[7] = hashlib.sha256(
+        invalid_utf8_raw[DESCRIPTOR_HEADER_SIZE:]
+    ).digest()
+    invalid_utf8_raw[:DESCRIPTOR_HEADER_SIZE] = DESCRIPTOR_HEADER.pack(*invalid_fields)
+    invalid_utf8_descriptor = tmp_path / "native-invalid-utf8.desc"
+    invalid_utf8_descriptor.write_bytes(invalid_utf8_raw)
+    with pytest.raises(RuntimeError, match="status 11"):
+        backend.open_native_plan_envelope(
+            invalid_utf8_descriptor, plan.blob_path,
+            descriptor_sha256=hashlib.sha256(invalid_utf8_raw).hexdigest(),
             program_execution_sha256=payload["program_execution_semantic_hash"],
             dispatch_sha256=payload["program_dispatch_signature_sha256"],
             blob_sha256=payload["blob_sha256"],

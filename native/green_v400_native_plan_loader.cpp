@@ -6,7 +6,9 @@
 #include <fcntl.h>
 #include <mutex>
 #include <memory>
+#include <limits>
 #include <string>
+#include <unordered_set>
 #include <sys/mman.h>
 #include <sys/stat.h>
 #include <unordered_map>
@@ -91,8 +93,244 @@ bool parse_hex(const char* text, std::array<std::uint8_t,32>& output) {
 std::uint32_t u32(const std::uint8_t* p){return std::uint32_t(p[0])|(std::uint32_t(p[1])<<8)|(std::uint32_t(p[2])<<16)|(std::uint32_t(p[3])<<24);}
 std::uint64_t u64(const std::uint8_t* p){return std::uint64_t(u32(p))|(std::uint64_t(u32(p+4))<<32);}
 bool read_all(int fd,std::vector<std::uint8_t>& out){std::size_t n=0;while(n<out.size()){ssize_t r=::pread(fd,out.data()+n,out.size()-n,n);if(r<=0)return false;n+=r;}return true;}
+bool valid_utf8(const std::uint8_t* data,std::size_t size){
+  std::size_t i=0;
+  while(i<size){
+    const std::uint8_t first=data[i++];if(first<=0x7fU)continue;
+    std::uint32_t value=0;std::size_t continuation=0;
+    if(first>=0xc2U&&first<=0xdfU){value=first&0x1fU;continuation=1;}
+    else if(first>=0xe0U&&first<=0xefU){value=first&0x0fU;continuation=2;}
+    else if(first>=0xf0U&&first<=0xf4U){value=first&0x07U;continuation=3;}
+    else return false;
+    if(continuation>size-i)return false;
+    for(std::size_t j=0;j<continuation;++j){const std::uint8_t next=data[i++];
+      if((next&0xc0U)!=0x80U)return false;value=(value<<6U)|(next&0x3fU);}
+    if((continuation==2&&(value<0x800U||(value>=0xd800U&&value<=0xdfffU)))
+        ||(continuation==3&&(value<0x10000U||value>0x10ffffU)))return false;
+  }
+  return true;
+}
 
-struct PlanEnvelope { int dfd=-1,bfd=-1; void* blob=MAP_FAILED; std::uint64_t dsize=0,bsize=0; std::uint32_t records=0,nodes=0,bindings=0,fusion=0; ~PlanEnvelope(){if(blob!=MAP_FAILED)::munmap(blob,bsize);if(dfd>=0)::close(dfd);if(bfd>=0)::close(bfd);} };
+struct BinaryValue {
+  enum Kind { kNull, kBool, kInt, kString, kList, kDict } kind = kNull;
+  bool boolean = false; std::int64_t integer = 0; std::string string;
+  std::vector<BinaryValue> list;
+  std::vector<std::pair<std::string, BinaryValue>> dict;
+  const std::uint8_t* encoded = nullptr;
+  std::size_t encoded_size = 0;
+};
+
+class BinaryDecoder {
+ public:
+  BinaryDecoder(const std::uint8_t* data,std::size_t size):data_(data),size_(size){}
+  bool parse(BinaryValue& output){return value(output,0)&&offset_==size_;}
+ private:
+  bool take(std::size_t count,const std::uint8_t*& out){if(count>size_-offset_)return false;out=data_+offset_;offset_+=count;return true;}
+  bool count(std::uint32_t& out){const std::uint8_t* p;if(!take(4,p))return false;out=u32(p);return true;}
+  bool value(BinaryValue& out,std::uint32_t depth){
+    const std::size_t start=offset_;
+    if(!value_body(out,depth))return false;
+    out.encoded=data_+start;out.encoded_size=offset_-start;return true;
+  }
+  bool value_body(BinaryValue& out,std::uint32_t depth){
+    if(depth>128||++items_>200000)return false;const std::uint8_t* p;if(!take(1,p))return false;
+    const char tag=static_cast<char>(*p);
+    if(tag=='N'){out.kind=BinaryValue::kNull;return true;}
+    if(tag=='F'||tag=='T'){out.kind=BinaryValue::kBool;out.boolean=tag=='T';return true;}
+    if(tag=='I'){
+      const std::uint8_t* sign;if(!take(1,sign))return false;std::uint32_t n;if(!count(n)||n>8||*sign>1)return false;
+      const std::uint8_t* raw;if(!take(n,raw)||(n&&raw[0]==0)||(!n&&*sign))return false;std::uint64_t magnitude=0;
+      for(std::uint32_t i=0;i<n;++i)magnitude=(magnitude<<8)|raw[i];
+      if(magnitude>static_cast<std::uint64_t>(std::numeric_limits<std::int64_t>::max()))return false;
+      out.kind=BinaryValue::kInt;out.integer=*sign?-static_cast<std::int64_t>(magnitude):static_cast<std::int64_t>(magnitude);return true;
+    }
+    if(tag=='S'){
+      std::uint32_t n;if(!count(n)||n>(1U<<20))return false;const std::uint8_t* raw;if(!take(n,raw))return false;
+      if(!valid_utf8(raw,n))return false;
+      out.kind=BinaryValue::kString;out.string.assign(reinterpret_cast<const char*>(raw),n);return true;
+    }
+    if(tag=='L'){
+      std::uint32_t n;if(!count(n)||n>20000)return false;out.kind=BinaryValue::kList;out.list.resize(n);
+      for(auto& item:out.list)if(!value(item,depth+1))return false;return true;
+    }
+    if(tag=='D'){
+      std::uint32_t n;if(!count(n)||n>20000)return false;out.kind=BinaryValue::kDict;out.dict.reserve(n);std::string prior;
+      for(std::uint32_t i=0;i<n;++i){BinaryValue key,item;if(!value(key,depth+1)||key.kind!=BinaryValue::kString||(!prior.empty()&&key.string<=prior)||!value(item,depth+1))return false;prior=key.string;out.dict.emplace_back(std::move(key.string),std::move(item));}return true;
+    }
+    return false;
+  }
+  const std::uint8_t* data_;std::size_t size_,offset_=0,items_=0;
+};
+
+const BinaryValue* field(const BinaryValue& value,const char* name){if(value.kind!=BinaryValue::kDict)return nullptr;for(const auto& item:value.dict)if(item.first==name)return &item.second;return nullptr;}
+bool integer(const BinaryValue* value,std::int64_t& out){if(!value||value->kind!=BinaryValue::kInt)return false;out=value->integer;return true;}
+bool text(const BinaryValue* value,std::string& out){if(!value||value->kind!=BinaryValue::kString)return false;out=value->string;return true;}
+bool sha(const BinaryValue* value){std::string s;if(!text(value,s)||s.size()!=64)return false;for(char c:s)if(!((c>='0'&&c<='9')||(c>='a'&&c<='f')))return false;return true;}
+bool text_matches_digest(const BinaryValue* value,const std::uint8_t* digest){
+  std::string expected;if(!sha(value)||!text(value,expected))return false;std::array<std::uint8_t,32> bytes{};
+  if(!parse_hex(expected.c_str(),bytes))return false;return std::memcmp(bytes.data(),digest,32)==0;
+}
+std::size_t dtype_size(const std::string& dtype){if(dtype=="|u1"||dtype=="|i1")return 1;if(dtype=="<i2"||dtype=="<f2")return 2;if(dtype=="<i4"||dtype=="<f4")return 4;if(dtype=="<i8"||dtype=="<f8")return 8;return 0;}
+
+bool validate_payload_tables(const std::uint8_t* data,std::size_t size,
+                             const std::uint8_t* header,std::uint32_t header_fusion,
+                             std::uint64_t expected_blob_size){
+  BinaryValue root;
+  if(!BinaryDecoder(data,size).parse(root)||root.kind!=BinaryValue::kDict||root.dict.size()!=21)return false;
+  std::string schema,claim,blob_name;
+  if(!text(field(root,"schema_version"),schema)||schema!="green-v400-native-execution-descriptor-payload-v1"
+      ||!text(field(root,"claim_status"),claim)||claim!="PASS_NATIVE_DESCRIPTOR_PREPARE_ONLY"
+      ||!text(field(root,"blob_name"),blob_name)||blob_name.empty()
+      ||blob_name.find('/')!=std::string::npos||blob_name.find('\\')!=std::string::npos)return false;
+  const BinaryValue* outcome=field(root,"contains_scientific_outcome");
+  const BinaryValue* ready=field(root,"native_execution_ready");
+  if(!outcome||outcome->kind!=BinaryValue::kBool||outcome->boolean
+      ||!ready||ready->kind!=BinaryValue::kBool||ready->boolean)return false;
+  std::int64_t blob_nbytes,alignment;
+  if(!integer(field(root,"blob_nbytes"),blob_nbytes)||blob_nbytes<0
+      ||static_cast<std::uint64_t>(blob_nbytes)!=expected_blob_size
+      ||!integer(field(root,"alignment_bytes"),alignment)||alignment!=64)return false;
+  const BinaryValue* identity=field(root,"program_execution_identity");
+  const BinaryValue* fusion=field(root,"exact_final_contrast_fusion");
+  if(!identity||!fusion
+      ||!text_matches_digest(field(root,"program_execution_semantic_hash"),header+80)
+      ||!text_matches_digest(field(root,"program_dispatch_signature_sha256"),header+112)
+      ||!text_matches_digest(field(root,"blob_sha256"),header+144)
+      ||!text_matches_digest(field(root,"exact_final_contrast_fusion_sha256"),header+176)
+      ||!sha(field(root,"tensor_store_record_closure_sha256")))return false;
+
+  const BinaryValue* dimensions=field(root,"dimensions");
+  if(!dimensions||dimensions->kind!=BinaryValue::kDict||dimensions->dict.size()!=8)return false;
+  std::int64_t dmodel,heads,dhead,sequence,final_position,dmlp,contrast_width;
+  if(!integer(field(*dimensions,"d_model"),dmodel)||!integer(field(*dimensions,"n_heads"),heads)
+      ||!integer(field(*dimensions,"d_head"),dhead)||!integer(field(*dimensions,"sequence_length"),sequence)
+      ||!integer(field(*dimensions,"final_position"),final_position)||!integer(field(*dimensions,"d_mlp"),dmlp)
+      ||!integer(field(*dimensions,"contrast_width"),contrast_width)||dmodel<=0||heads<=0||dhead<=0
+      ||dmlp<=0||contrast_width<=0||dmodel!=heads*dhead||sequence<=0||final_position<0
+      ||final_position>=sequence||static_cast<std::uint64_t>(dmodel)!=header_fusion)return false;
+  const BinaryValue* gates=field(*dimensions,"selected_gates");std::unordered_set<std::int64_t> selected;
+  if(!gates||gates->kind!=BinaryValue::kList)return false;
+  for(const auto& gate:gates->list)if(gate.kind!=BinaryValue::kInt||gate.integer<0||gate.integer>=dmlp
+      ||!selected.insert(gate.integer).second)return false;
+
+  const BinaryValue* records=field(root,"records");
+  if(!records||records->kind!=BinaryValue::kList||records->list.size()!=32)return false;
+  std::uint64_t prior=0;std::vector<std::string> record_names,record_semantics;
+  std::unordered_set<std::string> unique_names;record_names.reserve(32);record_semantics.reserve(32);
+  for(const auto& record:records->list){
+    std::string name,dtype,semantic;std::int64_t offset,nbytes;
+    if(record.kind!=BinaryValue::kDict||!text(field(record,"name"),name)||name.empty()
+        ||!unique_names.insert(name).second||!text(field(record,"dtype"),dtype)
+        ||!text(field(record,"tensor_semantic_sha256"),semantic)||!sha(field(record,"tensor_semantic_sha256"))
+        ||!integer(field(record,"offset"),offset)||!integer(field(record,"nbytes"),nbytes)
+        ||offset<0||nbytes<0||!sha(field(record,"data_sha256")))return false;
+    const BinaryValue* shape=field(record,"shape");const std::size_t item_size=dtype_size(dtype);
+    if(!shape||shape->kind!=BinaryValue::kList||shape->list.size()>8||item_size==0)return false;
+    std::uint64_t elements=1;
+    for(const auto& dim:shape->list){
+      if(dim.kind!=BinaryValue::kInt||dim.integer<0||dim.integer>10000000)return false;
+      if(dim.integer&&elements>std::numeric_limits<std::uint64_t>::max()/static_cast<std::uint64_t>(dim.integer))return false;
+      elements*=static_cast<std::uint64_t>(dim.integer);
+    }
+    if(elements>std::numeric_limits<std::uint64_t>::max()/item_size)return false;
+    const std::uint64_t expected=(prior+63U)/64U*64U;
+    if(static_cast<std::uint64_t>(offset)!=expected||elements*item_size!=static_cast<std::uint64_t>(nbytes))return false;
+    prior=static_cast<std::uint64_t>(offset)+static_cast<std::uint64_t>(nbytes);
+    record_names.push_back(name);record_semantics.push_back(semantic);
+  }
+  if(prior!=expected_blob_size)return false;
+
+  const BinaryValue* nodes=identity?field(*identity,"nodes"):nullptr;
+  if(!identity||identity->kind!=BinaryValue::kDict||!nodes||nodes->kind!=BinaryValue::kList||nodes->list.size()!=81)return false;
+  struct NodeInfo{std::string kernel;std::vector<std::string> tensor_hashes;std::int64_t axis0=-1;};
+  std::unordered_set<std::string> seen;std::unordered_map<std::string,NodeInfo> node_info;
+  std::vector<std::string> ordered;ordered.reserve(81);
+  for(const auto& node:nodes->list){
+    std::string id,kernel;
+    if(!sha(field(node,"semantic_id"))||!text(field(node,"semantic_id"),id)
+        ||!text(field(node,"kernel_id"),kernel)||kernel.empty()||seen.count(id))return false;
+    const BinaryValue* parents=field(node,"parent_semantic_ids");const BinaryValue* inputs=field(node,"tensor_inputs");
+    const BinaryValue* output_spec=field(node,"output_spec");const BinaryValue* output_shape=output_spec?field(*output_spec,"shape"):nullptr;
+    if(!parents||parents->kind!=BinaryValue::kList||!inputs||inputs->kind!=BinaryValue::kList
+        ||!output_shape||output_shape->kind!=BinaryValue::kList||output_shape->list.size()>8)return false;
+    for(const auto& parent:parents->list)if(parent.kind!=BinaryValue::kString||!seen.count(parent.string))return false;
+    NodeInfo info;info.kernel=kernel;
+    for(const auto& input:inputs->list){std::string tensor_hash;if(!sha(field(input,"tensor_sha256"))
+        ||!text(field(input,"tensor_sha256"),tensor_hash))return false;info.tensor_hashes.push_back(tensor_hash);}
+    for(std::size_t i=0;i<output_shape->list.size();++i){const auto& dim=output_shape->list[i];
+      if(dim.kind!=BinaryValue::kInt||dim.integer<0||dim.integer>10000000)return false;if(i==0)info.axis0=dim.integer;}
+    seen.insert(id);ordered.push_back(id);node_info.emplace(id,std::move(info));
+  }
+  const BinaryValue* roots=field(root,"branch_roots");
+  if(!roots||roots->kind!=BinaryValue::kDict||roots->dict.size()!=4
+      ||!field(*roots,"PAT_J")||!field(*roots,"PAT_B")||!field(*roots,"TAR_J")||!field(*roots,"TAR_B"))return false;
+  for(const auto& item:roots->dict)if(item.second.kind!=BinaryValue::kString||!seen.count(item.second.string))return false;
+  std::string output;if(!text(field(root,"output_root"),output)||!seen.count(output))return false;
+  const BinaryValue* live=field(root,"required_axis0_rows");
+  if(!live||live->kind!=BinaryValue::kList||live->list.size()!=81)return false;
+  for(std::size_t i=0;i<81;++i){
+    std::string id;if(!text(field(live->list[i],"node_semantic_id"),id)||id!=ordered[i])return false;
+    const BinaryValue* rows=field(live->list[i],"rows");if(!rows||rows->kind!=BinaryValue::kList)return false;
+    std::int64_t prior_row=-1;const std::int64_t axis0=node_info[id].axis0;
+    for(const auto& row:rows->list){if(row.kind!=BinaryValue::kInt||row.integer<=prior_row
+        ||axis0<0||row.integer<0||row.integer>=axis0)return false;prior_row=row.integer;}
+  }
+
+  const BinaryValue* weights=fusion?field(*fusion,"weights"):nullptr;
+  const BinaryValue* closure=fusion?field(*fusion,"input_closure"):nullptr;std::int64_t fusion_dmodel;
+  if(!fusion||fusion->kind!=BinaryValue::kDict||!weights||weights->kind!=BinaryValue::kList
+      ||weights->list.size()!=header_fusion||!integer(field(*fusion,"d_model"),fusion_dmodel)
+      ||fusion_dmodel!=dmodel||!closure||closure->kind!=BinaryValue::kDict)return false;
+  std::unordered_map<std::string,std::string> fusion_semantics;
+  for(const auto& item:closure->dict){std::string semantic;if(!sha(field(item.second,"semantic_sha256"))
+      ||!text(field(item.second,"semantic_sha256"),semantic))return false;fusion_semantics.emplace(item.first,semantic);}
+
+  const BinaryValue* bindings=field(root,"program_input_binding_table");
+  if(!bindings||bindings->kind!=BinaryValue::kList||bindings->list.size()!=150)return false;
+  std::size_t binding_index=0;
+  for(const std::string& expected_id:ordered){const NodeInfo& info=node_info[expected_id];
+    for(std::size_t expected_ordinal=0;expected_ordinal<info.tensor_hashes.size();++expected_ordinal){
+      if(binding_index>=bindings->list.size())return false;const BinaryValue& binding=bindings->list[binding_index++];
+      std::string id,kernel,tensor_hash;std::int64_t ordinal;
+      if(!text(field(binding,"node_semantic_id"),id)||id!=expected_id
+          ||!text(field(binding,"kernel_id"),kernel)||kernel!=info.kernel
+          ||!integer(field(binding,"tensor_input_ordinal"),ordinal)||ordinal!=static_cast<std::int64_t>(expected_ordinal)
+          ||!text(field(binding,"tensor_semantic_sha256"),tensor_hash)||tensor_hash!=info.tensor_hashes[expected_ordinal])return false;
+      const BinaryValue* source=field(binding,"source");std::string kind;if(!source||!text(field(*source,"kind"),kind))return false;
+      if(kind=="packed_record"){
+        std::int64_t index;std::string name;if(!integer(field(*source,"record_index"),index)||index<0||index>=32
+            ||!text(field(*source,"record_name"),name)||name!=record_names[index]
+            ||tensor_hash!=record_semantics[index])return false;
+      }else if(kind=="exact_final_contrast_fusion_source"){
+        std::string source_name;if(!text(field(*source,"source_name"),source_name)||!fusion_semantics.count(source_name)
+            ||tensor_hash!=fusion_semantics[source_name])return false;
+      }else return false;
+    }
+  }
+  if(binding_index!=bindings->list.size())return false;
+
+  const BinaryValue* policy=field(root,"native_runtime_policy");std::int64_t rc,nc,bc,version,events;
+  std::string policy_schema,abi,rounding,domain,locator;
+  const BinaryValue* fallback=policy?field(*policy,"corruption_fallback_allowed"):nullptr;
+  const BinaryValue* precisions=policy?field(*policy,"supported_precision_bits"):nullptr;
+  if(!policy||policy->kind!=BinaryValue::kDict||policy->dict.size()!=12
+      ||!text(field(*policy,"schema_version"),policy_schema)||policy_schema!="green-v400-native-runtime-policy-v1"
+      ||!integer(field(*policy,"descriptor_format_version"),version)||version!=1
+      ||!text(field(*policy,"compiled_kernel_abi"),abi)||abi!="green-v400-compiled-mpfr-v2"
+      ||!text(field(*policy,"rounding_contract"),rounding)||rounding!="directed-mpfr-outward-interval-jet2"
+      ||!text(field(*policy,"domain_schema"),domain)||domain!="closed-dyadic-interval-v1"
+      ||!text(field(*policy,"blob_locator_policy"),locator)||locator!="explicit-path-plus-nbytes-sha256-record-closure"
+      ||!integer(field(*policy,"exact_successful_dispatch_event_count"),events)||events!=81
+      ||!integer(field(*policy,"record_count"),rc)||!integer(field(*policy,"node_count"),nc)
+      ||!integer(field(*policy,"binding_count"),bc)||rc!=32||nc!=81||bc!=150
+      ||!fallback||fallback->kind!=BinaryValue::kBool||fallback->boolean
+      ||!precisions||precisions->kind!=BinaryValue::kList||precisions->list.size()!=2
+      ||precisions->list[0].kind!=BinaryValue::kInt||precisions->list[0].integer!=384
+      ||precisions->list[1].kind!=BinaryValue::kInt||precisions->list[1].integer!=512)return false;
+  return true;
+}
+
+struct PlanEnvelope { int dfd=-1,bfd=-1; void* blob=MAP_FAILED; std::uint64_t dsize=0,bsize=0; std::uint32_t records=0,nodes=0,bindings=0,fusion=0; bool payload_validated=false; ~PlanEnvelope(){if(blob!=MAP_FAILED)::munmap(blob,bsize);if(dfd>=0)::close(dfd);if(bfd>=0)::close(bfd);} };
 std::mutex registry_mutex; std::unordered_map<std::uint64_t,std::unique_ptr<PlanEnvelope>> registry; std::atomic<std::uint64_t> next_handle{1};
 
 }  // namespace
@@ -121,6 +359,7 @@ extern "C" int green_v400_native_plan_envelope_open_v1(
   Sha256 payload;payload.update(bytes.data()+256,bytes.size()-256);auto pd=payload.finish();if(std::memcmp(h+48,pd.data(),32))return 7;
   plan->bfd=::open(blob_path,O_RDONLY|O_CLOEXEC|O_NOFOLLOW);if(plan->bfd<0)return 3;struct stat bs{};
   if(::fstat(plan->bfd,&bs)!=0||!S_ISREG(bs.st_mode)||std::uint64_t(bs.st_size)!=expected_blob_nbytes)return 8;plan->bsize=bs.st_size;
+  if(!validate_payload_tables(bytes.data()+256,bytes.size()-256,h,plan->fusion,plan->bsize))return 11;plan->payload_validated=true;
   Sha256 blob_hash;std::vector<std::uint8_t> chunk(1U<<20);std::uint64_t off=0;while(off<plan->bsize){std::size_t want=std::min<std::uint64_t>(chunk.size(),plan->bsize-off);ssize_t n=::pread(plan->bfd,chunk.data(),want,off);if(n<=0)return 8;blob_hash.update(chunk.data(),n);off+=n;}if(blob_hash.finish()!=eb)return 8;
   plan->blob=::mmap(nullptr,plan->bsize,PROT_READ,MAP_PRIVATE,plan->bfd,0);if(plan->blob==MAP_FAILED)return 9;
   std::uint64_t handle=next_handle.fetch_add(1);if(handle==0)return 10;{std::lock_guard<std::mutex> lock(registry_mutex);registry.emplace(handle,std::move(plan));}*out_handle=handle;return 0;
@@ -128,3 +367,4 @@ extern "C" int green_v400_native_plan_envelope_open_v1(
 
 extern "C" int green_v400_native_plan_envelope_info_v1(std::uint64_t handle,std::uint64_t* descriptor_nbytes,std::uint64_t* blob_nbytes,std::uint32_t* records,std::uint32_t* nodes,std::uint32_t* bindings,std::uint32_t* fusion_weights){std::lock_guard<std::mutex> lock(registry_mutex);auto it=registry.find(handle);if(it==registry.end())return 2;auto& p=*it->second;if(descriptor_nbytes)*descriptor_nbytes=p.dsize;if(blob_nbytes)*blob_nbytes=p.bsize;if(records)*records=p.records;if(nodes)*nodes=p.nodes;if(bindings)*bindings=p.bindings;if(fusion_weights)*fusion_weights=p.fusion;return 0;}
 extern "C" int green_v400_native_plan_envelope_close_v1(std::uint64_t handle){std::unique_ptr<PlanEnvelope> removed;{std::lock_guard<std::mutex> lock(registry_mutex);auto it=registry.find(handle);if(it==registry.end())return 2;removed=std::move(it->second);registry.erase(it);}return 0;}
+extern "C" int green_v400_native_plan_payload_validated_v1(std::uint64_t handle){std::lock_guard<std::mutex> lock(registry_mutex);auto it=registry.find(handle);if(it==registry.end())return 0;return it->second->payload_validated?1:0;}

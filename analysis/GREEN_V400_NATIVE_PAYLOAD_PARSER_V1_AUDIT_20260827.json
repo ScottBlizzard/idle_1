@@ -1,0 +1,33 @@
+{
+  "backend_sha256": "3e1845909c0e282390d00c7d145c184a287c56c60e5552a48211353223387d00",
+  "backend_version": "green-v400-compiled-mpfr-v2",
+  "blob_sha256": "34bcd45371c08720c23f66d8f723dfc0249779e9e47eee5499c04d6064dc3560",
+  "claim_scope": "bounded native canonical-binary decode and semantic validation of the actual descriptor records, nodes, roots, liveness, bindings, fusion closure, dimensions, and runtime policy; parsed values are not yet retained as a typed native plan and no node execution occurs",
+  "contains_scientific_outcome": false,
+  "created_at_utc": "2026-08-27T09:35:01.873956Z",
+  "descriptor_sha256": "bc673467ac237e59e542634d38d02b8eaa12053cbb0abfc39e4dcaa6659ba3ee",
+  "dispatch_sha256": "eb4c907ab4a86f3aac2fda445deed67099f2831c41e9712463688cccf1b6f008",
+  "full_native_dispatch_ready": false,
+  "fusion_sha256": "bd734f457bd3baee252af47f1c048dbd606ec15bf6a1b6533751c7bb943319c1",
+  "native_execution_ready": false,
+  "native_info": {
+    "binding_count": 150,
+    "blob_nbytes": 28517632,
+    "descriptor_nbytes": 241234,
+    "fusion_weight_count": 768,
+    "node_count": 81,
+    "payload_tables_validated": true,
+    "record_count": 32
+  },
+  "native_payload_table_validation_ready": true,
+  "native_typed_plan_materialization_ready": false,
+  "open_hash_parse_validate_mmap_seconds": 0.12162134301615879,
+  "process_peak_rss_after_kib": 38032,
+  "process_peak_rss_before_kib": 35308,
+  "process_peak_rss_delta_kib": 2724,
+  "program_execution_sha256": "38f40999524d465b8ee58fcc8d2d1822caf9af6c36897a72bd404a8fff34fe62",
+  "schema_version": "green-v400-native-payload-parser-audit-v1",
+  "stale_handle_info_status": 2,
+  "stale_handle_validation_status": 0,
+  "status": "PASS_NATIVE_PAYLOAD_TABLE_PARSER_PREPARE_ONLY"
+}
