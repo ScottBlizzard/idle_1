@@ -14,6 +14,9 @@
 #include <unordered_map>
 #include <unistd.h>
 #include <vector>
+#ifdef GREEN_V400_NATIVE_AUDIT_TEST_HOOKS
+#include <condition_variable>
+#endif
 
 extern "C" int green_v400_resident_jet_buffer_import_f32_constants(
     std::uint32_t precision_bits,std::uint32_t width,
@@ -571,6 +574,13 @@ std::mutex dispatch_metrics_mutex;
 std::uint64_t global_dispatch_entry_count=0;
 std::uint32_t global_active_dispatch_count=0;
 std::uint32_t global_peak_active_dispatch_count=0;
+#ifdef GREEN_V400_NATIVE_AUDIT_TEST_HOOKS
+std::mutex after_find_hook_mutex;
+std::condition_variable after_find_hook_condition;
+bool after_find_hook_enabled=false;
+bool after_find_hook_reached=false;
+bool after_find_hook_released=false;
+#endif
 
 std::shared_ptr<NativePrecisionContext> find_precision_context(std::uint64_t handle){
   std::lock_guard<std::mutex> lock(context_registry_mutex);auto it=context_registry.find(handle);
@@ -589,6 +599,14 @@ struct NativeDispatchMetricsGuard {
   }
   NativePrecisionContext& context;
 };
+
+#ifdef GREEN_V400_NATIVE_AUDIT_TEST_HOOKS
+void wait_at_after_find_hook(){
+  std::unique_lock<std::mutex> lock(after_find_hook_mutex);if(!after_find_hook_enabled)return;
+  after_find_hook_reached=true;after_find_hook_condition.notify_all();
+  after_find_hook_condition.wait(lock,[]{return after_find_hook_released;});
+}
+#endif
 
 }  // namespace
 
@@ -741,11 +759,27 @@ extern "C" int green_v400_native_precision_context_dispatch_info_v1(std::uint64_
   if(active_dispatch_count)*active_dispatch_count=context->active_dispatch_count;
   if(peak_active_dispatch_count)*peak_active_dispatch_count=context->peak_active_dispatch_count;return 0;
 }
+#ifdef GREEN_V400_NATIVE_AUDIT_TEST_HOOKS
+extern "C" int green_v400_native_audit_after_find_hook_enable_v1(){
+  std::lock_guard<std::mutex> lock(after_find_hook_mutex);if(after_find_hook_enabled)return 3;
+  after_find_hook_enabled=true;after_find_hook_reached=false;after_find_hook_released=false;return 0;
+}
+extern "C" int green_v400_native_audit_after_find_hook_reached_v1(){
+  std::lock_guard<std::mutex> lock(after_find_hook_mutex);return after_find_hook_reached?1:0;
+}
+extern "C" int green_v400_native_audit_after_find_hook_release_v1(){
+  std::lock_guard<std::mutex> lock(after_find_hook_mutex);if(!after_find_hook_enabled||!after_find_hook_reached)return 3;
+  after_find_hook_released=true;after_find_hook_enabled=false;after_find_hook_condition.notify_all();return 0;
+}
+#endif
 extern "C" int green_v400_native_precision_context_dispatch_cell_v1(
     std::uint64_t context_handle,const char* domain_lower_significand,std::int64_t domain_lower_exponent,
     const char* domain_upper_significand,std::int64_t domain_upper_exponent,char* output_json,std::uint64_t output_capacity){
   if(!domain_lower_significand||!domain_upper_significand||!output_json||output_capacity==0)return 2;
   auto context_ptr=find_precision_context(context_handle);if(!context_ptr)return 2;
+#ifdef GREEN_V400_NATIVE_AUDIT_TEST_HOOKS
+  wait_at_after_find_hook();
+#endif
   std::lock_guard<std::mutex> execution_lock(context_ptr->execution_mutex);if(!context_ptr->active)return 2;
   NativePrecisionContext& context=*context_ptr;NativeDispatchMetricsGuard dispatch_metrics(context);
   const auto& tables=context.plan->tables;const std::uint32_t width=tables.d_model,sequence=tables.sequence_length;
