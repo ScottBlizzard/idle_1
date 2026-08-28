@@ -1,0 +1,11 @@
+{
+  "schema_version": "green-v400-atp-star-applicability-audit-v1",
+  "protocol_id": "GREEN_V400_SILENT_FAILURE_CHALLENGE_PREPARE_V1",
+  "real_outcomes_authorized": false,
+  "hook": "resid_post",
+  "coarse_site_count_per_prompt": 9,
+  "replacement_method": "exact_finite_response",
+  "atp_star_claimed_as_executed": false,
+  "errors": [],
+  "verdict": "PASS_EXACT_PATCHING_SUPERSEDES_ATP_STAR_FOR_COARSE_SITES"
+}

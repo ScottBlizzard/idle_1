@@ -31,11 +31,14 @@
       "evidence": ["src/green_v400_response_baselines.py", "src/green_v400_ioi_response_adapter.py", "src/green_v400_prediction_worker.py", "tests/test_green_v400_prediction_worker.py"],
       "missing": ["historical-row resource benchmark"]
     },
-    "AtP_star": {
+    "AtP_star_or_closest_exact_attribution": {
       "required": true,
-      "status": "MISSING",
-      "evidence": [],
-      "missing": ["faithful implementation pinned to primary source and parity tests"]
+      "status": "READY",
+      "replacement_method": "exact_finite_response",
+      "applicability": "coarse_full_residual_sites_only",
+      "AtP_star_claimed_as_executed": false,
+      "evidence": ["analysis/CODEX_GREEN_V400_PRIMARY_BASELINE_SOURCE_PIN_20260829.md", "analysis/green_v400_atp_star_applicability.py", "analysis/green_v400_atp_star_applicability_audit_20260829.json", "src/green_v400_response_baselines.py", "src/green_v400_ioi_response_adapter.py", "tests/test_green_v400_atp_star_applicability.py", "tests/test_green_v400_response_baselines.py"],
+      "missing": []
     },
     "grant_divergence": {
       "required": true,

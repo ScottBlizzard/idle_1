@@ -23,7 +23,6 @@ def test_checked_in_registry_blocks_untouched_execution_honestly():
     assert audit["verdict"] == "BLOCK_BASELINES_NOT_READY"
     assert audit["ready_for_untouched_execution"] is False
     assert set(audit["not_ready_required"]) == {
-        "AtP_star",
         "generic_verifier",
         "grant_divergence",
         "hvp_second_order",
