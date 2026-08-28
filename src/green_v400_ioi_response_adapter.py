@@ -39,6 +39,8 @@ class IOIInterventionSite:
 class IOIScalarResponse:
     """Differentiable scalar IOI logit contrast under one activation injection."""
 
+    supports_batch = True
+
     def __init__(self, model: Any, tokens: torch.Tensor, site: IOIInterventionSite):
         if tokens.ndim != 2 or tokens.shape[0] != 1:
             raise ValueError("IOI scalar response requires tokens with shape [1, seq]")
@@ -49,27 +51,32 @@ class IOIScalarResponse:
         self.site = site
 
     def __call__(self, injection: torch.Tensor) -> torch.Tensor:
-        if injection.ndim != 1:
-            raise ValueError("injection must be one activation vector")
+        if injection.ndim not in (1, 2):
+            raise ValueError("injection must be one vector or a batch of vectors")
+        scalar_input = injection.ndim == 1
+        values = injection[None, :] if scalar_input else injection
+        batch = values.shape[0]
 
         def patch(activation: torch.Tensor, hook: Any) -> torch.Tensor:
-            if activation.ndim != 3 or activation.shape[0] != 1:
-                raise ValueError("hook activation must have shape [1, seq, d_model]")
-            if activation.shape[-1] != injection.numel():
+            if activation.ndim != 3 or activation.shape[0] != batch:
+                raise ValueError("hook activation batch does not match injections")
+            if activation.shape[-1] != values.shape[1]:
                 raise ValueError("injection width does not match hook activation")
             result = activation.clone()
-            result[0, self.site.position, :] = injection
+            result[:, self.site.position, :] = values
             return result
 
+        tokens = self.tokens if scalar_input else self.tokens.expand(batch, -1)
         logits = self.model.run_with_hooks(
-            self.tokens, fwd_hooks=[(self.site.hook_name, patch)]
+            tokens, fwd_hooks=[(self.site.hook_name, patch)]
         )
-        if logits.ndim != 3 or logits.shape[0] != 1:
-            raise ValueError("model must return logits with shape [1, seq, vocab]")
-        final = logits[0, -1]
-        if max(self.site.io_token_id, self.site.s_token_id) >= final.numel():
+        if logits.ndim != 3 or logits.shape[0] != batch:
+            raise ValueError("model logits batch does not match injections")
+        final = logits[:, -1, :]
+        if max(self.site.io_token_id, self.site.s_token_id) >= final.shape[1]:
             raise ValueError("IO or S token identifier lies outside model vocabulary")
-        return final[self.site.io_token_id] - final[self.site.s_token_id]
+        contrast = final[:, self.site.io_token_id] - final[:, self.site.s_token_id]
+        return contrast[0] if scalar_input else contrast
 
 
 def build_target_and_patched_responses(
@@ -106,4 +113,3 @@ def capture_resid_post_center(
     if len(captured) != 1:
         raise RuntimeError("clean center hook must fire exactly once")
     return captured[0]
-

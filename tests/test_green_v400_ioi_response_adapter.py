@@ -13,6 +13,7 @@ from green_v400_ioi_response_adapter import (
     capture_resid_post_center,
 )
 from green_v400_response_baselines import compare_response_fields
+from green_v400_response_baselines import compare_batched_response_fields
 
 
 class FakeHookedModel:
@@ -29,12 +30,12 @@ class FakeHookedModel:
             self.hook_calls += 1
             activation = hook(activation, None)
         logits = torch.zeros(
-            (1, tokens.shape[1], self.vocab), dtype=activation.dtype
+            (tokens.shape[0], tokens.shape[1], self.vocab), dtype=activation.dtype
         )
-        injected = activation[0, 1]
-        context = tokens[0, 0].to(torch.float64)
-        logits[0, -1, 5] = injected[0] + 2.0 * injected[1] + context
-        logits[0, -1, 7] = -injected[2]
+        injected = activation[:, 1]
+        context = tokens[:, 0].to(torch.float64)
+        logits[:, -1, 5] = injected[:, 0] + 2.0 * injected[:, 1] + context
+        logits[:, -1, 7] = -injected[:, 2]
         return logits
 
 
@@ -62,6 +63,24 @@ def test_adapter_preserves_gradients_for_all_shared_baselines():
         )
         # Context shifts the center value but not this fake model's response field.
         assert result.rmse == pytest.approx(0.0, abs=1e-12)
+
+
+def test_batched_adapter_matches_scalar_baselines_and_reduces_hook_calls():
+    model = FakeHookedModel()
+    clean = torch.tensor([[3, 4, 5]])
+    corrupt = torch.tensor([[1, 4, 5]])
+    target, patched = build_target_and_patched_responses(model, clean, corrupt, site())
+    center = torch.tensor([0.2, -0.1, 0.4], dtype=torch.float64)
+    directions = torch.tensor([[0.1, 0.2, -0.3], [-0.2, 0.1, 0.4]], dtype=torch.float64)
+    for method in ("exact", "first_order", "integrated_gradients", "hvp"):
+        scalar = compare_response_fields(
+            method, target, patched, center, directions, integrated_gradients_steps=7
+        )
+        batched = compare_batched_response_fields(
+            method, target, patched, center, directions, integrated_gradients_steps=7
+        )
+        torch.testing.assert_close(batched.target_effects, scalar.target_effects)
+        torch.testing.assert_close(batched.patched_effects, scalar.patched_effects)
 
 
 def test_clean_center_capture_uses_the_declared_site_once():

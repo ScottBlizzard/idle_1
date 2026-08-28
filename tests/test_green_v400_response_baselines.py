@@ -7,6 +7,8 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 
 from green_v400_response_baselines import (
+    batched_response_effects,
+    compare_batched_response_fields,
     compare_response_fields,
     exact_finite_response,
     first_order_response,
@@ -17,6 +19,67 @@ from green_v400_response_baselines import (
 
 
 DTYPE = torch.float64
+
+
+class ElementwiseBatchResponse:
+    supports_batch = True
+
+    def __init__(self, scale=1.0):
+        self.scale = scale
+
+    def __call__(self, x):
+        return self.scale * (torch.sin(x) + 0.2 * x**3).sum(dim=1)
+
+
+def scalar_version(scale=1.0):
+    return lambda x: scale * (torch.sin(x) + 0.2 * x**3).sum()
+
+
+@pytest.mark.parametrize("method", ["exact", "first_order", "integrated_gradients", "hvp"])
+def test_vectorized_methods_match_scalar_independent_evaluations(method):
+    center = torch.tensor([0.2, -0.3, 0.5], dtype=DTYPE)
+    directions = torch.tensor(
+        [[0.1, 0.4, -0.2], [-0.2, 0.5, 0.3], [0.05, -0.1, 0.2]],
+        dtype=DTYPE,
+    )
+    scalar = response_effects(
+        method,
+        scalar_version(),
+        center,
+        directions,
+        integrated_gradients_steps=17,
+    )
+    batched = batched_response_effects(
+        method,
+        ElementwiseBatchResponse(),
+        center,
+        directions,
+        integrated_gradients_steps=17,
+    )
+    torch.testing.assert_close(batched, scalar, rtol=1e-12, atol=1e-12)
+
+
+def test_batched_field_comparison_matches_scalar_field_comparison():
+    center = torch.tensor([0.1, -0.2], dtype=DTYPE)
+    directions = torch.tensor([[0.2, 0.3], [-0.1, 0.4]], dtype=DTYPE)
+    scalar = compare_response_fields(
+        "integrated_gradients",
+        scalar_version(1.0),
+        scalar_version(1.1),
+        center,
+        directions,
+        integrated_gradients_steps=13,
+    )
+    batched = compare_batched_response_fields(
+        "integrated_gradients",
+        ElementwiseBatchResponse(1.0),
+        ElementwiseBatchResponse(1.1),
+        center,
+        directions,
+        integrated_gradients_steps=13,
+    )
+    torch.testing.assert_close(batched.discrepancies, scalar.discrepancies)
+    assert batched.rmse == pytest.approx(scalar.rmse)
 
 
 def test_all_baselines_are_exact_for_linear_response():

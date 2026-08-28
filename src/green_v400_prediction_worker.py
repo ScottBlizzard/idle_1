@@ -8,7 +8,10 @@ from typing import Any
 import torch
 
 from green_v400_endpoint_firewall import seal_prediction_packet
-from green_v400_response_baselines import compare_response_fields
+from green_v400_response_baselines import (
+    compare_batched_response_fields,
+    compare_response_fields,
+)
 
 
 BASELINE_METHODS = (
@@ -49,8 +52,13 @@ def compute_response_baseline_packet(
         raise ValueError("integrated gradients requires at least two steps")
 
     baselines: dict[str, Any] = {}
+    batched = bool(
+        getattr(target_response, "supports_batch", False)
+        and getattr(patched_response, "supports_batch", False)
+    )
     for method in BASELINE_METHODS:
-        comparison = compare_response_fields(
+        compare = compare_batched_response_fields if batched else compare_response_fields
+        comparison = compare(
             method,
             target_response,
             patched_response,
@@ -86,6 +94,6 @@ def compute_response_baseline_packet(
         "response_baselines": baselines,
         "raw_snr_analytic_features": analytic_features,
         "integrated_gradients_steps": integrated_gradients_steps,
+        "response_batching": batched,
     }
     return packet, seal_prediction_packet(packet)
-
