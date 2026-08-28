@@ -54,9 +54,13 @@
     },
     "generic_verifier": {
       "required": true,
-      "status": "MISSING",
-      "evidence": [],
-      "missing": ["supported-graph CROWN/DeepPoly/auto_LiRPA comparison or documented applicability failure"]
+      "status": "READY",
+      "mode": "DOCUMENTED_SAME_GRAPH_APPLICABILITY_FAILURE",
+      "prediction_available": false,
+      "must_not_count_as_green_win": true,
+      "source_commit": "5a098e8f9fb5786a428a024981d833d303921f2d",
+      "evidence": ["analysis/CODEX_GREEN_V400_GENERIC_VERIFIER_APPLICABILITY_20260829.md", "analysis/green_v400_auto_lirpa_historical_smoke.py", "analysis/green_v400_auto_lirpa_layer8_ibp_eps1e-5_20260829.json", "analysis/green_v400_auto_lirpa_layer8_crown_eps1e-7_20260829.json", "src/green_v400_auto_lirpa_tail.py", "tests/test_green_v400_auto_lirpa_tail.py"],
+      "missing": []
     }
   },
   "execution_gate": "every required baseline must have status READY before any untouched prediction or endpoint outcome is evaluated"

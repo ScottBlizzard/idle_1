@@ -35,6 +35,22 @@ def audit_baseline_readiness(
         if absent:
             missing_evidence[name] = absent
 
+    atp = baselines.get("AtP_star_or_closest_exact_attribution", {})
+    if atp.get("status") == ready_status:
+        if atp.get("replacement_method") != "exact_finite_response":
+            errors.append("AtP* applicability replacement must be exact finite response")
+        if atp.get("AtP_star_claimed_as_executed") is not False:
+            errors.append("coarse-site replacement cannot claim AtP* was executed")
+
+    verifier = baselines.get("generic_verifier", {})
+    if verifier.get("status") == ready_status and verifier.get("mode") == (
+        "DOCUMENTED_SAME_GRAPH_APPLICABILITY_FAILURE"
+    ):
+        if verifier.get("prediction_available") is not False:
+            errors.append("failed generic verifier cannot expose a prediction")
+        if verifier.get("must_not_count_as_green_win") is not True:
+            errors.append("generic verifier failure must not count as a GREEN win")
+
     ready = not errors and not missing_required and not missing_evidence
     return {
         "schema_version": "green-v400-baseline-readiness-audit-v1",
@@ -78,4 +94,3 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
-

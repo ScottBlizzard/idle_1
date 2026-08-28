@@ -1,0 +1,19 @@
+{
+  "auto_lirpa_source_commit": "5a098e8f9fb5786a428a024981d833d303921f2d",
+  "bound": null,
+  "elapsed_seconds": 5.722731724032201,
+  "failure_class": "STANDARD_LAYER_NORM_INTERVAL_DEPENDENCY",
+  "failure_exception": "AssertionError",
+  "failure_message": "Only positive values are supported in BoundReciprocal",
+  "historical_prompt_grammar": "P0_20260712",
+  "layer": 8,
+  "model_id": "openai-community/gpt2",
+  "model_revision": "607a30d783dfa663caf39e06633721c8d4cfcd7e",
+  "position": 2,
+  "real_outcomes_authorized": false,
+  "schema_version": "green-v400-auto-lirpa-historical-smoke-v1",
+  "sequence_length": 16,
+  "tail_equivalence_abs_error": 6.866455078125e-05,
+  "untouched_manifest_loaded": false,
+  "verifier_status": "DOCUMENTED_APPLICABILITY_FAILURE"
+}

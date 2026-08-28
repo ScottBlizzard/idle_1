@@ -23,7 +23,6 @@ def test_checked_in_registry_blocks_untouched_execution_honestly():
     assert audit["verdict"] == "BLOCK_BASELINES_NOT_READY"
     assert audit["ready_for_untouched_execution"] is False
     assert set(audit["not_ready_required"]) == {
-        "generic_verifier",
         "grant_divergence",
         "hvp_second_order",
         "integrated_gradients",
@@ -59,3 +58,19 @@ def test_registry_cannot_authorize_real_outcomes():
     changed["real_outcomes_authorized"] = True
     audit = audit_baseline_readiness(changed, ROOT)
     assert "cannot authorize" in audit["errors"][0]
+
+
+def test_documented_verifier_failure_cannot_be_relabelled_as_prediction():
+    changed = payload()
+    changed["baselines"]["generic_verifier"]["prediction_available"] = True
+    audit = audit_baseline_readiness(changed, ROOT)
+    assert "cannot expose a prediction" in " ".join(audit["errors"])
+
+
+def test_atp_exact_replacement_cannot_claim_full_atp_star_execution():
+    changed = payload()
+    changed["baselines"]["AtP_star_or_closest_exact_attribution"][
+        "AtP_star_claimed_as_executed"
+    ] = True
+    audit = audit_baseline_readiness(changed, ROOT)
+    assert "cannot claim AtP*" in " ".join(audit["errors"])
