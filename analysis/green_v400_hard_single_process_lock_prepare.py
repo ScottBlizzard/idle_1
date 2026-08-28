@@ -30,6 +30,7 @@ SOURCE_RELATIVE_PATHS = (
     "src/green_bridge_v400_schemas.py",
     "src/green_bridge_v400_shared_host.py",
     "src/green_bridge_v400_shared_host_exec.py",
+    "src/green_bridge_v400_strict_resource_lock.py",
     "src/green_bridge_v400_transformer_ops.py",
 )
 

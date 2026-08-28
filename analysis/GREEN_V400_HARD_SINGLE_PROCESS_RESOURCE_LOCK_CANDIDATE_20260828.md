@@ -115,3 +115,13 @@ Independent canonical-hash readback passed for both artifacts:
   `a7cd8a6de22111b82c343911dc44caaa4f4927220c89cf5c73a237583075d14a`
 - selector-inaccessible numerics report:
   `0c8aa54a87468ee6247b48e9f44185d8198072aa1b947a41c9297127ec8ba640`
+
+The historical `CertificateResourceLock v1` remains unchanged because it binds
+the superseded constructive same-partition 512 count and cgroup-only resource
+definition. A separate prepare-only v2 schema now freezes the corrected
+full-history phase order and charges `2L+1` passes at each precision. For 17
+radii and `L=14`, this is 493 official plus 493 audit passes, 986 total. The v2
+schema rejects `production_authorized=true`, constructive audit history,
+concurrency above one, center reuse, sampled descendant enforcement, cgroup
+claims, and any token budget that does not cover the corrected full-history
+cost. Its 11 focused tests pass.
