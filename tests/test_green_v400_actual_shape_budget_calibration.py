@@ -55,14 +55,13 @@ def _manifest(**changes):
     return calibration.build_manifest(**values)
 
 
-def test_current_api_preflight_names_both_hard_blockers():
+def test_current_api_preflight_authorizes_only_the_closed_calibration_interfaces():
     preflight = calibration.inspect_required_api_capabilities()
     assert preflight["official_anytime_state_api_present"] is True
-    assert preflight["execution_ready"] is False
-    assert preflight["blockers"] == [
-        calibration.BLOCKER_SYNTHETIC_BOUNDARY,
-        calibration.BLOCKER_AUDIT_REPLAY,
-    ]
+    assert preflight["compiled_native_explicit_synthetic_only_boundary"] is True
+    assert preflight["public_512_frozen_partition_replay_and_nesting_api"] is True
+    assert preflight["execution_ready"] is True
+    assert preflight["blockers"] == []
 
 
 def test_four_budgets_and_worst_case_17_radius_counts_are_frozen():
@@ -126,7 +125,7 @@ def test_manifest_mutations_fail_closed(mutation):
     elif mutation == "selector":
         manifest["selector_policy"]["width_sign_p13_or_numerics_input_forbidden"] = False
     elif mutation == "api":
-        manifest["api_preflight"]["execution_ready"] = True
+        manifest["api_preflight"]["execution_ready"] = False
     elif mutation == "machine":
         manifest["machine_concurrency_manifest"]["cpu"]["logical_cpu_count"] = 31
     elif mutation == "descriptor":
@@ -142,7 +141,14 @@ def test_manifest_freezes_before_attempts_and_blocker_precedes_launch(
 ):
     monkeypatch.setattr(calibration, "_below_mnt_sdb", lambda _value: True)
     output_root = tmp_path / "calibration"
-    manifest = _manifest(output_root=output_root.as_posix())
+    blocked = calibration.inspect_required_api_capabilities() | {
+        "compiled_native_explicit_synthetic_only_boundary": False,
+        "blockers": [calibration.BLOCKER_SYNTHETIC_BOUNDARY],
+        "execution_ready": False,
+    }
+    manifest = _manifest(
+        output_root=output_root.as_posix(), api_preflight=blocked,
+    )
     path, semantic_hash = calibration.freeze_manifest(output_root, manifest)
     payload = json.loads(path.read_text(encoding="utf-8"))
     assert payload.pop("manifest_semantic_hash") == semantic_hash
