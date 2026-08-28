@@ -4,7 +4,10 @@ Date: 2026-08-28
 
 ## Current decision
 
-The prepare-only accounting/publication/deadline primitives are implemented. Formal production execution remains `BLOCK`.
+The prepare-only accounting/publication/deadline primitives are implemented.
+Strict formal-certificate production remains `BLOCK`; explicitly scoped trusted
+non-certificate jobs are governed separately by the shared-host protocol and
+are not blocked by this host limitation.
 
 Implemented and unit-tested:
 
@@ -24,3 +27,12 @@ The current server is a hybrid hierarchy. Its cgroup-v2 mount is `/sys/fs/cgroup
 The frozen machine report is `GREEN_V400_SUPERVISOR_ENVIRONMENT_V1_AUDIT_20260828.json`, semantic hash `ac1d75f5959b90ae1f371c7870dac8f8e23b798f07995e6d0697fe33f67f52be`.
 
 Formal OOM/timeout fault injection and 17-radius dry orchestration require a pure or properly delegated cgroup-v2 host with the memory controller enabled. Changing to such a host is resource engineering only; it does not change the Joint Witness estimand or certificate mathematics, but it does require new hardware/resource identity hashes before authorization.
+
+## Scope clarification
+
+The BLOCK above applies to the official strict formal-certificate host claim. It
+does not block trusted non-certificate jobs enumerated in the shared-host
+protocol. Those jobs use the no-root controls defined in
+`GREEN_V400_SHARED_HOST_RESOURCE_PROTOCOL_V1_20260828.md`; that protocol changes
+no system configuration and explicitly does not claim cgroup-v2 or a hard
+aggregate process-tree memory cap.
