@@ -1192,6 +1192,333 @@ def restore_monotone_anytime_state(payload) -> MonotoneAnytimeCertificateState:
     return state
 
 
+def _lift_interval_precision(interval: Interval, precision_bits: int) -> Interval:
+    """Import exact MPFR endpoints into another precision without float transit."""
+    return Interval.from_bounds(
+        gmpy2.mpq(interval.lower), gmpy2.mpq(interval.upper), precision_bits,
+    )
+
+
+def _validate_anytime_frozen_partition_audit_inputs(
+    state: MonotoneAnytimeCertificateState, evaluator, plan: CertificatePlan,
+) -> None:
+    if not isinstance(state, MonotoneAnytimeCertificateState):
+        raise TypeError("anytime audit replay requires a validated official state")
+    if not isinstance(plan, CertificatePlan):
+        raise TypeError("anytime audit replay requires CertificatePlan")
+    state.assert_integrity()
+    if (state.phase != "SYNTHETIC_OFFICIAL"
+            or state.computation_status != "PROVISIONAL"
+            or state.precision_bits != plan.official_precision_bits):
+        raise RuntimeError("ANYTIME_AUDIT_REQUIRES_COMPLETE_PROVISIONAL_OFFICIAL_STATE")
+    if (state.row_hash != plan.row_hash
+            or state.certificate_plan_semantic_hash != sha256_canonical(plan)):
+        raise RuntimeError("ANYTIME_AUDIT_PLAN_IDENTITY_MISMATCH")
+    if plan.audit_precision_bits <= plan.official_precision_bits:
+        raise RuntimeError("ANYTIME_AUDIT_PRECISION_LADDER_INVALID")
+    if (getattr(evaluator, "contains_scientific_outcome", None) is not False
+            or getattr(evaluator, "synthetic_only", None) is not True):
+        raise RuntimeError("ANYTIME_AUDIT_REAL_EXECUTION_UNAUTHORIZED")
+    if (getattr(evaluator, "certificate_row_hash", None) != state.row_hash
+            or getattr(evaluator, "evaluator_identity_sha256", None)
+            != state.evaluator_identity_sha256):
+        raise RuntimeError("ANYTIME_AUDIT_EVALUATOR_IDENTITY_MISMATCH")
+
+
+def audit_monotone_anytime_frozen_partition(
+    state: MonotoneAnytimeCertificateState, evaluator, plan: CertificatePlan,
+) -> dict:
+    """Replay one frozen official partition at audit precision.
+
+    Exactly the final official leaves and the three endpoint domains are
+    evaluated.  No audit-precision adaptive queue exists on this path.  Raw
+    audit quantities must nest in their corresponding raw official quantities;
+    tightened audit quantities are sound nonempty intersections with the
+    official monotone checkpoint and must nest there as well.
+    """
+    _validate_anytime_frozen_partition_audit_inputs(state, evaluator, plan)
+    h = Fraction(*state.radius)
+    audit_precision = plan.audit_precision_bits
+    official_cells = tuple(_cell_from_anytime_state(leaf) for leaf in state.leaves)
+    domains = tuple(cell.cell.interval(audit_precision) for cell in official_cells)
+    audit_jets, sources, cell_accounting = _evaluate_anytime_domains(
+        evaluator, domains,
+    )
+    audit_cells = tuple(
+        CellCertificate(cell.cell, jet.value, jet.first, jet.second)
+        for cell, jet in zip(official_cells, audit_jets)
+    )
+    cell_rows = []
+    for official, audit, source in zip(official_cells, audit_cells, sources):
+        components = {}
+        for name in ("value", "first", "second"):
+            low = getattr(official, name)
+            high = getattr(audit, name)
+            if not _interval_nested(high, low):
+                raise RuntimeError(
+                    f"ANYTIME_AUDIT_CELL_{name.upper()}_NESTING_INVALID"
+                )
+            components[name] = {
+                "official": _interval_payload(low),
+                "audit": _interval_payload(high),
+                "audit_inside_official": True,
+            }
+        cell_rows.append({
+            "lower": _rational_payload(official.cell.lower),
+            "upper": _rational_payload(official.cell.upper),
+            "depth": official.cell.depth,
+            "result_source": source,
+            "components": components,
+        })
+
+    endpoint_domains = tuple(
+        _point_interval(value, audit_precision)
+        for value in (-h, Fraction(0), h)
+    )
+    endpoint_jets, _, endpoint_accounting = _evaluate_anytime_domains(
+        evaluator, endpoint_domains,
+    )
+    audit_endpoint = EndpointCertificate(
+        h, endpoint_jets[0].value, endpoint_jets[1].value,
+        endpoint_jets[2].value, endpoint_jets[1].first,
+    )
+    official_endpoint = _endpoint_from_anytime_payload(state.endpoint_payload)
+    endpoint_rows = {}
+    for name in ("negative", "center", "positive", "slope"):
+        low = getattr(official_endpoint, name)
+        high = getattr(audit_endpoint, name)
+        if not _interval_nested(high, low):
+            raise RuntimeError(
+                f"ANYTIME_AUDIT_ENDPOINT_{name.upper()}_NESTING_INVALID"
+            )
+        endpoint_rows[name] = {
+            "official": _interval_payload(low),
+            "audit": _interval_payload(high),
+            "audit_inside_official": True,
+        }
+
+    official_raw_curvature = (
+        _interval_from_payload(state.raw_curvature_positive),
+        _interval_from_payload(state.raw_curvature_negative),
+    )
+    audit_raw_curvature_certificate = integrate_signed_curvature(
+        list(audit_cells), h,
+    )
+    audit_raw_curvature = (
+        audit_raw_curvature_certificate.positive,
+        audit_raw_curvature_certificate.negative,
+    )
+    for name, high, low in zip(
+        ("POSITIVE", "NEGATIVE"), audit_raw_curvature,
+        official_raw_curvature,
+    ):
+        if not _interval_nested(high, low):
+            raise RuntimeError(f"ANYTIME_AUDIT_RAW_{name}_CURVATURE_NESTING_INVALID")
+
+    official_direct = _direct_endpoint_residuals(official_endpoint)
+    official_raw_residuals = tuple(
+        _checked_anytime_intersection(direct, curvature, f"OFFICIAL_RAW_{name}")
+        for direct, curvature, name in zip(
+            official_direct, official_raw_curvature, ("POSITIVE", "NEGATIVE"),
+        )
+    )
+    audit_direct = _direct_endpoint_residuals(audit_endpoint)
+    audit_raw_residuals = tuple(
+        _checked_anytime_intersection(direct, curvature, f"AUDIT_RAW_{name}")
+        for direct, curvature, name in zip(
+            audit_direct, audit_raw_curvature, ("POSITIVE", "NEGATIVE"),
+        )
+    )
+    for name, high, low in zip(
+        ("POSITIVE", "NEGATIVE"), audit_raw_residuals,
+        official_raw_residuals,
+    ):
+        if not _interval_nested(high, low):
+            raise RuntimeError(f"ANYTIME_AUDIT_RAW_{name}_RESIDUAL_NESTING_INVALID")
+
+    official_monotone_curvature = (
+        _interval_from_payload(state.monotone_curvature_positive),
+        _interval_from_payload(state.monotone_curvature_negative),
+    )
+    audit_monotone_curvature = tuple(
+        _checked_anytime_intersection(
+            raw, _lift_interval_precision(official, audit_precision),
+            f"AUDIT_MONOTONE_{name}_CURVATURE",
+        )
+        for raw, official, name in zip(
+            audit_raw_curvature, official_monotone_curvature,
+            ("POSITIVE", "NEGATIVE"),
+        )
+    )
+    official_monotone_residuals = (
+        _interval_from_payload(state.monotone_residual_positive),
+        _interval_from_payload(state.monotone_residual_negative),
+    )
+    audit_monotone_residuals = tuple(
+        _checked_anytime_intersection(
+            _checked_anytime_intersection(
+                direct, curvature, f"AUDIT_TIGHT_{name}_RESIDUAL"
+            ),
+            _lift_interval_precision(official, audit_precision),
+            f"AUDIT_MONOTONE_{name}_RESIDUAL",
+        )
+        for direct, curvature, official, name in zip(
+            audit_direct, audit_monotone_curvature,
+            official_monotone_residuals, ("POSITIVE", "NEGATIVE"),
+        )
+    )
+    official_raw_witness = _interval_from_payload(state.raw_witness)
+    audit_raw_witness = _witness_from_residuals(
+        audit_endpoint, audit_raw_curvature_certificate, *audit_raw_residuals,
+    )
+    if not _interval_nested(audit_raw_witness, official_raw_witness):
+        raise RuntimeError("ANYTIME_AUDIT_RAW_WITNESS_NESTING_INVALID")
+    official_monotone_witness = _interval_from_payload(state.monotone_witness)
+    audit_monotone_witness = _checked_anytime_intersection(
+        _witness_from_residuals(
+            audit_endpoint, audit_raw_curvature_certificate,
+            *audit_monotone_residuals,
+        ),
+        _lift_interval_precision(official_monotone_witness, audit_precision),
+        "AUDIT_MONOTONE_WITNESS",
+    )
+    if not _interval_nested(audit_monotone_witness, official_monotone_witness):
+        raise RuntimeError("ANYTIME_AUDIT_MONOTONE_WITNESS_NESTING_INVALID")
+
+    accounting = _add_anytime_accounting(cell_accounting, endpoint_accounting)
+    payload = {
+        "schema_version": "green-v400-anytime-frozen-partition-audit-v1",
+        "execution_scope": "outcome_blind_synthetic_only",
+        "contains_scientific_outcome": False,
+        "scientific_threshold_applied": False,
+        "official_state_semantic_hash": state.semantic_hash(),
+        "certificate_plan_semantic_hash": sha256_canonical(plan),
+        "evaluator_identity_sha256": state.evaluator_identity_sha256,
+        "radius": _rational_payload(h),
+        "official_precision_bits": plan.official_precision_bits,
+        "audit_precision_bits": audit_precision,
+        "same_frozen_partition": True,
+        "independent_audit_adaptive_queue": False,
+        "cells": cell_rows,
+        "endpoints": endpoint_rows,
+        "raw_curvature": {
+            name: {
+                "official": _interval_payload(low),
+                "audit": _interval_payload(high),
+                "audit_inside_official": True,
+            }
+            for name, low, high in zip(
+                ("positive", "negative"), official_raw_curvature,
+                audit_raw_curvature,
+            )
+        },
+        "monotone_curvature": {
+            name: {
+                "official": _interval_payload(low),
+                "audit": _interval_payload(high),
+                "audit_inside_official": True,
+            }
+            for name, low, high in zip(
+                ("positive", "negative"), official_monotone_curvature,
+                audit_monotone_curvature,
+            )
+        },
+        "raw_residual": {
+            name: {
+                "official": _interval_payload(low),
+                "audit": _interval_payload(high),
+                "audit_inside_official": True,
+            }
+            for name, low, high in zip(
+                ("positive", "negative"), official_raw_residuals,
+                audit_raw_residuals,
+            )
+        },
+        "monotone_residual": {
+            name: {
+                "official": _interval_payload(low),
+                "audit": _interval_payload(high),
+                "audit_inside_official": True,
+            }
+            for name, low, high in zip(
+                ("positive", "negative"), official_monotone_residuals,
+                audit_monotone_residuals,
+            )
+        },
+        "raw_witness": {
+            "official": _interval_payload(official_raw_witness),
+            "audit": _interval_payload(audit_raw_witness),
+            "audit_inside_official": True,
+        },
+        "monotone_witness": {
+            "official": _interval_payload(official_monotone_witness),
+            "audit": _interval_payload(audit_monotone_witness),
+            "audit_inside_official": True,
+        },
+        "accounting": accounting,
+    }
+    return payload | {"report_semantic_hash": sha256_canonical(payload)}
+
+
+def audit_monotone_anytime_frozen_partitions(
+    states: Iterable[MonotoneAnytimeCertificateState], evaluator,
+    plan: CertificatePlan,
+) -> dict:
+    """Audit all frozen radii phase-major, then verify prefix intersections."""
+    states = tuple(states)
+    expected_radii = tuple(radius.as_fraction() for radius in plan.radii)
+    if (len(states) != len(expected_radii)
+            or tuple(Fraction(*state.radius) for state in states) != expected_radii):
+        raise RuntimeError("ANYTIME_AUDIT_FROZEN_RADIUS_ORDER_INVALID")
+    # Validate every official state before admitting the first 512-bit dispatch.
+    for state in states:
+        _validate_anytime_frozen_partition_audit_inputs(state, evaluator, plan)
+    radius_reports = tuple(
+        audit_monotone_anytime_frozen_partition(state, evaluator, plan)
+        for state in states
+    )
+    official_intersection = None
+    audit_intersection = None
+    prefix_rows = []
+    for state, report in zip(states, radius_reports):
+        official = _interval_from_payload(state.monotone_witness)
+        audit = _interval_from_payload(report["monotone_witness"]["audit"])
+        official_intersection = (
+            official if official_intersection is None
+            else _checked_anytime_intersection(
+                official_intersection, official, "OFFICIAL_CROSS_RADIUS_WITNESS"
+            )
+        )
+        audit_intersection = (
+            audit if audit_intersection is None
+            else _checked_anytime_intersection(
+                audit_intersection, audit, "AUDIT_CROSS_RADIUS_WITNESS"
+            )
+        )
+        if not _interval_nested(audit_intersection, official_intersection):
+            raise RuntimeError("ANYTIME_AUDIT_CROSS_RADIUS_NESTING_INVALID")
+        prefix_rows.append({
+            "radius": list(state.radius),
+            "official_intersection": _interval_payload(official_intersection),
+            "audit_intersection": _interval_payload(audit_intersection),
+            "audit_inside_official": True,
+        })
+    accounting = _add_anytime_accounting(*(
+        report["accounting"] for report in radius_reports
+    ))
+    payload = {
+        "schema_version": "green-v400-anytime-frozen-partitions-audit-v1",
+        "execution_scope": "outcome_blind_synthetic_only",
+        "contains_scientific_outcome": False,
+        "scientific_threshold_applied": False,
+        "phase_major_all_official_before_audit": True,
+        "radius_reports": list(radius_reports),
+        "cross_radius_prefix_intersections": prefix_rows,
+        "accounting": accounting,
+    }
+    return payload | {"report_semantic_hash": sha256_canonical(payload)}
+
+
 def _adaptive_cells_with_reason(
     graph: RelationalGraph, h: Fraction, precision_bits: int,
     plan: CertificatePlan,

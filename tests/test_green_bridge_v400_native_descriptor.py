@@ -17,7 +17,8 @@ from green_bridge_v400_native_descriptor import (
     load_native_execution_descriptor, program_execution_identity,
 )
 from green_bridge_v400_compiled_mpfr import (
-    CompiledMPFRBackend, CompiledNativeJointWitnessEvaluator, ExactDomainJetMemo,
+    CompiledMPFRBackend, CompiledNativeJointWitnessEvaluator,
+    CompiledSyntheticNativeJointWitnessEvaluator, ExactDomainJetMemo,
     ParallelNativeSiblingEvaluator,
 )
 from green_bridge_v400_certificate import DyadicCell, certify_adaptive_cells, certify_cell
@@ -31,6 +32,48 @@ from green_bridge_v400_resident_plan import (
 from green_bridge_v400_tensor_program import NATIVE_DISPATCH_KERNEL_TAGS, TensorProgram
 from green_bridge_v400_schemas import CertificatePlan, Dyadic, sha256_canonical
 from test_green_bridge_v400_gpt2_program import _fixture
+
+
+def test_compiled_synthetic_evaluator_requires_hash_bound_authorization():
+    class Backend:
+        library_sha256 = "d" * 64
+        version = "fixture"
+
+    class Context:
+        def __init__(self, backend):
+            self.backend = backend
+            self.handle = 1
+            self.info = {
+                "precision_bits": 384,
+                "native_plan_identity_sha256": "e" * 64,
+            }
+
+    backend = Backend()
+    context = Context(backend)
+    row_hash = "a" * 64
+    authorization = {
+        "schema_version": "green-v400-native-synthetic-authorization-v1",
+        "execution_scope": "outcome_blind_synthetic_only",
+        "certificate_row_hash": row_hash,
+        "synthetic_artifact_semantic_hash": "b" * 64,
+        "contains_scientific_outcome": False,
+        "scientific_threshold_applied": False,
+    }
+    evaluator = CompiledSyntheticNativeJointWitnessEvaluator(
+        backend, {384: context}, certificate_row_hash=row_hash,
+        expected_kernel_tags=(1,), synthetic_authorization=authorization,
+    )
+    assert evaluator.synthetic_only is True
+    assert evaluator.synthetic_authorization == authorization
+    assert evaluator.evaluator_identity["execution_scope"] == (
+        "outcome_blind_synthetic_only"
+    )
+    corrupted = authorization | {"contains_scientific_outcome": True}
+    with pytest.raises(ValueError, match="synthetic authorization"):
+        CompiledSyntheticNativeJointWitnessEvaluator(
+            backend, {384: context}, certificate_row_hash=row_hash,
+            expected_kernel_tags=(1,), synthetic_authorization=corrupted,
+        )
 
 
 def _descriptor_fixture(tmp_path):

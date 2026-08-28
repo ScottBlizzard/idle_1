@@ -13,6 +13,8 @@ sys.path.insert(0, str(ROOT / "src"))
 import green_bridge_v400_certificate as certificate
 from green_bridge_v400_certificate import (
     AnytimeEvaluationFailure, CurvatureCertificate, CurvatureComponentAccounting,
+    audit_monotone_anytime_frozen_partition,
+    audit_monotone_anytime_frozen_partitions,
     advance_monotone_anytime_state, initialize_monotone_anytime_state,
     restore_monotone_anytime_state, serialize_monotone_anytime_state,
     transition_anytime_resource_failure_after_admission,
@@ -102,6 +104,51 @@ def test_real_interval_integration_initializes_and_refines_synthetic_state():
     assert refined.raw_curvature_accounting
     assert _nested(refined.monotone_witness, initial.monotone_witness)
     assert refined.scientific_threshold_applied is False
+
+
+def test_public_audit_replays_exact_frozen_partition_without_adaptive_queue():
+    evaluator = SyntheticEvaluator()
+    plan = _plan()
+    initial = initialize_monotone_anytime_state(
+        evaluator, Fraction(1), P, plan,
+        resource_lock_semantic_hash=RESOURCE_HASH,
+    )
+    refined = advance_monotone_anytime_state(initial, evaluator, plan)
+    report = audit_monotone_anytime_frozen_partition(refined, evaluator, plan)
+    assert report["same_frozen_partition"] is True
+    assert report["independent_audit_adaptive_queue"] is False
+    assert len(report["cells"]) == len(refined.leaves) == 3
+    assert report["accounting"] == {
+        "logical_evaluations": 6,
+        "admitted_native_dispatches": 6,
+        "completed_native_dispatches": 6,
+        "exact_cache_hits": 0,
+    }
+    assert all(
+        component["audit_inside_official"] is True
+        for row in report["cells"]
+        for component in row["components"].values()
+    )
+    aggregate = audit_monotone_anytime_frozen_partitions(
+        (refined,), evaluator, plan,
+    )
+    assert aggregate["phase_major_all_official_before_audit"] is True
+    assert aggregate["accounting"] == report["accounting"]
+    assert aggregate["cross_radius_prefix_intersections"][-1][
+        "audit_inside_official"
+    ] is True
+
+
+def test_audit_replay_refuses_unbound_or_identity_mismatched_evaluator():
+    evaluator = SyntheticEvaluator()
+    plan = _plan()
+    state = initialize_monotone_anytime_state(
+        evaluator, Fraction(1), P, plan,
+        resource_lock_semantic_hash=RESOURCE_HASH,
+    )
+    evaluator.synthetic_only = False
+    with pytest.raises(RuntimeError, match="REAL_EXECUTION_UNAUTHORIZED"):
+        audit_monotone_anytime_frozen_partition(state, evaluator, plan)
 
 
 def test_anytime_state_round_trip_hash_and_strict_tamper_rejection(monkeypatch):

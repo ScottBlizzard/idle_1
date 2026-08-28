@@ -335,6 +335,66 @@ class CompiledNativeJointWitnessEvaluator:
         return self.exact_domain_memo.get_or_compute(domain, dispatch_and_validate)
 
 
+class CompiledSyntheticNativeJointWitnessEvaluator(
+    CompiledNativeJointWitnessEvaluator
+):
+    """Hash-bound native evaluator restricted to closed synthetic artifacts.
+
+    The base native evaluator is deliberately scope-neutral because it is also
+    used by prepare-only infrastructure audits.  Anytime calibration requires a
+    stronger boundary: construction is impossible without an identity-closed
+    authorization that explicitly excludes scientific outcomes and thresholds.
+    """
+
+    synthetic_only = True
+
+    def __init__(
+        self, backend, contexts: dict[int, CompiledNativePrecisionContext], *,
+        certificate_row_hash: str, expected_kernel_tags: tuple[int, ...],
+        synthetic_authorization: dict,
+    ):
+        expected = {
+            "schema_version", "execution_scope", "certificate_row_hash",
+            "synthetic_artifact_semantic_hash", "contains_scientific_outcome",
+            "scientific_threshold_applied",
+        }
+        if (not isinstance(synthetic_authorization, dict)
+                or set(synthetic_authorization) != expected
+                or synthetic_authorization["schema_version"]
+                != "green-v400-native-synthetic-authorization-v1"
+                or synthetic_authorization["execution_scope"]
+                != "outcome_blind_synthetic_only"
+                or synthetic_authorization["certificate_row_hash"]
+                != certificate_row_hash
+                or synthetic_authorization["contains_scientific_outcome"] is not False
+                or synthetic_authorization["scientific_threshold_applied"] is not False
+                or not isinstance(
+                    synthetic_authorization["synthetic_artifact_semantic_hash"], str
+                )
+                or len(synthetic_authorization["synthetic_artifact_semantic_hash"]) != 64
+                or any(
+                    character not in "0123456789abcdef"
+                    for character in synthetic_authorization[
+                        "synthetic_artifact_semantic_hash"
+                    ]
+                )):
+            raise ValueError("native synthetic authorization is invalid")
+        super().__init__(
+            backend, contexts, certificate_row_hash=certificate_row_hash,
+            expected_kernel_tags=expected_kernel_tags, exact_domain_memo=None,
+        )
+        self.synthetic_authorization = json.loads(json.dumps(
+            synthetic_authorization, sort_keys=True, separators=(",", ":"),
+        ))
+        self.evaluator_identity = self.evaluator_identity | {
+            "execution_scope": "outcome_blind_synthetic_only",
+            "synthetic_authorization_sha256": sha256_canonical(
+                self.synthetic_authorization
+            ),
+        }
+        self.evaluator_identity_sha256 = sha256_canonical(self.evaluator_identity)
+
+
 class ParallelNativeSiblingEvaluator:
     """Two independent native contexts with canonical ordered pair commits."""
 
