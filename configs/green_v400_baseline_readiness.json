@@ -39,9 +39,9 @@
     },
     "grant_divergence": {
       "required": true,
-      "status": "MISSING",
-      "evidence": [],
-      "missing": ["faithful diagnostic pinned to the ICLR 2026 Oral implementation"]
+      "status": "TASK_SERIALIZATION_READY",
+      "evidence": ["analysis/CODEX_GREEN_V400_PRIMARY_BASELINE_SOURCE_PIN_20260829.md", "src/green_v400_grant_divergence.py", "src/green_v400_grant_prediction_worker.py", "tests/test_green_v400_grant_divergence.py", "tests/test_green_v400_grant_prediction_worker.py"],
+      "missing": ["isolated geomloss parity run", "historical-row resource benchmark"]
     },
     "raw_snr_analytic_power": {
       "required": true,
