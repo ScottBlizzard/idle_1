@@ -15,7 +15,7 @@ different no-root kernel envelope is available as a production-lock candidate:
 
 1. require real and effective non-root identities;
 2. require exactly one task before the target exec;
-3. require that effective `CAP_SYS_RESOURCE` is absent;
+3. require that effective `CAP_SYS_ADMIN` and `CAP_SYS_RESOURCE` are absent;
 4. set both the soft and hard `RLIMIT_NPROC` values to one and verify readback;
 5. force the standard OpenBLAS/OpenMP/MKL/NumExpr/Accelerate/BLIS thread-count
    environment variables to one before the target exec;
@@ -33,7 +33,8 @@ It does not modify system configuration or require root access.
 ## Kernel argument
 
 Let the worker start with one Linux task and lack the root identity and
-`CAP_SYS_RESOURCE`. After the hard `RLIMIT_NPROC` value is set to one, any
+`CAP_SYS_ADMIN` and `CAP_SYS_RESOURCE`. After the hard `RLIMIT_NPROC` value is
+set to one, any
 operation that would create another task for the same real UID would exceed the
 limit. The process cannot raise the hard limit. Thus, for the closed trusted
 worker, the task count remains one. A server probe verified both relevant

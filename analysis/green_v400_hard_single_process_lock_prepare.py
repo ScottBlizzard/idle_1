@@ -87,6 +87,7 @@ def _validate_strict_probe(wrapper: dict, numerics: dict) -> None:
         or before.get("rlimit_as") != [4294967296, 4294967296]
         or before.get("rlimit_core") != [0, 0]
         or before.get("threads") != 1
+        or before.get("cap_sys_admin_effective") is not False
         or before.get("cap_sys_resource_effective") is not False
         or numerics.get("dispatch_count_by_precision") != {"384": 6}
         or len(numerics.get("evaluated_domains", ())) != 6

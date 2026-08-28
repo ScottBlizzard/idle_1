@@ -32,6 +32,7 @@ from green_v400_native_typed_plan_audit import EXPECTED_KERNEL_TAGS
 AUDIT_ROW_HASH = hashlib.sha256(
     b"green-v400-hard-single-process-actual-shape-audit-v1"
 ).hexdigest()
+CAP_SYS_ADMIN = 21
 CAP_SYS_RESOURCE = 24
 
 
@@ -61,6 +62,9 @@ def _lock_readback() -> dict:
         "effective_uid": os.geteuid(),
         "threads": int(fields["Threads"]),
         "effective_capabilities_hex": fields["CapEff"],
+        "cap_sys_admin_effective": bool(
+            int(fields["CapEff"], 16) & (1 << CAP_SYS_ADMIN)
+        ),
         "cap_sys_resource_effective": bool(
             int(fields["CapEff"], 16) & (1 << CAP_SYS_RESOURCE)
         ),
@@ -75,8 +79,11 @@ def _require_strict_lock(readback: dict) -> None:
         raise RuntimeError("STRICT_LOCK_ROOT_IDENTITY")
     if readback["threads"] != 1:
         raise RuntimeError("STRICT_LOCK_NOT_SINGLE_TASK")
-    if readback["cap_sys_resource_effective"]:
-        raise RuntimeError("STRICT_LOCK_CAP_SYS_RESOURCE_PRESENT")
+    if (
+        readback["cap_sys_admin_effective"]
+        or readback["cap_sys_resource_effective"]
+    ):
+        raise RuntimeError("STRICT_LOCK_NPROC_BYPASS_CAPABILITY_PRESENT")
     if readback["rlimit_nproc"] != [1, 1]:
         raise RuntimeError("STRICT_LOCK_NPROC_NOT_ONE")
     if readback["rlimit_as"][0] <= 0 or (

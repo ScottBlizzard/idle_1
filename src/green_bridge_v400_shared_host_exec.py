@@ -6,6 +6,7 @@ import resource
 import sys
 
 
+CAP_SYS_ADMIN = 21
 CAP_SYS_RESOURCE = 24
 SINGLE_THREAD_ENVIRONMENT = {
     "OPENBLAS_NUM_THREADS": "1",
@@ -38,8 +39,13 @@ def _apply_hard_single_process_limit() -> None:
         raise SystemExit("cannot verify Linux task/capability state") from error
     if threads != 1:
         raise SystemExit("hard single-process mode requires one initial task")
-    if effective_capabilities & (1 << CAP_SYS_RESOURCE):
-        raise SystemExit("hard single-process mode forbids CAP_SYS_RESOURCE")
+    forbidden_capabilities = (
+        (1 << CAP_SYS_ADMIN) | (1 << CAP_SYS_RESOURCE)
+    )
+    if effective_capabilities & forbidden_capabilities:
+        raise SystemExit(
+            "hard single-process mode forbids CAP_SYS_ADMIN/CAP_SYS_RESOURCE"
+        )
     resource.setrlimit(resource.RLIMIT_NPROC, (1, 1))
     if resource.getrlimit(resource.RLIMIT_NPROC) != (1, 1):
         raise SystemExit("RLIMIT_NPROC hard lock verification failed")
