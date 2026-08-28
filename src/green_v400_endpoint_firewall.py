@@ -23,7 +23,7 @@ PREDICTION_FORBIDDEN_KEYS = frozenset(
         "heldout_transport_failure",
         "nmh_recovery",
         "endpoint_failure_label",
-        "endpoint_calibration_distribution",
+        "endpoint_calibration",
     }
 )
 
@@ -146,6 +146,38 @@ def seal_endpoint_packet(
         "endpoint_packet_sha256": packet_sha256(packet),
         "prediction_committed_before_endpoint": True,
         "route_fields_disjoint": True,
+    }
+
+
+def seal_endpoint_calibration_packet(packet: dict[str, Any]) -> dict[str, Any]:
+    """Commit an endpoint-only calibration packet with no prediction binding."""
+
+    protocol_id, row_id = _required_identity(packet)
+    forbidden = _forbidden_present(packet, ENDPOINT_FORBIDDEN_KEYS)
+    if forbidden:
+        raise ValueError(
+            "endpoint calibration packet contains prediction fields: "
+            + ", ".join(forbidden)
+        )
+    if packet.get("route") != "endpoint_calibration":
+        raise ValueError("endpoint calibration route must equal endpoint_calibration")
+    if packet.get("contains_prediction") is not False:
+        raise ValueError("endpoint calibration must declare contains_prediction=false")
+    if packet.get("adaptive_query_allocation") is not False:
+        raise ValueError("endpoint calibration must forbid adaptive query allocation")
+    calibration_kind = packet.get("calibration_kind")
+    if calibration_kind not in {
+        "target_target_replay",
+        "target_target_replay_score",
+    }:
+        raise ValueError("unsupported endpoint calibration kind")
+    return {
+        "schema_version": "green-v400-endpoint-calibration-commitment-v1",
+        "protocol_id": protocol_id,
+        "row_id": row_id,
+        "endpoint_calibration_packet_sha256": packet_sha256(packet),
+        "prediction_access_forbidden": True,
+        "route": "endpoint_calibration",
     }
 
 

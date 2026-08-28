@@ -88,3 +88,12 @@ def test_readiness_from_another_protocol_cannot_be_reused():
         compile_execution_plan(
             challenge, universe, manifest, readiness, repository_root=ROOT
         )
+
+
+def test_challenge_mutation_after_manifest_is_rejected():
+    challenge, universe, manifest, readiness = payloads()
+    challenge["endpoint_calibration_protocol"]["minimum_scores_per_layer"] = 20
+    with pytest.raises(ValueError, match="not bound to the challenge"):
+        compile_execution_plan(
+            challenge, universe, manifest, readiness, repository_root=ROOT
+        )

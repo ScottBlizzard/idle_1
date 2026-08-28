@@ -3,9 +3,13 @@
   "created_date": "2026-08-29",
   "execution_enabled": false,
   "plan_gate": "PLAN_COMPILED_BLOCKED_BY_BASELINES",
-  "plan_internal_sha256": "a5f580bfd5f5e0e732290fc0d2f36202b5eb5df25592bad3dcb75cdd586a4c6c",
-  "sealed_plan_file_sha256": "3ac9ecaae7cdd1145d89d039c960288c835127da7db2d69bbbfcc55f7fde7ea4",
-  "sealed_plan_file_size_bytes": 1907799,
+  "plan_internal_sha256": "8084666387d2b454abb4031635d3f930af6badcc29fdbe939caf795c79a1ce18",
+  "sealed_plan_file_sha256": "671c1dd18d8d66059476e5dacbc12c4baaa212263b3265ad0b1cb301cac8ce9e",
+  "sealed_plan_file_size_bytes": 1908065,
+  "challenge_sha256": "b2e4168e2298bd5dd63e2f19f72d32ffc9258df1f7152a4ff9a233c2bb746832",
+  "manifest_sha256": "71d5d8abd770baf68a882cbfd2d05b0a2789a6f5276d31f1fd4a620be1513b0c",
+  "manifest_file_sha256": "577cb909b195da46b1d8fb41b3619cd63d1c22e37747ef72ea1ca75369e0308c",
+  "readiness_registry_sha256": "eb1d80993c3f7a10535931e4e7110aaf72d43d759253d652afb3861a36293099",
   "server_artifact": "/mnt/sdb/ccj/iclr_1_runs/green_v400_silent_failure_execution_plan_20260829_v1/sealed_execution_plan.json",
   "queue_counts": {
     "confirmation_endpoint": 1152,
@@ -26,7 +30,7 @@
   },
   "scientific_outcomes_opened": false,
   "notes": [
-    "The compiler validates hashes, route disjointness, endpoint roles, readiness evidence, physical GPU policy, and /mnt/sdb storage policy.",
+    "The compiler validates and binds the full challenge, manifest, and readiness registry hashes in addition to route disjointness, endpoint roles, physical GPU policy, and /mnt/sdb storage policy.",
     "This artifact records compilation metadata only. It contains no scientific result values and grants no execution authorization.",
     "The current gate is expected to remain blocked until actual-shape baseline runtime and finiteness evidence are recorded."
   ]

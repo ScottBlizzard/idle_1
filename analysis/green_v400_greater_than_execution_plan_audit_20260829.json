@@ -2,9 +2,13 @@
   "artifact_kind": "outcome_free_greater_than_execution_plan_audit",
   "created_date": "2026-08-29",
   "server_artifact": "/mnt/sdb/ccj/iclr_1_runs/green_v400_greater_than_execution_plan_20260829_v1/sealed_execution_plan.json",
-  "sealed_plan_file_sha256": "35699a4d5567574e40acf881149d9fa6fb94f71501d3fcaf3469d055f90fbb93",
-  "sealed_plan_file_size_bytes": 5084450,
-  "plan_internal_sha256": "5fbda9366331b92d1b95338507a438e6e1b8847dc225cb664a7fcff0d51283f1",
+  "sealed_plan_file_sha256": "abe06fa0a0793443d9bafa250335f928bbd48c8a12d966763685bfc9f097151a",
+  "sealed_plan_file_size_bytes": 5084716,
+  "plan_internal_sha256": "a8d27ba35e26158090438e98cf99c2f38802fcc29c69643e1c4c8d551735e25f",
+  "challenge_sha256": "0848bab8ce750b8b6cb9a0e38a632b38f3b84f4fa445ab005e076c95868dc8cc",
+  "manifest_sha256": "d967b85cb4ad70d304c1b399c594fed8beff9fe1a430abca192afb873bf91537",
+  "manifest_file_sha256": "397d288e8e39214b193bbab751bf1d2b53017a7bd1f53207b34a6945e122981c",
+  "readiness_registry_sha256": "50e3e77494dc3abd845d61a965ae9002aeff36652f2975bf3a5073650169779d",
   "plan_gate": "PLAN_COMPILED_BLOCKED_BY_BASELINES",
   "execution_enabled": false,
   "required_baseline_count": 9,
@@ -18,7 +22,7 @@
   },
   "scientific_outcomes_opened": false,
   "notes": [
-    "The execution compiler now rejects a readiness registry from any different protocol.",
+    "The execution compiler rejects a readiness registry from any different protocol and binds the complete challenge, manifest, and readiness hashes.",
     "The Greater-Than plan uses a dedicated readiness registry with task-specific adapter evidence.",
     "No queue is executable until the historical actual-shape baseline benchmark is frozen and a later scientific authorization is granted."
   ]

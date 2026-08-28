@@ -95,3 +95,7 @@ def test_endpoint_requires_calibration_and_valid_alpha():
         compute_heldout_transport_endpoint(
             **kwargs, endpoint_calibration_scores=[0.0], failure_alpha=0.0
         )
+    with pytest.raises(ValueError, match="cannot attain"):
+        compute_heldout_transport_endpoint(
+            **kwargs, endpoint_calibration_scores=[0.0] * 18, failure_alpha=0.05
+        )

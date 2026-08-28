@@ -61,6 +61,15 @@
       "synthetic_attenuation_or_dither_amplitude"
     ]
   },
+  "endpoint_calibration_protocol": {
+    "mode": "same_row_same_direction_target_target_replay",
+    "replay_workers_per_score": 2,
+    "worker_instances_must_be_distinct": true,
+    "minimum_scores_per_layer": 19,
+    "failure_alpha": 0.05,
+    "prediction_access_forbidden": true,
+    "adaptive_query_allocation_forbidden": true
+  },
   "secondary_endpoint": {
     "name": "downstream_layer10_mlp_unembedding_projection",
     "hook": "blocks.10.hook_mlp_out",

@@ -6,6 +6,7 @@ The validator deliberately has no model or outcome-loading dependency.
 from __future__ import annotations
 
 import json
+import math
 from pathlib import Path
 from typing import Any
 
@@ -78,6 +79,26 @@ def validate_prepare_config(payload: dict[str, Any]) -> list[str]:
     if "split-conformal" not in endpoint.get("failure_label", ""):
         errors.append("primary failure label must use endpoint-only split-conformal calibration")
 
+    calibration = payload.get("endpoint_calibration_protocol", {})
+    if calibration.get("mode") != "same_row_same_direction_target_target_replay":
+        errors.append("endpoint calibration must use same-row target-target replay")
+    if calibration.get("replay_workers_per_score") != 2:
+        errors.append("each endpoint calibration score must use two replay workers")
+    for field in (
+        "worker_instances_must_be_distinct",
+        "prediction_access_forbidden",
+        "adaptive_query_allocation_forbidden",
+    ):
+        if calibration.get(field) is not True:
+            errors.append(f"endpoint_calibration_protocol.{field} must be true")
+    failure_alpha = calibration.get("failure_alpha")
+    if not isinstance(failure_alpha, (int, float)) or not 0 < failure_alpha < 1:
+        errors.append("endpoint calibration failure_alpha must lie between zero and one")
+    else:
+        minimum = math.ceil(1.0 / float(failure_alpha)) - 1
+        if calibration.get("minimum_scores_per_layer", 0) < minimum:
+            errors.append("endpoint calibration count cannot attain failure_alpha")
+
     gate = payload.get("transition_gate_correction", {})
     if gate.get("low_regime") != "simultaneous_95pct_UCB_le_0.20":
         errors.append("low-regime gate must use the simultaneous UCB")
@@ -88,4 +109,3 @@ def validate_prepare_config(payload: dict[str, Any]) -> list[str]:
         errors.append("cross-setting replication must be required for the Oral claim")
 
     return errors
-

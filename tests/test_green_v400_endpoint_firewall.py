@@ -11,6 +11,7 @@ sys.path.insert(0, str(ROOT / "src"))
 from green_v400_endpoint_firewall import (
     audit_commitment_pair,
     seal_endpoint_packet,
+    seal_endpoint_calibration_packet,
     seal_prediction_packet,
 )
 
@@ -58,7 +59,12 @@ def test_valid_packets_commit_and_reaudit_exactly():
 
 @pytest.mark.parametrize(
     "forbidden_key",
-    ["endpoint_directions", "nmh_recovery", "heldout_transport_failure"],
+    [
+        "endpoint_directions",
+        "nmh_recovery",
+        "heldout_transport_failure",
+        "endpoint_calibration_score",
+    ],
 )
 def test_prediction_packet_rejects_endpoint_fields_at_any_depth(forbidden_key):
     packet = prediction_packet()
@@ -117,3 +123,20 @@ def test_post_commit_endpoint_mutation_is_detected():
         audit_commitment_pair(
             prediction, prediction_commitment, endpoint, endpoint_commitment
         )
+
+
+def test_endpoint_calibration_has_a_separate_prediction_free_commitment():
+    packet = {
+        "protocol_id": PROTOCOL,
+        "row_id": ROW_ID,
+        "route": "endpoint_calibration",
+        "contains_prediction": False,
+        "adaptive_query_allocation": False,
+        "calibration_kind": "target_target_replay",
+        "endpoint_replay_effects_private": [0.1, 0.2],
+    }
+    commitment = seal_endpoint_calibration_packet(packet)
+    assert commitment["prediction_access_forbidden"] is True
+    packet["green_prediction"] = 0.9
+    with pytest.raises(ValueError, match="prediction fields"):
+        seal_endpoint_calibration_packet(packet)

@@ -2,7 +2,8 @@
   "artifact_kind": "outcome_free_greater_than_replication_manifest_audit",
   "created_date": "2026-08-29",
   "server_artifact": "/mnt/sdb/ccj/iclr_1_runs/green_v400_greater_than_prepare_20260829_v1/silent_failure_manifest.json",
-  "file_sha256": "60cb48a576ee2abf7d4da375be4fe090870ebb4130407487ad1f876966b7d1cc",
+  "file_sha256": "397d288e8e39214b193bbab751bf1d2b53017a7bd1f53207b34a6945e122981c",
+  "challenge_config_sha256": "0848bab8ce750b8b6cb9a0e38a632b38f3b84f4fa445ab005e076c95868dc8cc",
   "file_size_bytes": 9262166,
   "row_universe_sha256": "ebb941274dddb0d97882e34dbf0a62f3120004302222cd1c3b60318aaae69a73",
   "prediction_prompt_count": 672,
@@ -15,7 +16,7 @@
   "contains_scientific_outcome": false,
   "real_outcomes_authorized": false,
   "notes": [
-    "The shared finalizer was reused unchanged from the IOI protocol.",
+    "The shared finalizer was reused unchanged from the IOI protocol and now binds the explicit two-worker target-target replay calibration contract.",
     "Prediction, endpoint-calibration, and unused-reserve identifiers are disjoint before site expansion and after site expansion.",
     "This manifest commits the cross-task design but does not authorize development or confirmation execution."
   ]

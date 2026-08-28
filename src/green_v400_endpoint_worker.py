@@ -57,9 +57,15 @@ def compute_heldout_transport_endpoint(
     if not math.isfinite(error_value) or not math.isfinite(normalized_value):
         raise ValueError("held-out endpoint produced a non-finite error")
 
-    conformal_p = split_conformal_upper_tail_p(
-        endpoint_calibration_scores, normalized_value
-    )
+    calibration_scores = tuple(float(value) for value in endpoint_calibration_scores)
+    if not calibration_scores:
+        raise ValueError("endpoint calibration scores must be nonempty")
+    minimum_calibration_count = math.ceil(1.0 / failure_alpha) - 1
+    if len(calibration_scores) < minimum_calibration_count:
+        raise ValueError(
+            "endpoint calibration count cannot attain the requested conformal alpha"
+        )
+    conformal_p = split_conformal_upper_tail_p(calibration_scores, normalized_value)
     packet = {
         "schema_version": "green-v400-sfc-endpoint-packet-v1",
         "protocol_id": protocol_id,
@@ -81,7 +87,8 @@ def compute_heldout_transport_endpoint(
         "heldout_transport_normalized_error_private": normalized_value,
         "endpoint_conformal_upper_tail_p_private": conformal_p,
         "endpoint_failure_alpha_private": failure_alpha,
+        "endpoint_calibration_count_private": len(calibration_scores),
+        "endpoint_minimum_calibration_count_private": minimum_calibration_count,
         "endpoint_failure_label_private": conformal_p <= failure_alpha,
     }
     return packet, seal_endpoint_packet(packet, prediction_commitment)
-

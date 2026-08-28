@@ -54,6 +54,9 @@ def compile_execution_plan(
         raise ValueError("protocol identifiers do not match")
     if readiness.get("protocol_id") != protocol_id:
         raise ValueError("baseline readiness protocol identifier does not match")
+    challenge_sha256 = sha256_value(challenge)
+    if manifest.get("config_sha256") != challenge_sha256:
+        raise ValueError("manifest is not bound to the challenge configuration")
 
     rows = universe.get("rows", [])
     _check_hash(rows, universe.get("rows_sha256"), "universe rows")
@@ -116,6 +119,9 @@ def compile_execution_plan(
         "execution_enabled": False,
         "contains_scientific_outcome": False,
         "untouched_rows_evaluated": 0,
+        "challenge_sha256": challenge_sha256,
+        "manifest_sha256": sha256_value(manifest),
+        "readiness_registry_sha256": sha256_value(readiness),
         "universe_rows_sha256": universe["rows_sha256"],
         "prediction_sites_sha256": manifest["prediction_sites_sha256"],
         "gpu_policy": {
