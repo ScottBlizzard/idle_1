@@ -40,8 +40,8 @@
     "grant_divergence": {
       "required": true,
       "status": "TASK_SERIALIZATION_READY",
-      "evidence": ["analysis/CODEX_GREEN_V400_PRIMARY_BASELINE_SOURCE_PIN_20260829.md", "src/green_v400_grant_divergence.py", "src/green_v400_grant_prediction_worker.py", "tests/test_green_v400_grant_divergence.py", "tests/test_green_v400_grant_prediction_worker.py"],
-      "missing": ["isolated geomloss parity run", "historical-row resource benchmark"]
+      "evidence": ["analysis/CODEX_GREEN_V400_PRIMARY_BASELINE_SOURCE_PIN_20260829.md", "analysis/green_v400_grant_runtime_parity_20260829.json", "src/green_v400_grant_divergence.py", "src/green_v400_grant_prediction_worker.py", "tests/test_green_v400_grant_divergence.py", "tests/test_green_v400_grant_prediction_worker.py"],
+      "missing": ["historical-row resource benchmark"]
     },
     "raw_snr_analytic_power": {
       "required": true,

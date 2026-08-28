@@ -1,0 +1,26 @@
+{
+  "schema_version": "green-v400-grant-runtime-parity-v1",
+  "date": "2026-08-29",
+  "scientific_outcomes_opened": false,
+  "runtime_root": "/mnt/sdb/ccj/green_v400_baseline_runtime/site-packages",
+  "validation_repository": "/mnt/sdb/ccj/iclr_1_runs/idle_1_green_v400_postfreeze_validation_20260828",
+  "source_repository_commit": "f2548d2ea9b4f4b87a87ba5d53db43838d15c521",
+  "versions": {
+    "python": "3.11.13",
+    "numpy": "2.2.6",
+    "scipy": "1.15.3",
+    "torch": "2.7.1+cu126",
+    "geomloss": "0.2.6"
+  },
+  "parity_test": "test_actual_geomloss_matches_inline_primary_source_formula_when_available",
+  "targeted_result": "11 passed in 1.95s",
+  "targeted_files": [
+    "tests/test_green_v400_grant_divergence.py",
+    "tests/test_green_v400_grant_prediction_worker.py"
+  ],
+  "notes": [
+    "The server-only parity test invokes the real geomloss Sinkhorn backend and compares the implementation with an inline transcription of the primary-source normalization and sqrt(d) scaling.",
+    "An initial SciPy 1.11.4 installation was incompatible with the pre-existing NumPy 2.2.6 runtime; only the isolated /mnt/sdb baseline target was replaced with SciPy 1.15.3.",
+    "No school-system package, frozen production repository, endpoint packet, model outcome, or GPU allocation was changed."
+  ]
+}
