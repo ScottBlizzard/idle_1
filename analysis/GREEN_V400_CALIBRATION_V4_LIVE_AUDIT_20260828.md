@@ -68,9 +68,30 @@ started the four fresh-process, all-17-radius jobs in the predeclared order:
 512-bit work. The no-cache maximum charged-call counts are respectively 306,
 578, 1122, and 2210.
 
-The first `L4` job was active when this live record was created. No budget has
-yet been selected. Selection remains restricted to the selector-safe resource
-records and the predeclared largest-candidate-with-4/5-guardband rule.
+The first `L4` job subsequently completed successfully:
+
+- charged calls: 153 at 384 bits, followed by 153 at 512 bits (306 total)
+- all 17 radius summaries present
+- all endpoint and cell value/first/second nesting checks passed
+- exact cache hits: 0
+- external elapsed time: `7579.056401988026` seconds
+- sampled peak process-tree RSS: `264998912` bytes
+- sampled peak process-tree swap: `0` bytes
+- wrapper report semantic hash:
+  `0a877efe3465077e109ac863f85a767e8884ab33f90709ad8f023a501cc2d11e`
+- numerics report semantic hash:
+  `a40557909467f5657273e4ec762ddc6caad6ec1360bb0b4a93877887afbdeb12`
+- selector-safe resource-record semantic hash:
+  `85d0a65eccd2a7860c54bf01ef95b2a8ca6ab416d75d493399d5ee797f96bf4e`
+
+An independent readback removed each stored hash field and recomputed all three
+canonical hashes. It also asserted the exact charged counts, 17-radius
+cardinality, every endpoint and cell value/first/second nesting result, and the
+absence of scientific-threshold application. All checks passed.
+
+The frozen driver accepted the `L4` terminal and started `L8` automatically. No
+budget has yet been selected. Selection remains restricted to the selector-safe
+resource records and the predeclared largest-candidate-with-4/5-guardband rule.
 
 ## Shared-server allocation
 
