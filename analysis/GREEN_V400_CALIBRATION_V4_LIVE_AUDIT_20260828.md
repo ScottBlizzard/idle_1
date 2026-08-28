@@ -26,6 +26,12 @@ The repository and all source/artifact hashes remain frozen for the lifetime of
 this run. Later local hardening commits are intentionally not synchronized to
 the server until the run terminates.
 
+An offline Git bundle was used to create a separate validation clone under
+`/mnt/sdb`; the active frozen repository was not modified. At local commit
+`b8868ff`, the two directly affected test modules passed 33/33 tests and the
+complete repository suite passed 634/634 tests in the server dependency
+environment. Both validation commands hid all GPUs.
+
 ## Continuation-to-L32 gate
 
 The mandatory continuation track at radius `2^-14` completed successfully.
