@@ -1,0 +1,88 @@
+{
+  "schema_version": "green-v400-silent-failure-challenge-prepare-v1",
+  "protocol_id": "GREEN_V400_SILENT_FAILURE_CHALLENGE_PREPARE_V1",
+  "status": "FORMAL_PREPARE_ONLY",
+  "real_outcomes_authorized": false,
+  "development_authorized": false,
+  "confirmation_authorized": false,
+  "scientific_target": {
+    "reference_work": "Grant et al., Addressing Divergent Representations from Causal Interventions on Neural Networks, ICLR 2026 Oral",
+    "inherited_premise": "causal interventions can create divergent internal representations",
+    "green_advance": "prospectively identify behaviorally successful but non-transporting or mechanism-misaligned interventions and validate the warning independently"
+  },
+  "candidate_population": {
+    "primary_task": "GPT-2 Small IOI",
+    "primary_site_family": "IO-token resid_post at layers 0 through 8",
+    "temporal_eligibility": "every structural readout head must be strictly downstream of the patch",
+    "candidate_rule": "immutable deterministic prompt/site universe; no selection using GREEN, baseline, transport, or NMH outcomes",
+    "high_restoration_threshold": 0.8
+  },
+  "route_firewall": {
+    "prediction_routes": [
+      "ordinary_restoration",
+      "grant_style_divergence",
+      "exact_activation_or_path_patching",
+      "attribution_patching_or_AtP_star",
+      "integrated_gradients",
+      "HVP_or_MS_HVP",
+      "raw_SNR_and_analytic_power",
+      "GREEN_certificate"
+    ],
+    "endpoint_routes": [
+      "sealed_heldout_transport",
+      "sealed_IOI_downstream_NMH_recovery"
+    ],
+    "prediction_committed_before_endpoint": true,
+    "separate_worker_processes": true,
+    "shared_model_instance_forbidden": true,
+    "adaptive_query_allocation_forbidden": true
+  },
+  "direction_panels": {
+    "green_panel_seed_domain": "GREEN_V400_SFC_GREEN_PANEL",
+    "heldout_endpoint_panel_seed_domain": "GREEN_V400_SFC_ENDPOINT_PANEL",
+    "panels_must_be_disjoint": true,
+    "endpoint_panel_hidden_from_prediction_workers": true,
+    "same_context_matched_probe_law": true
+  },
+  "primary_endpoint": {
+    "name": "sealed_heldout_causal_transport_failure",
+    "continuous_measure": "normalized response RMSE between target and patched computations on the sealed endpoint direction panel",
+    "failure_label": "split-conformal exceedance relative to an endpoint-only target-target replay calibration distribution",
+    "forbidden_inputs": [
+      "GREEN_certificate_status",
+      "P13_status",
+      "certificate_width",
+      "certificate_budget_history",
+      "GREEN_direction_panel",
+      "baseline_prediction",
+      "synthetic_attenuation_or_dither_amplitude"
+    ]
+  },
+  "secondary_endpoint": {
+    "name": "IOI_downstream_Name_Mover_Head_recovery",
+    "heads": [[9, 9], [10, 0]],
+    "role": "task-specific structural validation; never used to construct the GREEN certificate or primary transport label"
+  },
+  "transition_gate_correction": {
+    "low_regime": "simultaneous_95pct_UCB_le_0.20",
+    "high_regime": "simultaneous_95pct_LCB_ge_0.80"
+  },
+  "matched_falsifiers": [
+    "branch_permutation",
+    "bypass_only",
+    "norm_matched_random_direction",
+    "amplitude_matched",
+    "raw_SNR_matched",
+    "curvature_matched",
+    "cone_depth_matched",
+    "compute_difficulty_matched",
+    "affine_scalar_sensor",
+    "random_weight_transformer"
+  ],
+  "replication_requirement": {
+    "required_for_oral_claim": true,
+    "rule": "unchanged GREEN decision rule on at least one different task or model/mechanism family",
+    "candidate": "Greater-Than or a second pretrained-model IOI implementation"
+  },
+  "execution_barrier": "No real outcome may run until record universe, split, direction payloads, endpoint calibration, baseline implementations, analysis code, and artifact hashes are frozen and independently audited."
+}
