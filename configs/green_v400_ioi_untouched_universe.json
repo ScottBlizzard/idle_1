@@ -4,7 +4,7 @@
   "model_id": "gpt2",
   "local_files_only": true,
   "contains_scientific_outcome": false,
-  "rows_per_template": 128,
+  "rows_per_template": 64,
   "templates": [
     {
       "id": "endpoint_calibration_0",

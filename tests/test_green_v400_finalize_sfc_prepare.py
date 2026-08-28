@@ -25,16 +25,31 @@ def universe():
 def test_finalized_manifest_binds_disjoint_prediction_calibration_and_reserve_rows():
     result = finalize_prepare_manifest(challenge_config(), universe())
     prediction = set(result["row_ids"])
-    calibration = set(result["endpoint_calibration"]["row_ids"])
-    reserve = set(result["unused_reserve"]["row_ids"])
-    assert len(prediction) == 12
-    assert len(calibration) == 3
-    assert len(reserve) == 3
+    calibration = {
+        row["row_id"] for row in result["endpoint_calibration"]["sites"]
+    }
+    reserve = {row["row_id"] for row in result["unused_reserve"]["sites"]}
+    assert len(prediction) == 12 * 9
+    assert len(calibration) == 3 * 9
+    assert len(reserve) == 3 * 9
     assert prediction.isdisjoint(calibration)
     assert prediction.isdisjoint(reserve)
     assert calibration.isdisjoint(reserve)
     assert result["contains_scientific_outcome"] is False
     assert result["real_outcomes_authorized"] is False
+    assert result["site_definition"] == {
+        "hook": "resid_post",
+        "layers": list(range(9)),
+    }
+
+
+def test_site_identifier_binds_prompt_layer_and_hook():
+    result = finalize_prepare_manifest(challenge_config(), universe())
+    first = result["prediction_sites"][0]
+    second = result["prediction_sites"][1]
+    assert first["prompt_row_id"] == second["prompt_row_id"]
+    assert first["layer"] != second["layer"]
+    assert first["row_id"] != second["row_id"]
 
 
 def test_universe_row_mutation_breaks_hash_binding():
@@ -66,3 +81,10 @@ def test_overlapping_role_ids_are_rejected_with_valid_row_hash():
     payload["rows_sha256"] = sha256_value(payload["rows"])
     with pytest.raises(ValueError, match="must be disjoint"):
         finalize_prepare_manifest(challenge_config(), payload)
+
+
+def test_duplicate_candidate_layer_is_rejected():
+    config = challenge_config()
+    config["candidate_population"]["layers"] = [0, 0, 1]
+    with pytest.raises(ValueError, match="candidate layers"):
+        finalize_prepare_manifest(config, universe())

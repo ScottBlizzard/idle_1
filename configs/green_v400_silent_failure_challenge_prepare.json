@@ -13,6 +13,8 @@
   "candidate_population": {
     "primary_task": "GPT-2 Small IOI",
     "primary_site_family": "IO-token resid_post at layers 0 through 8",
+    "hook": "resid_post",
+    "layers": [0, 1, 2, 3, 4, 5, 6, 7, 8],
     "temporal_eligibility": "every structural readout head must be strictly downstream of the patch",
     "candidate_rule": "immutable deterministic prompt/site universe; no selection using GREEN, baseline, transport, or NMH outcomes",
     "high_restoration_threshold": 0.8
