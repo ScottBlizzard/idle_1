@@ -13,6 +13,9 @@ from green_bridge_v400_schemas import RESOURCE_REASONS
 from green_bridge_v400_strict_resource_lock import (
     StrictSingleProcessResourceLock,
 )
+from green_bridge_v400_supervisor import (
+    AdmissionLedger, SupervisorViolation, authorize_supervised_execution,
+)
 
 
 def _lock(**changes) -> StrictSingleProcessResourceLock:
@@ -105,3 +108,30 @@ def test_strict_resource_lock_is_immutable():
     lock = _lock()
     with pytest.raises(Exception):
         replace(lock, production_authorized=True)
+
+
+def test_strict_resource_lock_drives_supervisor_ledger_but_not_launch(tmp_path):
+    lock = _lock(radii_count=1, max_final_leaves_per_radius=2)
+    ledger = AdmissionLedger(lock, tmp_path / "strict-ledger.jsonl")
+    for ordinal in range(5):
+        token = f"official-{ordinal}"
+        record = ledger.admit(
+            384, token_id=token, attempt_id="strict-attempt",
+            exact_domain_sha256=f"{ordinal + 1:064x}",
+        )
+        assert record.charged_tokens == 90
+        ledger.mark_dispatch_started(token)
+        ledger.mark_dispatch_finished(token, success=True)
+    ledger.freeze_official_phase(
+        completed_radius_count=1,
+        official_partition_manifest_sha256="a" * 64,
+    )
+    audit = ledger.admit(
+        512, token_id="audit-0", attempt_id="strict-attempt",
+        exact_domain_sha256="f" * 64,
+    )
+    assert audit.charged_tokens == 100
+    assert ledger.charged_tokens == 550
+    with pytest.raises(
+            SupervisorViolation, match="resource lock remains prepare-only"):
+        authorize_supervised_execution(lock)
