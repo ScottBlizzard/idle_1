@@ -1,0 +1,67 @@
+{
+  "schema_version": "green-v400-baseline-readiness-v1",
+  "protocol_id": "GREEN_V400_SILENT_FAILURE_GT_REPLICATION_PREPARE_V1",
+  "real_outcomes_authorized": false,
+  "ready_status": "READY",
+  "baselines": {
+    "ordinary_restoration": {
+      "required": true,
+      "status": "READY",
+      "evidence": ["src/exp_green_bridge_gpt2.py"]
+    },
+    "exact_finite_response": {
+      "required": true,
+      "status": "READY",
+      "evidence": ["src/green_v400_response_baselines.py", "src/green_v400_greater_than_response_adapter.py"]
+    },
+    "first_order_attribution": {
+      "required": true,
+      "status": "READY",
+      "evidence": ["src/green_v400_response_baselines.py", "tests/test_green_v400_response_baselines.py", "tests/test_green_v400_greater_than_response_and_endpoint.py"]
+    },
+    "integrated_gradients": {
+      "required": true,
+      "status": "TASK_SERIALIZATION_READY",
+      "evidence": ["src/green_v400_response_baselines.py", "src/green_v400_greater_than_response_adapter.py", "src/green_v400_prediction_worker.py", "tests/test_green_v400_greater_than_response_and_endpoint.py"],
+      "missing": ["historical-row resource benchmark"]
+    },
+    "hvp_second_order": {
+      "required": true,
+      "status": "TASK_SERIALIZATION_READY",
+      "evidence": ["src/green_v400_response_baselines.py", "src/green_v400_greater_than_response_adapter.py", "src/green_v400_prediction_worker.py", "tests/test_green_v400_greater_than_response_and_endpoint.py"],
+      "missing": ["historical-row resource benchmark"]
+    },
+    "AtP_star_or_closest_exact_attribution": {
+      "required": true,
+      "status": "READY",
+      "replacement_method": "exact_finite_response",
+      "applicability": "coarse_full_residual_sites_only",
+      "AtP_star_claimed_as_executed": false,
+      "evidence": ["analysis/CODEX_GREEN_V400_PRIMARY_BASELINE_SOURCE_PIN_20260829.md", "analysis/green_v400_atp_star_applicability.py", "analysis/green_v400_atp_star_applicability_audit_20260829.json", "src/green_v400_response_baselines.py", "src/green_v400_greater_than_response_adapter.py", "tests/test_green_v400_atp_star_applicability.py", "tests/test_green_v400_greater_than_response_and_endpoint.py"],
+      "missing": []
+    },
+    "grant_divergence": {
+      "required": true,
+      "status": "TASK_SERIALIZATION_READY",
+      "evidence": ["analysis/CODEX_GREEN_V400_PRIMARY_BASELINE_SOURCE_PIN_20260829.md", "analysis/green_v400_grant_runtime_parity_20260829.json", "src/green_v400_grant_divergence.py", "src/green_v400_grant_prediction_worker.py", "tests/test_green_v400_grant_divergence.py", "tests/test_green_v400_grant_prediction_worker.py"],
+      "missing": ["historical-row resource benchmark"]
+    },
+    "raw_snr_analytic_power": {
+      "required": true,
+      "status": "TASK_SERIALIZATION_READY",
+      "evidence": ["src/green_v400_prediction_worker.py", "tests/test_green_v400_prediction_worker.py"],
+      "missing": ["historical-row resource benchmark"]
+    },
+    "generic_verifier": {
+      "required": true,
+      "status": "READY",
+      "mode": "DOCUMENTED_SAME_GRAPH_APPLICABILITY_FAILURE",
+      "prediction_available": false,
+      "must_not_count_as_green_win": true,
+      "source_commit": "5a098e8f9fb5786a428a024981d833d303921f2d",
+      "evidence": ["analysis/CODEX_GREEN_V400_GENERIC_VERIFIER_APPLICABILITY_20260829.md", "analysis/green_v400_auto_lirpa_historical_smoke.py", "analysis/green_v400_auto_lirpa_layer8_ibp_eps1e-5_20260829.json", "analysis/green_v400_auto_lirpa_layer8_crown_eps1e-7_20260829.json", "src/green_v400_auto_lirpa_tail.py", "tests/test_green_v400_auto_lirpa_tail.py"],
+      "missing": []
+    }
+  },
+  "execution_gate": "every required baseline must have status READY before any untouched Greater-Than prediction or endpoint outcome is evaluated"
+}

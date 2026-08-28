@@ -79,3 +79,12 @@ def test_reserve_cannot_become_executable():
         compile_execution_plan(
             challenge, universe, manifest, readiness, repository_root=ROOT
         )
+
+
+def test_readiness_from_another_protocol_cannot_be_reused():
+    challenge, universe, manifest, readiness = payloads()
+    readiness["protocol_id"] = "ANOTHER_PROTOCOL"
+    with pytest.raises(ValueError, match="readiness protocol"):
+        compile_execution_plan(
+            challenge, universe, manifest, readiness, repository_root=ROOT
+        )

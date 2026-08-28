@@ -1,0 +1,25 @@
+{
+  "artifact_kind": "outcome_free_greater_than_execution_plan_audit",
+  "created_date": "2026-08-29",
+  "server_artifact": "/mnt/sdb/ccj/iclr_1_runs/green_v400_greater_than_execution_plan_20260829_v1/sealed_execution_plan.json",
+  "sealed_plan_file_sha256": "35699a4d5567574e40acf881149d9fa6fb94f71501d3fcaf3469d055f90fbb93",
+  "sealed_plan_file_size_bytes": 5084450,
+  "plan_internal_sha256": "5fbda9366331b92d1b95338507a438e6e1b8847dc225cb664a7fcff0d51283f1",
+  "plan_gate": "PLAN_COMPILED_BLOCKED_BY_BASELINES",
+  "execution_enabled": false,
+  "required_baseline_count": 9,
+  "ready_required_count": 5,
+  "queue_counts": {
+    "confirmation_endpoint": 3456,
+    "confirmation_prediction": 3456,
+    "development_endpoint": 2592,
+    "development_prediction": 2592,
+    "endpoint_calibration": 1728
+  },
+  "scientific_outcomes_opened": false,
+  "notes": [
+    "The execution compiler now rejects a readiness registry from any different protocol.",
+    "The Greater-Than plan uses a dedicated readiness registry with task-specific adapter evidence.",
+    "No queue is executable until the historical actual-shape baseline benchmark is frozen and a later scientific authorization is granted."
+  ]
+}

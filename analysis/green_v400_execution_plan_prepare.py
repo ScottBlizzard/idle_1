@@ -52,6 +52,8 @@ def compile_execution_plan(
     protocol_id = challenge.get("protocol_id")
     if universe.get("protocol_id") != protocol_id or manifest.get("protocol_id") != protocol_id:
         raise ValueError("protocol identifiers do not match")
+    if readiness.get("protocol_id") != protocol_id:
+        raise ValueError("baseline readiness protocol identifier does not match")
 
     rows = universe.get("rows", [])
     _check_hash(rows, universe.get("rows_sha256"), "universe rows")
