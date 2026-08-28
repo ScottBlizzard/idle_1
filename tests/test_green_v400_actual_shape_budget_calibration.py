@@ -69,10 +69,10 @@ def test_four_budgets_and_worst_case_17_radius_counts_are_frozen():
     assert manifest["candidate_final_leaf_budgets"] == [4, 8, 16, 32]
     assert [job["leaf_budget"] for job in manifest["jobs"]] == [4, 8, 16, 32]
     expected = {
-        4: (153, 119, 272),
-        8: (289, 187, 476),
-        16: (561, 323, 884),
-        32: (1105, 595, 1700),
+        4: (153, 153, 306),
+        8: (289, 289, 578),
+        16: (561, 561, 1122),
+        32: (1105, 1105, 2210),
     }
     for job in manifest["jobs"]:
         assert (
@@ -81,7 +81,7 @@ def test_four_budgets_and_worst_case_17_radius_counts_are_frozen():
             job["maximum_charged_passes_total"],
         ) == expected[job["leaf_budget"]]
     assert calibration.exact_no_cache_counts([14] * 17) == {
-        "384": 493, "512": 289, "total": 782,
+        "384": 493, "512": 493, "total": 986,
     }
     assert calibration._exact_ratio_payload(deepcopy(calibration.RADIUS)) == [1, 16384]
 
@@ -97,6 +97,9 @@ def test_dual_track_phase_replay_and_artifact_separation_are_explicit():
     }
     accounting = manifest["accounting_policy"]
     assert accounting["per_budget_all_17_radii_384_before_any_512"] is True
+    assert accounting["per_radius_no_cache_count_formula"] == (
+        "384=2L+1;512=2L+1;total=4L+2"
+    )
     assert accounting["any_384_failure_launches_zero_512"] is True
     assert accounting["memoization"] is False
     assert accounting["center_reuse"] is False
@@ -107,6 +110,15 @@ def test_dual_track_phase_replay_and_artifact_separation_are_explicit():
     assert separation["selector_inaccessible_numerics_artifact"][
         "jet_payload_forbidden"
     ] is True
+    assert manifest["continuation_job"] == {
+        "leaf_budget": 32,
+        "radius": [1, 16384],
+        "checkpoint_leaf_counts": [4, 8, 16, 32],
+        "attempt_relative_path": "attempts/continuation_to_L32",
+        "numerics_relative_path": (
+            "attempts/continuation_to_L32/numerics_audit/continuation_report.json"
+        ),
+    }
 
 
 @pytest.mark.parametrize("mutation", [
@@ -172,17 +184,24 @@ def _resource_records(manifest):
     machine_hash = manifest["machine_concurrency_manifest"][
         "machine_manifest_semantic_hash"
     ]
-    return [
+    records = [
         {
             "budget": budget,
+            "job_ordinal": ordinal,
+            "manifest_semantic_hash": calibration.manifest_semantic_hash(manifest),
             "charged_pass_counts": {"384": 100, "512": 50, "total": 150},
             "fault_reason": None,
             "timing_seconds": 100.0 * budget,
             "rss_bytes": 1 << 30,
             "machine_manifest_hash": machine_hash,
+            "wrapper_report_semantic_hash": "d" * 64,
+            "numerics_report_semantic_hash": "e" * 64,
         }
-        for budget in (4, 8, 16, 32)
+        for ordinal, budget in enumerate((4, 8, 16, 32))
     ]
+    for record in records:
+        record["record_semantic_hash"] = sha256_canonical(record)
+    return records
 
 
 def test_selector_uses_only_resource_fields_and_largest_guardband_safe_budget():
@@ -192,6 +211,17 @@ def test_selector_uses_only_resource_fields_and_largest_guardband_safe_budget():
     records[2]["interval_width"] = [1, 2]
     with pytest.raises(ValueError, match="fields invalid"):
         calibration.select_largest_resource_safe_budget(manifest, records)
+
+
+@pytest.mark.parametrize("fault", [
+    "WORKER_FAILED", "SUPERVISOR_INFRASTRUCTURE_FAILED",
+    "SUPERVISOR_CLEANUP_FAILED",
+])
+def test_nonresource_fault_is_fail_closed_on_new_or_resumed_record(fault):
+    with pytest.raises(RuntimeError, match="NONRESOURCE_FAILURE_FAIL_CLOSED"):
+        calibration._raise_on_nonresource_fault({"fault_reason": fault})
+    calibration._raise_on_nonresource_fault({"fault_reason": "WALL_DEADLINE_REACHED"})
+    calibration._raise_on_nonresource_fault({"fault_reason": None})
 
 
 def test_planned_budget_command_is_fresh_supervised_and_has_split_outputs():
@@ -206,3 +236,9 @@ def test_planned_budget_command_is_fresh_supervised_and_has_split_outputs():
     assert "--selector-inaccessible-numerics-output" in command
     assert "threshold" not in joined.lower()
     assert "--allow-descendants" not in command
+    continuation = calibration.continuation_worker_command(
+        manifest, calibration.manifest_semantic_hash(manifest)
+    )
+    assert "--continuation-worker" in continuation
+    assert "--continuation-numerics-output" in continuation
+    assert "--allow-descendants" not in continuation

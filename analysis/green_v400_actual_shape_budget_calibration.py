@@ -54,6 +54,7 @@ BLOCKER_AUDIT_REPLAY = (
     "PUBLIC_ANYTIME_FROZEN_PARTITION_512_REPLAY_AND_NESTING_API_MISSING"
 )
 SOURCE_RELATIVE_PATHS = (
+    "analysis/GREEN_V400_ANYTIME_512_FULL_HISTORY_CORRIGENDUM_20260828.md",
     "analysis/GREEN_V400_ANYTIME_CERTIFICATE_RESOURCE_POLICY_V1_20260827.md",
     "analysis/green_v400_actual_shape_budget_calibration.py",
     "analysis/green_v400_machine_concurrency_identity.py",
@@ -61,8 +62,15 @@ SOURCE_RELATIVE_PATHS = (
     "scripts/run_green_shared_host.py",
     "src/green_bridge_v400_certificate.py",
     "src/green_bridge_v400_compiled_mpfr.py",
+    "src/green_bridge_v400_interval.py",
+    "src/green_bridge_v400_interval_jet.py",
+    "src/green_bridge_v400_mpfr.py",
+    "src/green_bridge_v400_relational_graph.py",
+    "src/green_bridge_v400_resources.py",
     "src/green_bridge_v400_schemas.py",
     "src/green_bridge_v400_shared_host.py",
+    "src/green_bridge_v400_shared_host_exec.py",
+    "src/green_bridge_v400_transformer_ops.py",
 )
 
 
@@ -129,13 +137,13 @@ def inspect_required_api_capabilities() -> dict:
         "serialize_monotone_anytime_state", "restore_monotone_anytime_state",
     }
     replay_names = {
-        "replay_monotone_anytime_state_at_audit_precision",
-        "audit_monotone_anytime_frozen_partition",
+        "audit_monotone_anytime_checkpoint_history",
+        "audit_monotone_anytime_checkpoint_histories",
     }
     synthetic_boundary = _class_has_true_assignment(
         compiled_tree, "CompiledSyntheticNativeJointWitnessEvaluator", "synthetic_only",
     )
-    public_replay = bool(public & replay_names)
+    public_replay = replay_names <= public
     blockers = []
     if not synthetic_boundary:
         blockers.append(BLOCKER_SYNTHETIC_BOUNDARY)
@@ -156,7 +164,7 @@ def _budget_jobs(output_root: str) -> tuple[dict, ...]:
     jobs = []
     for ordinal, leaf_budget in enumerate(CANDIDATE_FINAL_LEAF_BUDGETS):
         maximum_384 = 17 * (2 * leaf_budget + 1)
-        maximum_512 = 17 * (leaf_budget + 3)
+        maximum_512 = 17 * (2 * leaf_budget + 1)
         attempt = f"attempts/{ordinal:02d}_L{leaf_budget}"
         jobs.append({
             "ordinal": ordinal,
@@ -168,7 +176,7 @@ def _budget_jobs(output_root: str) -> tuple[dict, ...]:
             "maximum_charged_passes_512": maximum_512,
             "maximum_charged_passes_total": maximum_384 + maximum_512,
             "count_formula": (
-                "per-radius N384=2L_r+1,N512=L_r+3,total=3L_r+4; "
+                "per-radius N384=2L_r+1,N512=2L_r+1,total=4L_r+2; "
                 "maximum uses L_r=B for all 17 radii"
             ),
             "attempt_relative_path": attempt,
@@ -182,13 +190,25 @@ def _budget_jobs(output_root: str) -> tuple[dict, ...]:
     return tuple(jobs)
 
 
+def _continuation_job() -> dict:
+    return {
+        "leaf_budget": 32,
+        "radius": [RADIUS.numerator, RADIUS.denominator],
+        "checkpoint_leaf_counts": list(CANDIDATE_FINAL_LEAF_BUDGETS),
+        "attempt_relative_path": "attempts/continuation_to_L32",
+        "numerics_relative_path": (
+            "attempts/continuation_to_L32/numerics_audit/continuation_report.json"
+        ),
+    }
+
+
 def exact_no_cache_counts(achieved_leaves: list[int] | tuple[int, ...]) -> dict:
     leaves = tuple(achieved_leaves)
     if (len(leaves) != 17 or any(type(value) is not int or value < 2
                                  for value in leaves)):
         raise ValueError("exactly 17 achieved leaf counts >=2 are required")
     official = sum(2 * value + 1 for value in leaves)
-    audit = sum(value + 3 for value in leaves)
+    audit = sum(2 * value + 1 for value in leaves)
     return {"384": official, "512": audit, "total": official + audit}
 
 
@@ -198,8 +218,10 @@ def select_largest_resource_safe_budget(
     """Apply the frozen resource-only selector; reject all extra fields."""
     validate_manifest(manifest)
     required = {
-        "budget", "charged_pass_counts", "fault_reason", "timing_seconds",
-        "rss_bytes", "machine_manifest_hash",
+        "budget", "job_ordinal", "manifest_semantic_hash",
+        "charged_pass_counts", "fault_reason", "timing_seconds",
+        "rss_bytes", "machine_manifest_hash", "wrapper_report_semantic_hash",
+        "numerics_report_semantic_hash", "record_semantic_hash",
     }
     if len(selector_safe_records) != 4:
         raise ValueError("selector requires four resource-only records")
@@ -208,8 +230,12 @@ def select_largest_resource_safe_budget(
         if not isinstance(record, dict) or set(record) != required:
             raise ValueError("selector-safe resource record fields invalid")
         budget = record["budget"]
+        unhashed = record | {}
+        stored_record_hash = unhashed.pop("record_semantic_hash")
         counts = record["charged_pass_counts"]
         if (budget not in CANDIDATE_FINAL_LEAF_BUDGETS or budget in by_budget
+                or record["job_ordinal"] != CANDIDATE_FINAL_LEAF_BUDGETS.index(budget)
+                or record["manifest_semantic_hash"] != sha256_canonical(manifest)
                 or not isinstance(counts, dict)
                 or set(counts) != {"384", "512", "total"}
                 or any(type(value) is not int or value < 0 for value in counts.values())
@@ -225,7 +251,11 @@ def select_largest_resource_safe_budget(
                 or type(record["rss_bytes"]) is not int or record["rss_bytes"] < 0
                 or record["machine_manifest_hash"] != manifest[
                     "machine_concurrency_manifest"
-                ]["machine_manifest_semantic_hash"]):
+                ]["machine_manifest_semantic_hash"]
+                or not _is_sha256(record["wrapper_report_semantic_hash"])
+                or (record["numerics_report_semantic_hash"] is not None
+                    and not _is_sha256(record["numerics_report_semantic_hash"]))
+                or stored_record_hash != sha256_canonical(unhashed)):
             raise ValueError("selector-safe resource record invalid")
         by_budget[budget] = record
     execution = manifest["execution_policy"]
@@ -282,7 +312,7 @@ def build_manifest(
             "max_depth": max_depth,
             "stop_at_tolerance_or_leaf_budget": True,
             "raw_to_monotone_intersection_must_not_expand": True,
-            "audit_replays_exact_frozen_official_partition": True,
+            "audit_replays_complete_frozen_official_split_history": True,
             "audit_512_must_nest_inside_official_384": True,
         },
         "accounting_policy": {
@@ -294,13 +324,16 @@ def build_manifest(
             "per_budget_all_17_radii_384_before_any_512": True,
             "any_384_failure_launches_zero_512": True,
             "achieved_leaves_may_be_below_budget_on_tolerance": True,
-            "per_radius_no_cache_count_formula": "384=2L+1;512=L+3;total=3L+4",
+            "per_radius_no_cache_count_formula": "384=2L+1;512=2L+1;total=4L+2",
         },
         "artifact_separation_policy": {
             "selector_safe_resource_artifact": {
                 "allowed_fields": [
-                    "budget", "charged_pass_counts", "fault_reason",
-                    "timing_seconds", "rss_bytes", "machine_manifest_hash",
+                    "budget", "job_ordinal", "manifest_semantic_hash",
+                    "charged_pass_counts", "fault_reason", "timing_seconds",
+                    "rss_bytes", "machine_manifest_hash",
+                    "wrapper_report_semantic_hash",
+                    "numerics_report_semantic_hash", "record_semantic_hash",
                 ],
                 "interval_width_forbidden": True,
                 "certificate_status_forbidden": True,
@@ -346,6 +379,7 @@ def build_manifest(
         "gpu_environment": GPU_ENVIRONMENT,
         "machine_concurrency_manifest": machine_concurrency_manifest,
         "api_preflight": api_preflight,
+        "continuation_job": _continuation_job(),
         "jobs": list(jobs),
         "provenance": {
             "repository_commit": repository_commit,
@@ -402,7 +436,7 @@ def validate_manifest(manifest: dict) -> None:
         "artifact_separation_policy", "selector_policy", "native_artifacts",
         "execution_policy",
         "gpu_environment", "machine_concurrency_manifest", "api_preflight",
-        "jobs", "provenance",
+        "continuation_job", "jobs", "provenance",
     }
     if not isinstance(manifest, dict) or set(manifest) != required:
         raise ValueError("budget calibration manifest fields mismatch")
@@ -417,6 +451,7 @@ def validate_manifest(manifest: dict) -> None:
             or manifest["official_precision_bits"] != 384
             or manifest["audit_precision_bits"] != 512
             or manifest["gpu_environment"] != GPU_ENVIRONMENT
+            or manifest["continuation_job"] != _continuation_job()
             or manifest["jobs"] != list(_budget_jobs(manifest["output_root"]))):
         raise ValueError("budget calibration frozen design mismatch")
     identity = manifest["closed_synthetic_identity"]
@@ -440,7 +475,7 @@ def validate_manifest(manifest: dict) -> None:
             "relative_width_tolerance", "max_depth",
             "stop_at_tolerance_or_leaf_budget",
             "raw_to_monotone_intersection_must_not_expand",
-            "audit_replays_exact_frozen_official_partition",
+            "audit_replays_complete_frozen_official_split_history",
             "audit_512_must_nest_inside_official_384",
             }
             or adaptive["initial_partition"] != "[-h,0],[0,h]"
@@ -453,7 +488,7 @@ def validate_manifest(manifest: dict) -> None:
             or any(adaptive[name] is not True for name in (
                 "stop_at_tolerance_or_leaf_budget",
                 "raw_to_monotone_intersection_must_not_expand",
-                "audit_replays_exact_frozen_official_partition",
+                "audit_replays_complete_frozen_official_split_history",
                 "audit_512_must_nest_inside_official_384",
             ))):
         raise ValueError("budget calibration adaptive semantics invalid")
@@ -465,14 +500,17 @@ def validate_manifest(manifest: dict) -> None:
         "per_budget_all_17_radii_384_before_any_512": True,
         "any_384_failure_launches_zero_512": True,
         "achieved_leaves_may_be_below_budget_on_tolerance": True,
-        "per_radius_no_cache_count_formula": "384=2L+1;512=L+3;total=3L+4",
+        "per_radius_no_cache_count_formula": "384=2L+1;512=2L+1;total=4L+2",
     }:
         raise ValueError("budget calibration accounting policy invalid")
     if manifest["artifact_separation_policy"] != {
         "selector_safe_resource_artifact": {
             "allowed_fields": [
-                "budget", "charged_pass_counts", "fault_reason",
-                "timing_seconds", "rss_bytes", "machine_manifest_hash",
+                "budget", "job_ordinal", "manifest_semantic_hash",
+                "charged_pass_counts", "fault_reason", "timing_seconds",
+                "rss_bytes", "machine_manifest_hash",
+                "wrapper_report_semantic_hash",
+                "numerics_report_semantic_hash", "record_semantic_hash",
             ],
             "interval_width_forbidden": True,
             "certificate_status_forbidden": True,
@@ -645,6 +683,35 @@ def budget_worker_command(manifest: dict, manifest_hash: str, job: dict) -> tupl
     )
 
 
+def continuation_worker_command(manifest: dict, manifest_hash: str) -> tuple[str, ...]:
+    output_root = Path(manifest["output_root"])
+    job = manifest["continuation_job"]
+    attempt = output_root / job["attempt_relative_path"]
+    numerics = output_root / job["numerics_relative_path"]
+    native = manifest["native_artifacts"]
+    execution = manifest["execution_policy"]
+    return (
+        sys.executable, str(ROOT / "scripts" / "run_green_shared_host.py"),
+        "--storage-root", "/mnt/sdb", "--attempt-directory", str(attempt),
+        "--cwd", str(ROOT), "--wall-seconds",
+        str(execution["wall_seconds_per_budget"]),
+        "--address-space-gib",
+        str(execution["per_process_address_space_bytes"] / (1 << 30)),
+        "--observed-tree-gib",
+        str(execution["observed_tree_memory_bytes"] / (1 << 30)),
+        "--sample-seconds", str(execution["sample_interval_seconds"]),
+        "--", sys.executable, str(Path(__file__).resolve()),
+        "--continuation-worker", "--manifest", str(
+            output_root / "budget_calibration_manifest.json"
+        ),
+        "--manifest-sha256", manifest_hash,
+        "--library", native["library_path"],
+        "--descriptor", native["descriptor_path"],
+        "--blob", native["blob_path"],
+        "--continuation-numerics-output", str(numerics),
+    )
+
+
 def _rational_width(interval_payload: dict) -> list[int]:
     lower = Fraction(*interval_payload["lower"])
     upper = Fraction(*interval_payload["upper"])
@@ -759,9 +826,22 @@ def _certificate_plan(leaf_budget: int, max_depth: int):
     )
 
 
+def _continuation_plan(max_depth: int):
+    from green_bridge_v400_schemas import CertificatePlan, Dyadic
+
+    return CertificatePlan(
+        "green-v400-certificate-plan-v1", ROW_HASH, (Dyadic(1, -14),),
+        "[-h,0],[0,h]",
+        "curvature-weighted width priority dyadic bisection",
+        "0x1p-80", "0x1p-40", max_depth, 32,
+        OFFICIAL_PRECISION, AUDIT_PRECISION, (), False,
+    )
+
+
 def _advance_state_to_leaf_budget(state, evaluator, plan, leaf_budget: int):
     from green_bridge_v400_certificate import advance_monotone_anytime_state
 
+    history = [state]
     while len(state.leaves) < leaf_budget:
         try:
             state = advance_monotone_anytime_state(state, evaluator, plan)
@@ -773,7 +853,124 @@ def _advance_state_to_leaf_budget(state, evaluator, plan, leaf_budget: int):
             raise RuntimeError(
                 f"CALIBRATION_OFFICIAL_PARTITION_TERMINATED:{state.resource_reason}"
             )
-    return state
+        history.append(state)
+    return state, tuple(history)
+
+
+def run_continuation_worker(
+    manifest_path: Path, expected_manifest_hash: str, library: Path,
+    descriptor: Path, blob: Path, numerics_output: Path,
+) -> int:
+    from green_bridge_v400_certificate import (
+        audit_monotone_anytime_checkpoint_history,
+        initialize_monotone_anytime_state,
+    )
+    from green_bridge_v400_compiled_mpfr import (
+        CompiledMPFRBackend, CompiledSyntheticNativeJointWitnessEvaluator,
+    )
+
+    manifest, manifest_hash = load_manifest(manifest_path)
+    if manifest_hash != expected_manifest_hash:
+        raise RuntimeError("BUDGET_CONTINUATION_MANIFEST_HASH_MISMATCH")
+    _verify_frozen_resources(manifest)
+    verify_current_machine_concurrency_manifest(
+        manifest["machine_concurrency_manifest"]
+    )
+    if manifest["api_preflight"]["execution_ready"] is not True:
+        raise RuntimeError("BUDGET_CONTINUATION_API_NOT_READY")
+    job = manifest["continuation_job"]
+    if numerics_output.resolve() != Path(
+            manifest["output_root"], job["numerics_relative_path"]).resolve():
+        raise RuntimeError("BUDGET_CONTINUATION_OUTPUT_PATH_MISMATCH")
+    native = manifest["native_artifacts"]
+    if tuple(path.resolve() for path in (library, descriptor, blob)) != tuple(
+            Path(native[name]).resolve() for name in (
+                "library_path", "descriptor_path", "blob_path")):
+        raise RuntimeError("BUDGET_CONTINUATION_NATIVE_PATH_MISMATCH")
+    attempt = Path(manifest["output_root"], job["attempt_relative_path"])
+    ledger = attempt / "admission_ledger.jsonl"
+    if ledger.exists() or numerics_output.exists():
+        raise RuntimeError("BUDGET_CONTINUATION_OUTPUT_ALREADY_EXISTS")
+    plan = _continuation_plan(manifest["adaptive_semantics"]["max_depth"])
+    authorization = {
+        "schema_version": "green-v400-native-synthetic-authorization-v1",
+        "execution_scope": "outcome_blind_synthetic_only",
+        "certificate_row_hash": ROW_HASH,
+        "synthetic_artifact_semantic_hash": manifest_hash,
+        "contains_scientific_outcome": False,
+        "scientific_threshold_applied": False,
+    }
+    backend = CompiledMPFRBackend(library)
+    envelope = backend.open_native_plan_envelope(
+        descriptor, blob, descriptor_sha256=DESCRIPTOR_SHA,
+        program_execution_sha256=PROGRAM_SHA, dispatch_sha256=DISPATCH_SHA,
+        blob_sha256=BLOB_SHA, fusion_sha256=FUSION_SHA,
+        blob_nbytes=BLOB_NBYTES, fusion_weight_count=768,
+    )
+    contexts = {}
+    try:
+        contexts = {
+            precision: backend.open_native_precision_context(envelope, precision)
+            for precision in (OFFICIAL_PRECISION, AUDIT_PRECISION)
+        }
+        native_evaluator = CompiledSyntheticNativeJointWitnessEvaluator(
+            backend, contexts, certificate_row_hash=ROW_HASH,
+            expected_kernel_tags=tuple(EXPECTED_KERNEL_TAGS),
+            synthetic_authorization=authorization,
+        )
+        evaluator = _DurableChargedSyntheticEvaluator(native_evaluator, ledger)
+        initial = initialize_monotone_anytime_state(
+            evaluator, RADIUS, OFFICIAL_PRECISION, plan,
+            resource_lock_semantic_hash=manifest_hash,
+        )
+        final, history = _advance_state_to_leaf_budget(
+            initial, evaluator, plan, 32,
+        )
+        if len(final.leaves) != 32 or evaluator.charged_by_precision[512] != 0:
+            raise RuntimeError("BUDGET_CONTINUATION_DID_NOT_REACH_L32")
+        audit = audit_monotone_anytime_checkpoint_history(
+            history, evaluator, plan,
+        )
+        expected = {384: 65, 512: 65}
+        if evaluator.charged_by_precision != expected:
+            raise RuntimeError("BUDGET_CONTINUATION_ACCOUNTING_MISMATCH")
+    finally:
+        for context in contexts.values():
+            context.close()
+        envelope.close()
+    snapshots = []
+    for leaf_count in CANDIDATE_FINAL_LEAF_BUDGETS:
+        index = leaf_count - 2
+        state = history[index]
+        checkpoint = audit["checkpoint_reports"][index]
+        if len(state.leaves) != leaf_count:
+            raise RuntimeError("BUDGET_CONTINUATION_CHECKPOINT_INDEX_INVALID")
+        snapshots.append(_numerics_radius_summary(state, checkpoint) | {
+            "parent_state_semantic_hash": state.parent_state_semantic_hash,
+        })
+    payload = {
+        "schema_version": "green-v400-budget-continuation-to-l32-v1",
+        "execution_scope": "outcome_blind_synthetic_only",
+        "contains_scientific_outcome": False,
+        "scientific_threshold_applied": False,
+        "selector_may_read_this_artifact": False,
+        "manifest_semantic_hash": manifest_hash,
+        "certificate_plan_semantic_hash": sha256_canonical(plan),
+        "radius": [RADIUS.numerator, RADIUS.denominator],
+        "same_priority_path": True,
+        "complete_384_then_complete_512_history": True,
+        "audit_recurrence_uses_official_intervals": False,
+        "checkpoint_snapshots": snapshots,
+        "charged_pass_counts": {"384": 65, "512": 65, "total": 130},
+        "all_nesting_checks_passed": True,
+    }
+    payload["report_semantic_hash"] = sha256_canonical(payload)
+    _canonical_write_new(numerics_output, payload)
+    print(canonical_json({
+        "status": "PASS_ACTUAL_SHAPE_CONTINUATION_TO_L32",
+        "numerics_output": str(numerics_output),
+    }))
+    return 0
 
 
 def run_budget_worker(
@@ -782,7 +979,7 @@ def run_budget_worker(
     resource_output: Path, numerics_output: Path,
 ) -> int:
     from green_bridge_v400_certificate import (
-        audit_monotone_anytime_frozen_partitions,
+        audit_monotone_anytime_checkpoint_histories,
         initialize_monotone_anytime_state,
     )
     from green_bridge_v400_compiled_mpfr import (
@@ -833,6 +1030,7 @@ def run_budget_worker(
         "scientific_threshold_applied": False,
     }
     states = []
+    histories = []
     started = time.monotonic()
     with ProcessTreeResourceRecorder(
         sample_interval_seconds=manifest["execution_policy"][
@@ -865,17 +1063,19 @@ def run_budget_worker(
                     evaluator, radius.as_fraction(), OFFICIAL_PRECISION, plan,
                     resource_lock_semantic_hash=manifest_hash,
                 )
-                states.append(_advance_state_to_leaf_budget(
+                state, history = _advance_state_to_leaf_budget(
                     state, evaluator, plan, leaf_budget,
-                ))
+                )
+                states.append(state)
+                histories.append(history)
             if evaluator.charged_by_precision[512] != 0:
                 raise RuntimeError("CALIBRATION_512_LAUNCHED_BEFORE_ALL_384_COMPLETE")
             achieved = [len(state.leaves) for state in states]
             expected_counts = exact_no_cache_counts(achieved)
             if evaluator.charged_by_precision[384] != expected_counts["384"]:
                 raise RuntimeError("CALIBRATION_OFFICIAL_ACCOUNTING_MISMATCH")
-            audit = audit_monotone_anytime_frozen_partitions(
-                states, evaluator, plan,
+            audit = audit_monotone_anytime_checkpoint_histories(
+                histories, evaluator, plan,
             )
             if (evaluator.charged_by_precision != {
                     384: expected_counts["384"], 512: expected_counts["512"]}
@@ -888,16 +1088,6 @@ def run_budget_worker(
     elapsed = time.monotonic() - started
     record = resources.record
     counts = exact_no_cache_counts([len(state.leaves) for state in states])
-    resource_report = {
-        "budget": leaf_budget,
-        "charged_pass_counts": counts,
-        "fault_reason": None,
-        "timing_seconds": elapsed,
-        "rss_bytes": int(record.peak_sampled_tree_rss_kib) * 1024,
-        "machine_manifest_hash": manifest["machine_concurrency_manifest"][
-            "machine_manifest_semantic_hash"
-        ],
-    }
     radius_summaries = [
         _numerics_radius_summary(state, report)
         for state, report in zip(states, audit["radius_reports"])
@@ -926,15 +1116,22 @@ def run_budget_worker(
         "charged_pass_counts": counts,
         "exact_cache_hits": audit["accounting"]["exact_cache_hits"],
         "all_nesting_checks_passed": True,
+        "worker_internal_resource_observation": {
+            "timing_seconds": elapsed,
+            "peak_sampled_tree_rss_bytes": (
+                int(record.peak_sampled_tree_rss_kib) * 1024
+            ),
+            "is_full_fresh_process_measurement": False,
+            "selector_may_read": False,
+        },
     }
     numerics_payload["report_semantic_hash"] = sha256_canonical(numerics_payload)
     _canonical_write_new(numerics_output, numerics_payload)
-    _canonical_write_new(resource_output, resource_report)
     print(canonical_json({
         "status": "PASS_ACTUAL_SHAPE_BUDGET_CALIBRATION_WORKER",
         "budget": leaf_budget,
         "charged_pass_counts": counts,
-        "resource_output": str(resource_output),
+        "selector_resource_output_pending_external_supervisor": str(resource_output),
         "numerics_output": str(numerics_output),
     }))
     return 0
@@ -987,50 +1184,138 @@ def _admission_counts(ledger_path: Path) -> dict:
     for expected_ordinal, line in enumerate(
             ledger_path.read_text(encoding="utf-8").splitlines()):
         row = json.loads(line)
-        if (row.get("schema_version")
+        if (not isinstance(row, dict) or set(row) != {
+                "schema_version", "ordinal", "precision_bits", "lower", "upper",
+                "contains_scientific_outcome", "scientific_threshold_applied",
+                }
+                or row.get("schema_version")
                 != "green-v400-budget-calibration-admission-v1"
                 or row.get("ordinal") != expected_ordinal
                 or row.get("precision_bits") not in counts
                 or row.get("contains_scientific_outcome") is not False
-                or row.get("scientific_threshold_applied") is not False):
+                or row.get("scientific_threshold_applied") is not False
+                or not all(isinstance(value, list) and len(value) == 2
+                           and all(type(item) is int for item in value)
+                           and value[1] > 0
+                           for value in (row.get("lower"), row.get("upper")))
+                or Fraction(*row["lower"]) > Fraction(*row["upper"])):
             raise RuntimeError("BUDGET_CALIBRATION_ADMISSION_LEDGER_INVALID")
         counts[row["precision_bits"]] += 1
+        if row["precision_bits"] == 384 and counts[512] != 0:
+            raise RuntimeError("BUDGET_CALIBRATION_LEDGER_PHASE_ORDER_INVALID")
     return counts
 
 
-def _materialize_failed_resource_record(manifest: dict, job: dict) -> dict:
+def _materialize_terminal_resource_record(
+    manifest: dict, manifest_hash: str, job: dict,
+) -> dict:
     output_root = Path(manifest["output_root"])
     attempt = output_root / job["attempt_relative_path"]
     wrapper_path = attempt / "shared_host_resource_report.json"
     if not wrapper_path.is_file():
         raise RuntimeError("BUDGET_CALIBRATION_WRAPPER_REPORT_MISSING")
     wrapper = json.loads(wrapper_path.read_text(encoding="utf-8"))
+    wrapper_hash = wrapper.get("report_semantic_hash")
+    wrapper_unhashed = wrapper | {}
+    wrapper_unhashed.pop("report_semantic_hash", None)
+    if (not _is_sha256(wrapper_hash)
+            or wrapper_hash != sha256_canonical(wrapper_unhashed)):
+        raise RuntimeError("BUDGET_CALIBRATION_WRAPPER_REPORT_HASH_INVALID")
     status = wrapper["status"]
     allowed = {
         "WALL_DEADLINE_REACHED", "OBSERVED_TREE_MEMORY_REACHED",
         "WORKER_FAILED", "SUPERVISOR_INFRASTRUCTURE_FAILED",
         "SUPERVISOR_CLEANUP_FAILED",
     }
-    if status not in allowed:
+    if status not in allowed | {"COMPLETED"}:
         raise RuntimeError(f"BUDGET_CALIBRATION_UNEXPECTED_WRAPPER_STATUS:{status}")
     charged = _admission_counts(attempt / "admission_ledger.jsonl")
+    numerics_hash = None
+    if status == "COMPLETED":
+        numerics_path = output_root / job[
+            "selector_inaccessible_numerics_relative_path"
+        ]
+        if (wrapper["observations"]["exit_code"] != 0
+                or not numerics_path.is_file()):
+            raise RuntimeError("BUDGET_CALIBRATION_COMPLETED_ARTIFACTS_MISSING")
+        numerics = json.loads(numerics_path.read_text(encoding="utf-8"))
+        numerics_hash = numerics.get("report_semantic_hash")
+        numerics_unhashed = numerics | {}
+        numerics_unhashed.pop("report_semantic_hash", None)
+        if (not _is_sha256(numerics_hash)
+                or numerics_hash != sha256_canonical(numerics_unhashed)
+                or numerics.get("manifest_semantic_hash") != manifest_hash
+                or numerics.get("budget") != job["leaf_budget"]
+                or numerics.get("charged_pass_counts") != {
+                    "384": charged[384], "512": charged[512],
+                    "total": charged[384] + charged[512],
+                }
+                or numerics.get("all_nesting_checks_passed") is not True):
+            raise RuntimeError("BUDGET_CALIBRATION_NUMERICS_ARTIFACT_INVALID")
     record = {
         "budget": job["leaf_budget"],
+        "job_ordinal": job["ordinal"],
+        "manifest_semantic_hash": manifest_hash,
         "charged_pass_counts": {
             "384": charged[384], "512": charged[512],
             "total": charged[384] + charged[512],
         },
-        "fault_reason": status,
+        "fault_reason": None if status == "COMPLETED" else status,
         "timing_seconds": wrapper["observations"]["elapsed_seconds"],
-        "rss_bytes": wrapper["observations"]["peak_tree_rss_bytes"],
+        "rss_bytes": wrapper["observations"][
+            "peak_sampled_rss_plus_swap_bytes"
+        ],
         "machine_manifest_hash": manifest["machine_concurrency_manifest"][
             "machine_manifest_semantic_hash"
         ],
+        "wrapper_report_semantic_hash": wrapper_hash,
+        "numerics_report_semantic_hash": numerics_hash,
     }
+    record["record_semantic_hash"] = sha256_canonical(record)
     path = output_root / job["selector_safe_resource_relative_path"]
-    if not path.exists():
+    if path.exists():
+        if json.loads(path.read_text(encoding="utf-8")) != record:
+            raise RuntimeError("BUDGET_CALIBRATION_RESOURCE_RECORD_CHANGED")
+    else:
         _canonical_write_new(path, record)
     return record
+
+
+def _raise_on_nonresource_fault(record: dict) -> None:
+    if record["fault_reason"] not in {
+            None, "WALL_DEADLINE_REACHED", "OBSERVED_TREE_MEMORY_REACHED"}:
+        raise RuntimeError(
+            "BUDGET_CALIBRATION_NONRESOURCE_FAILURE_FAIL_CLOSED:"
+            + record["fault_reason"]
+        )
+
+
+def _verify_continuation_terminal(manifest: dict, manifest_hash: str) -> None:
+    root = Path(manifest["output_root"])
+    job = manifest["continuation_job"]
+    attempt = root / job["attempt_relative_path"]
+    wrapper_path = attempt / "shared_host_resource_report.json"
+    numerics_path = root / job["numerics_relative_path"]
+    if not wrapper_path.is_file() or not numerics_path.is_file():
+        raise RuntimeError("BUDGET_CONTINUATION_TERMINAL_ARTIFACT_MISSING")
+    wrapper = json.loads(wrapper_path.read_text(encoding="utf-8"))
+    wrapper_hash = wrapper.get("report_semantic_hash")
+    wrapper_unhashed = wrapper | {}
+    wrapper_unhashed.pop("report_semantic_hash", None)
+    numerics = json.loads(numerics_path.read_text(encoding="utf-8"))
+    numerics_hash = numerics.get("report_semantic_hash")
+    numerics_unhashed = numerics | {}
+    numerics_unhashed.pop("report_semantic_hash", None)
+    if (wrapper.get("status") != "COMPLETED"
+            or wrapper["observations"]["exit_code"] != 0
+            or wrapper_hash != sha256_canonical(wrapper_unhashed)
+            or numerics_hash != sha256_canonical(numerics_unhashed)
+            or numerics.get("manifest_semantic_hash") != manifest_hash
+            or numerics.get("same_priority_path") is not True
+            or numerics.get("complete_384_then_complete_512_history") is not True
+            or numerics.get("audit_recurrence_uses_official_intervals") is not False
+            or numerics.get("all_nesting_checks_passed") is not True):
+        raise RuntimeError("BUDGET_CONTINUATION_TERMINAL_ARTIFACT_INVALID")
 
 
 def execute_frozen_manifest(manifest_path: Path) -> Path:
@@ -1041,18 +1326,33 @@ def execute_frozen_manifest(manifest_path: Path) -> Path:
     )
     if manifest["api_preflight"]["execution_ready"] is not True:
         return write_blocker_report(manifest_path)
+    continuation_attempt = Path(
+        manifest["output_root"],
+        manifest["continuation_job"]["attempt_relative_path"],
+    )
+    if not continuation_attempt.exists():
+        completed = subprocess.run(
+            continuation_worker_command(manifest, semantic_hash),
+            cwd=ROOT, env=os.environ | {
+                "CUDA_VISIBLE_DEVICES": "", "NVIDIA_VISIBLE_DEVICES": "none",
+            }, check=False,
+        )
+        if completed.returncode != 0:
+            raise RuntimeError("BUDGET_CONTINUATION_WORKER_FAILED")
+    _verify_continuation_terminal(manifest, semantic_hash)
     records = []
     for job in manifest["jobs"]:
         output_root = Path(manifest["output_root"])
         resource_path = output_root / job[
             "selector_safe_resource_relative_path"
         ]
-        if resource_path.is_file():
-            records.append(json.loads(resource_path.read_text(encoding="utf-8")))
-            continue
         attempt = output_root / job["attempt_relative_path"]
-        if attempt.exists():
-            records.append(_materialize_failed_resource_record(manifest, job))
+        if attempt.exists() or resource_path.exists():
+            record = _materialize_terminal_resource_record(
+                manifest, semantic_hash, job,
+            )
+            _raise_on_nonresource_fault(record)
+            records.append(record)
             continue
         completed = subprocess.run(
             budget_worker_command(manifest, semantic_hash, job),
@@ -1060,17 +1360,11 @@ def execute_frozen_manifest(manifest_path: Path) -> Path:
                 "CUDA_VISIBLE_DEVICES": "", "NVIDIA_VISIBLE_DEVICES": "none",
             }, check=False,
         )
-        if completed.returncode == 0 and resource_path.is_file():
-            records.append(json.loads(resource_path.read_text(encoding="utf-8")))
-        else:
-            failed = _materialize_failed_resource_record(manifest, job)
-            records.append(failed)
-            if failed["fault_reason"] not in {
-                    "WALL_DEADLINE_REACHED", "OBSERVED_TREE_MEMORY_REACHED"}:
-                raise RuntimeError(
-                    "BUDGET_CALIBRATION_NONRESOURCE_FAILURE_FAIL_CLOSED:"
-                    + failed["fault_reason"]
-                )
+        record = _materialize_terminal_resource_record(
+            manifest, semantic_hash, job,
+        )
+        _raise_on_nonresource_fault(record)
+        records.append(record)
     selected = select_largest_resource_safe_budget(manifest, records)
     payload = {
         "schema_version": "green-v400-budget-calibration-selection-candidate-v1",
@@ -1197,6 +1491,23 @@ def _driver_main(arguments: list[str]) -> int:
 
 
 def main() -> int:
+    if "--continuation-worker" in sys.argv[1:]:
+        parser = argparse.ArgumentParser()
+        parser.add_argument("--continuation-worker", action="store_true")
+        parser.add_argument("--manifest", required=True)
+        parser.add_argument("--manifest-sha256", required=True)
+        parser.add_argument("--library", required=True)
+        parser.add_argument("--descriptor", required=True)
+        parser.add_argument("--blob", required=True)
+        parser.add_argument("--continuation-numerics-output", required=True)
+        args = parser.parse_args()
+        return run_continuation_worker(
+            Path(args.manifest).resolve(strict=True), args.manifest_sha256,
+            Path(args.library).resolve(strict=True),
+            Path(args.descriptor).resolve(strict=True),
+            Path(args.blob).resolve(strict=True),
+            Path(args.continuation_numerics_output).resolve(),
+        )
     if "--budget-worker" in sys.argv[1:]:
         parser = argparse.ArgumentParser()
         parser.add_argument("--budget-worker", action="store_true")

@@ -613,7 +613,8 @@ def _cell_priority(certificate: CellCertificate, h: Fraction) -> gmpy2.mpq:
     weight = _weight(certificate.cell, h)
     return (
         gmpy2.mpq(weight.numerator, weight.denominator)
-        * gmpy2.mpq(certificate.second.width())
+        * (gmpy2.mpq(certificate.second.upper)
+           - gmpy2.mpq(certificate.second.lower))
     )
 
 
@@ -1225,7 +1226,7 @@ def _validate_anytime_frozen_partition_audit_inputs(
         raise RuntimeError("ANYTIME_AUDIT_EVALUATOR_IDENTITY_MISMATCH")
 
 
-def audit_monotone_anytime_frozen_partition(
+def _legacy_final_partition_intersection_audit(
     state: MonotoneAnytimeCertificateState, evaluator, plan: CertificatePlan,
 ) -> dict:
     """Replay one frozen official partition at audit precision.
@@ -1460,7 +1461,7 @@ def audit_monotone_anytime_frozen_partition(
     return payload | {"report_semantic_hash": sha256_canonical(payload)}
 
 
-def audit_monotone_anytime_frozen_partitions(
+def _legacy_final_partitions_intersection_audit(
     states: Iterable[MonotoneAnytimeCertificateState], evaluator,
     plan: CertificatePlan,
 ) -> dict:
@@ -1474,7 +1475,7 @@ def audit_monotone_anytime_frozen_partitions(
     for state in states:
         _validate_anytime_frozen_partition_audit_inputs(state, evaluator, plan)
     radius_reports = tuple(
-        audit_monotone_anytime_frozen_partition(state, evaluator, plan)
+        _legacy_final_partition_intersection_audit(state, evaluator, plan)
         for state in states
     )
     official_intersection = None
@@ -1512,6 +1513,420 @@ def audit_monotone_anytime_frozen_partitions(
         "contains_scientific_outcome": False,
         "scientific_threshold_applied": False,
         "phase_major_all_official_before_audit": True,
+        "radius_reports": list(radius_reports),
+        "cross_radius_prefix_intersections": prefix_rows,
+        "accounting": accounting,
+    }
+    return payload | {"report_semantic_hash": sha256_canonical(payload)}
+
+
+def _validated_anytime_checkpoint_history(
+    history: Iterable[MonotoneAnytimeCertificateState], evaluator,
+    plan: CertificatePlan,
+) -> tuple[MonotoneAnytimeCertificateState, ...]:
+    history = tuple(history)
+    if not history:
+        raise ValueError("anytime audit checkpoint history is empty")
+    for index, state in enumerate(history):
+        _validate_anytime_frozen_partition_audit_inputs(state, evaluator, plan)
+        if state.checkpoint_index != index:
+            raise RuntimeError("ANYTIME_AUDIT_CHECKPOINT_INDEX_INVALID")
+        if index == 0:
+            if state.parent_state_semantic_hash != "0" * 64 or len(state.leaves) != 2:
+                raise RuntimeError("ANYTIME_AUDIT_INITIAL_CHECKPOINT_INVALID")
+            continue
+        previous = history[index - 1]
+        if (state.parent_state_semantic_hash != previous.semantic_hash()
+                or len(state.leaves) != len(previous.leaves) + 1
+                or state.resource_lock_semantic_hash
+                != previous.resource_lock_semantic_hash):
+            raise RuntimeError("ANYTIME_AUDIT_CHECKPOINT_CHAIN_INVALID")
+        previous_cells = {
+            (Fraction(*leaf.lower), Fraction(*leaf.upper), leaf.depth)
+            for leaf in previous.leaves
+        }
+        current_cells = {
+            (Fraction(*leaf.lower), Fraction(*leaf.upper), leaf.depth)
+            for leaf in state.leaves
+        }
+        removed = previous_cells - current_cells
+        added = current_cells - previous_cells
+        if len(removed) != 1 or len(added) != 2:
+            raise RuntimeError("ANYTIME_AUDIT_SPLIT_HISTORY_INVALID")
+        lower, upper, depth = next(iter(removed))
+        expected = {
+            (child.lower, child.upper, child.depth)
+            for child in DyadicCell(lower, upper, depth).bisect()
+        }
+        if added != expected:
+            raise RuntimeError("ANYTIME_AUDIT_NON_DYADIC_HISTORY_INVALID")
+    return history
+
+
+def _require_audit_nested(high: Interval, low: Interval, quantity: str) -> None:
+    if not _interval_nested(high, low):
+        raise RuntimeError(f"ANYTIME_AUDIT_{quantity}_NESTING_INVALID")
+
+
+def audit_monotone_anytime_checkpoint_history(
+    history: Iterable[MonotoneAnytimeCertificateState], evaluator,
+    plan: CertificatePlan,
+) -> dict:
+    """Independently replay one complete official split history at 512 bits.
+
+    Every unique cell admitted by the 384-bit history is evaluated exactly once
+    at audit precision.  The audit monotone recurrence uses only audit-precision
+    raw quantities; official intervals are read solely by the subsequent
+    fail-closed containment checks.
+    """
+    history = _validated_anytime_checkpoint_history(history, evaluator, plan)
+    final_state = history[-1]
+    h = Fraction(*final_state.radius)
+    audit_precision = plan.audit_precision_bits
+    endpoint_domains = tuple(
+        _point_interval(value, audit_precision)
+        for value in (-h, Fraction(0), h)
+    )
+    endpoint_jets, _, endpoint_accounting = _evaluate_anytime_domains(
+        evaluator, endpoint_domains,
+    )
+    audit_endpoint = EndpointCertificate(
+        h, endpoint_jets[0].value, endpoint_jets[1].value,
+        endpoint_jets[2].value, endpoint_jets[1].first,
+    )
+    official_endpoint = _endpoint_from_anytime_payload(
+        history[0].endpoint_payload
+    )
+    endpoint_rows = {}
+    for name in ("negative", "center", "positive", "slope"):
+        low = getattr(official_endpoint, name)
+        high = getattr(audit_endpoint, name)
+        _require_audit_nested(high, low, f"ENDPOINT_{name.upper()}")
+        endpoint_rows[name] = {
+            "official": _interval_payload(low),
+            "audit": _interval_payload(high),
+            "audit_inside_official": True,
+        }
+
+    audit_cells_by_key: dict[tuple[Fraction, Fraction, int], CellCertificate] = {}
+    cell_sources: dict[tuple[Fraction, Fraction, int], str] = {}
+    cell_accounting_rows = []
+    prior_keys: set[tuple[Fraction, Fraction, int]] = set()
+    audit_monotone_curvature = None
+    audit_monotone_residuals = None
+    audit_monotone_witness = None
+    checkpoint_reports = []
+    for checkpoint, state in enumerate(history):
+        official_cells = tuple(_cell_from_anytime_state(leaf) for leaf in state.leaves)
+        current_keys = {
+            (cell.cell.lower, cell.cell.upper, cell.cell.depth)
+            for cell in official_cells
+        }
+        added_keys = current_keys - prior_keys
+        if checkpoint == 0:
+            expected_new = 2
+        else:
+            expected_new = 2
+        if len(added_keys) != expected_new:
+            raise RuntimeError("ANYTIME_AUDIT_UNIQUE_CELL_REPLAY_INVALID")
+        added_cells = tuple(
+            cell for cell in official_cells
+            if (cell.cell.lower, cell.cell.upper, cell.cell.depth) in added_keys
+        )
+        jets, sources, accounting = _evaluate_anytime_domains(
+            evaluator,
+            tuple(cell.cell.interval(audit_precision) for cell in added_cells),
+        )
+        cell_accounting_rows.append(accounting)
+        for official, jet, source in zip(added_cells, jets, sources):
+            key = (official.cell.lower, official.cell.upper, official.cell.depth)
+            audit_cells_by_key[key] = CellCertificate(
+                official.cell, jet.value, jet.first, jet.second,
+            )
+            cell_sources[key] = source
+        audit_cells = tuple(audit_cells_by_key[
+            (official.cell.lower, official.cell.upper, official.cell.depth)
+        ] for official in official_cells)
+        cell_rows = []
+        for official, audit in zip(official_cells, audit_cells):
+            components = {}
+            for name in ("value", "first", "second"):
+                low, high = getattr(official, name), getattr(audit, name)
+                _require_audit_nested(
+                    high, low, f"CHECKPOINT_{checkpoint}_CELL_{name.upper()}",
+                )
+                components[name] = {
+                    "official": _interval_payload(low),
+                    "audit": _interval_payload(high),
+                    "audit_inside_official": True,
+                }
+            key = (official.cell.lower, official.cell.upper, official.cell.depth)
+            cell_rows.append({
+                "lower": _rational_payload(official.cell.lower),
+                "upper": _rational_payload(official.cell.upper),
+                "depth": official.cell.depth,
+                "result_source": cell_sources[key],
+                "components": components,
+            })
+
+        audit_raw_certificate = integrate_signed_curvature(list(audit_cells), h)
+        audit_raw_curvature = (
+            audit_raw_certificate.positive, audit_raw_certificate.negative,
+        )
+        audit_direct = _direct_endpoint_residuals(audit_endpoint)
+        audit_raw_residuals = tuple(
+            _checked_anytime_intersection(
+                direct, curvature, f"AUDIT_CHECKPOINT_{checkpoint}_RAW_{name}"
+            )
+            for direct, curvature, name in zip(
+                audit_direct, audit_raw_curvature, ("POSITIVE", "NEGATIVE"),
+            )
+        )
+        audit_raw_witness = _witness_from_residuals(
+            audit_endpoint, audit_raw_certificate, *audit_raw_residuals,
+        )
+        if checkpoint == 0:
+            audit_monotone_curvature = audit_raw_curvature
+            audit_monotone_residuals = audit_raw_residuals
+            audit_monotone_witness = audit_raw_witness
+        else:
+            assert audit_monotone_curvature is not None
+            assert audit_monotone_residuals is not None
+            assert audit_monotone_witness is not None
+            audit_monotone_curvature = tuple(
+                _checked_anytime_intersection(
+                    previous, raw,
+                    f"AUDIT_CHECKPOINT_{checkpoint}_MONOTONE_{name}_CURVATURE",
+                )
+                for previous, raw, name in zip(
+                    audit_monotone_curvature, audit_raw_curvature,
+                    ("POSITIVE", "NEGATIVE"),
+                )
+            )
+            audit_monotone_residuals = tuple(
+                _checked_anytime_intersection(
+                    previous,
+                    _checked_anytime_intersection(
+                        direct, curvature,
+                        f"AUDIT_CHECKPOINT_{checkpoint}_TIGHT_{name}_RESIDUAL",
+                    ),
+                    f"AUDIT_CHECKPOINT_{checkpoint}_MONOTONE_{name}_RESIDUAL",
+                )
+                for previous, direct, curvature, name in zip(
+                    audit_monotone_residuals, audit_direct,
+                    audit_monotone_curvature, ("POSITIVE", "NEGATIVE"),
+                )
+            )
+            candidate_witness = _witness_from_residuals(
+                audit_endpoint, audit_raw_certificate,
+                *audit_monotone_residuals,
+            )
+            audit_monotone_witness = _checked_anytime_intersection(
+                audit_monotone_witness, candidate_witness,
+                f"AUDIT_CHECKPOINT_{checkpoint}_MONOTONE_WITNESS",
+            )
+
+        official_raw_curvature = (
+            _interval_from_payload(state.raw_curvature_positive),
+            _interval_from_payload(state.raw_curvature_negative),
+        )
+        official_monotone_curvature = (
+            _interval_from_payload(state.monotone_curvature_positive),
+            _interval_from_payload(state.monotone_curvature_negative),
+        )
+        official_direct = _direct_endpoint_residuals(
+            _endpoint_from_anytime_payload(state.endpoint_payload)
+        )
+        official_raw_residuals = tuple(
+            _checked_anytime_intersection(
+                direct, curvature, f"OFFICIAL_CHECKPOINT_{checkpoint}_RAW_{name}"
+            )
+            for direct, curvature, name in zip(
+                official_direct, official_raw_curvature,
+                ("POSITIVE", "NEGATIVE"),
+            )
+        )
+        official_monotone_residuals = (
+            _interval_from_payload(state.monotone_residual_positive),
+            _interval_from_payload(state.monotone_residual_negative),
+        )
+        official_raw_witness = _interval_from_payload(state.raw_witness)
+        official_monotone_witness = _interval_from_payload(state.monotone_witness)
+        for name, high, low in zip(
+            ("POSITIVE", "NEGATIVE"), audit_raw_curvature,
+            official_raw_curvature,
+        ):
+            _require_audit_nested(
+                high, low, f"CHECKPOINT_{checkpoint}_RAW_{name}_CURVATURE",
+            )
+        for name, high, low in zip(
+            ("POSITIVE", "NEGATIVE"), audit_monotone_curvature,
+            official_monotone_curvature,
+        ):
+            _require_audit_nested(
+                high, low, f"CHECKPOINT_{checkpoint}_MONOTONE_{name}_CURVATURE",
+            )
+        for name, high, low in zip(
+            ("POSITIVE", "NEGATIVE"), audit_raw_residuals,
+            official_raw_residuals,
+        ):
+            _require_audit_nested(
+                high, low, f"CHECKPOINT_{checkpoint}_RAW_{name}_RESIDUAL",
+            )
+        for name, high, low in zip(
+            ("POSITIVE", "NEGATIVE"), audit_monotone_residuals,
+            official_monotone_residuals,
+        ):
+            _require_audit_nested(
+                high, low, f"CHECKPOINT_{checkpoint}_MONOTONE_{name}_RESIDUAL",
+            )
+        _require_audit_nested(
+            audit_raw_witness, official_raw_witness,
+            f"CHECKPOINT_{checkpoint}_RAW_WITNESS",
+        )
+        _require_audit_nested(
+            audit_monotone_witness, official_monotone_witness,
+            f"CHECKPOINT_{checkpoint}_MONOTONE_WITNESS",
+        )
+
+        def paired_rows(names, official_values, audit_values):
+            return {
+                name: {
+                    "official": _interval_payload(low),
+                    "audit": _interval_payload(high),
+                    "audit_inside_official": True,
+                }
+                for name, low, high in zip(names, official_values, audit_values)
+            }
+
+        checkpoint_reports.append({
+            "checkpoint_index": checkpoint,
+            "official_state_semantic_hash": state.semantic_hash(),
+            "partition_semantic_hash": sha256_canonical([
+                {"lower": list(leaf.lower), "upper": list(leaf.upper),
+                 "depth": leaf.depth} for leaf in state.leaves
+            ]),
+            "cells": cell_rows,
+            "raw_curvature": paired_rows(
+                ("positive", "negative"), official_raw_curvature,
+                audit_raw_curvature,
+            ),
+            "monotone_curvature": paired_rows(
+                ("positive", "negative"), official_monotone_curvature,
+                audit_monotone_curvature,
+            ),
+            "raw_residual": paired_rows(
+                ("positive", "negative"), official_raw_residuals,
+                audit_raw_residuals,
+            ),
+            "monotone_residual": paired_rows(
+                ("positive", "negative"), official_monotone_residuals,
+                audit_monotone_residuals,
+            ),
+            "raw_witness": {
+                "official": _interval_payload(official_raw_witness),
+                "audit": _interval_payload(audit_raw_witness),
+                "audit_inside_official": True,
+            },
+            "monotone_witness": {
+                "official": _interval_payload(official_monotone_witness),
+                "audit": _interval_payload(audit_monotone_witness),
+                "audit_inside_official": True,
+            },
+        })
+        prior_keys = current_keys
+
+    accounting = _add_anytime_accounting(
+        *cell_accounting_rows, endpoint_accounting,
+    )
+    expected_cells = 2 * len(final_state.leaves) - 2
+    if (accounting["logical_evaluations"] != expected_cells + 3
+            or accounting["exact_cache_hits"] != 0):
+        raise RuntimeError("ANYTIME_AUDIT_FULL_HISTORY_ACCOUNTING_INVALID")
+    final = checkpoint_reports[-1]
+    payload = {
+        "schema_version": "green-v400-anytime-full-history-audit-v1",
+        "execution_scope": "outcome_blind_synthetic_only",
+        "contains_scientific_outcome": False,
+        "scientific_threshold_applied": False,
+        "certificate_plan_semantic_hash": sha256_canonical(plan),
+        "resource_lock_semantic_hash": final_state.resource_lock_semantic_hash,
+        "evaluator_identity_sha256": final_state.evaluator_identity_sha256,
+        "radius": _rational_payload(h),
+        "official_precision_bits": plan.official_precision_bits,
+        "audit_precision_bits": audit_precision,
+        "complete_split_history_replayed": True,
+        "audit_recurrence_uses_official_intervals": False,
+        "unique_history_cell_count": expected_cells,
+        "checkpoint_reports": checkpoint_reports,
+        "cells": final["cells"],
+        "endpoints": endpoint_rows,
+        "raw_curvature": final["raw_curvature"],
+        "monotone_curvature": final["monotone_curvature"],
+        "raw_residual": final["raw_residual"],
+        "monotone_residual": final["monotone_residual"],
+        "raw_witness": final["raw_witness"],
+        "monotone_witness": final["monotone_witness"],
+        "accounting": accounting,
+    }
+    return payload | {"report_semantic_hash": sha256_canonical(payload)}
+
+
+def audit_monotone_anytime_checkpoint_histories(
+    histories: Iterable[Iterable[MonotoneAnytimeCertificateState]], evaluator,
+    plan: CertificatePlan,
+) -> dict:
+    """Validate all 384 histories, then independently replay every 512 history."""
+    histories = tuple(tuple(history) for history in histories)
+    expected_radii = tuple(radius.as_fraction() for radius in plan.radii)
+    if (len(histories) != len(expected_radii)
+            or tuple(Fraction(*history[-1].radius) for history in histories)
+            != expected_radii):
+        raise RuntimeError("ANYTIME_AUDIT_FROZEN_RADIUS_ORDER_INVALID")
+    for history in histories:
+        _validated_anytime_checkpoint_history(history, evaluator, plan)
+    radius_reports = tuple(
+        audit_monotone_anytime_checkpoint_history(history, evaluator, plan)
+        for history in histories
+    )
+    official_intersection = None
+    audit_intersection = None
+    prefix_rows = []
+    for history, report in zip(histories, radius_reports):
+        official = _interval_from_payload(history[-1].monotone_witness)
+        audit = _interval_from_payload(report["monotone_witness"]["audit"])
+        official_intersection = (
+            official if official_intersection is None else
+            _checked_anytime_intersection(
+                official_intersection, official, "OFFICIAL_CROSS_RADIUS_WITNESS"
+            )
+        )
+        audit_intersection = (
+            audit if audit_intersection is None else
+            _checked_anytime_intersection(
+                audit_intersection, audit, "AUDIT_CROSS_RADIUS_WITNESS"
+            )
+        )
+        _require_audit_nested(
+            audit_intersection, official_intersection, "CROSS_RADIUS_WITNESS",
+        )
+        prefix_rows.append({
+            "radius": list(history[-1].radius),
+            "official_intersection": _interval_payload(official_intersection),
+            "audit_intersection": _interval_payload(audit_intersection),
+            "audit_inside_official": True,
+        })
+    accounting = _add_anytime_accounting(*(
+        report["accounting"] for report in radius_reports
+    ))
+    payload = {
+        "schema_version": "green-v400-anytime-full-histories-audit-v1",
+        "execution_scope": "outcome_blind_synthetic_only",
+        "contains_scientific_outcome": False,
+        "scientific_threshold_applied": False,
+        "phase_major_all_official_before_audit": True,
+        "complete_split_histories_replayed": True,
+        "audit_recurrence_uses_official_intervals": False,
         "radius_reports": list(radius_reports),
         "cross_radius_prefix_intersections": prefix_rows,
         "accounting": accounting,

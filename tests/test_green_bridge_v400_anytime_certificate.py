@@ -13,8 +13,8 @@ sys.path.insert(0, str(ROOT / "src"))
 import green_bridge_v400_certificate as certificate
 from green_bridge_v400_certificate import (
     AnytimeEvaluationFailure, CurvatureCertificate, CurvatureComponentAccounting,
-    audit_monotone_anytime_frozen_partition,
-    audit_monotone_anytime_frozen_partitions,
+    audit_monotone_anytime_checkpoint_history,
+    audit_monotone_anytime_checkpoint_histories,
     advance_monotone_anytime_state, initialize_monotone_anytime_state,
     restore_monotone_anytime_state, serialize_monotone_anytime_state,
     transition_anytime_resource_failure_after_admission,
@@ -106,7 +106,20 @@ def test_real_interval_integration_initializes_and_refines_synthetic_state():
     assert refined.scientific_threshold_applied is False
 
 
-def test_public_audit_replays_exact_frozen_partition_without_adaptive_queue():
+def test_priority_uses_exact_stored_endpoint_difference_not_rounded_subtraction():
+    second = Interval.from_bounds("0.1", "0.2", P)
+    broad = Interval.from_bounds(-1, 1, P)
+    cell = certificate.CellCertificate(
+        certificate.DyadicCell(Fraction(0), Fraction(1)), broad, broad, second,
+    )
+    priority = certificate._cell_priority(cell, Fraction(1))
+    exact_width = certificate.gmpy2.mpq(second.upper) - certificate.gmpy2.mpq(
+        second.lower
+    )
+    assert priority == certificate.gmpy2.mpq(1, 2) * exact_width
+
+
+def test_public_audit_replays_complete_history_with_independent_recurrence():
     evaluator = SyntheticEvaluator()
     plan = _plan()
     initial = initialize_monotone_anytime_state(
@@ -114,14 +127,16 @@ def test_public_audit_replays_exact_frozen_partition_without_adaptive_queue():
         resource_lock_semantic_hash=RESOURCE_HASH,
     )
     refined = advance_monotone_anytime_state(initial, evaluator, plan)
-    report = audit_monotone_anytime_frozen_partition(refined, evaluator, plan)
-    assert report["same_frozen_partition"] is True
-    assert report["independent_audit_adaptive_queue"] is False
+    report = audit_monotone_anytime_checkpoint_history(
+        (initial, refined), evaluator, plan,
+    )
+    assert report["complete_split_history_replayed"] is True
+    assert report["audit_recurrence_uses_official_intervals"] is False
     assert len(report["cells"]) == len(refined.leaves) == 3
     assert report["accounting"] == {
-        "logical_evaluations": 6,
-        "admitted_native_dispatches": 6,
-        "completed_native_dispatches": 6,
+        "logical_evaluations": 7,
+        "admitted_native_dispatches": 7,
+        "completed_native_dispatches": 7,
         "exact_cache_hits": 0,
     }
     assert all(
@@ -129,8 +144,8 @@ def test_public_audit_replays_exact_frozen_partition_without_adaptive_queue():
         for row in report["cells"]
         for component in row["components"].values()
     )
-    aggregate = audit_monotone_anytime_frozen_partitions(
-        (refined,), evaluator, plan,
+    aggregate = audit_monotone_anytime_checkpoint_histories(
+        ((initial, refined),), evaluator, plan,
     )
     assert aggregate["phase_major_all_official_before_audit"] is True
     assert aggregate["accounting"] == report["accounting"]
@@ -148,7 +163,7 @@ def test_audit_replay_refuses_unbound_or_identity_mismatched_evaluator():
     )
     evaluator.synthetic_only = False
     with pytest.raises(RuntimeError, match="REAL_EXECUTION_UNAUTHORIZED"):
-        audit_monotone_anytime_frozen_partition(state, evaluator, plan)
+        audit_monotone_anytime_checkpoint_history((state,), evaluator, plan)
 
 
 def test_anytime_state_round_trip_hash_and_strict_tamper_rejection(monkeypatch):
