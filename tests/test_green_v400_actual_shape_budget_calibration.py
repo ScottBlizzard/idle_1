@@ -4,6 +4,7 @@ from copy import deepcopy
 import json
 from pathlib import Path
 import sys
+from types import SimpleNamespace
 
 import pytest
 
@@ -242,3 +243,60 @@ def test_planned_budget_command_is_fresh_supervised_and_has_split_outputs():
     assert "--continuation-worker" in continuation
     assert "--continuation-numerics-output" in continuation
     assert "--allow-descendants" not in continuation
+
+
+def test_continuation_checkpoint_summary_supplies_shared_endpoint_and_hash_fields():
+    interval = {"precision_bits": 384, "lower": [0, 1], "upper": [1, 1]}
+    paired = {
+        "positive": {
+            "official": interval, "audit": interval,
+            "audit_inside_official": True,
+        },
+        "negative": {
+            "official": interval, "audit": interval,
+            "audit_inside_official": True,
+        },
+    }
+    components = {
+        name: {"official": interval, "audit": interval,
+               "audit_inside_official": True}
+        for name in ("value", "first", "second")
+    }
+    checkpoint = {
+        "checkpoint_index": 2,
+        "official_state_semantic_hash": "a" * 64,
+        "partition_semantic_hash": "b" * 64,
+        "cells": [{"components": components}],
+        "raw_curvature": paired,
+        "monotone_curvature": paired,
+        "raw_residual": paired,
+        "monotone_residual": paired,
+        "raw_witness": {
+            "official": interval, "audit": interval,
+            "audit_inside_official": True,
+        },
+        "monotone_witness": {
+            "official": interval, "audit": interval,
+            "audit_inside_official": True,
+        },
+    }
+    endpoints = {
+        name: {"official": interval, "audit": interval,
+               "audit_inside_official": True}
+        for name in ("negative", "center", "positive", "slope")
+    }
+    leaves = tuple(
+        SimpleNamespace(lower=(index, 4), upper=(index + 1, 4), depth=2)
+        for index in range(4)
+    )
+    state = SimpleNamespace(
+        radius=(1, 1), leaves=leaves,
+        parent_state_semantic_hash="c" * 64,
+        semantic_hash=lambda: "a" * 64,
+    )
+    summary = calibration._continuation_snapshot_summary(
+        state, checkpoint, endpoints,
+    )
+    assert summary["achieved_final_leaves"] == 4
+    assert summary["audit_report_semantic_hash"] == sha256_canonical(checkpoint)
+    assert summary["all_endpoint_nesting_checks_passed"] is True

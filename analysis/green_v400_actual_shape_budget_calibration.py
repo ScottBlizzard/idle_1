@@ -777,6 +777,16 @@ def _numerics_radius_summary(state, audit_report: dict) -> dict:
     }
 
 
+def _continuation_snapshot_summary(state, checkpoint: dict, endpoints: dict) -> dict:
+    checkpoint_for_summary = checkpoint | {
+        "endpoints": endpoints,
+        "report_semantic_hash": sha256_canonical(checkpoint),
+    }
+    return _numerics_radius_summary(state, checkpoint_for_summary) | {
+        "parent_state_semantic_hash": state.parent_state_semantic_hash,
+    }
+
+
 class _DurableChargedSyntheticEvaluator:
     """Outcome-blind admission ledger around an already authorized evaluator."""
 
@@ -945,9 +955,9 @@ def run_continuation_worker(
         checkpoint = audit["checkpoint_reports"][index]
         if len(state.leaves) != leaf_count:
             raise RuntimeError("BUDGET_CONTINUATION_CHECKPOINT_INDEX_INVALID")
-        snapshots.append(_numerics_radius_summary(state, checkpoint) | {
-            "parent_state_semantic_hash": state.parent_state_semantic_hash,
-        })
+        snapshots.append(_continuation_snapshot_summary(
+            state, checkpoint, audit["endpoints"],
+        ))
     payload = {
         "schema_version": "green-v400-budget-continuation-to-l32-v1",
         "execution_scope": "outcome_blind_synthetic_only",
