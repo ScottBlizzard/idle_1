@@ -1,0 +1,60 @@
+{
+  "schema_version": "green-v400-baseline-readiness-v1",
+  "protocol_id": "GREEN_V400_SILENT_FAILURE_CHALLENGE_PREPARE_V1",
+  "real_outcomes_authorized": false,
+  "ready_status": "READY",
+  "baselines": {
+    "ordinary_restoration": {
+      "required": true,
+      "status": "READY",
+      "evidence": ["src/exp_p0_within_site_mechanism.py"]
+    },
+    "exact_finite_response": {
+      "required": true,
+      "status": "READY",
+      "evidence": ["src/green_v400_response_baselines.py", "src/green_v400_ioi_response_adapter.py"]
+    },
+    "first_order_attribution": {
+      "required": true,
+      "status": "READY",
+      "evidence": ["src/green_v400_response_baselines.py", "tests/test_green_v400_response_baselines.py"]
+    },
+    "integrated_gradients": {
+      "required": true,
+      "status": "TASK_SERIALIZATION_READY",
+      "evidence": ["src/green_v400_response_baselines.py", "src/green_v400_ioi_response_adapter.py", "src/green_v400_prediction_worker.py", "tests/test_green_v400_prediction_worker.py"],
+      "missing": ["historical-row resource benchmark"]
+    },
+    "hvp_second_order": {
+      "required": true,
+      "status": "TASK_SERIALIZATION_READY",
+      "evidence": ["src/green_v400_response_baselines.py", "src/green_v400_ioi_response_adapter.py", "src/green_v400_prediction_worker.py", "tests/test_green_v400_prediction_worker.py"],
+      "missing": ["historical-row resource benchmark"]
+    },
+    "AtP_star": {
+      "required": true,
+      "status": "MISSING",
+      "evidence": [],
+      "missing": ["faithful implementation pinned to primary source and parity tests"]
+    },
+    "grant_divergence": {
+      "required": true,
+      "status": "MISSING",
+      "evidence": [],
+      "missing": ["faithful diagnostic pinned to the ICLR 2026 Oral implementation"]
+    },
+    "raw_snr_analytic_power": {
+      "required": true,
+      "status": "TASK_SERIALIZATION_READY",
+      "evidence": ["src/green_v400_prediction_worker.py", "tests/test_green_v400_prediction_worker.py"],
+      "missing": ["historical-row resource benchmark"]
+    },
+    "generic_verifier": {
+      "required": true,
+      "status": "MISSING",
+      "evidence": [],
+      "missing": ["supported-graph CROWN/DeepPoly/auto_LiRPA comparison or documented applicability failure"]
+    }
+  },
+  "execution_gate": "every required baseline must have status READY before any untouched prediction or endpoint outcome is evaluated"
+}
