@@ -12,8 +12,11 @@ import gmpy2
 
 from green_bridge_v400_interval import EmptyIntersection, Interval
 from green_bridge_v400_relational_graph import RelationalGraph
-from green_bridge_v400_schemas import CertificatePlan, JointWitnessRowSpec
-from green_bridge_v400_schemas import sha256_canonical
+from green_bridge_v400_schemas import (
+    AnytimeCellState, CertificatePlan, JointWitnessRowSpec,
+    MonotoneAnytimeCertificateState, RESOURCE_REASONS, canonical_json,
+    sha256_canonical,
+)
 
 
 @dataclass(frozen=True)
@@ -148,6 +151,17 @@ class JointWitnessCertificate:
     resource_reason: str | None = None
 
 
+class AnytimeEvaluationFailure(RuntimeError):
+    """A failed sibling attempt requiring reconciliation with the admission ledger."""
+
+    def __init__(self, prior_state_semantic_hash: str, original: Exception):
+        super().__init__(f"ANYTIME_EVALUATION_FAILED_AFTER_ADMISSION_ATTEMPT: {original}")
+        self.prior_state_semantic_hash = prior_state_semantic_hash
+        self.logical_evaluations = 2
+        self.maximum_new_native_admissions = 2
+        self.original = original
+
+
 def _exact_mpfr_payload(value) -> list[int]:
     exact = gmpy2.mpq(value)
     return [int(exact.numerator), int(exact.denominator)]
@@ -169,6 +183,13 @@ def _interval_payload(interval: Interval | None) -> dict | None:
         "lower": _exact_mpfr_payload(interval.lower),
         "upper": _exact_mpfr_payload(interval.upper),
     }
+
+
+def _interval_from_payload(payload: dict) -> Interval:
+    precision = int(payload["precision_bits"])
+    lower = Fraction(int(payload["lower"][0]), int(payload["lower"][1]))
+    upper = Fraction(int(payload["upper"][0]), int(payload["upper"][1]))
+    return Interval.from_bounds(lower, upper, precision)
 
 
 def _cell_payload(certificate: CellCertificate) -> dict:
@@ -614,6 +635,563 @@ def _validate_partition(certificates: list[CellCertificate], h: Fraction) -> Non
             raise RuntimeError("CERTIFICATE_PARTITION_GAP_OR_OVERLAP")
 
 
+def _rational_payload(value) -> tuple[int, int]:
+    exact = gmpy2.mpq(value)
+    return int(exact.numerator), int(exact.denominator)
+
+
+def _jet_payload(certificate: CellCertificate) -> dict:
+    return {
+        "value": _interval_payload(certificate.value),
+        "first": _interval_payload(certificate.first),
+        "second": _interval_payload(certificate.second),
+    }
+
+
+def _cell_from_anytime_state(leaf: AnytimeCellState) -> CellCertificate:
+    cell = DyadicCell(
+        Fraction(*leaf.lower), Fraction(*leaf.upper), leaf.depth,
+    )
+    return CellCertificate(
+        cell,
+        _interval_from_payload(leaf.jet_payload["value"]),
+        _interval_from_payload(leaf.jet_payload["first"]),
+        _interval_from_payload(leaf.jet_payload["second"]),
+    )
+
+
+def _cache_entry_semantic_hash(evaluator_identity_sha256: str,
+                               certificate: CellCertificate) -> str:
+    payload = {
+        "schema_version": "green-v400-anytime-cache-entry-identity-v1",
+        "evaluator_identity_sha256": evaluator_identity_sha256,
+        "precision_bits": certificate.second.precision_bits,
+        "lower": list(_rational_payload(certificate.cell.lower)),
+        "upper": list(_rational_payload(certificate.cell.upper)),
+        "jet_semantic_hash": sha256_canonical(_jet_payload(certificate)),
+    }
+    return sha256_canonical(payload)
+
+
+def _anytime_leaf(certificate: CellCertificate, h: Fraction,
+                   evaluator_identity_sha256: str, result_source: str) -> AnytimeCellState:
+    jet_payload = _jet_payload(certificate)
+    return AnytimeCellState(
+        "green-v400-anytime-cell-state-v1",
+        evaluator_identity_sha256,
+        certificate.second.precision_bits,
+        _rational_payload(certificate.cell.lower),
+        _rational_payload(certificate.cell.upper),
+        certificate.cell.depth,
+        _rational_payload(_cell_priority(certificate, h)),
+        jet_payload,
+        sha256_canonical(jet_payload),
+        result_source,
+        _cache_entry_semantic_hash(evaluator_identity_sha256, certificate),
+    )
+
+
+def _normalize_anytime_metadata(metadata: object, count: int) -> tuple[str, ...]:
+    if metadata is None:
+        return ("COMPUTED",) * count
+    if not isinstance(metadata, (list, tuple)) or len(metadata) != count:
+        raise RuntimeError("ANYTIME_EVALUATION_METADATA_INVALID")
+    sources = []
+    for item in metadata:
+        if not isinstance(item, dict) or set(item) != {"result_source"}:
+            raise RuntimeError("ANYTIME_EVALUATION_METADATA_INVALID")
+        source = item["result_source"]
+        if source not in {"COMPUTED", "EXACT_CACHE_HIT"}:
+            raise RuntimeError("ANYTIME_EVALUATION_METADATA_INVALID")
+        sources.append(source)
+    return tuple(sources)
+
+
+def _evaluate_anytime_domains(evaluator, domains: tuple[Interval, ...]):
+    """Evaluate synthetic domains and return immutable accounting metadata.
+
+    A synthetic fixture may expose ``evaluate_interval_pair_with_metadata`` or
+    ``evaluate_interval_with_metadata``.  Existing evaluators require no change
+    and are conservatively treated as admitted, completed native dispatches.
+    """
+    if len(domains) == 2:
+        method = getattr(evaluator, "evaluate_interval_pair_with_metadata", None)
+        if callable(method):
+            result = method(domains)
+            if not isinstance(result, tuple) or len(result) != 2:
+                raise RuntimeError("ANYTIME_PAIR_EVALUATION_INVALID")
+            jets, metadata = result
+            jets = tuple(jets)
+            sources = _normalize_anytime_metadata(metadata, 2)
+        else:
+            method = getattr(evaluator, "evaluate_interval_pair", None)
+            if callable(method):
+                jets = tuple(method(domains))
+            else:
+                jets = tuple(evaluator.evaluate_interval(domain) for domain in domains)
+            sources = ("COMPUTED", "COMPUTED")
+    else:
+        jets = []
+        sources = []
+        metadata_method = getattr(evaluator, "evaluate_interval_with_metadata", None)
+        for domain in domains:
+            if callable(metadata_method):
+                result = metadata_method(domain)
+                if not isinstance(result, tuple) or len(result) != 2:
+                    raise RuntimeError("ANYTIME_EVALUATION_INVALID")
+                jet, metadata = result
+                source = _normalize_anytime_metadata((metadata,), 1)[0]
+            else:
+                jet = evaluator.evaluate_interval(domain)
+                source = "COMPUTED"
+            jets.append(jet)
+            sources.append(source)
+        jets, sources = tuple(jets), tuple(sources)
+    if len(jets) != len(domains) or any(
+        jet.precision_bits != domain.precision_bits
+        for jet, domain in zip(jets, domains)
+    ):
+        raise RuntimeError("ANYTIME_EVALUATOR_PRECISION_OR_COUNT_INVALID")
+    cache_hits = sum(source == "EXACT_CACHE_HIT" for source in sources)
+    accounting = {
+        "logical_evaluations": len(domains),
+        "admitted_native_dispatches": len(domains) - cache_hits,
+        "completed_native_dispatches": len(domains) - cache_hits,
+        "exact_cache_hits": cache_hits,
+    }
+    return jets, sources, accounting
+
+
+def _add_anytime_accounting(*items: dict) -> dict:
+    fields = (
+        "logical_evaluations", "admitted_native_dispatches",
+        "completed_native_dispatches", "exact_cache_hits",
+    )
+    return {field: sum(int(item[field]) for item in items) for field in fields}
+
+
+def _endpoint_from_anytime_payload(payload: dict) -> EndpointCertificate:
+    return EndpointCertificate(
+        Fraction(*payload["h"]),
+        _interval_from_payload(payload["negative"]),
+        _interval_from_payload(payload["center"]),
+        _interval_from_payload(payload["positive"]),
+        _interval_from_payload(payload["slope"]),
+    )
+
+
+def _checked_anytime_intersection(left: Interval, right: Interval,
+                                  quantity: str) -> Interval:
+    try:
+        return left.intersect(right)
+    except EmptyIntersection as error:
+        raise RuntimeError(
+            f"CERTIFICATE_IMPLEMENTATION_INVALID:{quantity}_EMPTY_INTERSECTION"
+        ) from error
+
+
+def _direct_endpoint_residuals(endpoint: EndpointCertificate) -> tuple[Interval, Interval]:
+    precision = endpoint.center.precision_bits
+    h = Interval.point(
+        gmpy2.mpq(endpoint.h.numerator, endpoint.h.denominator), precision,
+    )
+    return (
+        endpoint.positive - endpoint.center - h * endpoint.slope,
+        endpoint.negative - endpoint.center + h * endpoint.slope,
+    )
+
+
+def _witness_from_residuals(endpoint: EndpointCertificate,
+                            curvature: CurvatureCertificate,
+                            positive: Interval, negative: Interval) -> Interval:
+    error = EndpointErrorCertificate(
+        positive, negative, max(positive.magnitude(), negative.magnitude()), None,
+    )
+    return witness_interval(endpoint, curvature, error)
+
+
+def _raw_curvature_accounting_payload(curvature: CurvatureCertificate) -> dict:
+    payload = _curvature_payload(curvature)
+    accounting = payload.get("component_accounting") if payload else None
+    if accounting is None:
+        raise RuntimeError("CERTIFICATE_COMPONENT_ACCOUNTING_MISSING")
+    return accounting
+
+
+def _build_anytime_state(*, plan: CertificatePlan, resource_lock_semantic_hash: str,
+                         evaluator_identity_sha256: str, h: Fraction,
+                         precision_bits: int, phase: str, checkpoint_index: int,
+                         parent_state_semantic_hash: str, accounting: dict,
+                         leaves: tuple[AnytimeCellState, ...],
+                         endpoint: EndpointCertificate,
+                         raw_curvature: CurvatureCertificate,
+                         monotone_curvature: tuple[Interval, Interval],
+                         monotone_residuals: tuple[Interval, Interval],
+                         raw_witness: Interval, monotone_witness: Interval,
+                         computation_status: str = "PROVISIONAL",
+                         resource_reason: str | None = None,
+                         ) -> MonotoneAnytimeCertificateState:
+    return MonotoneAnytimeCertificateState(
+        "green-v400-monotone-anytime-state-v1",
+        "outcome_blind_synthetic_only",
+        plan.row_hash,
+        sha256_canonical(plan),
+        resource_lock_semantic_hash,
+        evaluator_identity_sha256,
+        _rational_payload(h),
+        precision_bits,
+        phase,
+        checkpoint_index,
+        parent_state_semantic_hash,
+        accounting["logical_evaluations"],
+        accounting["admitted_native_dispatches"],
+        accounting["completed_native_dispatches"],
+        accounting["exact_cache_hits"],
+        leaves,
+        _endpoint_payload(endpoint),
+        _interval_payload(raw_curvature.positive),
+        _interval_payload(raw_curvature.negative),
+        _raw_curvature_accounting_payload(raw_curvature),
+        _interval_payload(monotone_curvature[0]),
+        _interval_payload(monotone_curvature[1]),
+        _interval_payload(monotone_residuals[0]),
+        _interval_payload(monotone_residuals[1]),
+        _interval_payload(raw_witness),
+        _interval_payload(monotone_witness),
+        computation_status,
+        resource_reason,
+        False,
+    )
+
+
+def initialize_monotone_anytime_state(
+    evaluator, h: Fraction, precision_bits: int, plan: CertificatePlan, *,
+    resource_lock_semantic_hash: str,
+) -> MonotoneAnytimeCertificateState:
+    """Create one outcome-blind synthetic checkpoint from the zero-split cells."""
+    if not isinstance(plan, CertificatePlan):
+        raise TypeError("anytime initialization requires CertificatePlan")
+    if getattr(evaluator, "contains_scientific_outcome", None) is not False:
+        raise RuntimeError("ANYTIME_EVALUATOR_OUTCOME_BOUNDARY_MISSING")
+    if getattr(evaluator, "synthetic_only", None) is not True:
+        raise RuntimeError("ANYTIME_REAL_EXECUTION_UNAUTHORIZED")
+    if getattr(evaluator, "certificate_row_hash", None) != plan.row_hash:
+        raise RuntimeError("ANYTIME_EVALUATOR_PLAN_IDENTITY_MISMATCH")
+    evaluator_identity = getattr(evaluator, "evaluator_identity_sha256", None)
+    if (not isinstance(evaluator_identity, str) or len(evaluator_identity) != 64
+            or any(character not in "0123456789abcdef" for character in evaluator_identity)):
+        raise RuntimeError("ANYTIME_EVALUATOR_IDENTITY_INVALID")
+    if h <= 0 or h not in {radius.as_fraction() for radius in plan.radii}:
+        raise ValueError("anytime radius is not frozen in the certificate plan")
+    if precision_bits != plan.official_precision_bits:
+        raise ValueError("anytime initialization is restricted to official precision")
+    if (not isinstance(resource_lock_semantic_hash, str)
+            or len(resource_lock_semantic_hash) != 64
+            or any(character not in "0123456789abcdef"
+                   for character in resource_lock_semantic_hash)):
+        raise ValueError("anytime resource lock identity is invalid")
+
+    initial_cells = (DyadicCell(-h, Fraction(0)), DyadicCell(Fraction(0), h))
+    domains = tuple(cell.interval(precision_bits) for cell in initial_cells)
+    jets, sources, cell_accounting = _evaluate_anytime_domains(evaluator, domains)
+    certificates = tuple(
+        CellCertificate(cell, jet.value, jet.first, jet.second)
+        for cell, jet in zip(initial_cells, jets)
+    )
+    _validate_partition(list(certificates), h)
+    endpoint_domains = tuple(
+        _point_interval(value, precision_bits) for value in (-h, Fraction(0), h)
+    )
+    endpoint_jets, _, endpoint_accounting = _evaluate_anytime_domains(
+        evaluator, endpoint_domains,
+    )
+    endpoint = EndpointCertificate(
+        h, endpoint_jets[0].value, endpoint_jets[1].value,
+        endpoint_jets[2].value, endpoint_jets[1].first,
+    )
+    raw = integrate_signed_curvature(list(certificates), h)
+    direct_positive, direct_negative = _direct_endpoint_residuals(endpoint)
+    residuals = (
+        _checked_anytime_intersection(direct_positive, raw.positive, "POSITIVE_RESIDUAL"),
+        _checked_anytime_intersection(direct_negative, raw.negative, "NEGATIVE_RESIDUAL"),
+    )
+    witness = _witness_from_residuals(endpoint, raw, *residuals)
+    leaves = tuple(
+        _anytime_leaf(certificate, h, evaluator_identity, source)
+        for certificate, source in zip(certificates, sources)
+    )
+    return _build_anytime_state(
+        plan=plan,
+        resource_lock_semantic_hash=resource_lock_semantic_hash,
+        evaluator_identity_sha256=evaluator_identity,
+        h=h,
+        precision_bits=precision_bits,
+        phase="SYNTHETIC_OFFICIAL",
+        checkpoint_index=0,
+        parent_state_semantic_hash="0" * 64,
+        accounting=_add_anytime_accounting(cell_accounting, endpoint_accounting),
+        leaves=leaves,
+        endpoint=endpoint,
+        raw_curvature=raw,
+        monotone_curvature=(raw.positive, raw.negative),
+        monotone_residuals=residuals,
+        raw_witness=witness,
+        monotone_witness=witness,
+    )
+
+
+def _resource_anytime_state(state: MonotoneAnytimeCertificateState,
+                             reason: str, *, accounting_delta: dict | None = None,
+                             ) -> MonotoneAnytimeCertificateState:
+    if reason not in RESOURCE_REASONS:
+        raise ValueError("unknown frozen anytime resource reason")
+    accounting_delta = accounting_delta or {
+        "logical_evaluations": 0,
+        "admitted_native_dispatches": 0,
+        "completed_native_dispatches": 0,
+        "exact_cache_hits": 0,
+    }
+    expected_fields = {
+        "logical_evaluations", "admitted_native_dispatches",
+        "completed_native_dispatches", "exact_cache_hits",
+    }
+    if (set(accounting_delta) != expected_fields
+            or any(type(value) is not int or value < 0
+                   for value in accounting_delta.values())
+            or accounting_delta["logical_evaluations"] != (
+                accounting_delta["admitted_native_dispatches"]
+                + accounting_delta["exact_cache_hits"])
+            or accounting_delta["completed_native_dispatches"]
+            > accounting_delta["admitted_native_dispatches"]):
+        raise ValueError("failed anytime admission accounting is invalid")
+    # Preserve the raw accounting byte-for-byte; this transition performs no arithmetic.
+    return MonotoneAnytimeCertificateState.from_dict(state.to_dict() | {
+        "checkpoint_index": state.checkpoint_index + 1,
+        "parent_state_semantic_hash": state.semantic_hash(),
+        "logical_evaluations": (
+            state.logical_evaluations + accounting_delta["logical_evaluations"]
+        ),
+        "admitted_native_dispatches": (
+            state.admitted_native_dispatches
+            + accounting_delta["admitted_native_dispatches"]
+        ),
+        "completed_native_dispatches": (
+            state.completed_native_dispatches
+            + accounting_delta["completed_native_dispatches"]
+        ),
+        "exact_cache_hits": state.exact_cache_hits + accounting_delta["exact_cache_hits"],
+        "computation_status": "RESOURCE_INCONCLUSIVE",
+        "resource_reason": reason,
+    })
+
+
+def transition_anytime_resource_failure_after_admission(
+    state: MonotoneAnytimeCertificateState, *,
+    logical_evaluations: int, admitted_native_dispatches: int,
+    completed_native_dispatches: int, exact_cache_hits: int,
+    resource_reason: str,
+) -> MonotoneAnytimeCertificateState:
+    """Record a supervisor-classified failure without refunding admitted work.
+
+    Process death cannot update an in-process object.  The external supervisor
+    must apply this pure transition to the last hash-verified checkpoint using
+    its admission ledger before publishing ``RESOURCE_INCONCLUSIVE``.
+    """
+    if not isinstance(state, MonotoneAnytimeCertificateState):
+        raise TypeError("failed admission transition requires validated anytime state")
+    state.assert_integrity()
+    if state.computation_status != "PROVISIONAL":
+        raise RuntimeError("ANYTIME_STATE_IS_TERMINAL")
+    return _resource_anytime_state(
+        state, resource_reason, accounting_delta={
+            "logical_evaluations": logical_evaluations,
+            "admitted_native_dispatches": admitted_native_dispatches,
+            "completed_native_dispatches": completed_native_dispatches,
+            "exact_cache_hits": exact_cache_hits,
+        },
+    )
+
+
+def advance_monotone_anytime_state(
+    state: MonotoneAnytimeCertificateState, evaluator, plan: CertificatePlan,
+) -> MonotoneAnytimeCertificateState:
+    """Atomically replace exactly one frozen-priority parent by two children."""
+    if not isinstance(state, MonotoneAnytimeCertificateState):
+        raise TypeError("anytime refinement requires validated state")
+    state.assert_integrity()
+    if state.computation_status != "PROVISIONAL":
+        raise RuntimeError("ANYTIME_STATE_IS_TERMINAL")
+    if (not isinstance(plan, CertificatePlan)
+            or sha256_canonical(plan) != state.certificate_plan_semantic_hash
+            or plan.row_hash != state.row_hash):
+        raise RuntimeError("ANYTIME_STATE_PLAN_IDENTITY_MISMATCH")
+    if (getattr(evaluator, "contains_scientific_outcome", None) is not False
+            or getattr(evaluator, "synthetic_only", None) is not True):
+        raise RuntimeError("ANYTIME_REAL_EXECUTION_UNAUTHORIZED")
+    if (getattr(evaluator, "certificate_row_hash", None) != state.row_hash
+            or getattr(evaluator, "evaluator_identity_sha256", None)
+            != state.evaluator_identity_sha256):
+        raise RuntimeError("ANYTIME_EVALUATOR_IDENTITY_MISMATCH")
+
+    h = Fraction(*state.radius)
+    certificates = [_cell_from_anytime_state(leaf) for leaf in state.leaves]
+    _validate_partition(certificates, h)
+    absolute = _hex_fraction(plan.absolute_width_tolerance)
+    relative = _hex_fraction(plan.relative_width_tolerance)
+    unresolved = [
+        certificate for certificate in certificates
+        if not _cell_tolerance_met(certificate, absolute, relative)
+    ]
+    if not unresolved:
+        raise RuntimeError("ANYTIME_PARTITION_TOLERANCES_MET")
+    parent = min(
+        unresolved,
+        key=lambda certificate: (
+            -_cell_priority(certificate, h), certificate.cell.lower,
+            certificate.cell.depth,
+        ),
+    )
+    if parent.cell.depth >= plan.max_depth:
+        return _resource_anytime_state(state, "MAX_DEPTH_REACHED")
+    if len(certificates) + 1 > plan.max_cells:
+        return _resource_anytime_state(
+            state, "MAX_FINAL_LEAVES_PER_RADIUS_REACHED",
+        )
+
+    children = parent.cell.bisect()
+    domains = tuple(cell.interval(state.precision_bits) for cell in children)
+    # No state is mutated before both sibling evaluations and validations succeed.
+    try:
+        jets, sources, step_accounting = _evaluate_anytime_domains(evaluator, domains)
+    except Exception as error:
+        raise AnytimeEvaluationFailure(state.semantic_hash(), error) from error
+    child_certificates = tuple(
+        CellCertificate(cell, jet.value, jet.first, jet.second)
+        for cell, jet in zip(children, jets)
+    )
+    next_certificates = [
+        certificate for certificate in certificates if certificate.cell != parent.cell
+    ] + list(child_certificates)
+    next_certificates.sort(key=lambda certificate: certificate.cell.lower)
+    _validate_partition(next_certificates, h)
+    raw = integrate_signed_curvature(next_certificates, h)
+
+    previous_curvature = (
+        _interval_from_payload(state.monotone_curvature_positive),
+        _interval_from_payload(state.monotone_curvature_negative),
+    )
+    monotone_curvature = (
+        _checked_anytime_intersection(previous_curvature[0], raw.positive,
+                                      "POSITIVE_CURVATURE"),
+        _checked_anytime_intersection(previous_curvature[1], raw.negative,
+                                      "NEGATIVE_CURVATURE"),
+    )
+    endpoint = _endpoint_from_anytime_payload(state.endpoint_payload)
+    direct = _direct_endpoint_residuals(endpoint)
+    previous_residuals = (
+        _interval_from_payload(state.monotone_residual_positive),
+        _interval_from_payload(state.monotone_residual_negative),
+    )
+    raw_residuals = (
+        _checked_anytime_intersection(direct[0], raw.positive,
+                                      "RAW_POSITIVE_RESIDUAL"),
+        _checked_anytime_intersection(direct[1], raw.negative,
+                                      "RAW_NEGATIVE_RESIDUAL"),
+    )
+    monotone_residuals = tuple(
+        _checked_anytime_intersection(
+            previous,
+            _checked_anytime_intersection(bound, curvature, name),
+            f"MONOTONE_{name}",
+        )
+        for previous, bound, curvature, name in (
+            (previous_residuals[0], direct[0], monotone_curvature[0],
+             "POSITIVE_RESIDUAL"),
+            (previous_residuals[1], direct[1], monotone_curvature[1],
+             "NEGATIVE_RESIDUAL"),
+        )
+    )
+    raw_witness = _witness_from_residuals(endpoint, raw, *raw_residuals)
+    candidate_witness = _witness_from_residuals(
+        endpoint, raw, *monotone_residuals,
+    )
+    monotone_witness = _checked_anytime_intersection(
+        _interval_from_payload(state.monotone_witness),
+        candidate_witness,
+        "WITNESS",
+    )
+
+    old_leaf_by_cell = {
+        (Fraction(*leaf.lower), Fraction(*leaf.upper), leaf.depth): leaf
+        for leaf in state.leaves
+    }
+    new_leaves = []
+    child_source_by_cell = {
+        child.cell: source for child, source in zip(child_certificates, sources)
+    }
+    for certificate in next_certificates:
+        old = old_leaf_by_cell.get((
+            certificate.cell.lower, certificate.cell.upper, certificate.cell.depth,
+        ))
+        new_leaves.append(old if old is not None else _anytime_leaf(
+            certificate, h, state.evaluator_identity_sha256,
+            child_source_by_cell[certificate.cell],
+        ))
+    total_accounting = _add_anytime_accounting({
+        "logical_evaluations": state.logical_evaluations,
+        "admitted_native_dispatches": state.admitted_native_dispatches,
+        "completed_native_dispatches": state.completed_native_dispatches,
+        "exact_cache_hits": state.exact_cache_hits,
+    }, step_accounting)
+    return _build_anytime_state(
+        plan=plan,
+        resource_lock_semantic_hash=state.resource_lock_semantic_hash,
+        evaluator_identity_sha256=state.evaluator_identity_sha256,
+        h=h,
+        precision_bits=state.precision_bits,
+        phase=state.phase,
+        checkpoint_index=state.checkpoint_index + 1,
+        parent_state_semantic_hash=state.semantic_hash(),
+        accounting=total_accounting,
+        leaves=tuple(new_leaves),
+        endpoint=endpoint,
+        raw_curvature=raw,
+        monotone_curvature=monotone_curvature,
+        monotone_residuals=monotone_residuals,
+        raw_witness=raw_witness,
+        monotone_witness=monotone_witness,
+    )
+
+
+def monotone_anytime_state_payload(
+    state: MonotoneAnytimeCertificateState,
+) -> dict:
+    payload = state.to_dict()
+    return {
+        "state": payload,
+        "state_semantic_hash": state.semantic_hash(),
+    }
+
+
+def serialize_monotone_anytime_state(
+    state: MonotoneAnytimeCertificateState,
+) -> str:
+    return canonical_json(monotone_anytime_state_payload(state))
+
+
+def restore_monotone_anytime_state(payload) -> MonotoneAnytimeCertificateState:
+    if isinstance(payload, (str, bytes, bytearray)):
+        payload = json.loads(payload)
+    if not isinstance(payload, dict) or set(payload) != {
+        "state", "state_semantic_hash",
+    }:
+        raise ValueError("anytime checkpoint envelope field mismatch")
+    state = MonotoneAnytimeCertificateState.from_dict(payload["state"])
+    if payload["state_semantic_hash"] != state.semantic_hash():
+        raise ValueError("anytime checkpoint semantic hash mismatch")
+    return state
+
+
 def _adaptive_cells_with_reason(
     graph: RelationalGraph, h: Fraction, precision_bits: int,
     plan: CertificatePlan,
@@ -637,7 +1215,7 @@ def _adaptive_cells_with_reason(
         if cell.depth >= plan.max_depth:
             return None, "MAX_DEPTH_REACHED"
         if len(accepted) + len(pending) + 2 > plan.max_cells:
-            return None, "MAX_CELLS_REACHED"
+            return None, "MAX_FINAL_LEAVES_PER_RADIUS_REACHED"
         left, right = cell.bisect()
         children = (left, right)
         for child, child_certificate in zip(

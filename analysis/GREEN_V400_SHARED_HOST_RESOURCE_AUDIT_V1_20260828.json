@@ -1,0 +1,123 @@
+{
+  "checks": {
+    "absolute_deadline_killed_worker": true,
+    "clean_command_completed": true,
+    "descendant_policy_cleaned_initial_group": true,
+    "exec_failure_was_reported_and_cleaned": true,
+    "fast_root_exit_did_not_leave_same_group_child": true,
+    "observed_setsid_descendant_was_identity_cleaned": true,
+    "rlimit_as_denied_oversized_allocation": true,
+    "sampled_tree_memory_violation_cleaned_group": true,
+    "sampler_exception_failed_closed_and_cleaned": true
+  },
+  "platform": "Linux-5.15.0-67-generic-x86_64-with-glibc2.31",
+  "provenance": {
+    "repository_clean_before_audit": true,
+    "repository_commit": "65f0b4c670fa6269625e823fd3d62a36588d54a2"
+  },
+  "report_contains_scientific_outcome": false,
+  "report_semantic_hash": "21451d3c19e07befed9b608050bb39b32b414b2752ac079e89f2baaf3a0f4147",
+  "runs": {
+    "address_limit": {
+      "elapsed_seconds": 0.13790572999278083,
+      "exit_code": 0,
+      "peak_process_count": 1,
+      "peak_tree_rss_bytes": 0,
+      "peak_tree_swap_bytes": 0,
+      "report_semantic_hash": "0fa3886335310384ca8b1e9b68d71c40a7eb5aeefa718ecd1b5b181c45d4a2db",
+      "status": "COMPLETED",
+      "termination_signal": null
+    },
+    "clean": {
+      "elapsed_seconds": 0.15280066401464865,
+      "exit_code": 0,
+      "peak_process_count": 1,
+      "peak_tree_rss_bytes": 0,
+      "peak_tree_swap_bytes": 0,
+      "report_semantic_hash": "2e0fe870e232958c991da93c15c4ecf58a088e878aa9d9103927dcd2648bf531",
+      "status": "COMPLETED",
+      "termination_signal": null
+    },
+    "descendant": {
+      "elapsed_seconds": 0.24917836900567636,
+      "exit_code": null,
+      "peak_process_count": 2,
+      "peak_tree_rss_bytes": 18120704,
+      "peak_tree_swap_bytes": 0,
+      "report_semantic_hash": "90a730b14c4ca84bd3a2ce74e5e6a0a26fe936f9c56705ee843e8e8b27d8b3b2",
+      "status": "DESCENDANT_PROCESS_POLICY_REACHED",
+      "termination_signal": 9
+    },
+    "escaped_descendant": {
+      "elapsed_seconds": 0.22674229799304157,
+      "exit_code": null,
+      "peak_process_count": 2,
+      "peak_tree_rss_bytes": 18157568,
+      "peak_tree_swap_bytes": 0,
+      "report_semantic_hash": "48e8c7633cecc8dd49f31b134d28ce4777a14dbb1bebf3fe735f8ac5b018c4c1",
+      "status": "DESCENDANT_PROCESS_POLICY_REACHED",
+      "termination_signal": 9
+    },
+    "exec_failure": {
+      "elapsed_seconds": 0.12085388199193403,
+      "exit_code": 1,
+      "peak_process_count": 1,
+      "peak_tree_rss_bytes": 0,
+      "peak_tree_swap_bytes": 0,
+      "report_semantic_hash": "626e650898b1304d6f4b01804aeda256628dbae509cec7d470a51af28d2fd1ea",
+      "status": "WORKER_FAILED",
+      "termination_signal": null
+    },
+    "fast_descendant": {
+      "elapsed_seconds": 0.1243612949620001,
+      "exit_code": 0,
+      "peak_process_count": 1,
+      "peak_tree_rss_bytes": 0,
+      "peak_tree_swap_bytes": 0,
+      "report_semantic_hash": "b7bfe42fbf2da650857b51786d0dff66fc51c8819665f8f8907f4ade26c01d4f",
+      "status": "DESCENDANT_PROCESS_POLICY_REACHED",
+      "termination_signal": null
+    },
+    "observed_memory": {
+      "elapsed_seconds": 0.14097927702823654,
+      "exit_code": null,
+      "peak_process_count": 1,
+      "peak_tree_rss_bytes": 108498944,
+      "peak_tree_swap_bytes": 0,
+      "report_semantic_hash": "455af948a05f8e82963c70fc4c8177aed8925c0716927c497fab50f1e65e1fc0",
+      "status": "OBSERVED_TREE_MEMORY_REACHED",
+      "termination_signal": 9
+    },
+    "sampler_failure": {
+      "elapsed_seconds": 0.00847254297696054,
+      "exit_code": null,
+      "peak_process_count": 0,
+      "peak_tree_rss_bytes": 0,
+      "peak_tree_swap_bytes": 0,
+      "report_semantic_hash": "92c3d01c512e8b0c242a54d5d8dc1d1bafa6ffaeb13126c6f2925a8fa44f0cba",
+      "status": "SUPERVISOR_INFRASTRUCTURE_FAILED",
+      "termination_signal": 9
+    },
+    "timeout": {
+      "elapsed_seconds": 0.5891353279585019,
+      "exit_code": null,
+      "peak_process_count": 1,
+      "peak_tree_rss_bytes": 7839744,
+      "peak_tree_swap_bytes": 0,
+      "report_semantic_hash": "f9d05d9411eeae215e3c2dc46b5e71ebc7bb14f4ea2dee7f0a0b6ff89df8ded6",
+      "status": "WALL_DEADLINE_REACHED",
+      "termination_signal": 9
+    }
+  },
+  "schema_version": "green-v400-shared-host-resource-audit-v1",
+  "scope": {
+    "aggregate_process_tree_memory_is_observational": true,
+    "eligible_job_scope": "trusted_non_certificate_jobs_only",
+    "formal_cgroup_v2_certificate_claimed": false,
+    "host_configuration_change_required": false,
+    "job_authorization_granted_by_this_audit": false,
+    "shared_host_control_mechanics_validated": true
+  },
+  "status": "PASS_SHARED_HOST_RESOURCE_CONTROLS",
+  "supervisor_applied_scientific_threshold": false
+}

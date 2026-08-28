@@ -3,6 +3,7 @@ from __future__ import annotations
 
 from dataclasses import asdict, dataclass, field
 from fractions import Fraction
+import copy
 import hashlib
 import json
 from typing import Any
@@ -27,6 +28,39 @@ def _strict_fields(payload: dict, expected: set[str], schema_name: str) -> None:
         raise ValueError(
             f"{schema_name} field mismatch; unknown={sorted(unknown)}, missing={sorted(missing)}"
         )
+
+
+def _is_lower_sha256(value: object) -> bool:
+    return (
+        isinstance(value, str) and len(value) == 64
+        and all(character in "0123456789abcdef" for character in value)
+    )
+
+
+def _validate_exact_rational_pair(value: object, name: str) -> None:
+    if (not isinstance(value, (list, tuple)) or len(value) != 2
+            or any(type(item) is not int for item in value)):
+        raise ValueError(f"{name} must be an exact rational pair")
+    numerator, denominator = value
+    if denominator <= 0:
+        raise ValueError(f"{name} denominator must be positive")
+    reduced = Fraction(numerator, denominator)
+    if reduced.numerator != numerator or reduced.denominator != denominator:
+        raise ValueError(f"{name} must be canonically reduced")
+
+
+def _validate_interval_payload(value: object, precision_bits: int, name: str) -> None:
+    if not isinstance(value, dict):
+        raise ValueError(f"{name} must be an interval payload")
+    _strict_fields(value, {"precision_bits", "lower", "upper"}, name)
+    if type(value["precision_bits"]) is not int or value["precision_bits"] != precision_bits:
+        raise ValueError(f"{name} precision mismatch")
+    _validate_exact_rational_pair(value["lower"], f"{name}.lower")
+    _validate_exact_rational_pair(value["upper"], f"{name}.upper")
+    lower = Fraction(*value["lower"])
+    upper = Fraction(*value["upper"])
+    if lower > upper:
+        raise ValueError(f"{name} lower endpoint exceeds upper endpoint")
 
 
 @dataclass(frozen=True)
@@ -157,6 +191,298 @@ class CertificatePlan:
             "exact_dyadic_amplitudes": tuple(
                 Dyadic.from_dict(row) for row in payload["exact_dyadic_amplitudes"]),
             "expected_artifact_paths": tuple(payload["expected_artifact_paths"]),
+        }))
+
+
+@dataclass(frozen=True)
+class AnytimeCellState:
+    """One immutable, identity-closed leaf in a synthetic anytime partition."""
+
+    schema_version: str
+    evaluator_identity_sha256: str
+    precision_bits: int
+    lower: tuple[int, int]
+    upper: tuple[int, int]
+    depth: int
+    priority: tuple[int, int]
+    jet_payload: dict
+    jet_semantic_hash: str
+    result_source: str
+    cache_entry_semantic_hash: str
+
+    def __post_init__(self):
+        if self.schema_version != "green-v400-anytime-cell-state-v1":
+            raise ValueError("anytime cell schema version mismatch")
+        if not _is_lower_sha256(self.evaluator_identity_sha256):
+            raise ValueError("anytime cell evaluator identity is not lowercase SHA-256")
+        if type(self.precision_bits) is not int or self.precision_bits < 2:
+            raise ValueError("anytime cell precision is invalid")
+        _validate_exact_rational_pair(self.lower, "anytime cell lower")
+        _validate_exact_rational_pair(self.upper, "anytime cell upper")
+        if Fraction(*self.lower) >= Fraction(*self.upper):
+            raise ValueError("anytime cell bounds are invalid")
+        if type(self.depth) is not int or self.depth < 0:
+            raise ValueError("anytime cell depth is invalid")
+        _validate_exact_rational_pair(self.priority, "anytime cell priority")
+        if Fraction(*self.priority) < 0:
+            raise ValueError("anytime cell priority must be nonnegative")
+        if not isinstance(self.jet_payload, dict):
+            raise ValueError("anytime cell Jet2 payload is invalid")
+        _strict_fields(
+            self.jet_payload, {"value", "first", "second"},
+            "anytime cell Jet2 payload",
+        )
+        for component in ("value", "first", "second"):
+            _validate_interval_payload(
+                self.jet_payload[component], self.precision_bits,
+                f"anytime cell Jet2 {component}",
+            )
+        if (not _is_lower_sha256(self.jet_semantic_hash)
+                or self.jet_semantic_hash != sha256_canonical(self.jet_payload)):
+            raise ValueError("anytime cell Jet2 semantic hash mismatch")
+        if self.result_source not in {"COMPUTED", "EXACT_CACHE_HIT"}:
+            raise ValueError("anytime cell result source is invalid")
+        if not _is_lower_sha256(self.cache_entry_semantic_hash):
+            raise ValueError("anytime cell cache identity is not lowercase SHA-256")
+        expected_cache_hash = sha256_canonical({
+            "schema_version": "green-v400-anytime-cache-entry-identity-v1",
+            "evaluator_identity_sha256": self.evaluator_identity_sha256,
+            "precision_bits": self.precision_bits,
+            "lower": list(self.lower),
+            "upper": list(self.upper),
+            "jet_semantic_hash": self.jet_semantic_hash,
+        })
+        if self.cache_entry_semantic_hash != expected_cache_hash:
+            raise ValueError("anytime cell cache semantic hash mismatch")
+
+    def to_dict(self) -> dict:
+        return {
+            "schema_version": self.schema_version,
+            "evaluator_identity_sha256": self.evaluator_identity_sha256,
+            "precision_bits": self.precision_bits,
+            "lower": list(self.lower),
+            "upper": list(self.upper),
+            "depth": self.depth,
+            "priority": list(self.priority),
+            "jet_payload": copy.deepcopy(self.jet_payload),
+            "jet_semantic_hash": self.jet_semantic_hash,
+            "result_source": self.result_source,
+            "cache_entry_semantic_hash": self.cache_entry_semantic_hash,
+        }
+
+    @classmethod
+    def from_dict(cls, payload: dict) -> "AnytimeCellState":
+        expected = {field.name for field in cls.__dataclass_fields__.values()}
+        _strict_fields(payload, expected, "AnytimeCellState")
+        return cls(**(payload | {
+            "lower": tuple(payload["lower"]),
+            "upper": tuple(payload["upper"]),
+            "priority": tuple(payload["priority"]),
+        }))
+
+
+@dataclass(frozen=True)
+class MonotoneAnytimeCertificateState:
+    """Strict synthetic-only checkpoint for one radius and one precision."""
+
+    schema_version: str
+    execution_scope: str
+    row_hash: str
+    certificate_plan_semantic_hash: str
+    resource_lock_semantic_hash: str
+    evaluator_identity_sha256: str
+    radius: tuple[int, int]
+    precision_bits: int
+    phase: str
+    checkpoint_index: int
+    parent_state_semantic_hash: str
+    logical_evaluations: int
+    admitted_native_dispatches: int
+    completed_native_dispatches: int
+    exact_cache_hits: int
+    leaves: tuple[AnytimeCellState, ...]
+    endpoint_payload: dict
+    raw_curvature_positive: dict
+    raw_curvature_negative: dict
+    raw_curvature_accounting: dict
+    monotone_curvature_positive: dict
+    monotone_curvature_negative: dict
+    monotone_residual_positive: dict
+    monotone_residual_negative: dict
+    raw_witness: dict
+    monotone_witness: dict
+    computation_status: str
+    resource_reason: str | None
+    scientific_threshold_applied: bool
+    _construction_integrity_hash: str = field(
+        init=False, repr=False, compare=False,
+    )
+
+    def __post_init__(self):
+        if self.schema_version != "green-v400-monotone-anytime-state-v1":
+            raise ValueError("anytime state schema version mismatch")
+        if self.execution_scope != "outcome_blind_synthetic_only":
+            raise ValueError("anytime state is restricted to outcome-blind synthetic execution")
+        for name, value in (
+            ("row", self.row_hash),
+            ("plan", self.certificate_plan_semantic_hash),
+            ("resource lock", self.resource_lock_semantic_hash),
+            ("evaluator", self.evaluator_identity_sha256),
+            ("parent state", self.parent_state_semantic_hash),
+        ):
+            if not _is_lower_sha256(value):
+                raise ValueError(f"anytime {name} identity is not lowercase SHA-256")
+        _validate_exact_rational_pair(self.radius, "anytime radius")
+        if Fraction(*self.radius) <= 0:
+            raise ValueError("anytime radius must be positive")
+        if type(self.precision_bits) is not int or self.precision_bits < 2:
+            raise ValueError("anytime state precision is invalid")
+        if self.phase not in {"SYNTHETIC_OFFICIAL", "SYNTHETIC_AUDIT"}:
+            raise ValueError("anytime state phase is invalid")
+        counters = (
+            self.checkpoint_index, self.logical_evaluations,
+            self.admitted_native_dispatches, self.completed_native_dispatches,
+            self.exact_cache_hits,
+        )
+        if any(type(value) is not int or value < 0 for value in counters):
+            raise ValueError("anytime state counters must be nonnegative integers")
+        if self.logical_evaluations != (
+                self.admitted_native_dispatches + self.exact_cache_hits):
+            raise ValueError("anytime logical evaluation accounting does not close")
+        if self.completed_native_dispatches > self.admitted_native_dispatches:
+            raise ValueError("anytime completed dispatches exceed admissions")
+        if not self.leaves:
+            raise ValueError("anytime state partition is empty")
+        if any(
+            leaf.evaluator_identity_sha256 != self.evaluator_identity_sha256
+            or leaf.precision_bits != self.precision_bits
+            for leaf in self.leaves
+        ):
+            raise ValueError("anytime leaf identity/precision mismatch")
+        ordered = tuple(sorted(self.leaves, key=lambda leaf: Fraction(*leaf.lower)))
+        if ordered != self.leaves:
+            raise ValueError("anytime leaves are not in canonical endpoint order")
+        h = Fraction(*self.radius)
+        if Fraction(*self.leaves[0].lower) != -h or Fraction(*self.leaves[-1].upper) != h:
+            raise ValueError("anytime leaves do not cover the radius")
+        if not any(Fraction(*leaf.upper) == 0 for leaf in self.leaves):
+            raise ValueError("anytime partition is not split at zero")
+        for left, right in zip(self.leaves, self.leaves[1:]):
+            if Fraction(*left.upper) != Fraction(*right.lower):
+                raise ValueError("anytime partition has a gap or overlap")
+        for leaf in self.leaves:
+            lower, upper = Fraction(*leaf.lower), Fraction(*leaf.upper)
+            if lower >= 0:
+                weight = h * (upper - lower) - (upper * upper - lower * lower) / 2
+            elif upper <= 0:
+                weight = h * (upper - lower) + (upper * upper - lower * lower) / 2
+            else:
+                raise ValueError("anytime leaf crosses zero")
+            second = leaf.jet_payload["second"]
+            width = Fraction(*second["upper"]) - Fraction(*second["lower"])
+            if Fraction(*leaf.priority) != weight * width:
+                raise ValueError("anytime leaf exact priority mismatch")
+        endpoint_expected = {"h", "negative", "center", "positive", "slope"}
+        if not isinstance(self.endpoint_payload, dict):
+            raise ValueError("anytime endpoint payload is invalid")
+        _strict_fields(self.endpoint_payload, endpoint_expected, "anytime endpoint payload")
+        _validate_exact_rational_pair(self.endpoint_payload["h"], "anytime endpoint h")
+        if Fraction(*self.endpoint_payload["h"]) != h:
+            raise ValueError("anytime endpoint radius mismatch")
+        for name in ("negative", "center", "positive", "slope"):
+            _validate_interval_payload(
+                self.endpoint_payload[name], self.precision_bits,
+                f"anytime endpoint {name}",
+            )
+        interval_fields = (
+            "raw_curvature_positive", "raw_curvature_negative",
+            "monotone_curvature_positive", "monotone_curvature_negative",
+            "monotone_residual_positive", "monotone_residual_negative",
+            "raw_witness", "monotone_witness",
+        )
+        for name in interval_fields:
+            _validate_interval_payload(getattr(self, name), self.precision_bits, name)
+        accounting_fields = {
+            "positive_midpoint", "negative_midpoint",
+            "positive_radius", "negative_radius",
+            "positive_weight_rounding", "negative_weight_rounding",
+            "positive_summation_rounding", "negative_summation_rounding",
+        }
+        if not isinstance(self.raw_curvature_accounting, dict):
+            raise ValueError("raw curvature accounting must remain separate and explicit")
+        _strict_fields(
+            self.raw_curvature_accounting, accounting_fields,
+            "raw curvature accounting",
+        )
+        for name, value in self.raw_curvature_accounting.items():
+            _validate_exact_rational_pair(value, f"raw curvature accounting {name}")
+        def nested(inner: dict, outer: dict) -> bool:
+            return (
+                Fraction(*outer["lower"]) <= Fraction(*inner["lower"])
+                <= Fraction(*inner["upper"]) <= Fraction(*outer["upper"])
+            )
+        if not nested(self.monotone_curvature_positive, self.raw_curvature_positive):
+            raise ValueError("monotone positive curvature is not inside current raw enclosure")
+        if not nested(self.monotone_curvature_negative, self.raw_curvature_negative):
+            raise ValueError("monotone negative curvature is not inside current raw enclosure")
+        if not nested(self.monotone_residual_positive, self.monotone_curvature_positive):
+            raise ValueError("positive residual is not inside monotone curvature")
+        if not nested(self.monotone_residual_negative, self.monotone_curvature_negative):
+            raise ValueError("negative residual is not inside monotone curvature")
+        if not nested(self.monotone_witness, self.raw_witness):
+            raise ValueError("monotone witness is not inside current raw witness")
+        if self.computation_status not in {"PROVISIONAL", "RESOURCE_INCONCLUSIVE"}:
+            raise ValueError("anytime computation status is invalid")
+        if self.computation_status == "PROVISIONAL" and self.resource_reason is not None:
+            raise ValueError("provisional anytime state cannot have a resource reason")
+        if self.computation_status == "RESOURCE_INCONCLUSIVE" and self.resource_reason not in RESOURCE_REASONS:
+            raise ValueError("anytime resource reason is invalid")
+        if type(self.scientific_threshold_applied) is not bool or self.scientific_threshold_applied:
+            raise ValueError("anytime synthetic state may not apply a scientific threshold")
+
+        object.__setattr__(
+            self, "_construction_integrity_hash",
+            self._compute_integrity_hash_unchecked(),
+        )
+
+    def _to_dict_unchecked(self) -> dict:
+        payload = {
+            name: copy.deepcopy(getattr(self, name))
+            for name, definition in self.__dataclass_fields__.items()
+            if definition.init
+        }
+        payload["radius"] = list(self.radius)
+        payload["leaves"] = [leaf.to_dict() for leaf in self.leaves]
+        return payload
+
+    def _compute_integrity_hash_unchecked(self) -> str:
+        encoded = (
+            b"GREEN-MONOTONE-ANYTIME-V1\0"
+            + canonical_json(self._to_dict_unchecked()).encode("utf-8")
+        )
+        return hashlib.sha256(encoded).hexdigest()
+
+    def assert_integrity(self) -> None:
+        if self._compute_integrity_hash_unchecked() != self._construction_integrity_hash:
+            raise RuntimeError("ANYTIME_STATE_INTEGRITY_INVALID")
+
+    def to_dict(self) -> dict:
+        self.assert_integrity()
+        return self._to_dict_unchecked()
+
+    def semantic_hash(self) -> str:
+        self.assert_integrity()
+        return self._construction_integrity_hash
+
+    @classmethod
+    def from_dict(cls, payload: dict) -> "MonotoneAnytimeCertificateState":
+        expected = {
+            field.name for field in cls.__dataclass_fields__.values() if field.init
+        }
+        _strict_fields(payload, expected, "MonotoneAnytimeCertificateState")
+        return cls(**(payload | {
+            "radius": tuple(payload["radius"]),
+            "leaves": tuple(AnytimeCellState.from_dict(leaf) for leaf in payload["leaves"]),
         }))
 
 
