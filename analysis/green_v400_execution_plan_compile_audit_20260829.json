@@ -1,0 +1,33 @@
+{
+  "artifact_kind": "outcome_free_execution_plan_compile_audit",
+  "created_date": "2026-08-29",
+  "execution_enabled": false,
+  "plan_gate": "PLAN_COMPILED_BLOCKED_BY_BASELINES",
+  "plan_internal_sha256": "a5f580bfd5f5e0e732290fc0d2f36202b5eb5df25592bad3dcb75cdd586a4c6c",
+  "sealed_plan_file_sha256": "3ac9ecaae7cdd1145d89d039c960288c835127da7db2d69bbbfcc55f7fde7ea4",
+  "sealed_plan_file_size_bytes": 1907799,
+  "server_artifact": "/mnt/sdb/ccj/iclr_1_runs/green_v400_silent_failure_execution_plan_20260829_v1/sealed_execution_plan.json",
+  "queue_counts": {
+    "confirmation_endpoint": 1152,
+    "confirmation_prediction": 1152,
+    "development_endpoint": 1152,
+    "development_prediction": 1152,
+    "endpoint_calibration": 576
+  },
+  "readiness_summary": {
+    "ready": 5,
+    "total": 9,
+    "blockers": [
+      "grant_divergence",
+      "hvp_second_order",
+      "integrated_gradients",
+      "raw_snr_analytic_power"
+    ]
+  },
+  "scientific_outcomes_opened": false,
+  "notes": [
+    "The compiler validates hashes, route disjointness, endpoint roles, readiness evidence, physical GPU policy, and /mnt/sdb storage policy.",
+    "This artifact records compilation metadata only. It contains no scientific result values and grants no execution authorization.",
+    "The current gate is expected to remain blocked until actual-shape baseline runtime and finiteness evidence are recorded."
+  ]
+}
