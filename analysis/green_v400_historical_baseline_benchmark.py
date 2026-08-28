@@ -22,6 +22,7 @@ from green_v400_ioi_response_adapter import (
     build_target_and_patched_responses,
     capture_resid_post_center,
 )
+from green_v400_prediction_worker import compute_raw_snr_analytic_power
 from green_v400_response_baselines import compare_batched_response_fields
 
 
@@ -109,6 +110,23 @@ def benchmark_method(
     if device.startswith("cuda"):
         torch.cuda.synchronize()
     elapsed = time.perf_counter() - started
+    analytic_record = None
+    if method == "exact":
+        analytic_started = time.perf_counter()
+        analytic = compute_raw_snr_analytic_power(
+            result.target_effects, result.discrepancies
+        )
+        analytic_record = {
+            "elapsed_seconds": time.perf_counter() - analytic_started,
+            "finite": all(
+                math.isfinite(value)
+                for value in analytic.values()
+                if isinstance(value, float)
+            ),
+            "assumption": analytic["assumption"],
+            "inferential_test_claimed": analytic["inferential_test_claimed"],
+            "scientific_values_serialized": False,
+        }
     record = {
         "method": method,
         "elapsed_seconds": elapsed,
@@ -117,6 +135,7 @@ def benchmark_method(
         "activation_width": int(directions.shape[1]),
         "response_batching": True,
         "ig_steps": integrated_gradients_steps if method == "integrated_gradients" else None,
+        "raw_snr_analytic_power": analytic_record,
     }
     if device.startswith("cuda"):
         record.update(

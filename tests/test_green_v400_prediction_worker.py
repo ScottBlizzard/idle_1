@@ -13,6 +13,7 @@ from green_v400_endpoint_firewall import (
 )
 from green_v400_prediction_worker import (
     BASELINE_METHODS,
+    compute_raw_snr_analytic_power,
     compute_response_baseline_packet,
 )
 
@@ -50,7 +51,10 @@ def test_worker_serializes_and_commits_all_shared_baselines_without_endpoint_fie
     assert packet["contains_endpoint_outcome"] is False
     assert not (set(packet) & PREDICTION_FORBIDDEN_KEYS)
     assert commitment == seal_prediction_packet(packet)
-    assert packet["raw_snr_analytic_features"]["direction_count"] == 2
+    analytic = packet["raw_snr_analytic_features"]
+    assert analytic["direction_count"] == 2
+    assert analytic["inferential_test_claimed"] is False
+    assert analytic["assumption"].startswith("independent_direction_gaussian")
     assert packet["response_batching"] is False
 
 
@@ -104,4 +108,35 @@ def test_nonfinite_restoration_and_short_ig_grid_fail_closed():
     with pytest.raises(ValueError, match="at least two"):
         compute_response_baseline_packet(
             **kwargs, ordinary_restoration=0.9, integrated_gradients_steps=1
+        )
+
+
+def test_raw_snr_analytic_power_is_scale_invariant_and_has_alpha_at_null():
+    target = torch.ones(4, dtype=torch.float64)
+    null = compute_raw_snr_analytic_power(target, torch.zeros_like(target))
+    signal = compute_raw_snr_analytic_power(target, 0.5 * torch.ones_like(target))
+    rescaled = compute_raw_snr_analytic_power(
+        7.0 * target, 3.5 * torch.ones_like(target)
+    )
+    assert null["raw_snr"] == pytest.approx(0.0)
+    assert null["gaussian_location_surrogate_power"] == pytest.approx(0.05)
+    assert signal["raw_snr"] == pytest.approx(0.5)
+    assert signal["raw_snr"] == pytest.approx(rescaled["raw_snr"])
+    assert signal["gaussian_location_surrogate_power"] > null[
+        "gaussian_location_surrogate_power"
+    ]
+
+
+def test_raw_snr_analytic_power_rejects_invalid_inputs():
+    with pytest.raises(ValueError, match="same nonempty"):
+        compute_raw_snr_analytic_power(
+            torch.ones(2, dtype=torch.float64), torch.ones(3, dtype=torch.float64)
+        )
+    with pytest.raises(ValueError, match="finite"):
+        compute_raw_snr_analytic_power(
+            torch.tensor([1.0]), torch.tensor([float("nan")])
+        )
+    with pytest.raises(ValueError, match="alpha"):
+        compute_raw_snr_analytic_power(
+            torch.ones(2), torch.ones(2), alpha=1.0
         )
