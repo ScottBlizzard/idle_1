@@ -24,6 +24,7 @@ def main() -> int:
     parser.add_argument("--observed-tree-gib", type=float, required=True)
     parser.add_argument("--sample-seconds", type=float, default=0.25)
     parser.add_argument("--allow-descendants", action="store_true")
+    parser.add_argument("--hard-single-process", action="store_true")
     parser.add_argument("command", nargs=argparse.REMAINDER)
     args = parser.parse_args()
     command = args.command[1:] if args.command[:1] == ["--"] else args.command
@@ -43,6 +44,7 @@ def main() -> int:
         observed_tree_memory_bytes=int(args.observed_tree_gib * (1 << 30)),
         sample_interval_seconds=args.sample_seconds,
         allow_descendant_processes=args.allow_descendants,
+        hard_single_process=args.hard_single_process,
     )
     result = run_shared_host_command(
         command, cwd=Path(args.cwd),

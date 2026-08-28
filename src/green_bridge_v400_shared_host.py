@@ -5,6 +5,7 @@ lock.  It supplies controls and measurements for explicitly scoped jobs on a
 shared university server without changing host configuration:
 
 * an inherited per-process ``RLIMIT_AS`` ceiling;
+* optional kernel-enforced single-process mode via ``RLIMIT_NPROC``;
 * an external monotonic wall-clock deadline;
 * cleanup and empty verification of the initial worker process group;
 * observed aggregate process-tree RSS/swap and descendant-policy checks; and
@@ -42,6 +43,7 @@ class SharedHostResourcePolicy:
     observed_tree_memory_bytes: int
     sample_interval_seconds: float = 0.25
     allow_descendant_processes: bool = False
+    hard_single_process: bool = False
 
     def __post_init__(self) -> None:
         if self.wall_deadline_seconds <= 0:
@@ -54,6 +56,12 @@ class SharedHostResourcePolicy:
             raise ValueError("sample interval must lie in [0.01, 60] seconds")
         if type(self.allow_descendant_processes) is not bool:
             raise ValueError("allow_descendant_processes must be a bool")
+        if type(self.hard_single_process) is not bool:
+            raise ValueError("hard_single_process must be a bool")
+        if self.hard_single_process and self.allow_descendant_processes:
+            raise ValueError(
+                "hard_single_process is incompatible with allowed descendants"
+            )
 
     def to_dict(self) -> dict:
         return asdict(self)
@@ -283,7 +291,8 @@ def run_shared_host_command(
         exec_shim = Path(__file__).with_name("green_bridge_v400_shared_host_exec.py")
         worker = subprocess.Popen(
             (sys.executable, str(exec_shim),
-             str(policy.per_process_address_space_bytes), *argv),
+             str(policy.per_process_address_space_bytes),
+             "1" if policy.hard_single_process else "0", *argv),
             cwd=working_directory, env=child_environment,
             stdin=subprocess.DEVNULL, stdout=stdout, stderr=stderr,
             start_new_session=True, close_fds=True,
@@ -425,15 +434,29 @@ def run_shared_host_command(
         },
         "guarantee_scope": {
             "hard_per_process_virtual_address_space_limit": True,
+            "hard_single_process_creation_limit": policy.hard_single_process,
+            "hard_aggregate_user_space_address_space_upper_bound": (
+                policy.hard_single_process
+            ),
             "supervisor_live_timerfd_deadline_for_leader_and_initial_group": True,
             "scoped_cleanup_verified": cleanup["cleanup_verified"],
-            "aggregate_process_tree_memory_is_sampled_not_hard_capped": True,
-            "complete_process_tree_containment_claimed": False,
-            "unexpected_descendant_detection_is_observational": True,
+            "aggregate_process_tree_memory_is_sampled_not_hard_capped": (
+                not policy.hard_single_process
+            ),
+            "complete_process_tree_containment_claimed": (
+                policy.hard_single_process
+            ),
+            "unexpected_descendant_detection_is_observational": (
+                not policy.hard_single_process
+            ),
             "sampling_can_miss_short_lived_processes_or_memory_peaks": True,
             "cgroup_v2_enforcement_claimed": False,
         },
-        "permitted_job_scope": "trusted_non_certificate_experiment_resource_record",
+        "permitted_job_scope": (
+            "trusted_hard_single_process_resource_lock_candidate"
+            if policy.hard_single_process else
+            "trusted_non_certificate_experiment_resource_record"
+        ),
         "logs": {
             "stdout": stdout_path.name,
             "stderr": stderr_path.name,

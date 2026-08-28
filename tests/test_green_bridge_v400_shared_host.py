@@ -27,6 +27,11 @@ def test_shared_host_policy_rejects_invalid_limits():
         SharedHostResourcePolicy(1, 1024, 0)
     with pytest.raises(ValueError, match="sample interval"):
         SharedHostResourcePolicy(1, 1024, 1024, 0.001)
+    with pytest.raises(ValueError, match="hard_single_process"):
+        SharedHostResourcePolicy(
+            1, 1024, 1024, allow_descendant_processes=True,
+            hard_single_process=True,
+        )
 
 
 def test_proc_status_and_tree_parsing():
@@ -58,6 +63,45 @@ def test_shared_host_runner_records_completed_command(tmp_path):
     assert report["guarantee_scope"]["complete_process_tree_containment_claimed"] is False
     assert report["permitted_job_scope"] == "trusted_non_certificate_experiment_resource_record"
     assert report["observations"]["cleanup"]["cleanup_verified"] is True
+
+
+@pytest.mark.skipif(not LINUX_PROC, reason="Linux /proc-only shared-host runner")
+def test_hard_single_process_runner_blocks_fork_and_threads(tmp_path):
+    evidence_path = tmp_path / "kernel-lock-evidence.json"
+    program = (
+        "import errno,json,os,threading; "
+        "out={'fork_blocked':False,'thread_blocked':False}; "
+        "\ntry:\n pid=os.fork()\n"
+        "except OSError as e:\n out['fork_blocked']=e.errno==errno.EAGAIN\n"
+        "else:\n"
+        "\n if pid==0: os._exit(7)\n"
+        "\n os.waitpid(pid,0)\n"
+        "\ntry:\n t=threading.Thread(target=lambda:None);t.start();t.join()\n"
+        "except RuntimeError:\n out['thread_blocked']=True\n"
+        f"\nopen({str(evidence_path)!r},'w').write(json.dumps(out))\n"
+        "assert out=={'fork_blocked':True,'thread_blocked':True}"
+    )
+    result = run_shared_host_command(
+        [sys.executable, "-c", program], cwd=tmp_path,
+        attempt_directory=tmp_path / "hard-single-process",
+        policy=SharedHostResourcePolicy(
+            5, 512 << 20, 256 << 20, 0.01,
+            hard_single_process=True,
+        ),
+    )
+    report = json.loads(Path(result.report_path).read_text())
+    assert result.status == "COMPLETED"
+    assert json.loads(evidence_path.read_text()) == {
+        "fork_blocked": True, "thread_blocked": True,
+    }
+    guarantees = report["guarantee_scope"]
+    assert guarantees["hard_single_process_creation_limit"] is True
+    assert guarantees["hard_aggregate_user_space_address_space_upper_bound"] is True
+    assert guarantees["complete_process_tree_containment_claimed"] is True
+    assert guarantees["cgroup_v2_enforcement_claimed"] is False
+    assert report["permitted_job_scope"] == (
+        "trusted_hard_single_process_resource_lock_candidate"
+    )
 
 
 @pytest.mark.skipif(not LINUX_PROC, reason="Linux /proc-only shared-host runner")
