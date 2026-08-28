@@ -56,6 +56,10 @@ def test_build_links_both_executable_and_dso_with_tsan() -> None:
     assert "nm -D --defined-only" in text
     assert "green_v400_native_audit_after_find_hook_release_v1" in text
     assert '"-l:$dso_basename"' in text
+    assert '-Wl,--no-as-needed' in text
+    assert '-ltsan' in text
+    assert 'object_file="${output_executable}.tsan.o"' in text
+    assert text.index('-fsanitize=thread') < text.index('-c \\\n')
 
 
 def test_runner_has_external_liveness_bound_and_immutable_outputs() -> None:
