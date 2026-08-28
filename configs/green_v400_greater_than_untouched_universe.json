@@ -1,0 +1,42 @@
+{
+  "schema_version": "green-v400-greater-than-untouched-universe-v1",
+  "protocol_id": "GREEN_V400_SILENT_FAILURE_GT_REPLICATION_PREPARE_V1",
+  "parent_protocol_id": "GREEN_V400_SILENT_FAILURE_CHALLENGE_PREPARE_V1",
+  "model_id": "gpt2",
+  "model_revision": "607a30d783dfa663caf39e06633721c8d4cfcd7e",
+  "local_files_only": true,
+  "contains_scientific_outcome": false,
+  "model_weights_may_be_loaded": false,
+  "execution_authorized": false,
+  "task": "Greater-Than",
+  "prompt_template_source": "published_greater_than_canonical_grammar",
+  "prompt_template": "<|endoftext|> The {noun} lasted from the year {cc:02d}{y:02d} to the year {cc:02d}",
+  "site_family": "resid_post_at_start_year_suffix",
+  "layers": [0, 1, 2, 3, 4, 5, 6, 7, 8],
+  "centuries": [10, 18, 20],
+  "suffix_min": 5,
+  "suffix_max": 94,
+  "distance_bins": {
+    "near": [8, 16],
+    "far": [40, 56]
+  },
+  "records_per_cell": 8,
+  "orientations_per_cell": {
+    "up": 4,
+    "down": 4
+  },
+  "role_nouns": {
+    "endpoint_calibration": ["alliance", "assembly", "enterprise", "festival"],
+    "development": ["academy", "convention", "industry", "mission", "project", "tradition"],
+    "confirmation": ["association", "coalition", "conference", "initiative", "institute", "movement", "program", "society"],
+    "unused_reserve": ["ceremony", "committee", "federation", "workshop"]
+  },
+  "candidate_hash_domain": "GREEN_V400_SFC_GT_UNTOUCHED_CANDIDATE_V1",
+  "endpoint_contract": {
+    "primary": "sealed_heldout_causal_transport_failure",
+    "secondary": "downstream_layer10_mlp_unembedding_projection",
+    "secondary_hook": "blocks.10.hook_mlp_out",
+    "secondary_position": "final_prompt_position",
+    "secondary_is_prediction_input": false
+  }
+}

@@ -1,0 +1,28 @@
+{
+  "artifact_kind": "outcome_free_greater_than_replication_universe_audit",
+  "created_date": "2026-08-29",
+  "server_artifact": "/mnt/sdb/ccj/iclr_1_runs/green_v400_greater_than_prepare_20260829_v1/untouched_universe.json",
+  "file_sha256": "4f54371ee34616d7d3ef20d1d2107b754a2f4724168ebab9accb444325f65615",
+  "file_size_bytes": 892586,
+  "config_sha256": "8805ba7fd72d8f5976bf001b3fed3fdecae9681d589105fb57fc7e57ddbe8be8",
+  "rows_sha256": "14aee758112cb94a82b33c2af540243e1b432f5c890154c7cd5a17847c553fd9",
+  "row_count": 1056,
+  "role_counts": {
+    "confirmation": 384,
+    "development": 288,
+    "endpoint_calibration": 192,
+    "unused_reserve": 192
+  },
+  "site_positions": [8],
+  "centuries": [10, 18, 20],
+  "historical_main_experiment_centuries_excluded": [11, 12, 13, 14, 15, 16, 17],
+  "contains_scientific_outcome": false,
+  "model_weights_loaded": false,
+  "tokenizer_only": true,
+  "execution_authorized": false,
+  "notes": [
+    "The universe was materialized with the pinned GPT-2 tokenizer in the isolated server clone.",
+    "Century 19 was rejected before freezing because its GPT-2 BPE does not satisfy the fixed century-token plus suffix-token contract.",
+    "No candidate was ranked or filtered using logits, activations, behavior, GREEN, a baseline, or an endpoint."
+  ]
+}
