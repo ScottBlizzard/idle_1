@@ -1,0 +1,63 @@
+{
+  "schema_version": "green-v400-ioi-untouched-universe-v1",
+  "protocol_id": "GREEN_V400_SILENT_FAILURE_CHALLENGE_PREPARE_V1",
+  "model_id": "gpt2",
+  "local_files_only": true,
+  "contains_scientific_outcome": false,
+  "rows_per_template": 128,
+  "templates": [
+    {
+      "id": "endpoint_calibration_0",
+      "role": "endpoint_calibration",
+      "text": "At the {place}, {IO} spoke with {S}. Before leaving, {S} gave the {item} to"
+    },
+    {
+      "id": "development_0",
+      "role": "development",
+      "text": "Inside the {place}, {IO} met {S}. A moment later, {S} handed the {item} to"
+    },
+    {
+      "id": "development_1",
+      "role": "development",
+      "text": "Near the {place}, {IO} greeted {S}. Soon afterward, {S} passed the {item} to"
+    },
+    {
+      "id": "confirmation_0",
+      "role": "confirmation",
+      "text": "While visiting the {place}, {IO} talked to {S}. In the end, {S} sent the {item} to"
+    },
+    {
+      "id": "confirmation_1",
+      "role": "confirmation",
+      "text": "Outside the {place}, {IO} waited with {S}. Just before departing, {S} offered the {item} to"
+    },
+    {
+      "id": "reserve_0",
+      "role": "unused_reserve",
+      "text": "Beyond the {place}, {IO} encountered {S}. After their conversation, {S} delivered the {item} to"
+    }
+  ],
+  "names": [
+    "Aaron", "Adam", "Adrian", "Alan", "Albert", "Alex", "Alice", "Amanda",
+    "Amber", "Amy", "Andrea", "Andrew", "Angela", "Anna", "Anthony", "Arthur",
+    "Ashley", "Austin", "Barbara", "Benjamin", "Betty", "Bill", "Bob", "Brandon",
+    "Brian", "Bruce", "Bryan", "Carl", "Carol", "Catherine", "Charles", "Charlotte",
+    "Christian", "Christine", "Christopher", "Claire", "Daniel", "David", "Dennis", "Diana",
+    "Donna", "Dorothy", "Douglas", "Dylan", "Edward", "Elizabeth", "Emily", "Emma",
+    "Eric", "Ethan", "Evelyn", "Frank", "Gabriel", "Gary", "George", "Grace",
+    "Gregory", "Hannah", "Harold", "Heather", "Helen", "Henry", "Holly", "Howard",
+    "Ian", "Iris", "Isabella", "Jack", "Jacob", "James", "Jane", "Janet",
+    "Jason", "Jennifer", "Jeremy", "Jessica", "Joan", "John", "Jonathan", "Jordan",
+    "Joseph", "Joshua", "Julia", "Julie", "Justin", "Karen", "Katherine", "Kathleen",
+    "Katie", "Keith", "Kelly", "Kenneth", "Laura", "Lauren", "Linda", "Lisa"
+  ],
+  "places": [
+    "bakery", "clinic", "courtyard", "gallery", "harbor", "laboratory", "studio", "workshop"
+  ],
+  "items": [
+    "badge", "folder", "parcel", "photograph", "receipt", "scarf", "sketch", "voucher"
+  ],
+  "candidate_hash_domain": "GREEN_V400_SFC_IOI_UNTOUCHED_CANDIDATE_V1",
+  "historical_template_forbidden": "{lead}, {IO} and {S} visited the {place}. Afterwards, {S} handed the {item} to",
+  "execution_authorized": false
+}
