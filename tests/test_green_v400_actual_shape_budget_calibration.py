@@ -83,6 +83,7 @@ def test_four_budgets_and_worst_case_17_radius_counts_are_frozen():
     assert calibration.exact_no_cache_counts([14] * 17) == {
         "384": 493, "512": 289, "total": 782,
     }
+    assert calibration._exact_ratio_payload(deepcopy(calibration.RADIUS)) == [1, 16384]
 
 
 def test_dual_track_phase_replay_and_artifact_separation_are_explicit():

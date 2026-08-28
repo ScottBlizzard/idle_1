@@ -652,6 +652,11 @@ def _rational_width(interval_payload: dict) -> list[int]:
     return [width.numerator, width.denominator]
 
 
+def _exact_ratio_payload(value) -> list[int]:
+    numerator, denominator = value.as_integer_ratio()
+    return [int(numerator), int(denominator)]
+
+
 def _numerics_radius_summary(state, audit_report: dict) -> dict:
     def widths(section: str) -> dict:
         return {
@@ -728,10 +733,8 @@ class _DurableChargedSyntheticEvaluator:
             "schema_version": "green-v400-budget-calibration-admission-v1",
             "ordinal": ordinal,
             "precision_bits": precision,
-            "lower": [domain.lower.as_integer_ratio()[0],
-                      domain.lower.as_integer_ratio()[1]],
-            "upper": [domain.upper.as_integer_ratio()[0],
-                      domain.upper.as_integer_ratio()[1]],
+            "lower": _exact_ratio_payload(domain.lower),
+            "upper": _exact_ratio_payload(domain.upper),
             "contains_scientific_outcome": False,
             "scientific_threshold_applied": False,
         }
@@ -1060,7 +1063,14 @@ def execute_frozen_manifest(manifest_path: Path) -> Path:
         if completed.returncode == 0 and resource_path.is_file():
             records.append(json.loads(resource_path.read_text(encoding="utf-8")))
         else:
-            records.append(_materialize_failed_resource_record(manifest, job))
+            failed = _materialize_failed_resource_record(manifest, job)
+            records.append(failed)
+            if failed["fault_reason"] not in {
+                    "WALL_DEADLINE_REACHED", "OBSERVED_TREE_MEMORY_REACHED"}:
+                raise RuntimeError(
+                    "BUDGET_CALIBRATION_NONRESOURCE_FAILURE_FAIL_CLOSED:"
+                    + failed["fault_reason"]
+                )
     selected = select_largest_resource_safe_budget(manifest, records)
     payload = {
         "schema_version": "green-v400-budget-calibration-selection-candidate-v1",
