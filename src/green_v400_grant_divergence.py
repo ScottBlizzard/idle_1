@@ -61,11 +61,13 @@ def _validate_states(
         raise ValueError("states must be finite")
 
 
-def _feature_zscore(states: torch.Tensor, epsilon: float = 1e-5) -> torch.Tensor:
-    """Match the featurewise population-standardization in the official code."""
+def _feature_zscore(
+    states: torch.Tensor, *, unbiased: bool, epsilon: float = 1e-5
+) -> torch.Tensor:
+    """Match either standardization convention used in the official code."""
 
     mean = states.mean(dim=0)
-    std = states.std(dim=0, unbiased=False)
+    std = states.std(dim=0, unbiased=unbiased)
     std = torch.where(std > 0, std, torch.ones_like(std))
     return (states - mean) / (std + epsilon)
 
@@ -90,8 +92,11 @@ def normalized_sinkhorn_emd(
 
     if first.shape != second.shape or first.ndim != 2 or first.shape[0] == 0:
         raise ValueError("EMD inputs must have equal nonempty [sample, feature] shape")
-    x = _feature_zscore(first).float()
-    y = _feature_zscore(second).float()
+    # `sample_emd` calls torch.std directly, whose correction=1 convention is
+    # the sample standard deviation.  The companion correlation code below
+    # instead implements a population standard deviation explicitly.
+    x = _feature_zscore(first, unbiased=True).float()
+    y = _feature_zscore(second, unbiased=True).float()
     loss = _load_official_sinkhorn() if sinkhorn_loss is None else sinkhorn_loss
     value = loss(x, y)
     if not isinstance(value, torch.Tensor) or value.numel() != 1:
@@ -105,8 +110,8 @@ def normalized_sinkhorn_emd(
 def _correlation_cost_matrix(first: torch.Tensor, second: torch.Tensor) -> np.ndarray:
     # Official code transposes [sample, feature] twice around get_cor_mtx;
     # the resulting matrix compares samples after z-scoring across features.
-    x = _feature_zscore(first.T).T
-    y = _feature_zscore(second.T).T
+    x = _feature_zscore(first.T, unbiased=False).T
+    y = _feature_zscore(second.T, unbiased=False).T
     correlation = (x @ y.T) / first.shape[1]
     return (1.0 - correlation).detach().cpu().numpy()
 

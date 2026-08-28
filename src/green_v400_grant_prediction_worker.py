@@ -26,6 +26,15 @@ def compute_grant_divergence_prediction_packet(
     64-character digest of the ordered development cohort manifest.
     """
 
+    if not isinstance(protocol_id, str) or not protocol_id:
+        raise ValueError("protocol_id must be nonempty")
+    if not isinstance(cohort_id, str) or len(cohort_id) != 64:
+        raise ValueError("cohort_id must be a 64-character hexadecimal digest")
+    try:
+        int(cohort_id, 16)
+    except ValueError as error:
+        raise ValueError("cohort_id must be hexadecimal") from error
+
     panel = grant_divergence_panel(
         natural_states,
         intervened_states,

@@ -47,3 +47,16 @@ def test_grant_worker_rejects_non_digest_cohort_identity():
             seed=1,
             sinkhorn_loss=lambda x, y: torch.tensor(0.0),
         )
+
+
+def test_grant_worker_rejects_non_hexadecimal_cohort_identity_before_compute():
+    states = torch.randn(8, 3)
+    with pytest.raises(ValueError, match="hexadecimal"):
+        compute_grant_divergence_prediction_packet(
+            protocol_id=PROTOCOL,
+            cohort_id="z" * 64,
+            natural_states=states,
+            intervened_states=states,
+            seed=1,
+            sinkhorn_loss=lambda x, y: torch.tensor(0.0),
+        )

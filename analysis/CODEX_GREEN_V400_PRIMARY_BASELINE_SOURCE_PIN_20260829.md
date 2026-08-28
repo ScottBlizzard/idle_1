@@ -18,7 +18,7 @@ Status: implementation evidence only; no scientific outcome authorization
 - Primary paper: Grant, Han, Tartaglini, and Potts, *Addressing Divergent Representations from Causal Interventions on Neural Networks*, ICLR 2026 Oral, arXiv:2511.04638 / OpenReview `cZrTMqYVL6`.
 - Author repository: `https://github.com/grantsrb/rep_divergence`, pinned at `f2548d2ea9b4f4b87a87ba5d53db43838d15c521`.
 - Authority files: `divergence/divergence_utils.py` and the experiment notebooks under `divergence/`.
-- Primary cohort metric: featurewise-standardize natural and intervened cohorts separately, compute `geomloss.SamplesLoss(loss="sinkhorn", p=2, blur=0.05)`, and divide by `sqrt(d)`.
+- Primary cohort metric: featurewise-standardize natural and intervened cohorts separately using the repository's `torch.std` convention, compute `geomloss.SamplesLoss(loss="sinkhorn", p=2, blur=0.05)`, and divide by `sqrt(d)`.
 - Companion metrics: paired MSE, optimal and nearest-neighbor cosine/correlation cost, and optimal and nearest-neighbor MSE cost.
 - Required control: repeat distribution metrics between two natural-data subsets (`base_*`).
 - Applicability constraint: this is a cohort-level divergence diagnostic, not a per-row certificate and not by itself a test of whether divergence is harmless or pernicious.

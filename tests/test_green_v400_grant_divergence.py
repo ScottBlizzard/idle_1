@@ -30,10 +30,27 @@ def test_sinkhorn_path_matches_official_standardize_then_sqrt_width_formula():
     loss = RecordingLoss()
     result = normalized_sinkhorn_emd(first, second, sinkhorn_loss=loss)
     x, y = loss.calls[0]
+    official_x = (first - first.mean(0)) / (first.std(0) + 1e-5)
+    official_y = (second - second.mean(0)) / (second.std(0) + 1e-5)
+    torch.testing.assert_close(x, official_x)
+    torch.testing.assert_close(y, official_y)
     assert torch.allclose(x[:, 0].mean(), torch.tensor(0.0), atol=1e-6)
     assert torch.equal(x[:, 1], torch.zeros(3))
     assert torch.equal(y[:, 1], torch.zeros(3))
     assert result == pytest.approx(float((x - y).square().mean()) / math.sqrt(2))
+
+
+def test_actual_geomloss_matches_inline_primary_source_formula_when_available():
+    geomloss = pytest.importorskip("geomloss")
+    generator = torch.Generator().manual_seed(991)
+    first = torch.randn(10, 6, generator=generator)
+    second = torch.randn(10, 6, generator=generator) + 0.15
+    official_first = (first - first.mean(0)) / (first.std(0) + 1e-5)
+    official_second = (second - second.mean(0)) / (second.std(0) + 1e-5)
+    official_loss = geomloss.SamplesLoss(loss="sinkhorn", p=2, blur=0.05)
+    expected = float(official_loss(official_first, official_second)) / math.sqrt(6)
+    actual = normalized_sinkhorn_emd(first, second)
+    assert actual == pytest.approx(expected, rel=1e-7, abs=1e-9)
 
 
 def test_grant_panel_is_deterministic_and_reports_natural_control():
