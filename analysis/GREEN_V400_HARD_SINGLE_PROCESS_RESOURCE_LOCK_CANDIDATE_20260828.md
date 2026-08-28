@@ -17,12 +17,14 @@ different no-root kernel envelope is available as a production-lock candidate:
 2. require exactly one task before the target exec;
 3. require that effective `CAP_SYS_RESOURCE` is absent;
 4. set both the soft and hard `RLIMIT_NPROC` values to one and verify readback;
-5. set both the soft and hard `RLIMIT_AS` values to the frozen address-space
+5. force the standard OpenBLAS/OpenMP/MKL/NumExpr/Accelerate/BLIS thread-count
+   environment variables to one before the target exec;
+6. set both the soft and hard `RLIMIT_AS` values to the frozen address-space
    budget;
-6. set the core-file limit to zero;
-7. exec the hash-bound trusted certificate worker without creating another
+7. set the core-file limit to zero;
+8. exec the hash-bound trusted certificate worker without creating another
    process; and
-8. retain the external live `timerfd` deadline, `pidfd` exit observation,
+9. retain the external live `timerfd` deadline, `pidfd` exit observation,
    process-group cleanup, and selector-safe resource report.
 
 This mode is default-off and is incompatible with an allow-descendants policy.
@@ -92,3 +94,10 @@ Before this candidate can authorize a real certificate, it still requires:
 
 Until all five items close, `production_authorized` remains false and no real
 certificate, development, or confirmation outcome may run.
+
+The first actual-shape probe failed closed before native computation because
+NumPy's OpenBLAS initialization inherited a 64-thread default and the kernel
+lock rejected every thread creation. This is expected enforcement, not a
+numerical failure. The strict shim now overwrites the standard numerical-library
+thread-count variables with one before exec; a fresh probe must verify the
+corrected contract.

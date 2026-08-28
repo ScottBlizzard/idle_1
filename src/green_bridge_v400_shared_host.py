@@ -435,6 +435,9 @@ def run_shared_host_command(
         "guarantee_scope": {
             "hard_per_process_virtual_address_space_limit": True,
             "hard_single_process_creation_limit": policy.hard_single_process,
+            "numeric_thread_environment_forced_to_one": (
+                policy.hard_single_process
+            ),
             "hard_aggregate_user_space_address_space_upper_bound": (
                 policy.hard_single_process
             ),

@@ -70,7 +70,10 @@ def test_hard_single_process_runner_blocks_fork_and_threads(tmp_path):
     evidence_path = tmp_path / "kernel-lock-evidence.json"
     program = (
         "import errno,json,os,threading; "
-        "out={'fork_blocked':False,'thread_blocked':False}; "
+        "keys=('OPENBLAS_NUM_THREADS','OMP_NUM_THREADS','MKL_NUM_THREADS',"
+        "'NUMEXPR_NUM_THREADS','VECLIB_MAXIMUM_THREADS','BLIS_NUM_THREADS'); "
+        "out={'fork_blocked':False,'thread_blocked':False,"
+        "'numeric_threads_one':all(os.environ.get(k)=='1' for k in keys)}; "
         "\ntry:\n pid=os.fork()\n"
         "except OSError as e:\n out['fork_blocked']=e.errno==errno.EAGAIN\n"
         "else:\n"
@@ -79,7 +82,8 @@ def test_hard_single_process_runner_blocks_fork_and_threads(tmp_path):
         "\ntry:\n t=threading.Thread(target=lambda:None);t.start();t.join()\n"
         "except RuntimeError:\n out['thread_blocked']=True\n"
         f"\nopen({str(evidence_path)!r},'w').write(json.dumps(out))\n"
-        "assert out=={'fork_blocked':True,'thread_blocked':True}"
+        "assert out=={'fork_blocked':True,'thread_blocked':True,"
+        "'numeric_threads_one':True}"
     )
     result = run_shared_host_command(
         [sys.executable, "-c", program], cwd=tmp_path,
@@ -93,9 +97,11 @@ def test_hard_single_process_runner_blocks_fork_and_threads(tmp_path):
     assert result.status == "COMPLETED"
     assert json.loads(evidence_path.read_text()) == {
         "fork_blocked": True, "thread_blocked": True,
+        "numeric_threads_one": True,
     }
     guarantees = report["guarantee_scope"]
     assert guarantees["hard_single_process_creation_limit"] is True
+    assert guarantees["numeric_thread_environment_forced_to_one"] is True
     assert guarantees["hard_aggregate_user_space_address_space_upper_bound"] is True
     assert guarantees["complete_process_tree_containment_claimed"] is True
     assert guarantees["cgroup_v2_enforcement_claimed"] is False

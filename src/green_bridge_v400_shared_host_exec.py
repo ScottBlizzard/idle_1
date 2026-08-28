@@ -7,6 +7,14 @@ import sys
 
 
 CAP_SYS_RESOURCE = 24
+SINGLE_THREAD_ENVIRONMENT = {
+    "OPENBLAS_NUM_THREADS": "1",
+    "OMP_NUM_THREADS": "1",
+    "MKL_NUM_THREADS": "1",
+    "NUMEXPR_NUM_THREADS": "1",
+    "VECLIB_MAXIMUM_THREADS": "1",
+    "BLIS_NUM_THREADS": "1",
+}
 
 
 def _linux_status_fields() -> dict[str, str]:
@@ -35,6 +43,7 @@ def _apply_hard_single_process_limit() -> None:
     resource.setrlimit(resource.RLIMIT_NPROC, (1, 1))
     if resource.getrlimit(resource.RLIMIT_NPROC) != (1, 1):
         raise SystemExit("RLIMIT_NPROC hard lock verification failed")
+    os.environ.update(SINGLE_THREAD_ENVIRONMENT)
 
 
 def main() -> int:
