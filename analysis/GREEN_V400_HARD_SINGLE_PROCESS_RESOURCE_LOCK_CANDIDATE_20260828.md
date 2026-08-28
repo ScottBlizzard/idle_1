@@ -74,8 +74,9 @@ It cannot be generalized to the model-serving or GPU experiment pipeline.
   `9223372036854771712`
 - isolated kernel probe after `RLIMIT_NPROC=(1,1)`: `fork()` rejected with
   errno 11 (`EAGAIN`); new thread rejected
-- implementation commit: `61614d3`
-- isolated server tests: 11/11 passed
+- base implementation commit: `61614d3`
+- numerical single-thread hardening commit: `2a08f4d`
+- isolated server tests: 11/11 targeted and 635/635 full-suite passed
 - cgroup-v2 enforcement claimed by the new report: false
 - permitted scope label:
   `trusted_hard_single_process_resource_lock_candidate`
@@ -84,20 +85,33 @@ It cannot be generalized to the model-serving or GPU experiment pipeline.
 
 Before this candidate can authorize a real certificate, it still requires:
 
-1. full repository regression in the isolated server clone;
-2. an actual-shape closed-synthetic run under the strict mode;
-3. readback of the target worker's effective limits and task count in a
-   selector-inaccessible audit artifact;
-4. a source/hash closure update that binds the strict exec shim and policy; and
-5. a protocol freeze explicitly selecting the single-process address-space
+1. a source/hash closure update that binds the strict exec shim and policy; and
+2. a protocol freeze explicitly selecting the single-process address-space
    definition rather than claiming cgroup physical-memory accounting.
 
-Until all five items close, `production_authorized` remains false and no real
+Until both items close, `production_authorized` remains false and no real
 certificate, development, or confirmation outcome may run.
 
 The first actual-shape probe failed closed before native computation because
 NumPy's OpenBLAS initialization inherited a 64-thread default and the kernel
 lock rejected every thread creation. This is expected enforcement, not a
 numerical failure. The strict shim now overwrites the standard numerical-library
-thread-count variables with one before exec; a fresh probe must verify the
-corrected contract.
+thread-count variables with one before exec. A fresh probe was therefore
+required; its result follows.
+
+The fresh `v2` probe completed the actual-shape closed-synthetic native path
+under the corrected lock. Its externally supervised run took
+`155.29491757502547` seconds, observed exactly one process and zero descendants,
+peaked at `185319424` bytes RSS with zero swap, and exited zero. The strict
+worker made six 384-bit native dispatches and returned the expected
+`RESOURCE_INCONCLUSIVE / MAX_DEPTH_REACHED` without retaining a response Jet or
+applying a scientific threshold. Before and after native execution it read back
+the same hard limits: `RLIMIT_NPROC=(1,1)`, `RLIMIT_AS=(4294967296,4294967296)`,
+`RLIMIT_CORE=(0,0)`, one thread, UID 1002, and no effective capabilities.
+
+Independent canonical-hash readback passed for both artifacts:
+
+- external wrapper report:
+  `a7cd8a6de22111b82c343911dc44caaa4f4927220c89cf5c73a237583075d14a`
+- selector-inaccessible numerics report:
+  `0c8aa54a87468ee6247b48e9f44185d8198072aa1b947a41c9297127ec8ba640`
