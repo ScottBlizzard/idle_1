@@ -1237,6 +1237,9 @@ def _legacy_final_partition_intersection_audit(
     tightened audit quantities are sound nonempty intersections with the
     official monotone checkpoint and must nest there as well.
     """
+    raise RuntimeError(
+        "LEGACY_CONSTRUCTIVE_384_512_INTERSECTION_AUDIT_FORBIDDEN"
+    )
     _validate_anytime_frozen_partition_audit_inputs(state, evaluator, plan)
     h = Fraction(*state.radius)
     audit_precision = plan.audit_precision_bits
@@ -1466,6 +1469,9 @@ def _legacy_final_partitions_intersection_audit(
     plan: CertificatePlan,
 ) -> dict:
     """Audit all frozen radii phase-major, then verify prefix intersections."""
+    raise RuntimeError(
+        "LEGACY_CONSTRUCTIVE_384_512_INTERSECTION_AUDIT_FORBIDDEN"
+    )
     states = tuple(states)
     expected_radii = tuple(radius.as_fraction() for radius in plan.radii)
     if (len(states) != len(expected_radii)
