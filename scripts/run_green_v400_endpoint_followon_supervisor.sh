@@ -17,6 +17,15 @@ log() {
   printf '%s %s\n' "$(date --iso-8601=seconds)" "$*"
 }
 
+acquire_supervisor_lock() {
+  mkdir -p "$ENDPOINT_SUPERVISOR"
+  exec 9> "$ENDPOINT_SUPERVISOR/supervisor.lock"
+  if ! flock -n 9; then
+    log "ERROR another endpoint follow-on supervisor or inherited shard is active"
+    return 1
+  fi
+}
+
 wait_for_gpu_memory() {
   local gpu=$1
   local required_free_mib=8192
@@ -90,7 +99,9 @@ run_endpoint_shard() {
   local gpu=$((shard + 4))
   local output_directory="$endpoint_root/shard_$shard"
   local temporary_directory="$endpoint_root/tmp_gpu_$gpu"
-  mkdir -p "$output_directory" "$temporary_directory" "$endpoint_root/pycache"
+  local retry_directory="$endpoint_root/retry_logs"
+  mkdir -p "$output_directory" "$temporary_directory" "$endpoint_root/pycache" \
+    "$retry_directory"
   mapfile -t jobs < <(
     "$PYTHON" - "$plan" "$shard" <<'PY'
 import json
@@ -110,42 +121,63 @@ PY
       log "resume skip endpoint shard=$shard job=$job_id"
       continue
     fi
-    wait_for_gpu_memory "$gpu"
-    env \
-      CUDA_VISIBLE_DEVICES="$gpu" \
-      CUBLAS_WORKSPACE_CONFIG=:4096:8 \
-      OMP_NUM_THREADS=1 \
-      MKL_NUM_THREADS=1 \
-      OPENBLAS_NUM_THREADS=1 \
-      BLIS_NUM_THREADS=1 \
-      VECLIB_MAXIMUM_THREADS=1 \
-      NUMEXPR_NUM_THREADS=1 \
-      PYTHONHASHSEED=0 \
-      TOKENIZERS_PARALLELISM=false \
-      HF_HOME=/mnt/sdb/ccj/iclr_1_runs/green_bridge_v136_runtime/huggingface \
-      HF_HUB_OFFLINE=1 \
-      TRANSFORMERS_OFFLINE=1 \
-      TMPDIR="$temporary_directory" \
-      TEMP="$temporary_directory" \
-      TMP="$temporary_directory" \
-      PYTHONPYCACHEPREFIX="$endpoint_root/pycache" \
-      PYTHONPATH="$PYTHON_PATH" \
-      "$PYTHON" -u "$REPO/analysis/green_v400_formal_worker.py" \
-      --mode endpoint \
-      --plan "$plan" \
-      --parent-plan "$parent" \
-      --development-authorization "$AUTHORIZATION" \
-      --universe "$universe" \
-      --model-manifest "$MODEL_MANIFEST" \
-      --direction-registry "$registry" \
-      --direction-payload "$endpoint_directions" \
-      --job-id "$job_id" \
-      --output "$output_path" \
-      --device cuda:0 \
-      --prediction-commitment \
-        "$authorization_root/prediction_commitments/${job_id}.json" \
-      --endpoint-authorization-receipt \
-        "$authorization_root/endpoint_authorizations/${job_id}.json"
+    while [[ ! -f "$output_path" ]]; do
+      wait_for_gpu_memory "$gpu"
+      local prior_attempts attempt attempt_log exit_code
+      prior_attempts=$(find "$retry_directory" -maxdepth 1 -type f \
+        -name "${job_id}_attempt_*.log" | wc -l)
+      attempt=$((prior_attempts + 1))
+      attempt_log="$retry_directory/${job_id}_attempt_${attempt}.log"
+      if env \
+        CUDA_VISIBLE_DEVICES="$gpu" \
+        CUBLAS_WORKSPACE_CONFIG=:4096:8 \
+        OMP_NUM_THREADS=1 \
+        MKL_NUM_THREADS=1 \
+        OPENBLAS_NUM_THREADS=1 \
+        BLIS_NUM_THREADS=1 \
+        VECLIB_MAXIMUM_THREADS=1 \
+        NUMEXPR_NUM_THREADS=1 \
+        PYTHONHASHSEED=0 \
+        TOKENIZERS_PARALLELISM=false \
+        HF_HOME=/mnt/sdb/ccj/iclr_1_runs/green_bridge_v136_runtime/huggingface \
+        HF_HUB_OFFLINE=1 \
+        TRANSFORMERS_OFFLINE=1 \
+        TMPDIR="$temporary_directory" \
+        TEMP="$temporary_directory" \
+        TMP="$temporary_directory" \
+        PYTHONPYCACHEPREFIX="$endpoint_root/pycache" \
+        PYTHONPATH="$PYTHON_PATH" \
+        "$PYTHON" -u "$REPO/analysis/green_v400_formal_worker.py" \
+        --mode endpoint \
+        --plan "$plan" \
+        --parent-plan "$parent" \
+        --development-authorization "$AUTHORIZATION" \
+        --universe "$universe" \
+        --model-manifest "$MODEL_MANIFEST" \
+        --direction-registry "$registry" \
+        --direction-payload "$endpoint_directions" \
+        --job-id "$job_id" \
+        --output "$output_path" \
+        --device cuda:0 \
+        --prediction-commitment \
+          "$authorization_root/prediction_commitments/${job_id}.json" \
+        --endpoint-authorization-receipt \
+          "$authorization_root/endpoint_authorizations/${job_id}.json" \
+          > "$attempt_log" 2>&1; then
+        cat "$attempt_log"
+        break
+      else
+        exit_code=$?
+        cat "$attempt_log"
+        if grep -q -E "OutOfMemoryError|CUDA out of memory" "$attempt_log"; then
+          log "OOM retry shard=$shard job=$job_id attempt=$attempt"
+          sleep 60
+          continue
+        fi
+        log "ERROR non-OOM endpoint failure shard=$shard job=$job_id"
+        return "$exit_code"
+      fi
+    done
   done
   printf '%s\n' COMPLETE > "$endpoint_root/shard_${shard}.status"
 }
@@ -228,7 +260,7 @@ run_protocol_endpoint() {
   log "$label development endpoint fleet complete"
 }
 
-mkdir -p "$ENDPOINT_SUPERVISOR"
+acquire_supervisor_lock
 wait_for_replay_supervisor
 
 run_protocol_endpoint \
