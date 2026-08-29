@@ -60,6 +60,7 @@ def endpoint_authorization(commitment, binding_hash):
         "layer": 0,
         "hook": "resid_post",
         "prediction_packet_sha256": commitment["prediction_packet_sha256"],
+        "prediction_batch_completion_receipt_sha256": "10" * 32,
         "numerical_replay_layer_receipt_sha256": "04" * 32,
         "endpoint_direction_binding_sha256": binding_hash,
         "direction_registry_sha256": "05" * 32,
@@ -73,6 +74,7 @@ def endpoint_authorization(commitment, binding_hash):
         "corrupt_token_ids_sha256": "0b" * 32,
         "phase_ledger_head_sha256": "0c" * 32,
         "grant_phase_receipts_sha256": "0f" * 32,
+        "grant_phase_batch_completion_receipts_sha256": "11" * 32,
     }
     receipt["receipt_sha256"] = receipt_sha256(receipt)
     return receipt

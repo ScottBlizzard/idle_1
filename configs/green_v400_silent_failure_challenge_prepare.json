@@ -48,8 +48,11 @@
       "sealed_IOI_downstream_NMH_recovery"
     ],
     "prediction_committed_before_endpoint": true,
-    "separate_worker_processes": true,
-    "shared_model_instance_forbidden": true,
+    "separate_route_processes": true,
+    "cross_route_shared_model_instance_forbidden": true,
+    "prediction_route_persistent_model_allowed": true,
+    "grant_route_separate_from_direction_bearing_prediction_route": true,
+    "endpoint_payload_in_prediction_process_forbidden": true,
     "adaptive_query_allocation_forbidden": true
   },
   "direction_panels": {

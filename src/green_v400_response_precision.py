@@ -110,3 +110,15 @@ def verify_precision_receipt(receipt: dict[str, Any], manifest_sha256: str) -> N
         raise ValueError("response precision receipt tensor hash scheme mismatch")
     if receipt.get("all_float64_values_roundtrip_to_manifest_float32_exactly") is not True:
         raise ValueError("response precision receipt lacks exact checkpoint preservation")
+
+
+def validate_prepared_float64_response_evaluation(
+    *, model: Any, receipt: dict[str, Any], manifest_sha256: str
+) -> None:
+    """Validate reuse of one already-audited float64 model in a batch worker."""
+
+    verify_precision_receipt(receipt, manifest_sha256)
+    state = model.state_dict()
+    floating = [value for value in state.values() if value.is_floating_point()]
+    if not floating or any(value.dtype != torch.float64 for value in floating):
+        raise ValueError("prepared response model must remain entirely float64")

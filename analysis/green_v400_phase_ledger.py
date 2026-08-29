@@ -45,18 +45,26 @@ def initialize_phase_ledger(plan: dict[str, Any]) -> dict[str, Any]:
         }
     )
     ledger = {
-        "schema_version": "green-v400-phase-ledger-v2",
+        "schema_version": "green-v400-phase-ledger-v3",
         "protocol_id": plan["protocol_id"],
         "plan_sha256": plan["plan_sha256"],
         "execution_enabled": plan.get("execution_enabled") is True,
+        "development_authorized": plan.get("development_authorized") is True,
+        "confirmation_authorized": plan.get("confirmation_authorized") is True,
+        "parent_plan_sha256": plan.get("parent_plan_sha256"),
+        "development_authorization_sha256": plan.get(
+            "development_authorization_sha256"
+        ),
         "planned_prediction_job_ids": _planned_ids(plan, "prediction"),
         "planned_grant_job_ids": _planned_ids(plan, "grant_cohort_prediction"),
         "planned_replay_layers": replay_layers,
         "events": [],
         "completed_prediction_job_ids": [],
         "completed_prediction_commitment_sha256": {},
+        "completed_prediction_batch_receipt_sha256": {},
         "completed_grant_job_ids": [],
         "completed_grant_receipt_sha256": {},
+        "completed_grant_batch_receipt_sha256": {},
         "numerical_replay_receipt_sha256": [],
         "numerical_replay_receipt_by_layer": {},
         "development_analysis_receipt_sha256": None,
@@ -79,7 +87,7 @@ def _require_exact_event_fields(event: dict[str, Any], extras: set[str]) -> None
 def append_phase_event(
     ledger: dict[str, Any], event: dict[str, Any]
 ) -> dict[str, Any]:
-    if ledger.get("schema_version") != "green-v400-phase-ledger-v2":
+    if ledger.get("schema_version") != "green-v400-phase-ledger-v3":
         raise ValueError("phase ledger schema is invalid")
     if ledger.get("execution_enabled") is not True:
         raise ValueError("prepare-only ledger cannot record execution events")
@@ -104,11 +112,25 @@ def append_phase_event(
         updated["numerical_replay_receipt_sha256"].append(digest)
     elif kind == "prediction_committed":
         _require_exact_event_fields(
-            event, {"phase", "job_id", "commitment_sha256"}
+            event,
+            {
+                "phase",
+                "job_id",
+                "commitment_sha256",
+                "batch_completion_receipt_sha256",
+            },
         )
         phase = event.get("phase")
         job_id = event.get("job_id")
+        if phase == "development" and updated["development_authorized"] is not True:
+            raise ValueError("development prediction is not authorized")
+        if phase == "confirmation" and updated["confirmation_authorized"] is not True:
+            raise ValueError("confirmation prediction is not authorized")
         digest = _digest(event.get("commitment_sha256"), "prediction commitment")
+        batch_digest = _digest(
+            event.get("batch_completion_receipt_sha256"),
+            "prediction batch completion receipt",
+        )
         if job_id not in updated["planned_prediction_job_ids"].get(phase, []):
             raise ValueError("prediction job is absent from the planned phase queue")
         if phase == "confirmation" and updated[
@@ -119,11 +141,28 @@ def append_phase_event(
             raise ValueError("prediction job already recorded")
         updated["completed_prediction_job_ids"].append(job_id)
         updated["completed_prediction_commitment_sha256"][job_id] = digest
+        updated["completed_prediction_batch_receipt_sha256"][job_id] = batch_digest
     elif kind == "grant_cohort_committed":
-        _require_exact_event_fields(event, {"phase", "job_id", "receipt_sha256"})
+        _require_exact_event_fields(
+            event,
+            {
+                "phase",
+                "job_id",
+                "receipt_sha256",
+                "batch_completion_receipt_sha256",
+            },
+        )
         phase = event.get("phase")
         job_id = event.get("job_id")
+        if phase == "development" and updated["development_authorized"] is not True:
+            raise ValueError("development Grant cohort is not authorized")
+        if phase == "confirmation" and updated["confirmation_authorized"] is not True:
+            raise ValueError("confirmation Grant cohort is not authorized")
         digest = _digest(event.get("receipt_sha256"), "Grant receipt")
+        batch_digest = _digest(
+            event.get("batch_completion_receipt_sha256"),
+            "Grant batch completion receipt",
+        )
         if job_id not in updated["planned_grant_job_ids"].get(phase, []):
             raise ValueError("Grant cohort job is absent from the planned phase queue")
         if phase == "confirmation" and updated[
@@ -134,11 +173,14 @@ def append_phase_event(
             raise ValueError("Grant cohort job already recorded")
         updated["completed_grant_job_ids"].append(job_id)
         updated["completed_grant_receipt_sha256"][job_id] = digest
+        updated["completed_grant_batch_receipt_sha256"][job_id] = batch_digest
     elif kind == "development_analysis_complete":
         _require_exact_event_fields(event, {"receipt_sha256"})
         digest = _digest(
             event.get("receipt_sha256"), "development analysis receipt"
         )
+        if updated["development_authorized"] is not True:
+            raise ValueError("development analysis is not authorized")
         if updated["development_analysis_receipt_sha256"] is not None:
             raise ValueError("development analysis is one-shot")
         if set(updated["completed_prediction_job_ids"]) != set(

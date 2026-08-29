@@ -43,6 +43,7 @@ GRANT_JOB = "56" * 32
 SOURCE = "66" * 32
 RUNNER_SOURCE = "67" * 32
 ENTRYPOINT_SOURCE = "68" * 32
+BATCH_RECEIPT = "69" * 32
 
 
 def precision_receipt(model_manifest_sha256):
@@ -74,6 +75,8 @@ def plan(execution_enabled=True, phase="development", with_grant=False):
         "schema_version": "green-v400-sealed-execution-plan-v1",
         "protocol_id": PROTOCOL,
         "execution_enabled": execution_enabled,
+        "development_authorized": phase == "development",
+        "confirmation_authorized": False,
         "model_manifest_sha256": "77" * 32,
         "full_model_hash": "88" * 32,
         "direction_registry_sha256": "99" * 32,
@@ -257,16 +260,18 @@ def test_phase_ledger_blocks_prepare_only_and_confirmation_before_development():
             phase="development",
             job_id=PREDICTION_JOB,
             commitment_sha256="01" * 32,
+            batch_completion_receipt_sha256=BATCH_RECEIPT,
         )
     payload, _, _ = plan(phase="confirmation")
     ledger = initialize_phase_ledger(payload)
-    with pytest.raises(ValueError, match="locked"):
+    with pytest.raises(ValueError, match="not authorized"):
         append(
             ledger,
             kind="prediction_committed",
             phase="confirmation",
             job_id=PREDICTION_JOB,
             commitment_sha256="01" * 32,
+            batch_completion_receipt_sha256=BATCH_RECEIPT,
         )
 
 
@@ -318,6 +323,7 @@ def test_endpoint_authorization_requires_ledger_prediction_and_replay_receipts()
         phase="development",
         job_id=PREDICTION_JOB,
         commitment_sha256=commitment["prediction_packet_sha256"],
+        batch_completion_receipt_sha256=BATCH_RECEIPT,
     )
     receipt = build_endpoint_authorization_receipt(
         plan=payload,
@@ -346,6 +352,7 @@ def test_ledger_replay_validation_rejects_derived_state_forgery():
         phase="development",
         job_id=PREDICTION_JOB,
         commitment_sha256="01" * 32,
+        batch_completion_receipt_sha256=BATCH_RECEIPT,
     )
     validate_phase_ledger(payload, ledger)
     forged = json.loads(json.dumps(ledger))
@@ -387,6 +394,7 @@ def test_endpoint_requires_every_typed_grant_receipt_in_plan_and_ledger():
         phase="development",
         job_id=PREDICTION_JOB,
         commitment_sha256=commitment["prediction_packet_sha256"],
+        batch_completion_receipt_sha256=BATCH_RECEIPT,
     )
     kwargs = dict(
         plan=payload,
@@ -426,6 +434,7 @@ def test_endpoint_requires_every_typed_grant_receipt_in_plan_and_ledger():
         phase="development",
         job_id=GRANT_JOB,
         receipt_sha256=grant_receipt["receipt_sha256"],
+        batch_completion_receipt_sha256=BATCH_RECEIPT,
     )
     kwargs["phase_ledger"] = ledger
     kwargs["grant_cohort_receipts"] = [grant_receipt]

@@ -146,6 +146,7 @@ def artifacts(execution_enabled=True):
         "layer": 0,
         "hook": "resid_post",
         "prediction_packet_sha256": prediction_commitment["prediction_packet_sha256"],
+        "prediction_batch_completion_receipt_sha256": "a2" * 32,
         "numerical_replay_layer_receipt_sha256": "70" * 32,
         "endpoint_direction_binding_sha256": binding_hash,
         "direction_registry_sha256": "80" * 32,
@@ -159,6 +160,7 @@ def artifacts(execution_enabled=True):
         "corrupt_token_ids_sha256": token_ids_sha256(row["corrupt_token_ids"]),
         "phase_ledger_head_sha256": "a0" * 32,
         "grant_phase_receipts_sha256": "a1" * 32,
+        "grant_phase_batch_completion_receipts_sha256": "a3" * 32,
     }
     authorization["receipt_sha256"] = receipt_sha256(authorization)
     session = build_model_session_receipt(

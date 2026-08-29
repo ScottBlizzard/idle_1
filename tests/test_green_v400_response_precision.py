@@ -12,6 +12,7 @@ sys.path.insert(0, str(ROOT / "src"))
 from green_v400_response_precision import (
     prepare_float64_response_evaluation,
     tensor_sha256,
+    validate_prepared_float64_response_evaluation,
     verify_precision_receipt,
 )
 
@@ -39,6 +40,9 @@ def test_float64_conversion_preserves_frozen_float32_values_exactly():
     assert all(value.dtype == torch.float64 for value in model.state_dict().values())
     assert receipt["all_float64_values_roundtrip_to_manifest_float32_exactly"] is True
     verify_precision_receipt(receipt, digest(manifest))
+    validate_prepared_float64_response_evaluation(
+        model=model, receipt=receipt, manifest_sha256=digest(manifest)
+    )
 
 
 def test_manifest_tensor_hash_is_exactly_the_frozen_raw_byte_scheme():
@@ -63,6 +67,26 @@ def test_precision_conversion_rejects_changed_or_already_converted_model():
             model=model,
             model_manifest=manifest,
             expected_model_manifest_sha256=digest(manifest),
+        )
+
+
+def test_prepared_float64_reuse_rejects_float32_model():
+    model = torch.nn.Linear(2, 1).float()
+    manifest = {
+        "weight_tensor_hashes": {
+            name: tensor_sha256(value) for name, value in model.state_dict().items()
+        }
+    }
+    prepared = torch.nn.Linear(2, 1).float()
+    prepared.load_state_dict(model.state_dict())
+    receipt = prepare_float64_response_evaluation(
+        model=prepared,
+        model_manifest=manifest,
+        expected_model_manifest_sha256=digest(manifest),
+    )
+    with pytest.raises(ValueError, match="entirely float64"):
+        validate_prepared_float64_response_evaluation(
+            model=model, receipt=receipt, manifest_sha256=digest(manifest)
         )
     model = torch.nn.Linear(2, 1).double()
     manifest = {

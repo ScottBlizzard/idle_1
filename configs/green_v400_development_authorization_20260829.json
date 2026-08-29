@@ -1,0 +1,47 @@
+{
+  "schema_version": "green-v400-development-authorization-v1",
+  "authorization_id": "CODEX-GREEN-V400-DEVELOPMENT-ONLY-20260829-v1",
+  "contains_scientific_outcome": false,
+  "authority": {
+    "kind": "project_owner_continuous_execution_directive",
+    "verbatim_directives": [
+      "好的，去严格执行持续推进吧",
+      "继续持续推进，只要你知道接下去要干什么，持续推进，不要停下来",
+      "开了服务器",
+      "持续推进，不需要goal模式了，你就自己好好推进就可以"
+    ],
+    "verbatim_directives_sha256": "dd7056bacd75fe9882a133b9b8e318641942c0b4cb5ce29e7d970248e55c9518",
+    "interpretation": "authorize execution of the already-frozen development phase for both GREEN v4 protocols; confirmation remains unauthorized",
+    "authentication_claim": "operator_attestation_not_external_signature"
+  },
+  "targets": [
+    {
+      "protocol_id": "GREEN_V400_SILENT_FAILURE_CHALLENGE_PREPARE_V1",
+      "parent_plan_sha256": "9ea0be3338aa9ba16fb20f9feb4eba517e072c3c91317411e736c1a6153dcf25",
+      "parent_plan_file_sha256": "88ff94fa006c8182eb6b5b07385c1c8cdcf96dfd03462e8fc43eab63c07d1c48"
+    },
+    {
+      "protocol_id": "GREEN_V400_SILENT_FAILURE_GT_REPLICATION_PREPARE_V1",
+      "parent_plan_sha256": "51c06a8cfaf622954f3205c4dfd4843c1cea2b4319f5ce17cbbdb7cd69b96998",
+      "parent_plan_file_sha256": "0904508a3ac8637cadb501c9fc90c7b9e91729cca8ec63fe69dd21ff44746e64"
+    }
+  ],
+  "scope": {
+    "development_authorized": true,
+    "confirmation_authorized": false,
+    "automatic_confirmation_unlock": false,
+    "post_outcome_rule_changes_allowed": false
+  },
+  "allowed_parent_to_child_changes": [
+    "schema_version",
+    "parent_plan_sha256",
+    "development_authorization_sha256",
+    "execution_enabled",
+    "real_outcomes_authorized",
+    "development_authorized",
+    "confirmation_authorized",
+    "plan_gate",
+    "plan_sha256"
+  ],
+  "authorization_sha256": "8c7e38d2aa5ea753052f59226c23802b9af6f3871a0d7b5a74e35e006aed6cc5"
+}

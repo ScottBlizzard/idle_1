@@ -100,6 +100,25 @@ def test_plan_compiles_all_routes_but_authorizes_nothing():
         "endpoint_numerical_replay": 3 * 9,
     }
     assert plan["gpu_policy"]["physical_gpu_indices"] == [4, 5, 6, 7]
+    assert plan["worker_routes"] == {
+        "prediction": "persistent_prediction_process_per_gpu_shard",
+        "grant": "persistent_grant_process_per_gpu_shard_without_directions",
+        "replay": "separate_replay_process",
+        "endpoint": "separate_endpoint_process",
+        "cross_route_shared_model_instance_forbidden": True,
+        "prediction_route_persistent_model_allowed": True,
+        "grant_route_separate_from_direction_bearing_prediction_route": True,
+    }
+    assert plan["prediction_execution"] == {
+        "integrated_gradients_steps": 65,
+        "ms_hvp_segments": 8,
+        "response_batch_chunk_size": 16,
+        "shard_count": 4,
+        "physical_gpu_by_shard": {"0": 4, "1": 5, "2": 6, "3": 7},
+        "jobs_serial_within_shard": True,
+        "model_persistent_within_route_plan_phase_shard": True,
+        "automatic_numerical_parameter_change_on_failure_forbidden": True,
+    }
 
 
 def test_every_endpoint_job_requires_a_prediction_commitment():

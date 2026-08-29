@@ -58,8 +58,11 @@ def validate_prepare_config(payload: dict[str, Any]) -> list[str]:
         errors.append("prediction and endpoint routes must be disjoint")
     for field in (
         "prediction_committed_before_endpoint",
-        "separate_worker_processes",
-        "shared_model_instance_forbidden",
+        "separate_route_processes",
+        "cross_route_shared_model_instance_forbidden",
+        "prediction_route_persistent_model_allowed",
+        "grant_route_separate_from_direction_bearing_prediction_route",
+        "endpoint_payload_in_prediction_process_forbidden",
         "adaptive_query_allocation_forbidden",
     ):
         if firewall.get(field) is not True:

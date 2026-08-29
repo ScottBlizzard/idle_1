@@ -238,6 +238,7 @@ def validate_endpoint_authorization_receipt(
         "plan_sha256",
         "endpoint_job_id",
         "prediction_packet_sha256",
+        "prediction_batch_completion_receipt_sha256",
         "numerical_replay_layer_receipt_sha256",
         "endpoint_direction_binding_sha256",
         "direction_registry_sha256",
@@ -247,6 +248,7 @@ def validate_endpoint_authorization_receipt(
         "endpoint_worker_source_sha256",
         "phase_ledger_head_sha256",
         "grant_phase_receipts_sha256",
+        "grant_phase_batch_completion_receipts_sha256",
         "clean_token_ids_sha256",
         "corrupt_token_ids_sha256",
         "response_adapter_source_sha256",
@@ -294,6 +296,10 @@ def build_grant_cohort_receipt(
     job = jobs.get(artifact.get("job_id"))
     if job is None:
         raise ValueError("Grant artifact job is absent from the plan")
+    if job.get("role") == "development" and plan.get("development_authorized") is not True:
+        raise ValueError("development Grant artifact is not authorized")
+    if job.get("role") == "confirmation" and plan.get("confirmation_authorized") is not True:
+        raise ValueError("confirmation Grant artifact is not authorized")
     packet = artifact["grant_prediction"]
     commitment = artifact["commitment"]
     if seal_prediction_packet(packet) != commitment:
@@ -526,6 +532,10 @@ def build_endpoint_authorization_receipt(
     job = jobs.get(endpoint_job_id)
     if job is None:
         raise ValueError("endpoint job is not present in execution plan")
+    if job.get("role") == "development" and plan.get("development_authorized") is not True:
+        raise ValueError("development endpoint is not authorized")
+    if job.get("role") == "confirmation" and plan.get("confirmation_authorized") is not True:
+        raise ValueError("confirmation endpoint is not authorized")
     if replay_layer_receipt.get("plan_sha256") != plan_hash or replay_layer_receipt.get(
         "layer"
     ) != job["layer"]:
@@ -568,6 +578,11 @@ def build_endpoint_authorization_receipt(
     ).get(binding["prediction_job_id"])
     if recorded_prediction_hash != prediction_commitment["prediction_packet_sha256"]:
         raise ValueError("prediction commitment differs from append-only phase ledger")
+    prediction_batch_receipt = phase_ledger.get(
+        "completed_prediction_batch_receipt_sha256", {}
+    ).get(binding["prediction_job_id"])
+    if not isinstance(prediction_batch_receipt, str) or len(prediction_batch_receipt) != 64:
+        raise ValueError("prediction lacks a batch completion receipt in the ledger")
     replay_receipts = set(phase_ledger.get("numerical_replay_receipt_sha256", []))
     if replay_layer_receipt["receipt_sha256"] not in replay_receipts:
         raise ValueError("replay receipt is absent from append-only phase ledger")
@@ -616,6 +631,7 @@ def build_endpoint_authorization_receipt(
         "layer": job["layer"],
         "hook": job["hook"],
         "prediction_packet_sha256": prediction_commitment["prediction_packet_sha256"],
+        "prediction_batch_completion_receipt_sha256": prediction_batch_receipt,
         "numerical_replay_layer_receipt_sha256": replay_layer_receipt["receipt_sha256"],
         "endpoint_direction_binding_sha256": job[
             "endpoint_direction_binding_sha256"
@@ -639,6 +655,16 @@ def build_endpoint_authorization_receipt(
         "grant_phase_receipts_sha256": hashlib.sha256(
             _canonical(
                 sorted(receipt["receipt_sha256"] for receipt in supplied_grant)
+            )
+        ).hexdigest(),
+        "grant_phase_batch_completion_receipts_sha256": hashlib.sha256(
+            _canonical(
+                sorted(
+                    phase_ledger["completed_grant_batch_receipt_sha256"][
+                        receipt["job_id"]
+                    ]
+                    for receipt in supplied_grant
+                )
             )
         ).hexdigest(),
     }

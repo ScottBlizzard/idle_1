@@ -17,6 +17,9 @@ from green_v400_prediction_worker import (
     compute_response_baseline_packet,
 )
 from green_v400_response_precision import prepare_float64_response_evaluation
+from green_v400_response_precision import (
+    validate_prepared_float64_response_evaluation,
+)
 
 
 def _canonical(value: Any) -> bytes:
@@ -83,6 +86,7 @@ def run_formal_prediction(
     integrated_gradients_steps: int,
     ms_hvp_segments: int,
     response_batch_chunk_size: int = 32,
+    response_precision_receipt: dict[str, Any] | None = None,
 ) -> tuple[dict[str, Any], dict[str, Any]]:
     """Resolve every scientific input internally and emit one sealed prediction."""
 
@@ -97,11 +101,19 @@ def run_formal_prediction(
     ) != "sha256-contiguous-numpy-native-bytes-v1":
         raise ValueError("plan does not bind the frozen model-manifest hash scheme")
     validate_model_session_for_plan(model_session_receipt, plan)
-    precision_receipt = prepare_float64_response_evaluation(
-        model=model,
-        model_manifest=model_manifest,
-        expected_model_manifest_sha256=plan["model_manifest_sha256"],
-    )
+    if response_precision_receipt is None:
+        precision_receipt = prepare_float64_response_evaluation(
+            model=model,
+            model_manifest=model_manifest,
+            expected_model_manifest_sha256=plan["model_manifest_sha256"],
+        )
+    else:
+        validate_prepared_float64_response_evaluation(
+            model=model,
+            receipt=response_precision_receipt,
+            manifest_sha256=plan["model_manifest_sha256"],
+        )
+        precision_receipt = response_precision_receipt
     job = _planned_prediction_job(plan, prediction_job_id)
     if green_directions.dtype != torch.float32:
         raise ValueError("formal GREEN directions must be float32")

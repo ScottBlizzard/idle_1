@@ -21,10 +21,6 @@ import torch
 
 from green_v400_direction_binding import verify_direction_binding
 from green_v400_execution_receipts import build_model_session_receipt
-from green_v400_formal_endpoint_runner import run_formal_heldout_transport_endpoint
-from green_v400_formal_grant_runner import run_formal_grant_prediction
-from green_v400_formal_prediction_runner import run_formal_prediction
-from green_v400_formal_replay_runner import run_formal_target_replay
 from green_v400_response_precision import tensor_sha256
 
 
@@ -263,6 +259,8 @@ def main() -> None:
         "--mode", choices=("prediction", "grant", "replay", "endpoint"), required=True
     )
     parser.add_argument("--plan", type=Path, required=True)
+    parser.add_argument("--parent-plan", type=Path)
+    parser.add_argument("--development-authorization", type=Path)
     parser.add_argument("--universe", type=Path, required=True)
     parser.add_argument("--model-manifest", type=Path, required=True)
     parser.add_argument("--direction-registry", type=Path)
@@ -273,7 +271,7 @@ def main() -> None:
     parser.add_argument("--device", default="cuda:0")
     parser.add_argument("--integrated-gradients-steps", type=int, default=65)
     parser.add_argument("--ms-hvp-segments", type=int, default=8)
-    parser.add_argument("--response-batch-chunk-size", type=int, default=32)
+    parser.add_argument("--response-batch-chunk-size", type=int, default=16)
     parser.add_argument("--replay-id", choices=("A", "B"))
     parser.add_argument("--prediction-commitment", type=Path)
     parser.add_argument("--endpoint-authorization-receipt", type=Path)
@@ -281,13 +279,41 @@ def main() -> None:
 
     plan = load_json(args.plan)
     verify_plan(plan)
+    if plan.get("development_authorized") is True:
+        if args.parent_plan is None or args.development_authorization is None:
+            parser.error(
+                "development execution requires --parent-plan and "
+                "--development-authorization"
+            )
+        from analysis.green_v400_development_activation import (
+            file_sha256 as activation_file_sha256,
+            validate_activated_plan,
+        )
+
+        validate_activated_plan(
+            parent_plan=load_json(args.parent_plan),
+            authorization=load_json(args.development_authorization),
+            activated_plan=plan,
+            parent_plan_file_sha256=activation_file_sha256(args.parent_plan),
+        )
     validate_runtime_envelope(plan, args.device)
     universe = load_json(args.universe)
     model_manifest = load_json(args.model_manifest)
     job = planned_job(plan, args.mode, args.job_id)
+    if args.mode == "prediction":
+        frozen = plan.get("prediction_execution", {})
+        observed = {
+            "integrated_gradients_steps": args.integrated_gradients_steps,
+            "ms_hvp_segments": args.ms_hvp_segments,
+            "response_batch_chunk_size": args.response_batch_chunk_size,
+        }
+        if any(frozen.get(key) != value for key, value in observed.items()):
+            raise ValueError("prediction numerical parameters differ from the plan")
     directions = None
     binding = None
     if args.mode == "grant":
+        from green_v400_formal_grant_runner import run_formal_grant_prediction
+
         if args.grant_capture_spec is None:
             parser.error("grant mode requires --grant-capture-spec")
         forbidden_route_inputs = (
@@ -331,6 +357,8 @@ def main() -> None:
             "model_session": session,
         }
     elif args.mode == "prediction":
+        from green_v400_formal_prediction_runner import run_formal_prediction
+
         packet, commitment = run_formal_prediction(
             plan=plan,
             universe=universe,
@@ -352,6 +380,8 @@ def main() -> None:
             "model_session": session,
         }
     elif args.mode == "replay":
+        from green_v400_formal_replay_runner import run_formal_target_replay
+
         if args.replay_id is None:
             parser.error("--replay-id is required in replay mode")
         worker_instance_id = canonical_sha256(
@@ -385,6 +415,10 @@ def main() -> None:
             },
         }
     else:
+        from green_v400_formal_endpoint_runner import (
+            run_formal_heldout_transport_endpoint,
+        )
+
         if args.prediction_commitment is None or args.endpoint_authorization_receipt is None:
             parser.error(
                 "endpoint mode requires --prediction-commitment and "
