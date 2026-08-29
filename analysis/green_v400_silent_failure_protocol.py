@@ -6,7 +6,6 @@ The validator deliberately has no model or outcome-loading dependency.
 from __future__ import annotations
 
 import json
-import math
 from pathlib import Path
 from typing import Any
 
@@ -43,6 +42,13 @@ def validate_prepare_config(payload: dict[str, Any]) -> list[str]:
         if payload.get(field) is not False:
             errors.append(f"{field} must be false")
 
+    decision = payload.get("shared_decision_rule", {})
+    digest = decision.get("canonical_sha256")
+    if not isinstance(digest, str) or len(digest) != 64:
+        errors.append("shared decision rule requires a 64-character canonical hash")
+    if decision.get("same_rule_across_tasks") is not True:
+        errors.append("shared decision rule must be identical across tasks")
+
     firewall = payload.get("route_firewall", {})
     prediction_routes = set(firewall.get("prediction_routes", []))
     endpoint_routes = set(firewall.get("endpoint_routes", []))
@@ -68,6 +74,37 @@ def validate_prepare_config(payload: dict[str, Any]) -> list[str]:
         errors.append("direction panels must be disjoint")
     if panels.get("endpoint_panel_hidden_from_prediction_workers") is not True:
         errors.append("endpoint panel must remain hidden from prediction workers")
+    if panels.get("direction_width") != 768:
+        errors.append("GPT-2 Small direction width must equal 768")
+    if panels.get("direction_norm") != 0.001:
+        errors.append("direction norm must equal the frozen value 0.001")
+    if panels.get("payload_generator_spec") != "numpy-PCG64DXSM-rowwise-normal-v1":
+        errors.append("direction payload generator spec is not frozen")
+    if panels.get("actual_tensor_payload_hash_required") is not True:
+        errors.append("actual direction tensor payload hashes are required")
+
+    precision = payload.get("response_evaluation_precision", {})
+    if precision.get("checkpoint_storage_dtype") != "float32":
+        errors.append("checkpoint storage dtype must remain float32")
+    if precision.get("response_evaluation_dtype") != "float64":
+        errors.append("finite response evaluation dtype must equal float64")
+    if precision.get("model_manifest_tensor_hash_scheme") != (
+        "sha256-contiguous-numpy-native-bytes-v1"
+    ):
+        errors.append("model manifest tensor hash scheme is not frozen")
+    if precision.get(
+        "checkpoint_values_must_roundtrip_to_float32_bit_exactly"
+    ) is not True:
+        errors.append("float64 evaluation must preserve float32 checkpoint values exactly")
+    if precision.get("float32_response_outcomes_forbidden") is not True:
+        errors.append("float32 finite response outcomes must be forbidden")
+    audit_hash = precision.get("historical_audit_file_sha256")
+    if not isinstance(audit_hash, str) or len(audit_hash) != 64:
+        errors.append("response precision historical audit hash is missing")
+    if precision.get("historical_audit_verdict") != (
+        "PASS_REQUIRE_FLOAT64_SAME_CHECKPOINT_RESPONSE_EVALUATION"
+    ):
+        errors.append("response precision historical audit verdict is not binding")
 
     endpoint = payload.get("primary_endpoint", {})
     forbidden = set(endpoint.get("forbidden_inputs", []))
@@ -76,28 +113,38 @@ def validate_prepare_config(payload: dict[str, Any]) -> list[str]:
         errors.append(
             "primary endpoint does not forbid: " + ", ".join(sorted(missing_forbidden))
         )
-    if "split-conformal" not in endpoint.get("failure_label", ""):
-        errors.append("primary failure label must use endpoint-only split-conformal calibration")
+    if endpoint.get("transport_failure_threshold") != 0.2:
+        errors.append("transport failure effect-size threshold must equal 0.20")
+    if endpoint.get("per_row_inferential_p_value_claimed") is not False:
+        errors.append("the endpoint must not claim a per-row inferential p-value")
+    if "symmetric normalized response RMSE > 0.20" not in endpoint.get(
+        "failure_label", ""
+    ):
+        errors.append("secondary failure label must use the frozen 0.20 effect-size margin")
 
-    calibration = payload.get("endpoint_calibration_protocol", {})
+    calibration = payload.get("endpoint_numerical_replay_protocol", {})
     if calibration.get("mode") != "same_row_same_direction_target_target_replay":
-        errors.append("endpoint calibration must use same-row target-target replay")
-    if calibration.get("replay_workers_per_score") != 2:
-        errors.append("each endpoint calibration score must use two replay workers")
+        errors.append("endpoint numerical gate must use same-row target-target replay")
+    if calibration.get("replay_workers_per_pair") != 2:
+        errors.append("each endpoint numerical replay pair must use two workers")
     for field in (
         "worker_instances_must_be_distinct",
         "prediction_access_forbidden",
         "adaptive_query_allocation_forbidden",
     ):
         if calibration.get(field) is not True:
-            errors.append(f"endpoint_calibration_protocol.{field} must be true")
-    failure_alpha = calibration.get("failure_alpha")
-    if not isinstance(failure_alpha, (int, float)) or not 0 < failure_alpha < 1:
-        errors.append("endpoint calibration failure_alpha must lie between zero and one")
-    else:
-        minimum = math.ceil(1.0 / float(failure_alpha)) - 1
-        if calibration.get("minimum_scores_per_layer", 0) < minimum:
-            errors.append("endpoint calibration count cannot attain failure_alpha")
+            errors.append(f"endpoint_numerical_replay_protocol.{field} must be true")
+    for field in ("scientific_null_distribution_claimed", "defines_transport_failure_label"):
+        if calibration.get(field) is not False:
+            errors.append(f"endpoint_numerical_replay_protocol.{field} must be false")
+    for field in ("absolute_tolerance", "relative_tolerance"):
+        value = calibration.get(field)
+        if not isinstance(value, (int, float)) or value < 0:
+            errors.append(f"endpoint numerical replay {field} must be nonnegative")
+    if calibration.get("absolute_tolerance", 0) == 0 and calibration.get(
+        "relative_tolerance", 0
+    ) == 0:
+        errors.append("at least one endpoint numerical replay tolerance must be positive")
 
     gate = payload.get("transition_gate_correction", {})
     if gate.get("low_regime") != "simultaneous_95pct_UCB_le_0.20":

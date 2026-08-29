@@ -62,6 +62,7 @@ def site(layer=8):
 
 def prediction_commitment():
     return seal_prediction_packet({
+        "schema_version": "green-v400-sfc-prediction-packet-v1",
         "protocol_id": PROTOCOL,
         "row_id": ROW_ID,
         "route": "prediction",
@@ -101,7 +102,6 @@ def test_layer10_mlp_endpoint_recovers_clean_projection_independently():
         clean_tokens=clean,
         corrupt_tokens=corrupt,
         site=site(),
-        endpoint_calibration_denominator=2.0,
     )
     assert packet["contains_prediction"] is False
     assert packet["endpoint_temporally_eligible_private"] is True
@@ -117,9 +117,8 @@ def test_endpoint_and_adapter_fail_closed_on_invalid_contracts():
             prediction_commitment=prediction_commitment(),
             model=FakeGreaterThanModel(),
             clean_tokens=torch.tensor([[3, 4, 5]]),
-            corrupt_tokens=torch.tensor([[1, 4, 5]]),
+            corrupt_tokens=torch.tensor([[3, 4, 5]]),
             site=site(layer=10),
-            endpoint_calibration_denominator=2.0,
         )
     with pytest.raises(ValueError, match="degenerate"):
         compute_greater_than_mlp_endpoint(
@@ -128,9 +127,8 @@ def test_endpoint_and_adapter_fail_closed_on_invalid_contracts():
             prediction_commitment=prediction_commitment(),
             model=FakeGreaterThanModel(),
             clean_tokens=torch.tensor([[3, 4, 5]]),
-            corrupt_tokens=torch.tensor([[1, 4, 5]]),
+            corrupt_tokens=torch.tensor([[3, 4, 5]]),
             site=site(),
-            endpoint_calibration_denominator=0.0,
         )
     with pytest.raises(ValueError, match="shape"):
         build_target_and_patched_responses(

@@ -9,10 +9,10 @@
       "status": "READY",
       "evidence": ["src/exp_p0_within_site_mechanism.py"]
     },
-    "exact_finite_response": {
+    "finite_activation_patching_response": {
       "required": true,
       "status": "READY",
-      "evidence": ["src/green_v400_response_baselines.py", "src/green_v400_ioi_response_adapter.py"]
+      "evidence": ["src/green_v400_response_baselines.py", "src/green_v400_ioi_response_adapter.py", "src/green_v400_response_precision.py", "analysis/green_v400_historical_response_precision_audit_20260829_v1.json"]
     },
     "first_order_attribution": {
       "required": true,
@@ -21,41 +21,56 @@
     },
     "integrated_gradients": {
       "required": true,
-      "status": "TASK_SERIALIZATION_READY",
-      "evidence": ["src/green_v400_response_baselines.py", "src/green_v400_ioi_response_adapter.py", "src/green_v400_prediction_worker.py", "tests/test_green_v400_prediction_worker.py"],
-      "missing": ["historical-row resource benchmark"]
+      "status": "READY",
+      "evidence": ["src/green_v400_response_baselines.py", "src/green_v400_ioi_response_adapter.py", "src/green_v400_prediction_worker.py", "tests/test_green_v400_prediction_worker.py", "analysis/green_v400_historical_baseline_benchmark_20260829_v2.json"],
+      "missing": []
     },
-    "hvp_second_order": {
-      "required": true,
-      "status": "TASK_SERIALIZATION_READY",
-      "evidence": ["src/green_v400_response_baselines.py", "src/green_v400_ioi_response_adapter.py", "src/green_v400_prediction_worker.py", "tests/test_green_v400_prediction_worker.py"],
-      "missing": ["historical-row resource benchmark"]
-    },
-    "AtP_star_or_closest_exact_attribution": {
+    "single_point_hvp": {
       "required": true,
       "status": "READY",
-      "replacement_method": "exact_finite_response",
+      "evidence": ["src/green_v400_response_baselines.py", "src/green_v400_ioi_response_adapter.py", "src/green_v400_prediction_worker.py", "tests/test_green_v400_prediction_worker.py", "analysis/green_v400_historical_baseline_benchmark_20260829_v2.json"],
+      "missing": []
+    },
+    "ms_hvp": {
+      "required": true,
+      "status": "READY",
+      "evidence": ["src/green_v400_response_baselines.py", "src/green_v400_ioi_response_adapter.py", "src/green_v400_prediction_worker.py", "tests/test_green_v400_response_baselines.py", "tests/test_green_v400_prediction_worker.py", "analysis/green_v400_historical_baseline_benchmark_20260829_v2.json"],
+      "missing": []
+    },
+    "empirical_four_branch_interaction": {
+      "required": true,
+      "status": "READY",
+      "evidence": ["src/green_v400_four_branch_baseline.py", "src/green_v400_matched_bypass_adapter.py", "src/green_v400_ioi_response_adapter.py", "src/green_v400_response_precision.py", "tests/test_green_v400_four_branch_baseline.py", "tests/test_green_v400_matched_bypass_adapter.py", "analysis/green_v400_historical_baseline_benchmark_20260829_v2.json", "analysis/green_v400_historical_response_precision_audit_20260829_v1.json"],
+      "missing": []
+    },
+    "AtP_star_or_closest_exact_attribution": {
+      "required": false,
+      "status": "READY",
+      "comparison_method": "finite_activation_patching_response",
       "applicability": "coarse_full_residual_sites_only",
       "AtP_star_claimed_as_executed": false,
+      "supersedes_atp_star": false,
       "evidence": ["analysis/CODEX_GREEN_V400_PRIMARY_BASELINE_SOURCE_PIN_20260829.md", "analysis/green_v400_atp_star_applicability.py", "analysis/green_v400_atp_star_applicability_audit_20260829.json", "src/green_v400_response_baselines.py", "src/green_v400_ioi_response_adapter.py", "tests/test_green_v400_atp_star_applicability.py", "tests/test_green_v400_response_baselines.py"],
       "missing": []
     },
     "grant_divergence": {
       "required": true,
-      "status": "TASK_SERIALIZATION_READY",
-      "evidence": ["analysis/CODEX_GREEN_V400_PRIMARY_BASELINE_SOURCE_PIN_20260829.md", "analysis/green_v400_grant_runtime_parity_20260829.json", "src/green_v400_grant_divergence.py", "src/green_v400_grant_prediction_worker.py", "tests/test_green_v400_grant_divergence.py", "tests/test_green_v400_grant_prediction_worker.py"],
-      "missing": ["historical-row resource benchmark"]
+      "status": "READY",
+      "evidence": ["analysis/CODEX_GREEN_V400_PRIMARY_BASELINE_SOURCE_PIN_20260829.md", "analysis/green_v400_grant_runtime_parity_20260829.json", "analysis/green_v400_historical_baseline_benchmark_20260829_v2.json", "src/green_v400_grant_divergence.py", "src/green_v400_grant_prediction_worker.py", "tests/test_green_v400_grant_divergence.py", "tests/test_green_v400_grant_prediction_worker.py"],
+      "missing": []
     },
-    "raw_snr_analytic_power": {
-      "required": true,
-      "status": "TASK_SERIALIZATION_READY",
+    "normalized_finite_response_mismatch": {
+      "required": false,
+      "status": "READY",
+      "independent_baseline": false,
       "evidence": ["src/green_v400_prediction_worker.py", "tests/test_green_v400_prediction_worker.py"],
-      "missing": ["historical-row resource benchmark"]
+      "missing": []
     },
     "generic_verifier": {
-      "required": true,
+      "required": false,
       "status": "READY",
-      "mode": "DOCUMENTED_SAME_GRAPH_APPLICABILITY_FAILURE",
+      "mode": "DOCUMENTED_GENERIC_TAIL_APPLICABILITY_FAILURE_NOT_SAME_ESTIMAND",
+      "same_estimand": false,
       "prediction_available": false,
       "must_not_count_as_green_win": true,
       "source_commit": "5a098e8f9fb5786a428a024981d833d303921f2d",

@@ -17,6 +17,7 @@ from green_v400_greater_than_response_adapter import (
 
 ENDPOINT_LAYER = 10
 ENDPOINT_HOOK = "blocks.10.hook_mlp_out"
+DENOMINATOR_FLOOR = 1e-6
 
 
 def _unembedding_readout(model: Any, site: GreaterThanInterventionSite) -> torch.Tensor:
@@ -76,22 +77,13 @@ def compute_greater_than_mlp_endpoint(
     clean_tokens: torch.Tensor,
     corrupt_tokens: torch.Tensor,
     site: GreaterThanInterventionSite,
-    endpoint_calibration_denominator: float,
-    denominator_floor: float = 1e-6,
 ) -> tuple[dict[str, Any], dict[str, Any]]:
-    """Measure structural recovery without exposing the endpoint to prediction."""
+    """Measure downstream output-aligned recovery without prediction access."""
 
     if site.layer >= ENDPOINT_LAYER:
         raise ValueError("the layer-10 MLP endpoint must be strictly downstream")
     if clean_tokens.shape != corrupt_tokens.shape:
         raise ValueError("clean and corrupt tokens must have equal shape")
-    if not math.isfinite(endpoint_calibration_denominator):
-        raise ValueError("endpoint calibration denominator must be finite")
-    if denominator_floor <= 0:
-        raise ValueError("denominator_floor must be positive")
-    if abs(endpoint_calibration_denominator) < denominator_floor:
-        raise ValueError("endpoint calibration denominator is degenerate")
-
     center = capture_resid_post_center(model, clean_tokens, site)
     readout = _unembedding_readout(model, site)
 
@@ -110,9 +102,10 @@ def compute_greater_than_mlp_endpoint(
         readout,
         resid_hook=(site.hook_name, patch),
     )
-    recovery = (
-        patched_projection - corrupt_projection
-    ) / endpoint_calibration_denominator
+    denominator = clean_projection - corrupt_projection
+    if not math.isfinite(denominator) or abs(denominator) < DENOMINATOR_FLOOR:
+        raise ValueError("internally computed clean-minus-corrupt denominator is degenerate")
+    recovery = (patched_projection - corrupt_projection) / denominator
     if not math.isfinite(recovery):
         raise ValueError("Greater-Than structural recovery is non-finite")
 
@@ -129,6 +122,9 @@ def compute_greater_than_mlp_endpoint(
         "endpoint_corrupt_projection_private": corrupt_projection,
         "endpoint_patched_projection_private": patched_projection,
         "greater_than_mlp_recovery_private": recovery,
-        "endpoint_denominator_source_private": "endpoint_calibration_only",
+        "endpoint_denominator_private": denominator,
+        "endpoint_denominator_floor_private": DENOMINATOR_FLOOR,
+        "endpoint_denominator_source_private": "internally_computed_clean_minus_corrupt_projection",
+        "endpoint_semantic_role_private": "downstream_output_aligned_nonmechanistic",
     }
     return packet, seal_endpoint_packet(packet, prediction_commitment)

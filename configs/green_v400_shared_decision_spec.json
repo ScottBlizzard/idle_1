@@ -1,0 +1,110 @@
+{
+  "schema_version": "green-v400-shared-silent-failure-decision-v1",
+  "decision_rule_id": "GREEN_V400_SHARED_SILENT_FAILURE_DECISION_V1",
+  "status": "FROZEN_BEFORE_OUTCOMES",
+  "contains_scientific_outcome": false,
+  "applies_to_protocols": [
+    "GREEN_V400_SILENT_FAILURE_CHALLENGE_PREPARE_V1",
+    "GREEN_V400_SILENT_FAILURE_GT_REPLICATION_PREPARE_V1"
+  ],
+  "primary_population": {
+    "stratum": "ordinary_restoration_ge_0.80",
+    "candidate_universe_replaced": false,
+    "all_candidate_rows_always_reported": true,
+    "greater_than_requires_clean_task_validity": true,
+    "endpoint_status_required": "VALID",
+    "invalid_endpoint_action": "invalidate the affected phase for every method; never method-specific exclusion"
+  },
+  "endpoint": {
+    "primary_continuous_measure": "heldout_transport_symmetric_normalized_error",
+    "absolute_rmse_must_also_be_reported": true,
+    "secondary_effect_size_label": "continuous_measure_gt_0.20",
+    "per_row_p_value_claimed": false
+  },
+  "green_decision": {
+    "accept_statuses": ["CERTIFIED_POSITIVE"],
+    "warning_statuses": [
+      "CERTIFIED_NEGATIVE",
+      "UNRESOLVED",
+      "RESOURCE_INCONCLUSIVE"
+    ],
+    "invalid_status": "INVALID",
+    "invalid_intent_to_analyze_treatment": "warning plus separately reported method-invalid rate",
+    "unresolved_is_abstention_for_primary_comparison": false,
+    "interpretation": "only a preregistered positive certificate accepts transport; every inconclusive or opposite-sign result warns"
+  },
+  "row_level_primary_comparators": [
+    "finite_activation_patching",
+    "first_order_attribution",
+    "ms_hvp",
+    "empirical_four_branch_interaction"
+  ],
+  "nonprimary_comparator_roles": {
+    "integrated_gradients": "quadrature convergence ablation of finite response; not an independent win",
+    "single_point_hvp": "weaker second-order ablation; not a substitute for ms_hvp",
+    "normalized_finite_response_mismatch": "descriptive rescaling of finite mismatch; not an independent win",
+    "grant_divergence": "cohort-level reference diagnostic only; never broadcast to rows",
+    "atp_star": "N/A for coarse full-residual nodes; no claim that exact patching executes or beats AtP-star",
+    "generic_verifier": "same-estimand comparator only if scalar-t four-branch Psi wrapper is operational; otherwise N/A without a GREEN win"
+  },
+  "primary_comparison": {
+    "name": "prompt_clustered_matched_coverage_selective_risk",
+    "green_acceptance": "CERTIFIED_POSITIVE rows",
+    "baseline_acceptance": "within each sealed phase, accept exactly K lowest-risk rows where K is GREEN accepted count; tie break by row_id; endpoint values never used",
+    "risk": "mean primary continuous endpoint among accepted rows",
+    "contrast": "GREEN accepted risk minus comparator accepted risk; lower favors GREEN",
+    "minimum_green_coverage": 0.5,
+    "cluster_unit": "prompt_row_id",
+    "bootstrap_replicates": 20000,
+    "bootstrap_seed": 40029001,
+    "confidence_level": 0.95,
+    "simultaneous_method": "max-absolute-deviation cluster bootstrap across primary comparators",
+    "row_layers_are_not_independent_replicates": true
+  },
+  "secondary_comparison": {
+    "binary_label": "transport_error_gt_0.20",
+    "metrics": [
+      "balanced_accuracy",
+      "sensitivity",
+      "specificity",
+      "auroc_for_continuous_comparators",
+      "aurc"
+    ],
+    "threshold_training": "IOI development only",
+    "threshold_objective": "minimize balanced error with deterministic lower-threshold tie break",
+    "threshold_reuse": "unchanged on IOI confirmation and every Greater-Than phase",
+    "confirmation_retuning_forbidden": true,
+    "multiplicity": "Holm correction over primary row-level comparators"
+  },
+  "grant_analysis": {
+    "unit": "phase-by-layer cohort",
+    "outcomes": [
+      "cohort mean continuous transport error",
+      "cohort transport-failure prevalence"
+    ],
+    "natural_vs_natural_control_required": true,
+    "row_level_replication_or_winner_claim_forbidden": true
+  },
+  "phase_policy": {
+    "development": "fit only prespecified comparator thresholds and perform protocol diagnostics",
+    "confirmation": "one-shot locked analysis",
+    "greater_than_description": "prospective held-out prompt-universe replication on a previously studied benchmark",
+    "same_decision_rule_across_tasks": true,
+    "confirmation_queue_unlock_requires_frozen_analyzer_receipt": true
+  },
+  "oral_success_gate": {
+    "ioi_confirmation": "minimum GREEN coverage met and simultaneous upper confidence bound for every primary selective-risk contrast is below 0",
+    "greater_than_replication": "minimum GREEN coverage met, every primary contrast is directionally below 0, and at least one simultaneous max-deviation upper bound is below 0",
+    "both_tasks_required": true,
+    "grant_row_level_win_required": false,
+    "generic_verifier_na_counts_as_win": false,
+    "green_method_invalid_rate_must_not_exceed": 0.05
+  },
+  "reporting": {
+    "report_all_and_high_restoration_strata": true,
+    "report_coverage_for_every_method": true,
+    "report_absolute_and_symmetric_normalized_rmse": true,
+    "report_low_signal_rows_without_posthoc_deletion": true,
+    "report_failure_modes": true
+  }
+}

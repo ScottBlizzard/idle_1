@@ -56,10 +56,18 @@ def test_real_outcome_authorization_is_rejected():
     assert any("real_outcomes_authorized must be false" in e for e in validate_prepare_config(payload))
 
 
-def test_endpoint_calibration_requires_two_workers_and_enough_scores():
+def test_endpoint_numerical_replay_requires_two_workers_and_noninferential_semantics():
     payload = valid_payload()
-    payload["endpoint_calibration_protocol"]["replay_workers_per_score"] = 1
-    assert any("two replay workers" in e for e in validate_prepare_config(payload))
+    payload["endpoint_numerical_replay_protocol"]["replay_workers_per_pair"] = 1
+    assert any("two workers" in e for e in validate_prepare_config(payload))
     payload = valid_payload()
-    payload["endpoint_calibration_protocol"]["minimum_scores_per_layer"] = 18
-    assert any("cannot attain" in e for e in validate_prepare_config(payload))
+    payload["endpoint_numerical_replay_protocol"][
+        "scientific_null_distribution_claimed"
+    ] = True
+    assert any("must be false" in e for e in validate_prepare_config(payload))
+
+
+def test_float32_finite_response_execution_is_rejected():
+    payload = valid_payload()
+    payload["response_evaluation_precision"]["response_evaluation_dtype"] = "float32"
+    assert any("must equal float64" in e for e in validate_prepare_config(payload))

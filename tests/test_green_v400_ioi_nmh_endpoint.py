@@ -19,6 +19,7 @@ ROW_ID = "56" * 32
 def prediction_commitment():
     return seal_prediction_packet(
         {
+            "schema_version": "green-v400-sfc-prediction-packet-v1",
             "protocol_id": PROTOCOL,
             "row_id": ROW_ID,
             "route": "prediction",
@@ -59,7 +60,7 @@ def test_nmh_endpoint_recovers_clean_structural_readout_independently():
     model = FakeNMHModel()
     clean = torch.tensor([[3, 4, 5]])
     corrupt = torch.tensor([[1, 4, 5]])
-    # clean attention 0.7, corrupt 0.5, patched 0.7; calibration denominator 0.2.
+    # clean attention 0.7, corrupt 0.5, patched 0.7; denominator is computed internally.
     packet, commitment = compute_ioi_nmh_endpoint(
         protocol_id=PROTOCOL,
         row_id=ROW_ID,
@@ -68,7 +69,6 @@ def test_nmh_endpoint_recovers_clean_structural_readout_independently():
         clean_tokens=clean,
         corrupt_tokens=corrupt,
         site=site(),
-        endpoint_calibration_denominator=0.2,
     )
     assert packet["contains_prediction"] is False
     assert packet["endpoint_nmh_temporally_eligible_private"] is True
@@ -86,11 +86,10 @@ def test_nmh_head_not_strictly_downstream_is_rejected():
             clean_tokens=torch.tensor([[3, 4, 5]]),
             corrupt_tokens=torch.tensor([[1, 4, 5]]),
             site=site(layer=9),
-            endpoint_calibration_denominator=0.2,
         )
 
 
-def test_degenerate_endpoint_calibration_denominator_is_rejected():
+def test_degenerate_internal_clean_minus_corrupt_denominator_is_rejected():
     with pytest.raises(ValueError, match="degenerate"):
         compute_ioi_nmh_endpoint(
             protocol_id=PROTOCOL,
@@ -98,7 +97,6 @@ def test_degenerate_endpoint_calibration_denominator_is_rejected():
             prediction_commitment=prediction_commitment(),
             model=FakeNMHModel(),
             clean_tokens=torch.tensor([[3, 4, 5]]),
-            corrupt_tokens=torch.tensor([[1, 4, 5]]),
+            corrupt_tokens=torch.tensor([[3, 4, 5]]),
             site=site(),
-            endpoint_calibration_denominator=0.0,
         )

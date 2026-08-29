@@ -6,6 +6,12 @@
   "real_outcomes_authorized": false,
   "development_authorized": false,
   "confirmation_authorized": false,
+  "shared_decision_rule": {
+    "path": "configs/green_v400_shared_decision_spec.json",
+    "canonical_sha256": "1a16955bb6956a3f43ab8f3478c9ad2ac57ef2e610bb3b5bb139ca37450f2e54",
+    "analyzer_path": "analysis/green_v400_shared_decision_analyzer.py",
+    "same_rule_across_tasks": true
+  },
   "scientific_target": {
     "reference_work": "Grant et al., Addressing Divergent Representations from Causal Interventions on Neural Networks, ICLR 2026 Oral",
     "replication_role": "different task and mechanism family",
@@ -17,18 +23,32 @@
     "hook": "resid_post",
     "layers": [0, 1, 2, 3, 4, 5, 6, 7, 8],
     "temporal_eligibility": "the frozen layer-10 MLP structural readout is strictly downstream of every patch site",
-    "candidate_rule": "immutable tokenizer-only prompt/site universe; no selection using behavior, GREEN, baseline, transport, or structural endpoint outcomes",
+    "candidate_rule": "immutable tokenizer-only prompt/site universe; no selection using behavior, GREEN, baseline, transport, or downstream endpoint outcomes",
+    "analysis_strata": {
+      "all_candidate_rows": "always reported",
+      "clean_task_valid": "prespecified clean-task competence gate; exclusion rate always reported",
+      "high_restoration": "ordinary restoration >= 0.8; prespecified analysis stratum, never a replacement universe"
+    },
+    "clean_task_validity_gate": {
+      "metric": "clean correct-suffix probability mass exceeds incorrect-suffix probability mass",
+      "threshold": 0.0,
+      "uses_GREEN_or_transport_endpoint": false,
+      "exclusion_rate_must_be_reported": true
+    },
     "high_restoration_threshold": 0.8
   },
   "route_firewall": {
     "prediction_routes": [
       "ordinary_restoration",
       "grant_style_divergence",
-      "exact_activation_or_path_patching",
-      "attribution_patching_or_AtP_star",
-      "integrated_gradients",
-      "HVP_or_MS_HVP",
-      "raw_SNR_and_analytic_power",
+      "finite_activation_patching_response",
+      "first_order_attribution",
+      "integrated_gradients_quadrature_ablation",
+      "single_point_HVP_ablation",
+      "multi_step_HVP",
+      "empirical_matched_bypass_four_branch_interaction",
+      "AtP_star_NA_for_coarse_full_residual_sites",
+      "normalized_finite_response_mismatch_descriptive_surrogate",
       "GREEN_certificate"
     ],
     "endpoint_routes": [
@@ -45,12 +65,29 @@
     "heldout_endpoint_panel_seed_domain": "GREEN_V400_SFC_GT_ENDPOINT_PANEL",
     "panels_must_be_disjoint": true,
     "endpoint_panel_hidden_from_prediction_workers": true,
-    "same_context_matched_probe_law": true
+    "same_context_matched_probe_law": true,
+    "direction_width": 768,
+    "direction_norm": 0.001,
+    "payload_generator_spec": "numpy-PCG64DXSM-rowwise-normal-v1",
+    "actual_tensor_payload_hash_required": true
+  },
+  "response_evaluation_precision": {
+    "checkpoint_storage_dtype": "float32",
+    "response_evaluation_dtype": "float64",
+    "model_manifest_tensor_hash_scheme": "sha256-contiguous-numpy-native-bytes-v1",
+    "checkpoint_values_must_roundtrip_to_float32_bit_exactly": true,
+    "reason": "avoid catastrophic cancellation in finite responses at direction norm 0.001 while evaluating the same frozen checkpoint constants",
+    "historical_audit": "analysis/green_v400_gt_historical_response_precision_audit_20260829_v1.json",
+    "historical_audit_file_sha256": "8caa577a039d5aaea9d5870e24672b65047b14722c67dfbb60016a151b127184",
+    "historical_audit_verdict": "PASS_REQUIRE_FLOAT64_SAME_CHECKPOINT_RESPONSE_EVALUATION",
+    "float32_response_outcomes_forbidden": true
   },
   "primary_endpoint": {
     "name": "sealed_heldout_causal_transport_failure",
-    "continuous_measure": "normalized response RMSE between target and patched Greater-Than computations on the sealed endpoint direction panel",
-    "failure_label": "split-conformal exceedance relative to an endpoint-only target-target replay calibration distribution",
+    "continuous_measure": "primary: absolute response RMSE and symmetric normalized response RMSE using max(target RMS, patched RMS, 1e-12) on the sealed endpoint direction panel",
+    "failure_label": "secondary prespecified effect-size label: symmetric normalized response RMSE > 0.20",
+    "transport_failure_threshold": 0.2,
+    "per_row_inferential_p_value_claimed": false,
     "forbidden_inputs": [
       "GREEN_certificate_status",
       "P13_status",
@@ -61,12 +98,16 @@
       "synthetic_attenuation_or_dither_amplitude"
     ]
   },
-  "endpoint_calibration_protocol": {
+  "endpoint_numerical_replay_protocol": {
     "mode": "same_row_same_direction_target_target_replay",
-    "replay_workers_per_score": 2,
+    "role": "numerical reproducibility gate only; never a scientific null distribution and never a transport-failure threshold",
+    "replay_workers_per_pair": 2,
     "worker_instances_must_be_distinct": true,
-    "minimum_scores_per_layer": 19,
-    "failure_alpha": 0.05,
+    "absolute_tolerance": 1e-7,
+    "relative_tolerance": 1e-5,
+    "scientific_null_distribution_claimed": false,
+    "defines_transport_failure_label": false,
+    "unstable_action": "INVALID_NUMERICAL_REPLAY without evaluating scientific endpoint",
     "prediction_access_forbidden": true,
     "adaptive_query_allocation_forbidden": true
   },
@@ -74,7 +115,7 @@
     "name": "downstream_layer10_mlp_unembedding_projection",
     "hook": "blocks.10.hook_mlp_out",
     "position": "final_prompt_position",
-    "role": "task-specific structural validation; never used to construct GREEN or the primary transport label"
+    "role": "task-specific downstream output-aligned signal recovery, non-mechanistic; never used to construct GREEN or the primary transport label"
   },
   "transition_gate_correction": {
     "low_regime": "simultaneous_95pct_UCB_le_0.20",

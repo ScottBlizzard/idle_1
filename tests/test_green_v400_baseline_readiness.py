@@ -12,24 +12,28 @@ from analysis.green_v400_baseline_readiness import (
 
 ROOT = Path(__file__).resolve().parents[1]
 CONFIG = ROOT / "configs" / "green_v400_baseline_readiness.json"
+GT_CONFIG = ROOT / "configs" / "green_v400_greater_than_baseline_readiness.json"
 
 
 def payload():
     return json.loads(CONFIG.read_text(encoding="utf-8"))
 
 
-def test_checked_in_registry_blocks_untouched_execution_honestly():
+def test_checked_in_registry_passes_after_historical_resource_and_precision_audits():
     audit = audit_baseline_readiness(payload(), ROOT)
-    assert audit["verdict"] == "BLOCK_BASELINES_NOT_READY"
-    assert audit["ready_for_untouched_execution"] is False
-    assert set(audit["not_ready_required"]) == {
-        "grant_divergence",
-        "hvp_second_order",
-        "integrated_gradients",
-        "raw_snr_analytic_power",
-    }
-    with pytest.raises(RuntimeError, match="BLOCK_BASELINES_NOT_READY"):
-        assert_baselines_ready(payload(), ROOT)
+    assert audit["verdict"] == "PASS_BASELINES_READY"
+    assert audit["ready_for_untouched_execution"] is True
+    assert audit["not_ready_required"] == []
+    assert_baselines_ready(payload(), ROOT)
+
+
+def test_checked_in_greater_than_registry_passes_its_own_historical_audits():
+    registry = json.loads(GT_CONFIG.read_text(encoding="utf-8"))
+    audit = audit_baseline_readiness(registry, ROOT)
+    assert audit["verdict"] == "PASS_BASELINES_READY"
+    assert audit["ready_for_untouched_execution"] is True
+    assert audit["not_ready_required"] == []
+    assert_baselines_ready(registry, ROOT)
 
 
 def test_gate_passes_only_when_every_required_baseline_is_ready():
@@ -67,7 +71,7 @@ def test_documented_verifier_failure_cannot_be_relabelled_as_prediction():
     assert "cannot expose a prediction" in " ".join(audit["errors"])
 
 
-def test_atp_exact_replacement_cannot_claim_full_atp_star_execution():
+def test_atp_scope_cannot_claim_full_atp_star_execution():
     changed = payload()
     changed["baselines"]["AtP_star_or_closest_exact_attribution"][
         "AtP_star_claimed_as_executed"

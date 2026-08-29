@@ -1,0 +1,56 @@
+{
+  "absolute_tolerance": 1e-07,
+  "checkpoint_float32_value_hash": "4b714b6db96e16f5fa49827edfe8ad3d886eb49d6e86799fa7d5aee162b39397",
+  "checkpoint_values_preserved_exactly": true,
+  "direction_count": 8,
+  "direction_norm": 0.001,
+  "endpoint_fields_loaded": false,
+  "float64_response_evaluation_required": true,
+  "float64_roundtrip_float32_value_hash": "4b714b6db96e16f5fa49827edfe8ad3d886eb49d6e86799fa7d5aee162b39397",
+  "ig_steps": 65,
+  "layers": [
+    {
+      "allowed_max_absolute_error": 1.199227062864793e-07,
+      "float32_direct_vs_ig_max_absolute_gap": 4.6554827804357046e-05,
+      "float32_vs_float64_direct_max_absolute_gap": 4.655481353665891e-05,
+      "float64_direct_vs_ig_max_absolute_gap": 2.1888027618133764e-13,
+      "float64_four_branch_replay_max_absolute_gap": 0.0,
+      "layer": 0,
+      "passed": true,
+      "response_scale": 1.9922706286479297e-05,
+      "scientific_response_vectors_serialized": false
+    },
+    {
+      "allowed_max_absolute_error": 1.3336772620343708e-07,
+      "float32_direct_vs_ig_max_absolute_gap": 5.4267225323201274e-05,
+      "float32_vs_float64_direct_max_absolute_gap": 5.4267276169639445e-05,
+      "float64_direct_vs_ig_max_absolute_gap": 2.0475015895260202e-13,
+      "float64_four_branch_replay_max_absolute_gap": 0.0,
+      "layer": 4,
+      "passed": true,
+      "response_scale": 3.336772620343709e-05,
+      "scientific_response_vectors_serialized": false
+    },
+    {
+      "allowed_max_absolute_error": 1.0989454611044493e-07,
+      "float32_direct_vs_ig_max_absolute_gap": 4.0881032873585355e-05,
+      "float32_vs_float64_direct_max_absolute_gap": 4.088103328570014e-05,
+      "float64_direct_vs_ig_max_absolute_gap": 1.7331403925742125e-13,
+      "float64_four_branch_replay_max_absolute_gap": 0.0,
+      "layer": 8,
+      "passed": true,
+      "response_scale": 9.894546110444935e-06,
+      "scientific_response_vectors_serialized": false
+    }
+  ],
+  "model_id": "openai-community/gpt2",
+  "model_revision": "607a30d783dfa663caf39e06633721c8d4cfcd7e",
+  "real_outcomes_authorized": false,
+  "relative_tolerance": 0.001,
+  "schema_version": "green-v400-historical-response-precision-audit-v1",
+  "scientific_response_vectors_serialized": false,
+  "task": "greater_than",
+  "total_elapsed_seconds": 47.557369109010324,
+  "untouched_manifest_loaded": false,
+  "verdict": "PASS_REQUIRE_FLOAT64_SAME_CHECKPOINT_RESPONSE_EVALUATION"
+}

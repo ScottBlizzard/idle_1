@@ -1,0 +1,508 @@
+{
+  "device": "cuda:0",
+  "direction_count": 8,
+  "direction_norm": 0.001,
+  "endpoint_fields_loaded": false,
+  "grant_cohort": {
+    "activation_width": 768,
+    "elapsed_seconds": 1.878471117990557,
+    "finite": true,
+    "sample_size": 128
+  },
+  "historical_prompt_grammar": "P0_20260712",
+  "ig_grid": [
+    33,
+    65,
+    129,
+    257
+  ],
+  "layers": [
+    {
+      "ig_convergence": {
+        "absolute_tolerance": 1e-07,
+        "direct_finite_gap_used_for_selection": false,
+        "grid": [
+          33,
+          65,
+          129,
+          257
+        ],
+        "precision_risk_requires_separate_audit": true,
+        "quadrature_ablation_only": true,
+        "records": [
+          {
+            "allowed_max_absolute_error": 1.6103515625e-07,
+            "max_absolute_gap_to_direct_finite_response": 5.4366322729038075e-05,
+            "max_absolute_successive_grid_difference": null,
+            "passed": false,
+            "steps": 33
+          },
+          {
+            "allowed_max_absolute_error": 1.6103515625e-07,
+            "max_absolute_gap_to_direct_finite_response": 5.436632636701688e-05,
+            "max_absolute_successive_grid_difference": 3.637978807091713e-12,
+            "passed": true,
+            "steps": 65
+          },
+          {
+            "allowed_max_absolute_error": 1.6103515625e-07,
+            "max_absolute_gap_to_direct_finite_response": 5.4366322729038075e-05,
+            "max_absolute_successive_grid_difference": 2.0463630789890885e-12,
+            "passed": true,
+            "steps": 129
+          },
+          {
+            "allowed_max_absolute_error": 1.6103515625e-07,
+            "max_absolute_gap_to_direct_finite_response": 5.4366322729038075e-05,
+            "max_absolute_successive_grid_difference": 1.8189894035458565e-12,
+            "passed": true,
+            "steps": 257
+          }
+        ],
+        "relative_tolerance": 0.001,
+        "scientific_values_serialized": false,
+        "selected_steps": 65,
+        "selection_rule": "successive_grid_stability"
+      },
+      "layer": 0,
+      "methods": [
+        {
+          "activation_width": 768,
+          "allocated_before_bytes": 669425664,
+          "direction_count": 8,
+          "elapsed_seconds": 0.047967453952878714,
+          "finite": true,
+          "ig_steps": null,
+          "method": "exact",
+          "ms_hvp_segments": null,
+          "normalized_mismatch_surrogate": {
+            "assumption": "independent_direction_gaussian_location_surrogate_with_target_rms_unit_scale",
+            "elapsed_seconds": 0.0007992640021257102,
+            "finite": true,
+            "inferential_test_claimed": false,
+            "scientific_values_serialized": false
+          },
+          "peak_allocated_bytes": 1625667072,
+          "peak_reserved_bytes": 1629487104,
+          "response_batch_chunk_size": 16,
+          "response_batching": true
+        },
+        {
+          "activation_width": 768,
+          "allocated_before_bytes": 669425664,
+          "direction_count": 8,
+          "elapsed_seconds": 0.06728117499733344,
+          "finite": true,
+          "ig_steps": null,
+          "method": "first_order",
+          "ms_hvp_segments": null,
+          "normalized_mismatch_surrogate": null,
+          "peak_allocated_bytes": 965244416,
+          "peak_reserved_bytes": 989855744,
+          "response_batch_chunk_size": 16,
+          "response_batching": true
+        },
+        {
+          "activation_width": 768,
+          "allocated_before_bytes": 669425664,
+          "direction_count": 8,
+          "elapsed_seconds": 2.111739968007896,
+          "finite": true,
+          "ig_steps": 65,
+          "method": "integrated_gradients",
+          "ms_hvp_segments": null,
+          "normalized_mismatch_surrogate": null,
+          "peak_allocated_bytes": 1390623232,
+          "peak_reserved_bytes": 1478492160,
+          "response_batch_chunk_size": 16,
+          "response_batching": true
+        },
+        {
+          "activation_width": 768,
+          "allocated_before_bytes": 669425664,
+          "direction_count": 8,
+          "elapsed_seconds": 0.18332301295595244,
+          "finite": true,
+          "ig_steps": null,
+          "method": "hvp",
+          "ms_hvp_segments": null,
+          "normalized_mismatch_surrogate": null,
+          "peak_allocated_bytes": 1377076736,
+          "peak_reserved_bytes": 1388314624,
+          "response_batch_chunk_size": 16,
+          "response_batching": true
+        },
+        {
+          "activation_width": 768,
+          "allocated_before_bytes": 669425664,
+          "direction_count": 8,
+          "elapsed_seconds": 1.2804404020425864,
+          "finite": true,
+          "ig_steps": null,
+          "method": "ms_hvp",
+          "ms_hvp_segments": 8,
+          "normalized_mismatch_surrogate": null,
+          "peak_allocated_bytes": 1426699776,
+          "peak_reserved_bytes": 1562378240,
+          "response_batch_chunk_size": 16,
+          "response_batching": true
+        },
+        {
+          "activation_width": 768,
+          "allocated_before_bytes": 669425664,
+          "anchor_build_seconds": 0.09543447295436636,
+          "branch_order": [
+            "PAT_J",
+            "PAT_B",
+            "TAR_J",
+            "TAR_B"
+          ],
+          "branch_weights": [
+            1,
+            -1,
+            -1,
+            1
+          ],
+          "certificate_claimed": false,
+          "direction_count": 8,
+          "elapsed_seconds": 0.09329088899539784,
+          "finite": true,
+          "method": "empirical_four_branch_interaction",
+          "peak_allocated_bytes": 2551885824,
+          "peak_reserved_bytes": 2562719744,
+          "point_sampling_only": true,
+          "response_batching": true,
+          "scientific_values_serialized": false
+        }
+      ]
+    },
+    {
+      "ig_convergence": {
+        "absolute_tolerance": 1e-07,
+        "direct_finite_gap_used_for_selection": false,
+        "grid": [
+          33,
+          65,
+          129,
+          257
+        ],
+        "precision_risk_requires_separate_audit": true,
+        "quadrature_ablation_only": true,
+        "records": [
+          {
+            "allowed_max_absolute_error": 1.6103515625e-07,
+            "max_absolute_gap_to_direct_finite_response": 4.17753508372698e-05,
+            "max_absolute_successive_grid_difference": null,
+            "passed": false,
+            "steps": 33
+          },
+          {
+            "allowed_max_absolute_error": 1.6103515625e-07,
+            "max_absolute_gap_to_direct_finite_response": 4.17753508372698e-05,
+            "max_absolute_successive_grid_difference": 3.637978807091713e-12,
+            "passed": true,
+            "steps": 65
+          },
+          {
+            "allowed_max_absolute_error": 1.6103515625e-07,
+            "max_absolute_gap_to_direct_finite_response": 4.177534719929099e-05,
+            "max_absolute_successive_grid_difference": 3.637978807091713e-12,
+            "passed": true,
+            "steps": 129
+          },
+          {
+            "allowed_max_absolute_error": 1.6103515625e-07,
+            "max_absolute_gap_to_direct_finite_response": 4.177534719929099e-05,
+            "max_absolute_successive_grid_difference": 3.637978807091713e-12,
+            "passed": true,
+            "steps": 257
+          }
+        ],
+        "relative_tolerance": 0.001,
+        "scientific_values_serialized": false,
+        "selected_steps": 65,
+        "selection_rule": "successive_grid_stability"
+      },
+      "layer": 4,
+      "methods": [
+        {
+          "activation_width": 768,
+          "allocated_before_bytes": 669425664,
+          "direction_count": 8,
+          "elapsed_seconds": 0.04682855901774019,
+          "finite": true,
+          "ig_steps": null,
+          "method": "exact",
+          "ms_hvp_segments": null,
+          "normalized_mismatch_surrogate": {
+            "assumption": "independent_direction_gaussian_location_surrogate_with_target_rms_unit_scale",
+            "elapsed_seconds": 0.000345890992321074,
+            "finite": true,
+            "inferential_test_claimed": false,
+            "scientific_values_serialized": false
+          },
+          "peak_allocated_bytes": 1625667072,
+          "peak_reserved_bytes": 1629487104,
+          "response_batch_chunk_size": 16,
+          "response_batching": true
+        },
+        {
+          "activation_width": 768,
+          "allocated_before_bytes": 669425664,
+          "direction_count": 8,
+          "elapsed_seconds": 0.05903907003812492,
+          "finite": true,
+          "ig_steps": null,
+          "method": "first_order",
+          "ms_hvp_segments": null,
+          "normalized_mismatch_surrogate": null,
+          "peak_allocated_bytes": 965244416,
+          "peak_reserved_bytes": 989855744,
+          "response_batch_chunk_size": 16,
+          "response_batching": true
+        },
+        {
+          "activation_width": 768,
+          "allocated_before_bytes": 669425664,
+          "direction_count": 8,
+          "elapsed_seconds": 1.8093337489990517,
+          "finite": true,
+          "ig_steps": 65,
+          "method": "integrated_gradients",
+          "ms_hvp_segments": null,
+          "normalized_mismatch_surrogate": null,
+          "peak_allocated_bytes": 1531235328,
+          "peak_reserved_bytes": 1593835520,
+          "response_batch_chunk_size": 16,
+          "response_batching": true
+        },
+        {
+          "activation_width": 768,
+          "allocated_before_bytes": 669425664,
+          "direction_count": 8,
+          "elapsed_seconds": 0.11619877599878237,
+          "finite": true,
+          "ig_steps": null,
+          "method": "hvp",
+          "ms_hvp_segments": null,
+          "normalized_mismatch_surrogate": null,
+          "peak_allocated_bytes": 1291339264,
+          "peak_reserved_bytes": 1312817152,
+          "response_batch_chunk_size": 16,
+          "response_batching": true
+        },
+        {
+          "activation_width": 768,
+          "allocated_before_bytes": 669425664,
+          "direction_count": 8,
+          "elapsed_seconds": 0.9242675889981911,
+          "finite": true,
+          "ig_steps": null,
+          "method": "ms_hvp",
+          "ms_hvp_segments": 8,
+          "normalized_mismatch_surrogate": null,
+          "peak_allocated_bytes": 1438479360,
+          "peak_reserved_bytes": 1598029824,
+          "response_batch_chunk_size": 16,
+          "response_batching": true
+        },
+        {
+          "activation_width": 768,
+          "allocated_before_bytes": 669425664,
+          "anchor_build_seconds": 0.0357066189753823,
+          "branch_order": [
+            "PAT_J",
+            "PAT_B",
+            "TAR_J",
+            "TAR_B"
+          ],
+          "branch_weights": [
+            1,
+            -1,
+            -1,
+            1
+          ],
+          "certificate_claimed": false,
+          "direction_count": 8,
+          "elapsed_seconds": 0.09411030798219144,
+          "finite": true,
+          "method": "empirical_four_branch_interaction",
+          "peak_allocated_bytes": 2551885824,
+          "peak_reserved_bytes": 2562719744,
+          "point_sampling_only": true,
+          "response_batching": true,
+          "scientific_values_serialized": false
+        }
+      ]
+    },
+    {
+      "ig_convergence": {
+        "absolute_tolerance": 1e-07,
+        "direct_finite_gap_used_for_selection": false,
+        "grid": [
+          33,
+          65,
+          129,
+          257
+        ],
+        "precision_risk_requires_separate_audit": true,
+        "quadrature_ablation_only": true,
+        "records": [
+          {
+            "allowed_max_absolute_error": 1.4577636718749998e-07,
+            "max_absolute_gap_to_direct_finite_response": 2.941925049526617e-05,
+            "max_absolute_successive_grid_difference": null,
+            "passed": false,
+            "steps": 33
+          },
+          {
+            "allowed_max_absolute_error": 1.4577636718749998e-07,
+            "max_absolute_gap_to_direct_finite_response": 2.941925049526617e-05,
+            "max_absolute_successive_grid_difference": 1.8189894035458565e-12,
+            "passed": true,
+            "steps": 65
+          },
+          {
+            "allowed_max_absolute_error": 1.4577636718749998e-07,
+            "max_absolute_gap_to_direct_finite_response": 2.941925049526617e-05,
+            "max_absolute_successive_grid_difference": 1.8189894035458565e-12,
+            "passed": true,
+            "steps": 129
+          },
+          {
+            "allowed_max_absolute_error": 1.4577636718749998e-07,
+            "max_absolute_gap_to_direct_finite_response": 2.941925049526617e-05,
+            "max_absolute_successive_grid_difference": 3.637978807091713e-12,
+            "passed": true,
+            "steps": 257
+          }
+        ],
+        "relative_tolerance": 0.001,
+        "scientific_values_serialized": false,
+        "selected_steps": 65,
+        "selection_rule": "successive_grid_stability"
+      },
+      "layer": 8,
+      "methods": [
+        {
+          "activation_width": 768,
+          "allocated_before_bytes": 669425664,
+          "direction_count": 8,
+          "elapsed_seconds": 0.06166276300791651,
+          "finite": true,
+          "ig_steps": null,
+          "method": "exact",
+          "ms_hvp_segments": null,
+          "normalized_mismatch_surrogate": {
+            "assumption": "independent_direction_gaussian_location_surrogate_with_target_rms_unit_scale",
+            "elapsed_seconds": 0.0004208040190860629,
+            "finite": true,
+            "inferential_test_claimed": false,
+            "scientific_values_serialized": false
+          },
+          "peak_allocated_bytes": 1625667072,
+          "peak_reserved_bytes": 1629487104,
+          "response_batch_chunk_size": 16,
+          "response_batching": true
+        },
+        {
+          "activation_width": 768,
+          "allocated_before_bytes": 669425664,
+          "direction_count": 8,
+          "elapsed_seconds": 0.06134147895500064,
+          "finite": true,
+          "ig_steps": null,
+          "method": "first_order",
+          "ms_hvp_segments": null,
+          "normalized_mismatch_surrogate": null,
+          "peak_allocated_bytes": 965244416,
+          "peak_reserved_bytes": 989855744,
+          "response_batch_chunk_size": 16,
+          "response_batching": true
+        },
+        {
+          "activation_width": 768,
+          "allocated_before_bytes": 669425664,
+          "direction_count": 8,
+          "elapsed_seconds": 1.6938621070003137,
+          "finite": true,
+          "ig_steps": 65,
+          "method": "integrated_gradients",
+          "ms_hvp_segments": null,
+          "normalized_mismatch_surrogate": null,
+          "peak_allocated_bytes": 1684018176,
+          "peak_reserved_bytes": 1709178880,
+          "response_batch_chunk_size": 16,
+          "response_batching": true
+        },
+        {
+          "activation_width": 768,
+          "allocated_before_bytes": 669425664,
+          "direction_count": 8,
+          "elapsed_seconds": 0.0809096570010297,
+          "finite": true,
+          "ig_steps": null,
+          "method": "hvp",
+          "ms_hvp_segments": null,
+          "normalized_mismatch_surrogate": null,
+          "peak_allocated_bytes": 1205601792,
+          "peak_reserved_bytes": 1237319680,
+          "response_batch_chunk_size": 16,
+          "response_batching": true
+        },
+        {
+          "activation_width": 768,
+          "allocated_before_bytes": 669425664,
+          "direction_count": 8,
+          "elapsed_seconds": 0.6651317639625631,
+          "finite": true,
+          "ig_steps": null,
+          "method": "ms_hvp",
+          "ms_hvp_segments": 8,
+          "normalized_mismatch_surrogate": null,
+          "peak_allocated_bytes": 1533746176,
+          "peak_reserved_bytes": 1736441856,
+          "response_batch_chunk_size": 16,
+          "response_batching": true
+        },
+        {
+          "activation_width": 768,
+          "allocated_before_bytes": 669425664,
+          "anchor_build_seconds": 0.03464468504535034,
+          "branch_order": [
+            "PAT_J",
+            "PAT_B",
+            "TAR_J",
+            "TAR_B"
+          ],
+          "branch_weights": [
+            1,
+            -1,
+            -1,
+            1
+          ],
+          "certificate_claimed": false,
+          "direction_count": 8,
+          "elapsed_seconds": 0.1227366550010629,
+          "finite": true,
+          "method": "empirical_four_branch_interaction",
+          "peak_allocated_bytes": 2551885824,
+          "peak_reserved_bytes": 2562719744,
+          "point_sampling_only": true,
+          "response_batching": true,
+          "scientific_values_serialized": false
+        }
+      ]
+    }
+  ],
+  "model_id": "openai-community/gpt2",
+  "model_revision": "607a30d783dfa663caf39e06633721c8d4cfcd7e",
+  "ms_hvp_segments": 8,
+  "real_outcomes_authorized": false,
+  "response_batch_chunk_size": 16,
+  "schema_version": "green-v400-historical-baseline-benchmark-v1",
+  "scientific_values_serialized": false,
+  "sequence_length": 16,
+  "total_elapsed_seconds": 63.41419872402912,
+  "untouched_manifest_loaded": false
+}

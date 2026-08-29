@@ -125,3 +125,44 @@ def capture_resid_post_center(
     if len(captured) != 1:
         raise RuntimeError("clean center hook must fire exactly once")
     return captured[0]
+
+
+def build_matched_bypass_four_branch_responses(
+    model: Any,
+    clean_tokens: torch.Tensor,
+    corrupt_tokens: torch.Tensor,
+    site: GreaterThanInterventionSite,
+    center: torch.Tensor,
+    *,
+    selected_gates: tuple[int, ...],
+    gate_layer: int = 10,
+) -> dict[str, Any]:
+    """Build the empirical PAT/TAR x joint/bypass Greater-Than comparator."""
+
+    if site.layer >= gate_layer:
+        raise ValueError("matched-bypass gate must be strictly downstream of the site")
+    from green_v400_matched_bypass_adapter import build_matched_bypass_four_branches
+
+    def score(logits: torch.Tensor) -> torch.Tensor:
+        suffix_ids = torch.as_tensor(
+            site.suffix_token_ids, dtype=torch.long, device=logits.device
+        )
+        if int(suffix_ids.max()) >= logits.shape[-1]:
+            raise ValueError("suffix token identifier lies outside model vocabulary")
+        year_logits = logits[:, -1, :].index_select(-1, suffix_ids)
+        contrast = greater_than_contrast(
+            site.clean_suffix, dtype=year_logits.dtype, device=year_logits.device
+        )
+        return (year_logits * contrast).sum(dim=-1)
+
+    return build_matched_bypass_four_branches(
+        model=model,
+        clean_tokens=clean_tokens,
+        corrupt_tokens=corrupt_tokens,
+        intervention_hook=site.hook_name,
+        intervention_position=site.position,
+        center=center,
+        score_logits=score,
+        selected_gates=selected_gates,
+        gate_layer=gate_layer,
+    )

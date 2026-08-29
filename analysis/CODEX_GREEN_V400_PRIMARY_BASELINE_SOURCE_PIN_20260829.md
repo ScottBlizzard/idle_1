@@ -10,7 +10,7 @@ Status: implementation evidence only; no scientific outcome authorization
 - Q/K fix: for query and key nodes, recompute the finite attention-probability change exactly and linearize only the computation after the softmax.
 - GradDrop, equation (11): run one backward pass per layer with that layer's residual contribution gradient zeroed, average the absolute estimates, and multiply by `L/(L-1)`.
 - Applicability constraint stated by the paper: the method targets large sweeps of fine-grained nodes. For full residual-stream sites, the authors warn that linearization can be poor and say ordinary activation patching is often cheap enough; Appendix C.1 treats a stop-gradient layer-normalization variant as future empirical work.
-- Consequence for GREEN v4: the current IOI challenge patches one full `resid_post` vector. Exact finite activation patching is therefore the primary fair attribution comparator. A component-level AtP* result may be added only under its own node semantics; a residual-vector first-order score must not be relabeled as complete AtP*.
+- Consequence for GREEN v4: the current IOI challenge patches one full `resid_post` vector, so finite activation patching is the fair primary comparator under the frozen coarse-site estimand. This is a scope decision, not a claim that finite patching executes, supersedes, or beats AtP*. A component-level AtP* result may be added only under its own node semantics; a residual-vector first-order score must not be relabeled as complete AtP*.
 - No author-maintained implementation was linked by the paper. `koayon/atp_star` at commit `07e323537ad8a55f0b69f73533f26dab15d69836` is explicitly an unofficial, incomplete replication and is not parity authority.
 
 ## Grant et al. divergence

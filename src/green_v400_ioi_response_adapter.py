@@ -113,3 +113,38 @@ def capture_resid_post_center(
     if len(captured) != 1:
         raise RuntimeError("clean center hook must fire exactly once")
     return captured[0]
+
+
+def build_matched_bypass_four_branch_responses(
+    model: Any,
+    clean_tokens: torch.Tensor,
+    corrupt_tokens: torch.Tensor,
+    site: IOIInterventionSite,
+    center: torch.Tensor,
+    *,
+    selected_gates: tuple[int, ...],
+    gate_layer: int = 10,
+) -> dict[str, Any]:
+    """Build the empirical PAT/TAR x joint/bypass IOI comparator."""
+
+    if site.layer >= gate_layer:
+        raise ValueError("matched-bypass gate must be strictly downstream of the site")
+    from green_v400_matched_bypass_adapter import build_matched_bypass_four_branches
+
+    def score(logits: torch.Tensor) -> torch.Tensor:
+        final = logits[:, -1, :]
+        if max(site.io_token_id, site.s_token_id) >= final.shape[1]:
+            raise ValueError("IO or S token identifier lies outside model vocabulary")
+        return final[:, site.io_token_id] - final[:, site.s_token_id]
+
+    return build_matched_bypass_four_branches(
+        model=model,
+        clean_tokens=clean_tokens,
+        corrupt_tokens=corrupt_tokens,
+        intervention_hook=site.hook_name,
+        intervention_position=site.position,
+        center=center,
+        score_logits=score,
+        selected_gates=selected_gates,
+        gate_layer=gate_layer,
+    )

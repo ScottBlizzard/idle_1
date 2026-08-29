@@ -37,15 +37,19 @@ def audit_baseline_readiness(
 
     atp = baselines.get("AtP_star_or_closest_exact_attribution", {})
     if atp.get("status") == ready_status:
-        if atp.get("replacement_method") != "exact_finite_response":
-            errors.append("AtP* applicability replacement must be exact finite response")
+        if atp.get("comparison_method") != "finite_activation_patching_response":
+            errors.append("AtP* scope comparison must be finite activation patching")
         if atp.get("AtP_star_claimed_as_executed") is not False:
-            errors.append("coarse-site replacement cannot claim AtP* was executed")
+            errors.append("coarse-site comparison cannot claim AtP* was executed")
+        if atp.get("supersedes_atp_star") is not False:
+            errors.append("coarse-site comparison cannot claim to supersede AtP*")
 
     verifier = baselines.get("generic_verifier", {})
     if verifier.get("status") == ready_status and verifier.get("mode") == (
-        "DOCUMENTED_SAME_GRAPH_APPLICABILITY_FAILURE"
+        "DOCUMENTED_GENERIC_TAIL_APPLICABILITY_FAILURE_NOT_SAME_ESTIMAND"
     ):
+        if verifier.get("same_estimand") is not False:
+            errors.append("generic verifier applicability failure must be N/A for estimand")
         if verifier.get("prediction_available") is not False:
             errors.append("failed generic verifier cannot expose a prediction")
         if verifier.get("must_not_count_as_green_win") is not True:

@@ -1,4 +1,4 @@
-"""Fail-closed applicability gate for AtP* versus exact activation patching."""
+"""Fail-closed scope statement for AtP* on coarse residual sites."""
 
 from __future__ import annotations
 
@@ -8,7 +8,7 @@ from pathlib import Path
 from typing import Any
 
 
-VERDICT = "PASS_EXACT_PATCHING_SUPERSEDES_ATP_STAR_FOR_COARSE_SITES"
+VERDICT = "ATP_STAR_NOT_PRIMARY_FOR_COARSE_FULL_RESIDUAL_SITES"
 
 
 def audit_atp_star_applicability(
@@ -28,29 +28,32 @@ def audit_atp_star_applicability(
         isinstance(layer, int) and layer >= 0 for layer in layers
     ):
         errors.append("candidate layers must be unique nonnegative integers")
-    # Exact evaluation is only the cost-dominant substitute while the frozen
-    # sweep remains small.  This ceiling prevents silent reuse for neuron/head
-    # universes where AtP* was designed to provide the scalability benefit.
+    # The scope statement is valid only while the frozen sweep remains coarse.
+    # It makes no claim that finite patching implements or beats AtP*.
     if len(layers) > 32:
         errors.append("coarse-site sweep exceeds the exact-patching applicability ceiling")
 
     baselines = readiness.get("baselines", {})
-    for required in ("exact_finite_response", "first_order_attribution"):
+    for required in ("finite_activation_patching_response", "first_order_attribution"):
         if baselines.get(required, {}).get("status") != "READY":
             errors.append(f"{required} is not READY")
-    replacement = baselines.get("AtP_star_or_closest_exact_attribution", {})
-    if replacement.get("status") != "READY":
-        errors.append("AtP*/exact replacement registry entry is not READY")
-    if replacement.get("replacement_method") != "exact_finite_response":
-        errors.append("AtP* replacement must be exact_finite_response")
-    if replacement.get("applicability") != "coarse_full_residual_sites_only":
-        errors.append("AtP* replacement applicability is not narrowly frozen")
+    scope = baselines.get("AtP_star_or_closest_exact_attribution", {})
+    if scope.get("status") != "READY":
+        errors.append("AtP* scope registry entry is not READY")
+    if scope.get("comparison_method") != "finite_activation_patching_response":
+        errors.append("coarse-site comparison method must be finite activation patching")
+    if scope.get("supersedes_atp_star") is not False:
+        errors.append("coarse-site comparison cannot claim to supersede AtP*")
+    if scope.get("applicability") != "coarse_full_residual_sites_only":
+        errors.append("AtP* scope applicability is not narrowly frozen")
 
     route = challenge.get("route_firewall", {}).get("prediction_routes", [])
-    if "exact_activation_or_path_patching" not in route:
-        errors.append("prediction route omits exact activation/path patching")
-    if "attribution_patching_or_AtP_star" not in route:
-        errors.append("prediction route omits attribution patching comparator")
+    if "finite_activation_patching_response" not in route:
+        errors.append("prediction route omits finite activation patching")
+    if "first_order_attribution" not in route:
+        errors.append("prediction route omits first-order attribution comparator")
+    if "AtP_star_NA_for_coarse_full_residual_sites" not in route:
+        errors.append("prediction route omits the narrow AtP* N/A scope statement")
     if challenge.get("real_outcomes_authorized") is not False:
         errors.append("applicability audit cannot authorize real outcomes")
 
@@ -60,8 +63,9 @@ def audit_atp_star_applicability(
         "real_outcomes_authorized": False,
         "hook": hook,
         "coarse_site_count_per_prompt": len(layers),
-        "replacement_method": "exact_finite_response",
+        "comparison_method": "finite_activation_patching_response",
         "atp_star_claimed_as_executed": False,
+        "supersedes_atp_star": False,
         "errors": errors,
         "verdict": VERDICT if not errors else "BLOCK_ATP_STAR_APPLICABILITY",
     }

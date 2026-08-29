@@ -1,0 +1,25 @@
+{
+  "contains_scientific_outcome": false,
+  "cuda_peak_allocated_bytes_after_reset": 2114375168,
+  "direction_payload_loaded": false,
+  "endpoint_fields_loaded": false,
+  "manifest_verification_and_float64_conversion_seconds": 3.4906352850375697,
+  "model_load_seconds": 15.174362480000127,
+  "model_manifest_path": "analysis/model_manifest.json",
+  "model_manifest_sha256": "cce453a293767d6928b4665829a34ff221baf986e227f7ab7d2e6cc469e8110f",
+  "precision_receipt": {
+    "all_float64_values_roundtrip_to_manifest_float32_exactly": true,
+    "all_manifest_tensor_hashes_matched_before_conversion": true,
+    "checkpoint_storage_dtype": "float32",
+    "floating_tensor_count": 210,
+    "model_manifest_sha256": "cce453a293767d6928b4665829a34ff221baf986e227f7ab7d2e6cc469e8110f",
+    "model_manifest_tensor_hash_scheme": "sha256-contiguous-numpy-native-bytes-v1",
+    "receipt_sha256": "e7df9f8153cdcca0178b2a74e54e74f1d564901baf0f45645ca5b33e6d2f9b97",
+    "response_evaluation_dtype": "float64",
+    "schema_version": "green-v400-response-evaluation-precision-receipt-v1",
+    "scientific_outcome_evaluated": false
+  },
+  "prompt_universe_loaded": false,
+  "schema_version": "green-v400-model-manifest-precision-smoke-v1",
+  "verdict": "PASS_FORMAL_FLOAT64_MODEL_MANIFEST_CONTRACT"
+}

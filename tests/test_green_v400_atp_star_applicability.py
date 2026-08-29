@@ -21,12 +21,13 @@ READINESS = json.loads(
 )
 
 
-def test_frozen_coarse_residual_sweep_uses_stronger_exact_comparator():
+def test_frozen_coarse_residual_sweep_scopes_atp_without_supersession_claim():
     audit = audit_atp_star_applicability(CHALLENGE, READINESS)
     assert audit["verdict"] == VERDICT
     assert audit["coarse_site_count_per_prompt"] == 9
-    assert audit["replacement_method"] == "exact_finite_response"
+    assert audit["comparison_method"] == "finite_activation_patching_response"
     assert audit["atp_star_claimed_as_executed"] is False
+    assert audit["supersedes_atp_star"] is False
 
 
 def test_head_or_neuron_protocol_cannot_reuse_coarse_site_decision():
@@ -44,16 +45,16 @@ def test_large_sweep_reopens_atp_star_requirement():
     assert "ceiling" in " ".join(audit["errors"])
 
 
-def test_missing_exact_baseline_fails_closed():
+def test_missing_finite_patching_baseline_fails_closed():
     changed = copy.deepcopy(READINESS)
-    changed["baselines"]["exact_finite_response"]["status"] = "MISSING"
+    changed["baselines"]["finite_activation_patching_response"]["status"] = "MISSING"
     audit = audit_atp_star_applicability(CHALLENGE, changed)
-    assert "exact_finite_response is not READY" in audit["errors"]
+    assert "finite_activation_patching_response is not READY" in audit["errors"]
 
 
-def test_registry_cannot_claim_full_atp_star_execution():
+def test_registry_cannot_claim_atp_star_supersession():
     changed = copy.deepcopy(READINESS)
     entry = changed["baselines"]["AtP_star_or_closest_exact_attribution"]
-    entry["replacement_method"] = "first_order_attribution"
+    entry["supersedes_atp_star"] = True
     audit = audit_atp_star_applicability(CHALLENGE, changed)
     assert audit["verdict"] == "BLOCK_ATP_STAR_APPLICABILITY"

@@ -2,8 +2,10 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from typing import TYPE_CHECKING
 
-from green_bridge_v400_relational_graph import GraphNode, RelationalGraph
+if TYPE_CHECKING:
+    from green_bridge_v400_relational_graph import RelationalGraph
 
 
 BRANCH_ORDER = ("PAT_J", "PAT_B", "TAR_J", "TAR_B")
@@ -63,6 +65,8 @@ def binding_control_ast() -> dict:
 def compose_four_branch_graph(branches: dict[str, RelationalGraph],
                               precision_bits: int | None = None) -> RelationalGraph:
     """Merge exact branch DAGs and append the binding signed scalar contrast."""
+    from green_bridge_v400_relational_graph import GraphNode, RelationalGraph
+
     if set(branches) != set(BRANCH_ORDER):
         raise ValueError("four-branch graph keys do not match binding order")
     precisions = {graph.precision_bits for graph in branches.values()}
@@ -95,4 +99,3 @@ def compose_four_branch_graph(branches: dict[str, RelationalGraph],
     result = RelationalGraph(nodes, "joint_witness_psi", precision)
     result.topological_order()
     return result
-

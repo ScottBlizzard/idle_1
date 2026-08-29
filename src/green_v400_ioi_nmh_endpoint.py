@@ -15,6 +15,7 @@ from green_v400_ioi_response_adapter import (
 
 
 DEFAULT_NMH_HEADS = ((9, 9), (10, 0))
+DENOMINATOR_FLOOR = 1e-6
 
 
 def _mean_nmh_attention(
@@ -61,9 +62,7 @@ def compute_ioi_nmh_endpoint(
     clean_tokens: torch.Tensor,
     corrupt_tokens: torch.Tensor,
     site: IOIInterventionSite,
-    endpoint_calibration_denominator: float,
     heads: Iterable[tuple[int, int]] = DEFAULT_NMH_HEADS,
-    denominator_floor: float = 1e-6,
 ) -> tuple[dict[str, Any], dict[str, Any]]:
     """Compute a task-specific structural endpoint without prediction access."""
 
@@ -74,13 +73,6 @@ def compute_ioi_nmh_endpoint(
         raise ValueError("every NMH head must be strictly downstream of the patch")
     if clean_tokens.shape != corrupt_tokens.shape:
         raise ValueError("clean and corrupt tokens must have equal shape")
-    if not math.isfinite(endpoint_calibration_denominator):
-        raise ValueError("endpoint calibration denominator must be finite")
-    if denominator_floor <= 0:
-        raise ValueError("denominator_floor must be positive")
-    if abs(endpoint_calibration_denominator) < denominator_floor:
-        raise ValueError("endpoint calibration denominator is degenerate")
-
     clean_center = capture_resid_post_center(model, clean_tokens, site)
 
     def patch(activation: torch.Tensor, hook: Any) -> torch.Tensor:
@@ -103,9 +95,10 @@ def compute_ioi_nmh_endpoint(
         declared_heads,
         resid_hook=(site.hook_name, patch),
     )
-    recovery = (
-        patched_attention - corrupt_attention
-    ) / endpoint_calibration_denominator
+    denominator = clean_attention - corrupt_attention
+    if not math.isfinite(denominator) or abs(denominator) < DENOMINATOR_FLOOR:
+        raise ValueError("internally computed clean-minus-corrupt denominator is degenerate")
+    recovery = (patched_attention - corrupt_attention) / denominator
     if not math.isfinite(recovery):
         raise ValueError("NMH recovery is non-finite")
 
@@ -122,7 +115,8 @@ def compute_ioi_nmh_endpoint(
         "endpoint_nmh_corrupt_attention_private": corrupt_attention,
         "endpoint_nmh_patched_attention_private": patched_attention,
         "nmh_recovery_private": recovery,
-        "endpoint_denominator_source_private": "endpoint_calibration_only",
+        "endpoint_denominator_private": denominator,
+        "endpoint_denominator_floor_private": DENOMINATOR_FLOOR,
+        "endpoint_denominator_source_private": "internally_computed_clean_minus_corrupt_attention",
     }
     return packet, seal_endpoint_packet(packet, prediction_commitment)
-

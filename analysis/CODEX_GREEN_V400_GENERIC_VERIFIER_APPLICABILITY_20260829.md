@@ -1,7 +1,7 @@
 # GREEN v4 generic-verifier applicability audit
 
 Date: 2026-08-29  
-Status: documented same-graph applicability failure; no scientific outcomes opened
+Status: documented generic-tail applicability failure; not the same GREEN estimand; no scientific outcomes opened
 
 ## Authority and pin
 
@@ -10,11 +10,11 @@ Status: documented same-graph applicability failure; no scientific outcomes open
 - Model: `openai-community/gpt2` at revision `607a30d783dfa663caf39e06633721c8d4cfcd7e`.
 - Historical-only input: the pre-existing P0 grammar from 2026-07-12. The untouched v4 manifest was not loaded.
 
-## Same-graph adapter
+## Generic single-tail adapter (not the GREEN four-branch estimand)
 
-The adapter starts at the full IO-position `resid_post` vector after layer 8, retains every other sequence-position activation as a constant, evaluates blocks 9--11, applies the original final LayerNorm and tied LM head, and returns the Mary-minus-John logit contrast. Evaluation-only dropout operators were removed, but no active mathematical operation or weight was changed.
+The adapter starts at the full IO-position `resid_post` vector after layer 8, retains every other sequence-position activation as a constant, evaluates blocks 9--11, applies the original final LayerNorm and tied LM head, and returns the Mary-minus-John logit contrast. Evaluation-only dropout operators were removed, but no active mathematical operation or weight was changed. This reproduces one ordinary response tail only. It does **not** implement the scalar-control matched-bypass functional `PAT_J-PAT_B-TAR_J+TAR_B`, so it is not a same-estimand GREEN comparator.
 
-The reconstructed tail and full Hugging Face model agree to absolute error `6.866455078125e-05` in float32, below the frozen `1e-4` trace-equivalence threshold. Therefore the following failures occur after a valid same-function trace, not because the wrong tail was bounded.
+The reconstructed single tail and full Hugging Face model agree to absolute error `6.866455078125e-05` in float32, below the frozen `1e-4` trace-equivalence threshold. Therefore the following failures are valid evidence about generic verification of that tail, but not evidence that a generic verifier failed on GREEN's four-branch scalar-control estimand.
 
 ## Reproduced failures
 
@@ -28,4 +28,4 @@ The failures are recorded verbatim in:
 
 ## Binding decision
 
-This satisfies the preregistered `generic verifier or documented applicability failure` requirement. It does **not** produce a generic-verifier prediction and must never be counted as a GREEN win. Replacing standard GPT-2 LayerNorm with the example's `no_var` approximation would change the model and is forbidden. If a later official verifier commit supports this exact graph, the applicability decision reopens and a same-instance bound becomes required before untouched execution.
+This is an honest N/A record for the current generic single-tail adapter. It does **not** satisfy a same-estimand generic-verifier comparison, does **not** produce a prediction, and must never be counted as a GREEN win. Replacing standard GPT-2 LayerNorm with the example's `no_var` approximation would change the model and is forbidden. A generic verifier becomes a primary comparator only after a scalar-`t`, four-branch `Psi` wrapper is implemented and passes trace equivalence; otherwise it remains N/A.

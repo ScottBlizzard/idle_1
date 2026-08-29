@@ -6,6 +6,7 @@ from analysis.green_v400_execution_plan_prepare import compile_execution_plan
 from analysis.green_v400_greater_than_universe_prepare import build_untouched_universe
 from analysis.green_v400_silent_failure_protocol import validate_prepare_config
 from tests.test_green_v400_greater_than_universe_prepare import FakeYearTokenizer
+from tests.test_green_v400_execution_plan_prepare import fake_direction_registry
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -45,7 +46,7 @@ def test_replication_manifest_expands_disjoint_prompt_roles_to_sites():
     }
 
 
-def test_replication_execution_plan_uses_its_own_blocked_readiness_registry():
+def test_replication_execution_plan_uses_its_own_ready_but_unauthorized_registry():
     challenge = json.loads(CHALLENGE.read_text(encoding="utf-8"))
     universe = build_untouched_universe(FakeYearTokenizer(), small_universe_config())
     manifest = finalize_prepare_manifest(challenge, universe)
@@ -55,14 +56,23 @@ def test_replication_execution_plan_uses_its_own_blocked_readiness_registry():
         )
     )
     plan = compile_execution_plan(
-        challenge, universe, manifest, readiness, repository_root=ROOT
+        challenge,
+        universe,
+        manifest,
+        readiness,
+        fake_direction_registry(manifest),
+        json.loads((ROOT / "configs/green_v400_shared_decision_spec.json").read_text()),
+        json.loads((ROOT / "analysis/GREEN_V400_FORMAL_PREPARE_ARTIFACTS_20260826/model_manifest.json").read_text()),
+        repository_root=ROOT,
     )
-    assert plan["plan_gate"] == "PLAN_COMPILED_BLOCKED_BY_BASELINES"
+    assert plan["plan_gate"] == "PLAN_COMPILED_AWAITING_SCIENTIFIC_AUTHORIZATION"
     assert plan["execution_enabled"] is False
     assert plan["queue_counts"] == {
         "development_prediction": 4 * 9,
+        "development_grant_cohort_prediction": 9,
         "development_endpoint": 4 * 9,
         "confirmation_prediction": 4 * 9,
+        "confirmation_grant_cohort_prediction": 9,
         "confirmation_endpoint": 4 * 9,
-        "endpoint_calibration": 4 * 9,
+        "endpoint_numerical_replay": 4 * 9,
     }

@@ -11,7 +11,7 @@ sys.path.insert(0, str(ROOT / "src"))
 from green_v400_endpoint_firewall import (
     audit_commitment_pair,
     seal_endpoint_packet,
-    seal_endpoint_calibration_packet,
+    seal_endpoint_numerical_replay_packet,
     seal_prediction_packet,
 )
 
@@ -22,28 +22,37 @@ PROTOCOL = "GREEN_V400_SILENT_FAILURE_CHALLENGE_PREPARE_V1"
 
 def prediction_packet():
     return {
+        "schema_version": "green-v400-sfc-prediction-packet-v1",
         "protocol_id": PROTOCOL,
         "row_id": ROW_ID,
         "route": "prediction",
         "contains_endpoint_outcome": False,
         "committed_before_endpoint": True,
-        "predictions": {
-            "ordinary_restoration": 0.91,
-            "green_certificate_status": "UNRESOLVED"
-        },
+        "ordinary_restoration": 0.91,
+        "response_baselines": {},
+        "raw_snr_analytic_features": {},
+        "integrated_gradients_steps": 65,
+        "response_batching": False,
     }
 
 
 def endpoint_packet():
     return {
+        "schema_version": "green-v400-sfc-ioi-nmh-endpoint-v1",
         "protocol_id": PROTOCOL,
         "row_id": ROW_ID,
         "route": "endpoint",
         "contains_prediction": False,
         "adaptive_query_allocation": False,
-        "endpoint_responses_private": [0.1, 0.2],
-        "heldout_transport_error_private": 0.3,
+        "endpoint_nmh_heads_private": [[9, 9], [10, 0]],
+        "endpoint_nmh_temporally_eligible_private": True,
+        "endpoint_nmh_clean_attention_private": 0.3,
+        "endpoint_nmh_corrupt_attention_private": 0.1,
+        "endpoint_nmh_patched_attention_private": 0.2,
         "nmh_recovery_private": 0.4,
+        "endpoint_denominator_private": 0.2,
+        "endpoint_denominator_floor_private": 1e-6,
+        "endpoint_denominator_source_private": "internally_computed_clean_minus_corrupt_attention",
     }
 
 
@@ -106,7 +115,7 @@ def test_post_commit_prediction_mutation_is_detected():
     prediction_commitment = seal_prediction_packet(prediction)
     endpoint = endpoint_packet()
     endpoint_commitment = seal_endpoint_packet(endpoint, prediction_commitment)
-    prediction["predictions"]["ordinary_restoration"] = 0.5
+    prediction["ordinary_restoration"] = 0.5
     with pytest.raises(ValueError, match="prediction packet"):
         audit_commitment_pair(
             prediction, prediction_commitment, endpoint, endpoint_commitment
@@ -118,25 +127,26 @@ def test_post_commit_endpoint_mutation_is_detected():
     prediction_commitment = seal_prediction_packet(prediction)
     endpoint = endpoint_packet()
     endpoint_commitment = seal_endpoint_packet(endpoint, prediction_commitment)
-    endpoint["heldout_transport_error_private"] = 0.7
+    endpoint["nmh_recovery_private"] = 0.7
     with pytest.raises(ValueError, match="endpoint packet"):
         audit_commitment_pair(
             prediction, prediction_commitment, endpoint, endpoint_commitment
         )
 
 
-def test_endpoint_calibration_has_a_separate_prediction_free_commitment():
+def test_endpoint_numerical_replay_has_a_separate_prediction_free_commitment():
     packet = {
+        "schema_version": "green-v400-sfc-target-replay-v1",
         "protocol_id": PROTOCOL,
         "row_id": ROW_ID,
-        "route": "endpoint_calibration",
+        "route": "endpoint_numerical_replay",
         "contains_prediction": False,
         "adaptive_query_allocation": False,
         "calibration_kind": "target_target_replay",
         "endpoint_replay_effects_private": [0.1, 0.2],
     }
-    commitment = seal_endpoint_calibration_packet(packet)
+    commitment = seal_endpoint_numerical_replay_packet(packet)
     assert commitment["prediction_access_forbidden"] is True
     packet["green_prediction"] = 0.9
     with pytest.raises(ValueError, match="prediction fields"):
-        seal_endpoint_calibration_packet(packet)
+        seal_endpoint_numerical_replay_packet(packet)
