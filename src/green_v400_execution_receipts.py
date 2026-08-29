@@ -12,6 +12,7 @@ from typing import Any
 
 import torch
 
+from analysis.green_v400_phase_ledger import validate_phase_ledger
 from green_v400_endpoint_calibration import merge_target_replay_stability
 from green_v400_endpoint_firewall import seal_prediction_packet
 from green_v400_response_precision import verify_precision_receipt
@@ -245,6 +246,7 @@ def validate_endpoint_authorization_receipt(
         "decision_spec_sha256",
         "endpoint_worker_source_sha256",
         "phase_ledger_head_sha256",
+        "grant_phase_receipts_sha256",
         "clean_token_ids_sha256",
         "corrupt_token_ids_sha256",
         "response_adapter_source_sha256",
@@ -264,6 +266,89 @@ def _plan_hash(plan: dict[str, Any]) -> str:
     if hashlib.sha256(_canonical(payload)).hexdigest() != digest:
         raise ValueError("execution plan self hash mismatch")
     return digest
+
+
+def build_grant_cohort_receipt(
+    *, plan: dict[str, Any], artifact: dict[str, Any]
+) -> dict[str, Any]:
+    """Validate one formal Grant artifact and issue a plan-bound receipt."""
+
+    plan_hash = _plan_hash(plan)
+    if plan.get("execution_enabled") is not True:
+        raise ValueError("prepare-only plan cannot accept a Grant artifact")
+    if set(artifact) != {
+        "schema_version",
+        "job_id",
+        "grant_prediction",
+        "commitment",
+        "model_session",
+    } or artifact.get("schema_version") != "green-v400-formal-grant-artifact-v1":
+        raise ValueError("formal Grant artifact schema is invalid")
+    jobs = {
+        job["job_id"]: job
+        for phase in ("development", "confirmation")
+        for job in plan.get("queues", {}).get(
+            f"{phase}_grant_cohort_prediction", []
+        )
+    }
+    job = jobs.get(artifact.get("job_id"))
+    if job is None:
+        raise ValueError("Grant artifact job is absent from the plan")
+    packet = artifact["grant_prediction"]
+    commitment = artifact["commitment"]
+    if seal_prediction_packet(packet) != commitment:
+        raise ValueError("Grant packet or commitment changed")
+    validate_model_session_for_plan(artifact["model_session"], plan)
+    binding = packet.get("formal_execution_binding", {})
+    expected = {
+        "plan_sha256": plan_hash,
+        "grant_job_id": job["job_id"],
+        "model_session_receipt_sha256": artifact["model_session"]["receipt_sha256"],
+        "grant_capture_spec_sha256": plan["grant_capture_spec_sha256"],
+        "cohort_site_row_ids_sha256": job["cohort_site_row_ids_sha256"],
+        "cohort_size": job["cohort_size"],
+        "analysis_seed": job["analysis_seed"],
+        "measurement_hook": "blocks.10.hook_resid_post",
+        "measurement_position_rule": "final_prompt_position",
+        "measurement_position_strictly_after_candidate": True,
+        "vectors_per_site_row": 1,
+        "raw_activation_serialized": False,
+        "formal_grant_runner_source_sha256": plan["source_file_sha256"][
+            "src/green_v400_formal_grant_runner.py"
+        ],
+        "grant_core_source_sha256": plan["source_file_sha256"][
+            "src/green_v400_grant_divergence.py"
+        ],
+        "grant_packet_source_sha256": plan["source_file_sha256"][
+            "src/green_v400_grant_prediction_worker.py"
+        ],
+    }
+    if binding != expected:
+        raise ValueError("Grant formal execution binding differs from the plan")
+    if (
+        packet.get("row_id") != job["cohort_site_row_ids_sha256"]
+        or packet.get("phase") != job["role"]
+        or packet.get("diagnostic_label")
+        != "grant_style_downstream_contextual_divergence_extension"
+    ):
+        raise ValueError("Grant packet cohort identity or phase differs from the plan")
+    receipt = {
+        "schema_version": "green-v400-grant-cohort-receipt-v1",
+        "protocol_id": plan["protocol_id"],
+        "plan_sha256": plan_hash,
+        "job_id": job["job_id"],
+        "phase": job["role"],
+        "layer": job["layer"],
+        "cohort_site_row_ids_sha256": job["cohort_site_row_ids_sha256"],
+        "cohort_size": job["cohort_size"],
+        "analysis_seed": job["analysis_seed"],
+        "grant_capture_spec_sha256": plan["grant_capture_spec_sha256"],
+        "prediction_packet_sha256": commitment["prediction_packet_sha256"],
+        "model_session_receipt_sha256": artifact["model_session"]["receipt_sha256"],
+        "raw_activation_serialized": False,
+    }
+    receipt["receipt_sha256"] = receipt_sha256(receipt)
+    return receipt
 
 
 def _worker_receipt(
@@ -316,11 +401,13 @@ def build_numerical_replay_layer_receipt(
         raise ValueError("replay artifacts must exactly cover planned layer jobs")
     source_bindings = plan.get("source_file_sha256", {})
     runner_source_hash = source_bindings.get("src/green_v400_formal_replay_runner.py")
+    entrypoint_source_hash = source_bindings.get("analysis/green_v400_formal_worker.py")
     replay_core_source_hash = source_bindings.get(
         "src/green_v400_endpoint_calibration.py"
     )
     for value, label in (
         (runner_source_hash, "formal replay runner source hash"),
+        (entrypoint_source_hash, "formal worker entrypoint source hash"),
         (replay_core_source_hash, "replay core source hash"),
     ):
         if not isinstance(value, str) or len(value) != 64:
@@ -362,8 +449,8 @@ def build_numerical_replay_layer_receipt(
         ):
             raise ValueError("replay precision receipt binding is invalid")
         precision_receipt_hash = next(iter(precision_receipt_hashes))
-        _worker_receipt(artifact.get("worker_a", {}), a, runner_source_hash)
-        _worker_receipt(artifact.get("worker_b", {}), b, runner_source_hash)
+        _worker_receipt(artifact.get("worker_a", {}), a, entrypoint_source_hash)
+        _worker_receipt(artifact.get("worker_b", {}), b, entrypoint_source_hash)
         if artifact["worker_a"]["worker_instance_id"] == artifact["worker_b"]["worker_instance_id"]:
             raise ValueError("replay worker instances must differ")
         if (
@@ -401,6 +488,7 @@ def build_numerical_replay_layer_receipt(
         "full_model_hash": plan["full_model_hash"],
         "direction_registry_sha256": plan["direction_registry_sha256"],
         "formal_replay_runner_source_sha256": runner_source_hash,
+        "formal_worker_entrypoint_source_sha256": entrypoint_source_hash,
         "replay_core_source_sha256": replay_core_source_hash,
         "scientific_null_distribution_claimed": False,
         "defines_transport_failure_label": False,
@@ -420,6 +508,7 @@ def build_endpoint_authorization_receipt(
     phase_ledger: dict[str, Any],
     universe_row: dict[str, Any],
     response_adapter_source_path: str,
+    grant_cohort_receipts: list[dict[str, Any]] | None = None,
 ) -> dict[str, Any]:
     """Issue one endpoint authorization only after all typed prerequisites exist."""
 
@@ -470,14 +559,48 @@ def build_endpoint_authorization_receipt(
         )
     ):
         raise ValueError("prediction packet is not bound to the planned job")
-    if phase_ledger.get("plan_sha256") != plan_hash:
-        raise ValueError("phase ledger plan mismatch")
+    validate_phase_ledger(plan, phase_ledger)
     completed = set(phase_ledger.get("completed_prediction_job_ids", []))
     if binding["prediction_job_id"] not in completed:
         raise ValueError("prediction job is absent from append-only phase ledger")
+    recorded_prediction_hash = phase_ledger.get(
+        "completed_prediction_commitment_sha256", {}
+    ).get(binding["prediction_job_id"])
+    if recorded_prediction_hash != prediction_commitment["prediction_packet_sha256"]:
+        raise ValueError("prediction commitment differs from append-only phase ledger")
     replay_receipts = set(phase_ledger.get("numerical_replay_receipt_sha256", []))
     if replay_layer_receipt["receipt_sha256"] not in replay_receipts:
         raise ValueError("replay receipt is absent from append-only phase ledger")
+    if phase_ledger.get("numerical_replay_receipt_by_layer", {}).get(
+        str(job["layer"])
+    ) != replay_layer_receipt["receipt_sha256"]:
+        raise ValueError("replay layer receipt differs from append-only phase ledger")
+    required_grant = {
+        candidate["job_id"]: candidate
+        for candidate in plan.get("queues", {}).get(
+            f"{job['role']}_grant_cohort_prediction", []
+        )
+    }
+    supplied_grant = grant_cohort_receipts or []
+    if {receipt.get("job_id") for receipt in supplied_grant} != set(required_grant):
+        raise ValueError("Grant receipts must exactly cover the endpoint phase")
+    for grant_receipt in supplied_grant:
+        verify_receipt(grant_receipt, "green-v400-grant-cohort-receipt-v1")
+        grant_job = required_grant[grant_receipt["job_id"]]
+        if (
+            grant_receipt.get("plan_sha256") != plan_hash
+            or grant_receipt.get("phase") != job["role"]
+            or grant_receipt.get("layer") != grant_job["layer"]
+            or grant_receipt.get("cohort_site_row_ids_sha256")
+            != grant_job["cohort_site_row_ids_sha256"]
+            or grant_receipt.get("grant_capture_spec_sha256")
+            != plan.get("grant_capture_spec_sha256")
+            or phase_ledger.get("completed_grant_receipt_sha256", {}).get(
+                grant_job["job_id"]
+            )
+            != grant_receipt["receipt_sha256"]
+        ):
+            raise ValueError("Grant receipt differs from plan or append-only ledger")
     if job["role"] == "confirmation" and phase_ledger.get(
         "development_analysis_receipt_sha256"
     ) is None:
@@ -513,6 +636,11 @@ def build_endpoint_authorization_receipt(
             _canonical(universe_row["corrupt_token_ids"])
         ).hexdigest(),
         "phase_ledger_head_sha256": phase_ledger["ledger_head_sha256"],
+        "grant_phase_receipts_sha256": hashlib.sha256(
+            _canonical(
+                sorted(receipt["receipt_sha256"] for receipt in supplied_grant)
+            )
+        ).hexdigest(),
     }
     receipt["receipt_sha256"] = receipt_sha256(receipt)
     return receipt

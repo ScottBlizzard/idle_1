@@ -72,6 +72,7 @@ def endpoint_authorization(commitment, binding_hash):
         "clean_token_ids_sha256": "0a" * 32,
         "corrupt_token_ids_sha256": "0b" * 32,
         "phase_ledger_head_sha256": "0c" * 32,
+        "grant_phase_receipts_sha256": "0f" * 32,
     }
     receipt["receipt_sha256"] = receipt_sha256(receipt)
     return receipt

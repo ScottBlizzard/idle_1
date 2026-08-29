@@ -158,6 +158,7 @@ def artifacts(execution_enabled=True):
         "clean_token_ids_sha256": token_ids_sha256(row["clean_token_ids"]),
         "corrupt_token_ids_sha256": token_ids_sha256(row["corrupt_token_ids"]),
         "phase_ledger_head_sha256": "a0" * 32,
+        "grant_phase_receipts_sha256": "a1" * 32,
     }
     authorization["receipt_sha256"] = receipt_sha256(authorization)
     session = build_model_session_receipt(

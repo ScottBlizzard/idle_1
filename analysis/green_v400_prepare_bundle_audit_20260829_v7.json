@@ -1,0 +1,57 @@
+{
+  "baseline_blockers": [],
+  "contains_scientific_outcome": false,
+  "direction_payloads": {
+    "endpoint": {
+      "dtype": "float32-little-endian",
+      "file_sha256": "6a73e8b534c54ffd76dea70d642989cee77296e48113fbbd6f983f6a2ac7d810",
+      "path": "/mnt/sdb/ccj/iclr_1_runs/green_v400_silent_failure_prepare_20260829_v3/directions/endpoint_directions.npy",
+      "prediction_process_access": false,
+      "seed_sha256": "2a33747e29ba98125945c4783a5454efc57916320d002aa1a3d089fedd7ea213",
+      "seed_value_serialized": false,
+      "shape": [
+        2880,
+        8,
+        768
+      ],
+      "size_bytes": 70779008
+    },
+    "green": {
+      "dtype": "float32-little-endian",
+      "file_sha256": "cbdbd84553e64d727e9b2ed698904707ca57cea684720646d2177b3dbac87b74",
+      "path": "/mnt/sdb/ccj/iclr_1_runs/green_v400_silent_failure_prepare_20260829_v3/directions/green_directions.npy",
+      "prediction_process_access": true,
+      "seed_sha256": "17616edb7c19283b8d920698fe9daf2a425a41902b0ca45109f0fdd497f51a24",
+      "seed_value_serialized": false,
+      "shape": [
+        2304,
+        8,
+        768
+      ],
+      "size_bytes": 56623232
+    }
+  },
+  "direction_registry_file_sha256": "480f357cf3a3335e5c43cb3c91b8d736acc88215c4f60dc92f568faa1a72ef18",
+  "direction_registry_path": "/mnt/sdb/ccj/iclr_1_runs/green_v400_silent_failure_prepare_20260829_v3/direction_registry.json",
+  "direction_registry_sha256": "abe3091bfba1c7a68e7a8e271acb92780589de0ab5039130951101d98c6dd742",
+  "errors": [],
+  "execution_enabled": false,
+  "manifest_path": "/mnt/sdb/ccj/iclr_1_runs/green_v400_silent_failure_prepare_20260829_v3/silent_failure_challenge_manifest.json",
+  "manifest_sha256": "a66378e583855f56701773f46acaa96c078bfec4e6a653d74c3d41d8298d50b7",
+  "plan_gate": "PLAN_COMPILED_AWAITING_SCIENTIFIC_AUTHORIZATION",
+  "plan_sha256": "73f3756c64c1c30008b50666729cdcc169eef255c6620efef6b8ec26ce88cc1f",
+  "protocol_id": "GREEN_V400_SILENT_FAILURE_CHALLENGE_PREPARE_V1",
+  "queue_counts": {
+    "confirmation_endpoint": 1152,
+    "confirmation_grant_cohort_prediction": 9,
+    "confirmation_prediction": 1152,
+    "development_endpoint": 1152,
+    "development_grant_cohort_prediction": 9,
+    "development_prediction": 1152,
+    "endpoint_numerical_replay": 576
+  },
+  "schema_version": "green-v400-prepare-artifact-audit-v1",
+  "sealed_plan_file_sha256": "f197d32da6fe330ab5139c77efb331ab32f27206eb443dcf9222fc179909d231",
+  "sealed_plan_path": "/mnt/sdb/ccj/iclr_1_runs/green_v400_silent_failure_execution_plan_20260829_v7/sealed_execution_plan.json",
+  "verdict": "PASS_PREPARE_BUNDLE_AUDIT"
+}

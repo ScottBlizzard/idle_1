@@ -160,18 +160,20 @@ def grant_divergence_panel(
 ) -> GrantDivergencePanel:
     """Compute a deterministic, development-only Grant-style cohort panel.
 
-    The official analysis first samples paired rows, then compares one natural
-    half with an independently permuted intervention half and with a second
-    natural half.  We preserve those roles while using a local generator so the
-    protocol cannot perturb or depend on global RNG state.
+    GREEN's frozen extension uses one deterministic permutation and two
+    disjoint halves.  The compared intervention half and natural-control half
+    contain the same prompt identities, preventing overlap and sampling-control
+    mismatch while preserving the source metric definitions.
     """
 
     _validate_states(natural_states, intervened_states)
     if sample_size < 4:
         raise ValueError("sample_size must be at least four")
-    selected_size = min(sample_size, natural_states.shape[0])
+    selected_size = natural_states.shape[0]
+    if sample_size != selected_size:
+        raise ValueError("Grant extension requires the entire sealed cohort")
     if selected_size % 2:
-        selected_size -= 1
+        raise ValueError("Grant extension requires an even sealed cohort size")
     generator = torch.Generator(device="cpu")
     generator.manual_seed(seed)
     selected = torch.randperm(natural_states.shape[0], generator=generator)[
@@ -181,11 +183,10 @@ def grant_divergence_panel(
     intervened = intervened_states.detach().cpu()[selected]
     split_size = selected_size // 2
 
-    natural_order = torch.randperm(selected_size, generator=generator)
-    intervention_order = torch.randperm(selected_size, generator=generator)
-    reference_natural = natural[natural_order[:split_size]]
-    comparison_intervened = intervened[intervention_order[split_size:]]
-    comparison_natural = natural[intervention_order[:split_size]]
+    order = torch.randperm(selected_size, generator=generator)
+    reference_natural = natural[order[:split_size]]
+    comparison_intervened = intervened[order[split_size:]]
+    comparison_natural = natural[order[split_size:]]
 
     observed = _distribution_metrics(
         reference_natural, comparison_intervened, sinkhorn_loss=sinkhorn_loss

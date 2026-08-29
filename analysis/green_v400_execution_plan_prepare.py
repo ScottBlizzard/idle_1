@@ -74,7 +74,15 @@ def _job(kind: str, role: str, site: dict[str, Any]) -> dict[str, Any]:
 
 
 def _grant_cohort_job(
-    role: str, layer: int, hook: str, sites: list[dict[str, Any]]
+    role: str,
+    layer: int,
+    hook: str,
+    sites: list[dict[str, Any]],
+    *,
+    protocol_id: str,
+    capture_spec_sha256: str,
+    seed_domain: str,
+    root_seed: int,
 ) -> dict[str, Any]:
     site_row_ids = sorted(site["row_id"] for site in sites)
     identity = {
@@ -84,12 +92,21 @@ def _grant_cohort_job(
         "hook": hook,
         "cohort_site_row_ids_sha256": sha256_value(site_row_ids),
         "cohort_size": len(site_row_ids),
+        "grant_capture_spec_sha256": capture_spec_sha256,
     }
+    job_id = sha256_value(identity)
+    analysis_seed = int(
+        sha256_value(
+            [seed_domain, root_seed, protocol_id, role, layer, identity["cohort_site_row_ids_sha256"]]
+        )[:16],
+        16,
+    )
     return {
-        "job_id": sha256_value(identity),
+        "job_id": job_id,
         **identity,
         "contains_scientific_outcome": False,
-        "official_semantics": "cohort_distribution_divergence_not_per_row_classifier",
+        "analysis_seed": analysis_seed,
+        "official_semantics": "grant_style_downstream_contextual_divergence_extension_not_per_row_classifier",
         "must_commit_before_phase_endpoints": True,
     }
 
@@ -122,6 +139,42 @@ def compile_execution_plan(
     decision_sha256 = sha256_value(decision_spec)
     if challenge.get("shared_decision_rule", {}).get("canonical_sha256") != decision_sha256:
         raise ValueError("challenge is not bound to the shared decision spec")
+    grant_capture_path = repository_root / "configs/green_v400_grant_capture_spec.json"
+    grant_capture_spec = json.loads(grant_capture_path.read_text(encoding="utf-8"))
+    if (
+        grant_capture_spec.get("status") != "FROZEN_BEFORE_OUTCOMES"
+        or grant_capture_spec.get("contains_scientific_outcome") is not False
+        or protocol_id not in grant_capture_spec.get("applies_to_protocols", [])
+        or grant_capture_spec.get("measurement_hook")
+        != "blocks.10.hook_resid_post"
+        or grant_capture_spec.get("candidate_layers") != list(range(9))
+        or grant_capture_spec.get("measurement_must_be_strictly_downstream")
+        is not True
+        or grant_capture_spec.get("vectors_per_site_row") != 1
+        or grant_capture_spec.get("measurement_position") != "final_prompt_position"
+        or grant_capture_spec.get(
+            "measurement_position_must_be_strictly_after_candidate_position"
+        )
+        is not True
+        or grant_capture_spec.get("firewall", {}).get("prediction_route_only")
+        is not True
+        or grant_capture_spec.get("firewall", {}).get(
+            "green_direction_payload_access"
+        )
+        is not False
+        or grant_capture_spec.get("firewall", {}).get(
+            "heldout_direction_payload_access"
+        )
+        is not False
+        or grant_capture_spec.get("firewall", {}).get("heldout_outcome_access")
+        is not False
+    ):
+        raise ValueError("Grant capture specification is not the frozen prediction-only extension")
+    grant_capture_sha256 = sha256_value(grant_capture_spec)
+    grant_seed_domain = grant_capture_spec.get("sampling", {}).get("seed_domain")
+    grant_root_seed = grant_capture_spec.get("sampling", {}).get("root_seed")
+    if grant_seed_domain != "GREEN_V400_GRANT_SPLIT_V1" or grant_root_seed != 40029017:
+        raise ValueError("Grant sampling seed domain is not frozen")
     _validate_digest(model_manifest.get("full_model_hash"), "full model hash")
     if model_manifest.get("model_revision") != "607a30d783dfa663caf39e06633721c8d4cfcd7e":
         raise ValueError("model revision is not the frozen GPT-2 revision")
@@ -238,7 +291,16 @@ def compile_execution_plan(
             if not cohort_sites:
                 raise ValueError(f"Grant cohort is empty for {role}/layer{layer}")
             queues[f"{role}_grant_cohort_prediction"].append(
-                _grant_cohort_job(role, layer, site_definition["hook"], cohort_sites)
+                _grant_cohort_job(
+                    role,
+                    layer,
+                    site_definition["hook"],
+                    cohort_sites,
+                    protocol_id=protocol_id,
+                    capture_spec_sha256=grant_capture_sha256,
+                    seed_domain=grant_seed_domain,
+                    root_seed=grant_root_seed,
+                )
             )
     for site in endpoint_calibration.get("sites", []):
         if role_by_prompt.get(site["prompt_row_id"]) != "endpoint_calibration":
@@ -266,6 +328,7 @@ def compile_execution_plan(
         "analysis/green_v400_baseline_readiness.py",
         "analysis/green_v400_execution_plan_prepare.py",
         "analysis/green_v400_formal_worker.py",
+        "analysis/green_v400_phase_ledger.py",
         "analysis/green_v400_shared_decision_analyzer.py",
         "src/green_v400_direction_binding.py",
         "src/green_v400_endpoint_calibration.py",
@@ -275,7 +338,10 @@ def compile_execution_plan(
         "src/green_v400_formal_prediction_runner.py",
         "src/green_v400_formal_replay_runner.py",
         "src/green_v400_formal_endpoint_runner.py",
+        "src/green_v400_formal_grant_runner.py",
         "src/green_v400_four_branch_baseline.py",
+        "src/green_v400_grant_divergence.py",
+        "src/green_v400_grant_prediction_worker.py",
         "src/green_v400_matched_bypass_adapter.py",
         "src/green_v400_prediction_worker.py",
         "src/green_v400_response_baselines.py",
@@ -298,6 +364,8 @@ def compile_execution_plan(
         "readiness_registry_sha256": sha256_value(readiness),
         "direction_registry_sha256": registry_hash,
         "decision_spec_sha256": decision_sha256,
+        "grant_capture_spec_path": "configs/green_v400_grant_capture_spec.json",
+        "grant_capture_spec_sha256": grant_capture_sha256,
         "decision_analyzer_sha256": source_hashes[
             "analysis/green_v400_shared_decision_analyzer.py"
         ],

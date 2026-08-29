@@ -88,8 +88,8 @@ def test_plan_compiles_all_routes_but_authorizes_nothing():
     plan = compile_execution_plan(*payloads(), repository_root=ROOT)
     assert plan["execution_enabled"] is False
     assert plan["untouched_rows_evaluated"] == 0
-    assert plan["plan_gate"] == "PLAN_COMPILED_BLOCKED_BY_BASELINES"
-    assert plan["baseline_readiness"]["not_ready_required"] == ["grant_divergence"]
+    assert plan["plan_gate"] == "PLAN_COMPILED_AWAITING_SCIENTIFIC_AUTHORIZATION"
+    assert plan["baseline_readiness"]["not_ready_required"] == []
     assert plan["queue_counts"] == {
         "development_prediction": 6 * 9,
         "development_grant_cohort_prediction": 9,

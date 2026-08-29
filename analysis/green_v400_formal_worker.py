@@ -22,6 +22,7 @@ import torch
 from green_v400_direction_binding import verify_direction_binding
 from green_v400_execution_receipts import build_model_session_receipt
 from green_v400_formal_endpoint_runner import run_formal_heldout_transport_endpoint
+from green_v400_formal_grant_runner import run_formal_grant_prediction
 from green_v400_formal_prediction_runner import run_formal_prediction
 from green_v400_formal_replay_runner import run_formal_target_replay
 from green_v400_response_precision import tensor_sha256
@@ -77,12 +78,17 @@ def atomic_write_json(path: Path, value: Any) -> None:
             handle.write("\n")
             handle.flush()
             os.fsync(handle.fileno())
-        # The preflight above prevents accidental replacement.  A concurrent
-        # creator is treated as a collision rather than silently overwriting
-        # either scientific artifact.
-        if resolved_path.exists():
-            raise FileExistsError("formal worker output appeared during execution")
-        os.replace(temporary, resolved_path)
+        # A same-filesystem hard link is an atomic no-clobber publication:
+        # concurrent creators receive FileExistsError and neither artifact is
+        # overwritten.  The temporary inode is removed only after publication.
+        os.link(temporary, resolved_path)
+        if os.name != "nt":
+            directory_flags = os.O_RDONLY | getattr(os, "O_DIRECTORY", 0)
+            directory_fd = os.open(resolved_parent, directory_flags)
+            try:
+                os.fsync(directory_fd)
+            finally:
+                os.close(directory_fd)
     finally:
         if os.path.exists(temporary):
             os.unlink(temporary)
@@ -220,6 +226,10 @@ def model_session(plan: dict[str, Any], model: Any) -> dict[str, Any]:
 def planned_job(plan: dict[str, Any], mode: str, job_id: str) -> dict[str, Any]:
     queue_names = {
         "prediction": ("development_prediction", "confirmation_prediction"),
+        "grant": (
+            "development_grant_cohort_prediction",
+            "confirmation_grant_cohort_prediction",
+        ),
         "replay": ("endpoint_numerical_replay",),
         "endpoint": ("development_endpoint", "confirmation_endpoint"),
     }[mode]
@@ -249,12 +259,15 @@ def planned_job(plan: dict[str, Any], mode: str, job_id: str) -> dict[str, Any]:
 
 def main() -> None:
     parser = argparse.ArgumentParser()
-    parser.add_argument("--mode", choices=("prediction", "replay", "endpoint"), required=True)
+    parser.add_argument(
+        "--mode", choices=("prediction", "grant", "replay", "endpoint"), required=True
+    )
     parser.add_argument("--plan", type=Path, required=True)
     parser.add_argument("--universe", type=Path, required=True)
     parser.add_argument("--model-manifest", type=Path, required=True)
-    parser.add_argument("--direction-registry", type=Path, required=True)
-    parser.add_argument("--direction-payload", type=Path, required=True)
+    parser.add_argument("--direction-registry", type=Path)
+    parser.add_argument("--direction-payload", type=Path)
+    parser.add_argument("--grant-capture-spec", type=Path)
     parser.add_argument("--job-id", required=True)
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--device", default="cuda:0")
@@ -271,20 +284,53 @@ def main() -> None:
     validate_runtime_envelope(plan, args.device)
     universe = load_json(args.universe)
     model_manifest = load_json(args.model_manifest)
-    registry = load_json(args.direction_registry)
     job = planned_job(plan, args.mode, args.job_id)
-    panel = "green" if args.mode == "prediction" else "endpoint"
-    directions, binding = load_direction_row(
-        plan=plan,
-        registry=registry,
-        payload_path=args.direction_payload,
-        panel=panel,
-        row_id=job["site_row_id"],
-    )
+    directions = None
+    binding = None
+    if args.mode == "grant":
+        if args.grant_capture_spec is None:
+            parser.error("grant mode requires --grant-capture-spec")
+        forbidden_route_inputs = (
+            args.direction_registry,
+            args.direction_payload,
+            args.prediction_commitment,
+            args.endpoint_authorization_receipt,
+            args.replay_id,
+        )
+        if any(value is not None for value in forbidden_route_inputs):
+            parser.error("grant mode forbids direction, replay, and adjudication inputs")
+    else:
+        if args.direction_registry is None or args.direction_payload is None:
+            parser.error("non-Grant modes require direction registry and payload")
+        registry = load_json(args.direction_registry)
+        panel = "green" if args.mode == "prediction" else "endpoint"
+        directions, binding = load_direction_row(
+            plan=plan,
+            registry=registry,
+            payload_path=args.direction_payload,
+            panel=panel,
+            row_id=job["site_row_id"],
+        )
     model = load_frozen_model(model_manifest, args.device)
     session = model_session(plan, model)
 
-    if args.mode == "prediction":
+    if args.mode == "grant":
+        packet, commitment = run_formal_grant_prediction(
+            plan=plan,
+            universe=universe,
+            capture_spec=load_json(args.grant_capture_spec),
+            grant_job_id=args.job_id,
+            model_session_receipt=session,
+            model=model,
+        )
+        artifact = {
+            "schema_version": "green-v400-formal-grant-artifact-v1",
+            "job_id": args.job_id,
+            "grant_prediction": packet,
+            "commitment": commitment,
+            "model_session": session,
+        }
+    elif args.mode == "prediction":
         packet, commitment = run_formal_prediction(
             plan=plan,
             universe=universe,

@@ -1,114 +1,58 @@
-# GREEN v4 development-authorization request
+# GREEN v4 development-activation status
 
 Date: 2026-08-29  
-Requested authority: scientific binding plus development only  
+Status: Grant scientific blocker closed; final prepare rebuild passed
 Confirmation remains sealed and unauthorized
 
-## Executive status
+## Current decision
 
-All currently authorized prepare-only engineering has been completed without
-opening an untouched scientific outcome.  The isolated server validation suite
-passes `768 passed, 51 skipped`.  Both latest sealed execution plans compile
-with `execution_enabled=false` and pass the independent prepare-bundle audit.
-They intentionally stop at `PLAN_COMPILED_BLOCKED_BY_BASELINES` because the
-Grant activation-capture estimand is not yet uniquely bound.
+The Grant ambiguity did not require a new core idea or an external theory
+decision. It has been resolved internally as a frozen, nonprimary
+**Grant-style downstream contextual-divergence extension**. The exact binding
+is in `configs/green_v400_grant_capture_spec.json` and the scientific rationale
+is in `analysis/CODEX_GREEN_V400_GRANT_CAPTURE_SEMANTICS_AUDIT_20260829.md`.
 
-Latest plan identities:
+The formal route now:
 
-| Task | Plan SHA-256 | Queue sizes | Audit |
-|---|---|---|---|
-| IOI | `b48610c4f2a8bb52b3bbee0b40a1336f3a9bbffced5e6e65955d669ac85a19fa` | development prediction 1152; development Grant 9; development endpoint 1152; confirmation prediction 1152; confirmation Grant 9; confirmation endpoint 1152; replay 576 | `PASS_PREPARE_BUNDLE_AUDIT` |
-| Greater-Than | `4ad78aa524bbf8f6b9db6bae3b8e326b616802a3a3ae8676033324ca11d194f1` | development prediction 2592; development Grant 9; development endpoint 2592; confirmation prediction 3456; confirmation Grant 9; confirmation endpoint 3456; replay 1728 | `PASS_PREPARE_BUNDLE_AUDIT` |
+1. reconstructs an entire task × phase × candidate-layer cohort from the
+   sealed prediction queue;
+2. patches the complete clean candidate state into the corrupt run;
+3. captures paired clean, patched-corrupt, and unpatched-corrupt states at
+   `blocks.10.hook_resid_post` at the final prompt position;
+4. computes the pinned Grant-style cohort panel with a deterministic disjoint
+   split and natural--natural control;
+5. commits only aggregate prediction packets, never raw activations;
+6. binds every packet to the plan, model session, capture specification,
+   cohort, seed, sources, typed receipt, and append-only phase ledger;
+7. requires all phase Grant receipts before any endpoint authorization.
 
-No plan in the repository or on the server authorizes real outcomes.
+The diagnostic remains descriptive and cannot count as a GREEN win, set a
+threshold, select rows, or read held-out directions/outcomes. Literal
+intervention-site divergence for the full-vector patch is separately stated as
+zero by construction.
 
-## Engineering closure completed after the prior decision
+## Verification so far
 
-1. The numerical replay route is target--target reproducibility only and
-   cannot define a scientific null or threshold.
-2. Endpoint normalization is symmetric and uses internally computed target
-   and patched RMS denominators.
-3. Direction tensors, rows, payload bytes, and model constants are bound by
-   hashes.  The endpoint payload is unavailable to prediction processes.
-4. The frozen float32 checkpoint is evaluated in float64 for response
-   differences.  Historical same-checkpoint audits showed that the earlier
-   float32 discrepancy was cancellation, not a scientific effect.
-5. Integrated gradients, single-point HVP, multi-step HVP, finite activation
-   response, and the empirical four-branch comparator have actual frozen-model
-   execution paths and historical resource measurements on both tasks.
-6. The formal process entry point validates the sealed plan, model-session
-   hash, source hashes, GPU 4--7 policy, `/mnt/sdb` output root, deterministic
-   environment, scientific phase authorization, direction row, and
-   non-overwriting atomic artifact path before execution.
-7. The checked-in shared analyzer implements matched coverage, prompt-cluster
-   resampling, and the simultaneous primary-comparator decision rule.
+- local focused suite: 57 tests passed and 1 environment-specific test skipped;
+- isolated full repository suite: 775 tests passed and 51 skipped, with no
+  failures;
+- frozen GPT-2 historical smoke: 12/12 captures finite and 768-dimensional,
+  nondegenerate route exercised, 5.52 seconds total, approximately 0.77 GiB
+  peak CUDA allocation after model-load reset;
+- server policy: GPU 4 only for the smoke, artifacts under `/mnt/sdb/ccj`;
+- no v4 development or confirmation universe was opened by the smoke;
+- no GitHub push was performed.
 
-## Grant primary-source correction
+## Remaining activation boundary
 
-The primary paper states that its transformer comparison uses natural and
-intervened residual-stream vectors at the intervention position.  The author
-code explicitly selects a layer and token position before computing paired MSE,
-Sinkhorn EMD, matching costs, and natural--natural controls.
+Both execution plans have been rebuilt and passed the independent prepare
+bundle audit with no baseline blocker. IOI plan SHA-256 is
+`73f3756c64c1c30008b50666729cdcc169eef255c6620efef6b8ec26ce88cc1f`;
+Greater-Than plan SHA-256 is
+`c293f71c47d280a421969fc1dac28f96e415a334cb11199eae6cb89e98e5f47e`.
+Both remain prepare-only with `execution_enabled=false`. Development activation
+is now the only distinct explicit action; confirmation stays locked until the
+frozen development analysis receipt exists.
 
-For GREEN's ordinary intervention, however, the entire clean `resid_post`
-vector is installed into the corrupt run.  At the intervention position this
-vector is exactly natural by construction.  A literal Grant diagnostic is
-therefore degenerate and cannot be treated as an informative baseline.  The
-repository audit
-`analysis/CODEX_GREEN_V400_GRANT_CAPTURE_SEMANTICS_AUDIT_20260829.md`
-documents why the previous `READY` status was premature.
-
-### Recommended binding
-
-Approve a clearly labelled **Grant-style downstream contextual-divergence
-extension**, not an exact Grant replication:
-
-- cohort unit: the already sealed phase-by-candidate-layer prompt cohort;
-- ordinary intervention: corrupt run with the full clean center patched at the
-  candidate `resid_post` site;
-- natural reference: clean run for the paired prompt;
-- measurement site: `blocks.10.hook_resid_post` at the same task-defined token
-  position used by the candidate site;
-- reason for layer 10: it is strictly downstream of every candidate layer
-  0--8, common to IOI and Greater-Than, and distinct from both task-specific
-  structural endpoints;
-- one vector per sealed prompt/site row; no GREEN or endpoint directions enter;
-- metrics: the already pinned Grant panel and deterministic natural--natural
-  control;
-- role: nonprimary cohort diagnostic only, never broadcast to rows, never
-  counted as a GREEN win, and never used to alter selection or thresholds;
-- firewall: commit every phase-layer Grant packet before opening that phase's
-  endpoints; confirmation remains inaccessible until separately authorized.
-
-Also report, as an analytic applicability statement, that literal
-intervention-site divergence of the full-vector patch is zero by construction.
-This preserves a fair comparison to Grant while making the genuinely new
-question explicit: whether a natural vector becomes contextually divergent
-after downstream computation in the corrupt context.
-
-If this recommendation is rejected, the alternative binding should be to mark
-literal Grant divergence N/A for full-residual patching and remove it from the
-required execution gate.  It must not remain nominally required without a
-capture definition.
-
-## Requested decision
-
-Please return a binding decision that does all of the following:
-
-1. approve, amend, or reject the recommended Grant-style downstream
-   contextual-divergence extension, with exact capture and pairing semantics;
-2. authorize Codex to implement and outcome-blind test that route, rebuild the
-   two sealed plans, and run a final independent prepare audit;
-3. if that final audit passes without a scientific change, explicitly
-   authorize **development execution only** for IOI and Greater-Than under the
-   sealed queues, firewall, GPU 4--7 policy, and `/mnt/sdb` storage policy;
-4. state that confirmation remains one-shot sealed and requires a later,
-   separate authorization after the frozen development analyzer receipt;
-5. state whether numerical replay may run at the start of development as the
-   already-bound reproducibility gate;
-6. provide any mandatory stop conditions or artifact fields for the activated
-   development plan and authorization receipt.
-
-Do not authorize confirmation, post-outcome redesign, threshold changes,
-direction changes, universe changes, or reinterpretation of Grant as a row-level
-winner.
+No post-outcome direction, threshold, universe, Grant interpretation, or
+decision-rule change is permitted.

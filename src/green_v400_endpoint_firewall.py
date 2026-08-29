@@ -73,6 +73,17 @@ PREDICTION_ALLOWED_FIELDS = {
         "source_repository_commit",
         "formal_execution_binding",
     },
+    "green-v400-grant-divergence-prediction-v2": _IDENTITY_FIELDS
+    | {
+        "contains_endpoint_outcome",
+        "committed_before_endpoint",
+        "scope",
+        "phase",
+        "diagnostic_label",
+        "grant_style_divergence",
+        "source_repository_commit",
+        "formal_execution_binding",
+    },
     "green-v400-sfc-prediction-packet-v2": _IDENTITY_FIELDS
     | {
         "contains_endpoint_outcome",

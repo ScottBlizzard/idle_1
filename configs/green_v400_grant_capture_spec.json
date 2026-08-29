@@ -1,0 +1,59 @@
+{
+  "schema_version": "green-v400-grant-capture-spec-v1",
+  "status": "FROZEN_BEFORE_OUTCOMES",
+  "contains_scientific_outcome": false,
+  "applies_to_protocols": [
+    "GREEN_V400_SILENT_FAILURE_CHALLENGE_PREPARE_V1",
+    "GREEN_V400_SILENT_FAILURE_GT_REPLICATION_PREPARE_V1"
+  ],
+  "diagnostic_name": "grant_style_downstream_contextual_divergence_extension",
+  "exact_grant_replication_claimed": false,
+  "literal_intervention_site_applicability": "ordinary full-residual clean-to-corrupt patch installs the paired clean vector exactly at the intervention site, so paired state difference and full empirical-distribution difference are zero by construction; a finite half-sample EMD estimate may remain nonzero but has the same sampling baseline as natural-natural",
+  "ordinary_intervention": "corrupt run with the complete clean resid_post center patched at the candidate site",
+  "natural_reference": "paired clean run for the same sealed prompt",
+  "measurement_hook": "blocks.10.hook_resid_post",
+  "measurement_position": "final_prompt_position",
+  "measurement_position_must_be_strictly_after_candidate_position": true,
+  "candidate_layers": [0, 1, 2, 3, 4, 5, 6, 7, 8],
+  "measurement_must_be_strictly_downstream": true,
+  "cohort_unit": "phase-by-candidate-layer",
+  "vectors_per_site_row": 1,
+  "cohort_order": "ascending site_row_id",
+  "estimator": {
+    "source_repository_commit": "f2548d2ea9b4f4b87a87ba5d53db43838d15c521",
+    "feature_standardization": "separate featurewise sample mean and torch.std correction=1 with epsilon 1e-5",
+    "sinkhorn": {
+      "implementation": "geomloss.SamplesLoss",
+      "loss": "sinkhorn",
+      "p": 2,
+      "blur": 0.05,
+      "normalize_by_sqrt_feature_width": true
+    },
+    "companion_metrics": [
+      "paired_mse",
+      "optimal_correlation_cost",
+      "nearest_correlation_cost",
+      "optimal_mse_cost",
+      "nearest_mse_cost"
+    ],
+    "natural_natural_control_required": true
+  },
+  "sampling": {
+    "sample_size": "all available cohort rows; the sealed cohort size must be even and no row may be dropped or truncated",
+    "root_seed": 40029017,
+    "seed_derivation": "first 64 bits of sha256 over canonical [GREEN_V400_GRANT_SPLIT_V1, root_seed, protocol_id, phase, candidate_layer, cohort_site_row_ids_sha256]",
+    "seed_domain": "GREEN_V400_GRANT_SPLIT_V1",
+    "split": "one deterministic permutation; reference clean is first half, compared patched and its paired clean control are the same second-half prompts",
+    "natural_natural_control_required": true
+  },
+  "contextual_control": "clean final-position states versus unpatched-corrupt final-position states under the identical cohort split and estimator",
+  "firewall": {
+    "prediction_route_only": true,
+    "green_direction_payload_access": false,
+    "heldout_direction_payload_access": false,
+    "heldout_outcome_access": false,
+    "raw_activation_serialization": false,
+    "commit_before_phase_adjudication": true
+  },
+  "analysis_role": "nonprimary cohort diagnostic only; never broadcast to rows, never used for threshold fitting or row selection, and never counted as a GREEN win"
+}

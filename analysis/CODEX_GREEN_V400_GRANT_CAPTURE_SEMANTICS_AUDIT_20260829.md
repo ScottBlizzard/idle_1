@@ -1,76 +1,88 @@
 # GREEN v4 Grant capture-semantics audit
 
 Date: 2026-08-29  
-Status: prepare-only scientific blocker; no untouched outcome opened
+Status: scientific binding resolved and implementation-ready; no untouched
+outcome opened
 
 ## Primary-source finding
 
-Grant et al. define divergence between natural representations and the
-corresponding intervened representations.  Their Figure 2 transformer
-comparison takes both vectors from the residual stream at the intervention
-position.  Appendix A.1.2 further requires a corresponding natural
-ground-truth vector for each intervention, compares the full-dimensional
-natural and intervened distributions with Sinkhorn EMD, and uses a
-natural--natural comparison as the sampling baseline.
-
-The pinned author implementation is consistent with that description:
-`filter_by_layer_and_position` accepts tensors with shape
-`[batch, layer, position, feature]`, selects an explicit layer and position,
-and `collect_divergences` computes paired MSE plus distributional metrics and
-their natural--natural controls.
+Grant et al. compare natural representations with corresponding intervened
+representations. Their Figure 2 transformer comparison uses residual-stream
+vectors at an explicitly selected layer and position. Appendix A.1.2 pairs
+each intervention with its natural ground-truth vector, compares the
+full-dimensional cohorts with Sinkhorn EMD, and uses natural--natural subsets
+as the sampling baseline. The pinned author implementation is consistent with
+those requirements.
 
 Primary sources:
 
 - Grant et al., *Addressing divergent representations from causal
-  interventions on neural networks*, arXiv:2511.04638v5, especially Figure 2
-  and Appendix A.1.2:
-  https://arxiv.org/html/2511.04638v5
-- Author repository, pinned commit
+  interventions on neural networks*, arXiv:2511.04638v5, Figure 2 and Appendix
+  A.1.2: https://arxiv.org/html/2511.04638v5
+- Author repository at commit
   `f2548d2ea9b4f4b87a87ba5d53db43838d15c521`, especially
   `divergence/divergence_utils.py`:
   https://github.com/grantsrb/rep_divergence/blob/f2548d2ea9b4f4b87a87ba5d53db43838d15c521/divergence/divergence_utils.py
 
-## Consequence for the frozen GREEN estimand
+## Applicability correction
 
-GREEN v4 patches an entire `resid_post` vector.  At the patch site, the
-ordinary clean-to-corrupt patch therefore installs an exactly natural clean
-activation.  A literal Grant-at-the-intervention-position diagnostic on that
-ordinary patch is degenerate by construction: the intervened vector is the
-corresponding natural vector.  This differs materially from the coordinate,
-subspace, SAE-reconstruction, and mean-direction interventions studied by
-Grant et al.
+GREEN installs the complete paired clean `resid_post` vector at the candidate
+site. At that exact layer and token, paired MSE and full empirical-distribution
+difference are therefore zero by construction. A finite split-sample EMD may
+be nonzero, but it has the same sampling interpretation as the
+natural--natural control and is not an informative intervention effect.
 
-GREEN's local response probes instead evaluate `center + direction` states.
-Those states are nontrivial interventions, but the currently sealed Grant
-cohort jobs do not bind whether their intervened cohort contains:
+A downstream layer at the same token is not universally degenerate: it can
+read unpatched earlier positions. It can nevertheless collapse in tasks where
+the corruption is token-local and patching that token restores the entire
+relevant prefix. Because one frozen definition must apply to both IOI and
+Greater-Than, same-token downstream capture is not a robust common estimand.
 
-1. the ordinary full-vector patched centers;
-2. all eight `center + green_direction` probe states per row;
-3. one deterministic aggregation of those eight probe states; or
-4. representations captured at a strictly downstream site after the patch.
+## Frozen extension
 
-Choices 2--4 change the scientific estimand.  Choice 4 is useful for contextual
-transport but is not the literal intervention-position diagnostic described
-for Figure 2 and risks becoming a second endpoint-like measurement.  The
-existing queue records only a phase-by-layer cohort and does not bind any of
-these choices, a capture position, or a natural-ground-truth pairing rule.
+The accepted diagnostic is a **Grant-style downstream contextual-divergence
+extension**, not an exact replication and not an off-manifold proof:
 
-## Fail-closed decision
+- intervention: corrupt run with the complete clean center patched at candidate
+  `blocks.{0..8}.hook_resid_post` and the task-defined candidate position;
+- natural reference: the paired clean run for the same sealed prompt;
+- measurement: `blocks.10.hook_resid_post` at the final prompt position, which
+  must be strictly after the candidate position and strictly downstream in
+  layer;
+- contextual control: paired clean versus unpatched-corrupt states at the same
+  measurement site;
+- cohort: exactly one vector per planned prompt/site row, sorted by
+  `site_row_id`, separately for every task, phase, and candidate layer;
+- estimator: the pinned Grant metric panel using all rows in an even-sized
+  cohort, with one deterministic disjoint half split. The patched and natural
+  control comparisons use the same second-half prompt identities;
+- reporting: preserve signed `emd - base_emd`, report paired MSE and companion
+  costs, and keep the unpatched contextual control alongside it;
+- role: descriptive cohort diagnostic only. It is never broadcast to rows,
+  used for threshold fitting or row selection, or counted as a GREEN win;
+- firewall: prediction route only, with no GREEN directions, endpoint
+  directions, endpoint outcomes, or serialized raw activations.
 
-The Grant metric implementation and isolated-runtime parity remain valid, but
-the untouched activation-collection route is not scientifically sealed.
-`grant_divergence` must therefore remain
-`SCIENTIFIC_BINDING_REQUIRED`, and the plan must remain blocked by baselines,
-until one later binding decision chooses one of the following:
+Measuring at the final prompt position does not redefine the paper's held-out
+transport endpoint: the Grant packet sees no held-out direction and produces
+only cohort distribution diagnostics. The purpose is to ask whether an exactly
+natural local state remains contextually natural after the corrupted
+computation continues.
 
-- **N/A / literal-source option:** report that full-residual patching is
-  exactly natural at the intervention site, do not claim a Grant baseline win,
-  and remove it from required execution; or
-- **GREEN-probe extension:** explicitly define the intervened cohort,
-  natural-ground-truth pairing, measurement hook/position, aggregation over
-  directions, prediction-only firewall, and reviewer-facing label as an
-  extension rather than an exact replication.
+## Verification completed
 
-No result-dependent choice is allowed.  This blocker must be resolved before
-development outcomes, together with the separate development-authorization
-barrier already imposed by the binding corrigendum.
+The binding is machine-readable in
+`configs/green_v400_grant_capture_spec.json`. The plan compiler hashes it into
+every Grant job; the formal worker reconstructs each cohort from the sealed
+queue; typed receipts and the append-only phase ledger require every phase's
+Grant commitments before endpoint authorization.
+
+Unit and firewall tests pass locally and in the isolated server runtime. A
+frozen GPT-2 historical-prompt smoke on GPU 4 exercised 12 captures over layers
+0, 4, and 8. Every clean, patched, and unpatched-control vector was finite with
+width 768; the route was nondegenerate, used no untouched v4 row or direction,
+and serialized no activation. Evidence is in
+`analysis/green_v400_grant_capture_historical_smoke_20260829_v1.json`.
+
+This resolves the former Grant scientific-binding blocker. It does not, by
+itself, authorize development or confirmation outcomes.

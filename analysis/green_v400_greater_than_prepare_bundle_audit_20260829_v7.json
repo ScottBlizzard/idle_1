@@ -1,0 +1,57 @@
+{
+  "baseline_blockers": [],
+  "contains_scientific_outcome": false,
+  "direction_payloads": {
+    "endpoint": {
+      "dtype": "float32-little-endian",
+      "file_sha256": "cb23bdba008f9b17eaa64e5dced4a52d048b5e1ba7fb42bda864fd5ccc854986",
+      "path": "/mnt/sdb/ccj/iclr_1_runs/green_v400_greater_than_prepare_20260829_v2/directions/endpoint_directions.npy",
+      "prediction_process_access": false,
+      "seed_sha256": "b5049a3ca5e91e80240639bd4be4f186cb94849889fc8c72f23d703effebe244",
+      "seed_value_serialized": false,
+      "shape": [
+        7776,
+        8,
+        768
+      ],
+      "size_bytes": 191103104
+    },
+    "green": {
+      "dtype": "float32-little-endian",
+      "file_sha256": "9aada2cddb0b941d68ab66f87f5caaeb73591572017e05b0dd7dfdcd9c05aaaa",
+      "path": "/mnt/sdb/ccj/iclr_1_runs/green_v400_greater_than_prepare_20260829_v2/directions/green_directions.npy",
+      "prediction_process_access": true,
+      "seed_sha256": "7f1d7ea66bdbc6c17ae289696de7ee0dac1942bc86de351e805d596ffd48a1c7",
+      "seed_value_serialized": false,
+      "shape": [
+        6048,
+        8,
+        768
+      ],
+      "size_bytes": 148635776
+    }
+  },
+  "direction_registry_file_sha256": "36edfcaa9b53923a003063ae240f685b86ab7dab9f5c460e18b63c492d7d38a3",
+  "direction_registry_path": "/mnt/sdb/ccj/iclr_1_runs/green_v400_greater_than_prepare_20260829_v2/direction_registry.json",
+  "direction_registry_sha256": "ebf6eb9580ede0bcb6e20cd259a53e3dca0afaf933274a2fac805300faa8065b",
+  "errors": [],
+  "execution_enabled": false,
+  "manifest_path": "/mnt/sdb/ccj/iclr_1_runs/green_v400_greater_than_prepare_20260829_v2/silent_failure_manifest.json",
+  "manifest_sha256": "889501dd4544b283d1ba2eeabadb26c4f67ca5fb1dbd7c4a1df8f6eaa8aa6ee4",
+  "plan_gate": "PLAN_COMPILED_AWAITING_SCIENTIFIC_AUTHORIZATION",
+  "plan_sha256": "c293f71c47d280a421969fc1dac28f96e415a334cb11199eae6cb89e98e5f47e",
+  "protocol_id": "GREEN_V400_SILENT_FAILURE_GT_REPLICATION_PREPARE_V1",
+  "queue_counts": {
+    "confirmation_endpoint": 3456,
+    "confirmation_grant_cohort_prediction": 9,
+    "confirmation_prediction": 3456,
+    "development_endpoint": 2592,
+    "development_grant_cohort_prediction": 9,
+    "development_prediction": 2592,
+    "endpoint_numerical_replay": 1728
+  },
+  "schema_version": "green-v400-prepare-artifact-audit-v1",
+  "sealed_plan_file_sha256": "a6b3184d3435e30a5b16c343f2815b7d94b123d24232f37e90cc7020051b2fa9",
+  "sealed_plan_path": "/mnt/sdb/ccj/iclr_1_runs/green_v400_greater_than_execution_plan_20260829_v7/sealed_execution_plan.json",
+  "verdict": "PASS_PREPARE_BUNDLE_AUDIT"
+}

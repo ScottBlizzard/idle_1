@@ -59,14 +59,14 @@ def test_grant_panel_is_deterministic_and_reports_natural_control():
     intervened = natural + 0.25
     fake = lambda x, y: (x - y).square().mean()
     first = grant_divergence_panel(
-        natural, intervened, seed=123, sample_size=16, sinkhorn_loss=fake
+        natural, intervened, seed=123, sample_size=20, sinkhorn_loss=fake
     )
     second = grant_divergence_panel(
-        natural, intervened, seed=123, sample_size=16, sinkhorn_loss=fake
+        natural, intervened, seed=123, sample_size=20, sinkhorn_loss=fake
     )
     assert first == second
-    assert first.sample_size == 16
-    assert first.split_size == 8
+    assert first.sample_size == 20
+    assert first.split_size == 10
     assert first.mse == pytest.approx(0.25**2)
     for value in first.to_dict().values():
         if isinstance(value, float):
@@ -90,6 +90,28 @@ def test_matching_and_nearest_neighbor_metrics_have_expected_zero_identity_case(
     # and natural-control paths must nevertheless be computed by the same rule.
     assert np.isfinite(panel.cost_cos)
     assert np.isfinite(panel.base_cost_cos)
+    assert panel.emd == pytest.approx(panel.base_emd)
+    assert panel.cost_mse == pytest.approx(panel.base_cost_mse)
+
+
+def test_extension_requires_the_entire_even_sealed_cohort():
+    states = torch.randn(8, 3)
+    with pytest.raises(ValueError, match="entire sealed cohort"):
+        grant_divergence_panel(
+            states,
+            states,
+            seed=1,
+            sample_size=6,
+            sinkhorn_loss=lambda x, y: torch.tensor(0.0),
+        )
+    with pytest.raises(ValueError, match="even sealed cohort"):
+        grant_divergence_panel(
+            states[:7],
+            states[:7],
+            seed=1,
+            sample_size=7,
+            sinkhorn_loss=lambda x, y: torch.tensor(0.0),
+        )
 
 
 @pytest.mark.parametrize(

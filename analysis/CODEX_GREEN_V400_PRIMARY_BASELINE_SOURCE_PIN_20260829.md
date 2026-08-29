@@ -24,7 +24,7 @@ Status: implementation evidence only; no scientific outcome authorization
 - Required control: repeat distribution metrics between two natural-data subsets (`base_*`).
 - Applicability constraint: this is a cohort-level divergence diagnostic, not a per-row certificate and not by itself a test of whether divergence is harmless or pernicious.
 - GREEN firewall binding: only development/prediction activations may enter this baseline. Endpoint directions, endpoint activations, transport outcomes, and NMH outcomes remain unavailable.
-- Full-vector caveat: GREEN's ordinary clean-to-corrupt `resid_post` patch is exactly natural at the intervention site by construction. Any informative downstream contextual-divergence diagnostic is an extension requiring an explicit scientific binding; see `analysis/CODEX_GREEN_V400_GRANT_CAPTURE_SEMANTICS_AUDIT_20260829.md`.
+- Full-vector caveat: GREEN's ordinary clean-to-corrupt `resid_post` patch is exactly natural at the intervention site by construction. The frozen informative comparison is explicitly labelled a Grant-style extension: capture at `blocks.10.hook_resid_post` at the final prompt position, with paired clean and unpatched-corrupt contextual controls; see `analysis/CODEX_GREEN_V400_GRANT_CAPTURE_SEMANTICS_AUDIT_20260829.md`.
 
 ## Readiness rule
 
