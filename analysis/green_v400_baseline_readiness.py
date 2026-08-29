@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 from pathlib import Path
 from typing import Any
@@ -24,6 +25,7 @@ def audit_baseline_readiness(
 
     missing_required: list[str] = []
     missing_evidence: dict[str, list[str]] = {}
+    evidence_file_sha256: dict[str, dict[str, str]] = {}
     for name, entry in baselines.items():
         if entry.get("required") is True and entry.get("status") != ready_status:
             missing_required.append(name)
@@ -34,6 +36,11 @@ def audit_baseline_readiness(
         ]
         if absent:
             missing_evidence[name] = absent
+        evidence_file_sha256[name] = {
+            relative: hashlib.sha256((repository_root / relative).read_bytes()).hexdigest()
+            for relative in entry.get("evidence", [])
+            if (repository_root / relative).is_file()
+        }
 
     atp = baselines.get("AtP_star_or_closest_exact_attribution", {})
     if atp.get("status") == ready_status:
@@ -70,6 +77,7 @@ def audit_baseline_readiness(
         ),
         "not_ready_required": sorted(missing_required),
         "missing_evidence": missing_evidence,
+        "evidence_file_sha256": evidence_file_sha256,
         "errors": errors,
         "verdict": "PASS_BASELINES_READY" if ready else "BLOCK_BASELINES_NOT_READY",
     }

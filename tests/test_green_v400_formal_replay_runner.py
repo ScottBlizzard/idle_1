@@ -77,6 +77,7 @@ def artifacts():
             "model_manifest_tensor_hash_scheme": "sha256-contiguous-numpy-native-bytes-v1",
         },
         "source_file_sha256": {
+            "analysis/green_v400_formal_worker.py": "56" * 32,
             "src/green_v400_formal_replay_runner.py": file_hash(
                 "green_v400_formal_replay_runner.py"
             ),

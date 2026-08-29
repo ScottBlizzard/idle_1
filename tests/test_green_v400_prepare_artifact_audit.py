@@ -77,3 +77,23 @@ def test_prepare_bundle_audit_passes_and_payload_tamper_fails(tmp_path):
         plan_path=plan,
     )
     assert "endpoint direction payload hash mismatch" in report["errors"]
+
+
+def test_prepare_bundle_audit_accepts_an_honest_baseline_blocker(tmp_path):
+    manifest, registry, plan_path = bundle(tmp_path)
+    plan = json.loads(plan_path.read_text(encoding="utf-8"))
+    plan["plan_gate"] = "PLAN_COMPILED_BLOCKED_BY_BASELINES"
+    plan["baseline_readiness"] = {
+        "ready_for_untouched_execution": False,
+        "not_ready_required": ["grant_divergence"],
+    }
+    plan.pop("plan_sha256")
+    plan["plan_sha256"] = canonical_sha256(plan)
+    write_json(plan_path, plan)
+    report = audit_bundle(
+        manifest_path=manifest,
+        registry_path=registry,
+        plan_path=plan_path,
+    )
+    assert report["verdict"] == "PASS_PREPARE_BUNDLE_AUDIT"
+    assert report["baseline_blockers"] == ["grant_divergence"]

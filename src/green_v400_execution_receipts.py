@@ -71,6 +71,10 @@ def build_model_session_receipt(
     ):
         if not isinstance(value, str) or len(value) != 64:
             raise ValueError(f"{label} must be a digest")
+    if loader_source_sha256 != plan.get("source_file_sha256", {}).get(
+        "analysis/green_v400_formal_worker.py"
+    ):
+        raise ValueError("model loader source differs from the plan")
     if not isinstance(pid, int) or pid <= 0:
         raise ValueError("model session PID is invalid")
     receipt = {

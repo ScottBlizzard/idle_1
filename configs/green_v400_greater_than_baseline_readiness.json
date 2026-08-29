@@ -55,9 +55,9 @@
     },
     "grant_divergence": {
       "required": true,
-      "status": "READY",
-      "evidence": ["analysis/CODEX_GREEN_V400_PRIMARY_BASELINE_SOURCE_PIN_20260829.md", "analysis/green_v400_grant_runtime_parity_20260829.json", "src/green_v400_grant_divergence.py", "src/green_v400_grant_prediction_worker.py", "tests/test_green_v400_grant_divergence.py", "tests/test_green_v400_grant_prediction_worker.py", "analysis/green_v400_gt_historical_baseline_benchmark_20260829_v1.json"],
-      "missing": []
+      "status": "SCIENTIFIC_BINDING_REQUIRED",
+      "evidence": ["analysis/CODEX_GREEN_V400_PRIMARY_BASELINE_SOURCE_PIN_20260829.md", "analysis/CODEX_GREEN_V400_GRANT_CAPTURE_SEMANTICS_AUDIT_20260829.md", "analysis/green_v400_grant_runtime_parity_20260829.json", "src/green_v400_grant_divergence.py", "src/green_v400_grant_prediction_worker.py", "tests/test_green_v400_grant_divergence.py", "tests/test_green_v400_grant_prediction_worker.py", "analysis/green_v400_gt_historical_baseline_benchmark_20260829_v1.json"],
+      "missing": ["binding choice for ordinary full-vector patch versus GREEN probe extension", "exact intervened cohort, natural-ground-truth pairing, measurement site, and direction aggregation"]
     },
     "normalized_finite_response_mismatch": {
       "required": false,

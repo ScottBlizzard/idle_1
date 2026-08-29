@@ -18,11 +18,13 @@ Status: implementation evidence only; no scientific outcome authorization
 - Primary paper: Grant, Han, Tartaglini, and Potts, *Addressing Divergent Representations from Causal Interventions on Neural Networks*, ICLR 2026 Oral, arXiv:2511.04638 / OpenReview `cZrTMqYVL6`.
 - Author repository: `https://github.com/grantsrb/rep_divergence`, pinned at `f2548d2ea9b4f4b87a87ba5d53db43838d15c521`.
 - Authority files: `divergence/divergence_utils.py` and the experiment notebooks under `divergence/`.
+- Capture semantics: the paper's transformer comparison uses residual-stream vectors at the intervention position; Appendix A.1.2 pairs each intervened vector with the natural ground-truth vector it is meant to approximate. The author utility accepts `[batch, layer, position, feature]` tensors and explicitly filters layer and position before analysis.
 - Primary cohort metric: featurewise-standardize natural and intervened cohorts separately using the repository's `torch.std` convention, compute `geomloss.SamplesLoss(loss="sinkhorn", p=2, blur=0.05)`, and divide by `sqrt(d)`.
 - Companion metrics: paired MSE, optimal and nearest-neighbor cosine/correlation cost, and optimal and nearest-neighbor MSE cost.
 - Required control: repeat distribution metrics between two natural-data subsets (`base_*`).
 - Applicability constraint: this is a cohort-level divergence diagnostic, not a per-row certificate and not by itself a test of whether divergence is harmless or pernicious.
 - GREEN firewall binding: only development/prediction activations may enter this baseline. Endpoint directions, endpoint activations, transport outcomes, and NMH outcomes remain unavailable.
+- Full-vector caveat: GREEN's ordinary clean-to-corrupt `resid_post` patch is exactly natural at the intervention site by construction. Any informative downstream contextual-divergence diagnostic is an extension requiring an explicit scientific binding; see `analysis/CODEX_GREEN_V400_GRANT_CAPTURE_SEMANTICS_AUDIT_20260829.md`.
 
 ## Readiness rule
 

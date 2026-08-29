@@ -46,7 +46,7 @@ def test_replication_manifest_expands_disjoint_prompt_roles_to_sites():
     }
 
 
-def test_replication_execution_plan_uses_its_own_ready_but_unauthorized_registry():
+def test_replication_execution_plan_fails_closed_on_unbound_grant_route():
     challenge = json.loads(CHALLENGE.read_text(encoding="utf-8"))
     universe = build_untouched_universe(FakeYearTokenizer(), small_universe_config())
     manifest = finalize_prepare_manifest(challenge, universe)
@@ -65,7 +65,8 @@ def test_replication_execution_plan_uses_its_own_ready_but_unauthorized_registry
         json.loads((ROOT / "analysis/GREEN_V400_FORMAL_PREPARE_ARTIFACTS_20260826/model_manifest.json").read_text()),
         repository_root=ROOT,
     )
-    assert plan["plan_gate"] == "PLAN_COMPILED_AWAITING_SCIENTIFIC_AUTHORIZATION"
+    assert plan["plan_gate"] == "PLAN_COMPILED_BLOCKED_BY_BASELINES"
+    assert plan["baseline_readiness"]["not_ready_required"] == ["grant_divergence"]
     assert plan["execution_enabled"] is False
     assert plan["queue_counts"] == {
         "development_prediction": 4 * 9,

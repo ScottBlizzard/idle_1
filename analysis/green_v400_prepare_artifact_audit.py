@@ -48,8 +48,16 @@ def audit_bundle(
         errors.append("sealed prepare plan unexpectedly enables execution")
     if plan.get("real_outcomes_authorized") is not False:
         errors.append("sealed prepare plan unexpectedly authorizes outcomes")
-    if plan.get("plan_gate") != "PLAN_COMPILED_AWAITING_SCIENTIFIC_AUTHORIZATION":
-        errors.append("plan is not at the expected authorization barrier")
+    allowed_prepare_gates = {
+        "PLAN_COMPILED_AWAITING_SCIENTIFIC_AUTHORIZATION",
+        "PLAN_COMPILED_BLOCKED_BY_BASELINES",
+    }
+    if plan.get("plan_gate") not in allowed_prepare_gates:
+        errors.append("plan is not at a recognized prepare-only barrier")
+    if plan.get("plan_gate") == "PLAN_COMPILED_BLOCKED_BY_BASELINES" and plan.get(
+        "baseline_readiness", {}
+    ).get("ready_for_untouched_execution") is not False:
+        errors.append("baseline-blocked plan lacks a failing baseline audit")
 
     manifest_sha256 = canonical_sha256(manifest)
     if registry.get("manifest_sha256") != manifest_sha256:
@@ -121,6 +129,9 @@ def audit_bundle(
         "plan_gate": plan.get("plan_gate"),
         "execution_enabled": False,
         "queue_counts": plan.get("queue_counts"),
+        "baseline_blockers": plan.get("baseline_readiness", {}).get(
+            "not_ready_required", []
+        ),
         "direction_payloads": payloads,
         "errors": errors,
         "verdict": "PASS_PREPARE_BUNDLE_AUDIT" if not errors else "FAIL_PREPARE_BUNDLE_AUDIT",

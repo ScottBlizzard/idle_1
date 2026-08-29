@@ -91,6 +91,7 @@ def fixtures():
         "contains_scientific_outcome": False,
     }
     sources = {
+        "analysis/green_v400_formal_worker.py": "66" * 32,
         "src/green_v400_formal_prediction_runner.py": file_hash(
             "green_v400_formal_prediction_runner.py"
         ),

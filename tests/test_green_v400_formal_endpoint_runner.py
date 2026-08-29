@@ -99,6 +99,7 @@ def artifacts(execution_enabled=True):
             "model_manifest_tensor_hash_scheme": "sha256-contiguous-numpy-native-bytes-v1",
         },
         "source_file_sha256": {
+            "analysis/green_v400_formal_worker.py": "b0" * 32,
             "src/green_v400_endpoint_worker.py": file_hash("green_v400_endpoint_worker.py"),
             "src/green_v400_formal_endpoint_runner.py": file_hash("green_v400_formal_endpoint_runner.py"),
             "src/green_v400_ioi_response_adapter.py": file_hash("green_v400_ioi_response_adapter.py"),

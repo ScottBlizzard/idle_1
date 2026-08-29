@@ -19,21 +19,28 @@ def payload():
     return json.loads(CONFIG.read_text(encoding="utf-8"))
 
 
-def test_checked_in_registry_passes_after_historical_resource_and_precision_audits():
+def test_checked_in_registry_fails_closed_on_unbound_grant_capture_semantics():
     audit = audit_baseline_readiness(payload(), ROOT)
-    assert audit["verdict"] == "PASS_BASELINES_READY"
-    assert audit["ready_for_untouched_execution"] is True
-    assert audit["not_ready_required"] == []
-    assert_baselines_ready(payload(), ROOT)
+    assert audit["verdict"] == "BLOCK_BASELINES_NOT_READY"
+    assert audit["ready_for_untouched_execution"] is False
+    assert audit["not_ready_required"] == ["grant_divergence"]
+    assert len(
+        audit["evidence_file_sha256"]["grant_divergence"][
+            "analysis/CODEX_GREEN_V400_GRANT_CAPTURE_SEMANTICS_AUDIT_20260829.md"
+        ]
+    ) == 64
+    with pytest.raises(RuntimeError, match="grant_divergence"):
+        assert_baselines_ready(payload(), ROOT)
 
 
-def test_checked_in_greater_than_registry_passes_its_own_historical_audits():
+def test_checked_in_greater_than_registry_fails_closed_on_same_grant_binding():
     registry = json.loads(GT_CONFIG.read_text(encoding="utf-8"))
     audit = audit_baseline_readiness(registry, ROOT)
-    assert audit["verdict"] == "PASS_BASELINES_READY"
-    assert audit["ready_for_untouched_execution"] is True
-    assert audit["not_ready_required"] == []
-    assert_baselines_ready(registry, ROOT)
+    assert audit["verdict"] == "BLOCK_BASELINES_NOT_READY"
+    assert audit["ready_for_untouched_execution"] is False
+    assert audit["not_ready_required"] == ["grant_divergence"]
+    with pytest.raises(RuntimeError, match="grant_divergence"):
+        assert_baselines_ready(registry, ROOT)
 
 
 def test_gate_passes_only_when_every_required_baseline_is_ready():

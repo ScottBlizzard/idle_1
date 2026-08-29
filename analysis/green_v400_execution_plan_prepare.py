@@ -263,7 +263,9 @@ def compile_execution_plan(
         else ["src/green_v400_ioi_response_adapter.py", "src/green_v400_ioi_nmh_endpoint.py"]
     )
     source_paths = [
+        "analysis/green_v400_baseline_readiness.py",
         "analysis/green_v400_execution_plan_prepare.py",
+        "analysis/green_v400_formal_worker.py",
         "analysis/green_v400_shared_decision_analyzer.py",
         "src/green_v400_direction_binding.py",
         "src/green_v400_endpoint_calibration.py",
