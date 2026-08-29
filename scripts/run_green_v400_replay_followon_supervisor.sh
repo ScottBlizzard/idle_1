@@ -17,6 +17,22 @@ log() {
   printf '%s %s\n' "$(date --iso-8601=seconds)" "$*"
 }
 
+wait_for_gpu_memory() {
+  local gpu=$1
+  local required_free_mib=8192
+  while true; do
+    local free_mib
+    free_mib=$(nvidia-smi --query-gpu=memory.free \
+      --format=csv,noheader,nounits --id="$gpu" | tr -d '[:space:]')
+    if [[ $free_mib =~ ^[0-9]+$ ]] && (( free_mib >= required_free_mib )); then
+      log "GPU $gpu has ${free_mib} MiB free; replay may start"
+      return 0
+    fi
+    log "GPU $gpu has ${free_mib:-unknown} MiB free; waiting for ${required_free_mib} MiB"
+    sleep 60
+  done
+}
+
 wait_for_first_supervisor() {
   while [[ ! -f "$FIRST_SUPERVISOR/status.txt" ]]; do
     if [[ ! -f "$FIRST_SUPERVISOR/supervisor.pid" ]]; then
@@ -88,6 +104,7 @@ PY
         log "resume skip replay shard=$shard job=$job_id replay=$replay_id"
         continue
       fi
+      wait_for_gpu_memory "$gpu"
       env \
         CUDA_VISIBLE_DEVICES="$gpu" \
         CUBLAS_WORKSPACE_CONFIG=:4096:8 \
@@ -133,13 +150,20 @@ launch_replay_fleet() {
   local endpoint_directions=$5
   local replay_root=$6
   mkdir -p "$replay_root"
+  if [[ -f "$replay_root/shard_0.status" ]] \
+    && [[ -f "$replay_root/shard_1.status" ]] \
+    && [[ -f "$replay_root/shard_2.status" ]] \
+    && [[ -f "$replay_root/shard_3.status" ]]; then
+    log "replay fleet already has four shard completion statuses: $replay_root"
+    return 0
+  fi
   local shard gpu pid
   for shard in 0 1 2 3; do
     gpu=$((shard + 4))
     run_replay_shard \
       "$plan" "$parent" "$universe" "$registry" \
       "$endpoint_directions" "$replay_root" "$shard" \
-      > "$replay_root/replay_shard_${shard}_gpu_${gpu}.log" 2>&1 &
+      >> "$replay_root/replay_shard_${shard}_gpu_${gpu}.log" 2>&1 &
     pid=$!
     printf '%s\n' "$pid" > "$replay_root/replay_shard_${shard}_gpu_${gpu}.pid"
     log "launched replay shard=$shard gpu=$gpu pid=$pid"
@@ -182,6 +206,10 @@ assemble_replays() {
   local ledger=$2
   local replay_root=$3
   local output_directory=$4
+  if [[ -f "$output_directory/assembly_summary.json" ]]; then
+    log "using existing replay receipt assembly: $output_directory"
+    return 0
+  fi
   env PYTHONPATH="$PYTHON_PATH" \
     "$PYTHON" "$REPO/analysis/green_v400_replay_receipt_assembler.py" \
     --plan "$plan" \
@@ -201,6 +229,10 @@ run_protocol_replay() {
   local ledger_root=$8
   local replay_root=$9
   local receipt_root=${10}
+  if [[ -f "$receipt_root/assembly_summary.json" ]]; then
+    log "$label numerical replay already complete and validated"
+    return 0
+  fi
   log "starting $label batch ledger ingestion"
   ingest_batches "$plan" "$prediction_root" "$grant_root" "$ledger_root"
   log "starting $label numerical replay fleet"

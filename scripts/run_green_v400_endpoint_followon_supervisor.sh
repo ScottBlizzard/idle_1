@@ -17,6 +17,22 @@ log() {
   printf '%s %s\n' "$(date --iso-8601=seconds)" "$*"
 }
 
+wait_for_gpu_memory() {
+  local gpu=$1
+  local required_free_mib=8192
+  while true; do
+    local free_mib
+    free_mib=$(nvidia-smi --query-gpu=memory.free \
+      --format=csv,noheader,nounits --id="$gpu" | tr -d '[:space:]')
+    if [[ $free_mib =~ ^[0-9]+$ ]] && (( free_mib >= required_free_mib )); then
+      log "GPU $gpu has ${free_mib} MiB free; endpoint may start"
+      return 0
+    fi
+    log "GPU $gpu has ${free_mib:-unknown} MiB free; waiting for ${required_free_mib} MiB"
+    sleep 60
+  done
+}
+
 wait_for_replay_supervisor() {
   while [[ ! -f "$REPLAY_SUPERVISOR/status.txt" ]]; do
     if [[ ! -f "$REPLAY_SUPERVISOR/supervisor.pid" ]]; then
@@ -94,6 +110,7 @@ PY
       log "resume skip endpoint shard=$shard job=$job_id"
       continue
     fi
+    wait_for_gpu_memory "$gpu"
     env \
       CUDA_VISIBLE_DEVICES="$gpu" \
       CUBLAS_WORKSPACE_CONFIG=:4096:8 \
@@ -148,7 +165,7 @@ launch_endpoint_fleet() {
     run_endpoint_shard \
       "$plan" "$parent" "$universe" "$registry" "$endpoint_directions" \
       "$authorization_root" "$endpoint_root" "$shard" \
-      > "$endpoint_root/endpoint_shard_${shard}_gpu_${gpu}.log" 2>&1 &
+      >> "$endpoint_root/endpoint_shard_${shard}_gpu_${gpu}.log" 2>&1 &
     pid=$!
     printf '%s\n' "$pid" > "$endpoint_root/endpoint_shard_${shard}_gpu_${gpu}.pid"
     log "launched endpoint shard=$shard gpu=$gpu pid=$pid"
