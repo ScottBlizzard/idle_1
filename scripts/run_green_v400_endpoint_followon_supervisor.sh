@@ -2,8 +2,10 @@
 set -euo pipefail
 
 # Development endpoints only. This waits for both numerical-replay assemblies,
-# prepares typed authorizations, and evaluates the frozen endpoint queue. It
-# cannot launch confirmation because the activated plans keep it locked.
+# prepares typed authorizations, and evaluates the frozen endpoint queue. Four
+# GPU workers claim jobs dynamically while preserving the plan-defined shard
+# output topology. It cannot launch confirmation because the activated plans
+# keep it locked.
 
 readonly REPO=/mnt/sdb/ccj/iclr_1_runs/idle_1_green_v400_postfreeze_validation_20260828
 readonly PYTHON=/home/ccj/miniconda3/envs/green_bridge_20260805/bin/python
@@ -28,8 +30,14 @@ acquire_supervisor_lock() {
 
 wait_for_gpu_memory() {
   local gpu=$1
+  local plan=$2
+  local endpoint_root=$3
   local required_free_mib=8192
   while true; do
+    if [[ $(remaining_endpoint_jobs "$plan" "$endpoint_root") -eq 0 ]]; then
+      log "endpoint queue completed while GPU $gpu was waiting"
+      return 2
+    fi
     local free_mib
     free_mib=$(nvidia-smi --query-gpu=memory.free \
       --format=csv,noheader,nounits --id="$gpu" | tr -d '[:space:]')
@@ -87,7 +95,25 @@ prepare_authorizations() {
     --output-directory "$output_directory"
 }
 
-run_endpoint_shard() {
+remaining_endpoint_jobs() {
+  local plan=$1
+  local endpoint_root=$2
+  "$PYTHON" - "$plan" "$endpoint_root" <<'PY'
+import json
+import pathlib
+import sys
+
+plan = json.load(open(sys.argv[1], encoding="utf-8"))
+root = pathlib.Path(sys.argv[2])
+remaining = 0
+for ordinal, job in enumerate(plan["queues"]["development_endpoint"]):
+    if not (root / f"shard_{ordinal % 4}" / f"{job['job_id']}.json").is_file():
+        remaining += 1
+print(remaining)
+PY
+}
+
+run_endpoint_worker() {
   local plan=$1
   local parent=$2
   local universe=$3
@@ -95,35 +121,66 @@ run_endpoint_shard() {
   local endpoint_directions=$5
   local authorization_root=$6
   local endpoint_root=$7
-  local shard=$8
-  local gpu=$((shard + 4))
-  local output_directory="$endpoint_root/shard_$shard"
+  local worker=$8
+  local gpu=$((worker + 4))
   local temporary_directory="$endpoint_root/tmp_gpu_$gpu"
   local retry_directory="$endpoint_root/retry_logs"
-  mkdir -p "$output_directory" "$temporary_directory" "$endpoint_root/pycache" \
-    "$retry_directory"
-  mapfile -t jobs < <(
-    "$PYTHON" - "$plan" "$shard" <<'PY'
+  local lock_directory="$endpoint_root/job_locks"
+  mkdir -p "$endpoint_root/shard_0" "$endpoint_root/shard_1" \
+    "$endpoint_root/shard_2" "$endpoint_root/shard_3" \
+    "$temporary_directory" "$endpoint_root/pycache" "$retry_directory" \
+    "$lock_directory"
+  mapfile -t job_entries < <(
+    "$PYTHON" - "$plan" "$worker" <<'PY'
 import json
 import sys
 
 plan = json.load(open(sys.argv[1], encoding="utf-8"))
-shard = int(sys.argv[2])
-for ordinal, job in enumerate(plan["queues"]["development_endpoint"]):
-    if ordinal % 4 == shard:
-        print(job["job_id"])
+worker = int(sys.argv[2])
+jobs = plan["queues"]["development_endpoint"]
+for base in range(0, len(jobs), 4):
+    for delta in range(4):
+        ordinal = base + ((worker + delta) % 4)
+        if ordinal < len(jobs):
+            print(f"{ordinal}\t{jobs[ordinal]['job_id']}")
 PY
   )
-  local job_id output_path
-  for job_id in "${jobs[@]}"; do
-    output_path="$output_directory/${job_id}.json"
-    if [[ -f "$output_path" ]]; then
-      log "resume skip endpoint shard=$shard job=$job_id"
-      continue
+  local remaining entry ordinal nominal_shard job_id output_path lock_path
+  local job_lock_fd prior_attempts attempt attempt_log exit_code wait_status
+  while true; do
+    remaining=$(remaining_endpoint_jobs "$plan" "$endpoint_root")
+    if [[ $remaining -eq 0 ]]; then
+      printf '%s\n' COMPLETE > "$endpoint_root/shard_${worker}.status"
+      log "endpoint worker=$worker gpu=$gpu observed the complete frozen queue"
+      return 0
     fi
-    while [[ ! -f "$output_path" ]]; do
-      wait_for_gpu_memory "$gpu"
-      local prior_attempts attempt attempt_log exit_code
+    log "endpoint worker=$worker gpu=$gpu queue remaining=$remaining"
+    for entry in "${job_entries[@]}"; do
+      ordinal=${entry%%$'\t'*}
+      job_id=${entry#*$'\t'}
+      nominal_shard=$((ordinal % 4))
+      output_path="$endpoint_root/shard_${nominal_shard}/${job_id}.json"
+      if [[ -f "$output_path" ]]; then
+        continue
+      fi
+      wait_status=0
+      wait_for_gpu_memory "$gpu" "$plan" "$endpoint_root" || wait_status=$?
+      if [[ $wait_status -eq 2 ]]; then
+        printf '%s\n' COMPLETE > "$endpoint_root/shard_${worker}.status"
+        return 0
+      elif [[ $wait_status -ne 0 ]]; then
+        return "$wait_status"
+      fi
+      lock_path="$lock_directory/${job_id}.lock"
+      exec {job_lock_fd}> "$lock_path"
+      if ! flock -n "$job_lock_fd"; then
+        exec {job_lock_fd}>&-
+        continue
+      fi
+      if [[ -f "$output_path" ]]; then
+        exec {job_lock_fd}>&-
+        continue
+      fi
       prior_attempts=$(find "$retry_directory" -maxdepth 1 -type f \
         -name "${job_id}_attempt_*.log" | wc -l)
       attempt=$((prior_attempts + 1))
@@ -165,21 +222,23 @@ PY
           "$authorization_root/endpoint_authorizations/${job_id}.json" \
           > "$attempt_log" 2>&1; then
         cat "$attempt_log"
-        break
+        exec {job_lock_fd}>&-
       else
         exit_code=$?
         cat "$attempt_log"
         if grep -q -E "OutOfMemoryError|CUDA out of memory" "$attempt_log"; then
-          log "OOM retry shard=$shard job=$job_id attempt=$attempt"
+          log "OOM retry worker=$worker gpu=$gpu job=$job_id attempt=$attempt"
+          exec {job_lock_fd}>&-
           sleep 60
           continue
         fi
-        log "ERROR non-OOM endpoint failure shard=$shard job=$job_id"
+        log "ERROR non-OOM endpoint failure worker=$worker gpu=$gpu job=$job_id"
+        exec {job_lock_fd}>&-
         return "$exit_code"
       fi
     done
+    sleep 5
   done
-  printf '%s\n' COMPLETE > "$endpoint_root/shard_${shard}.status"
 }
 
 launch_endpoint_fleet() {
@@ -191,16 +250,16 @@ launch_endpoint_fleet() {
   local authorization_root=$6
   local endpoint_root=$7
   mkdir -p "$endpoint_root"
-  local shard gpu pid
-  for shard in 0 1 2 3; do
-    gpu=$((shard + 4))
-    run_endpoint_shard \
+  local worker gpu pid
+  for worker in 0 1 2 3; do
+    gpu=$((worker + 4))
+    run_endpoint_worker \
       "$plan" "$parent" "$universe" "$registry" "$endpoint_directions" \
-      "$authorization_root" "$endpoint_root" "$shard" \
-      >> "$endpoint_root/endpoint_shard_${shard}_gpu_${gpu}.log" 2>&1 &
+      "$authorization_root" "$endpoint_root" "$worker" \
+      >> "$endpoint_root/endpoint_shard_${worker}_gpu_${gpu}.log" 2>&1 &
     pid=$!
-    printf '%s\n' "$pid" > "$endpoint_root/endpoint_shard_${shard}_gpu_${gpu}.pid"
-    log "launched endpoint shard=$shard gpu=$gpu pid=$pid"
+    printf '%s\n' "$pid" > "$endpoint_root/endpoint_shard_${worker}_gpu_${gpu}.pid"
+    log "launched dynamic endpoint worker=$worker gpu=$gpu pid=$pid"
   done
 }
 
