@@ -9,11 +9,71 @@ from pathlib import Path
 import tempfile
 from typing import Any
 
+import green_v400_execution_receipts as execution_receipts
 from green_v400_execution_receipts import build_endpoint_authorization_receipt
 
 from analysis.green_v400_formal_batch_worker import validate_existing_artifact
 from analysis.green_v400_formal_worker import FORMAL_OUTPUT_ROOT, load_json, verify_plan
 from analysis.green_v400_phase_ledger import validate_phase_ledger
+
+
+def _install_process_local_validation_cache() -> None:
+    """Cache repeated validation of immutable objects within this process.
+
+    Every endpoint authorization is still built by the frozen receipt builder.
+    The builder otherwise re-hashes the identical execution plan, re-validates
+    the identical phase ledger, and re-verifies the same typed layer/Grant
+    receipts once per endpoint job. These inputs are loaded once and never
+    mutated by this prepare-only process, so validating each object once is
+    equivalent while avoiding quadratic canonicalization work.
+    """
+
+    if getattr(
+        execution_receipts, "_endpoint_prepare_validation_cache_installed", False
+    ):
+        return
+
+    original_plan_hash = execution_receipts._plan_hash
+    original_validate_ledger = execution_receipts.validate_phase_ledger
+    original_verify_receipt = execution_receipts.verify_receipt
+    plan_cache: dict[int, tuple[dict[str, Any], str]] = {}
+    ledger_cache: dict[
+        tuple[int, int], tuple[dict[str, Any], dict[str, Any]]
+    ] = {}
+    receipt_cache: dict[
+        tuple[int, str], tuple[dict[str, Any], str]
+    ] = {}
+
+    def cached_plan_hash(plan: dict[str, Any]) -> str:
+        cached = plan_cache.get(id(plan))
+        if cached is not None and cached[0] is plan:
+            return cached[1]
+        digest = original_plan_hash(plan)
+        plan_cache[id(plan)] = (plan, digest)
+        return digest
+
+    def cached_validate_ledger(
+        plan: dict[str, Any], ledger: dict[str, Any]
+    ) -> None:
+        key = (id(plan), id(ledger))
+        cached = ledger_cache.get(key)
+        if cached is not None and cached[0] is plan and cached[1] is ledger:
+            return
+        original_validate_ledger(plan, ledger)
+        ledger_cache[key] = (plan, ledger)
+
+    def cached_verify_receipt(receipt: dict[str, Any], schema: str) -> None:
+        key = (id(receipt), schema)
+        cached = receipt_cache.get(key)
+        if cached is not None and cached[0] is receipt:
+            return
+        original_verify_receipt(receipt, schema)
+        receipt_cache[key] = (receipt, schema)
+
+    execution_receipts._plan_hash = cached_plan_hash
+    execution_receipts.validate_phase_ledger = cached_validate_ledger
+    execution_receipts.verify_receipt = cached_verify_receipt
+    execution_receipts._endpoint_prepare_validation_cache_installed = True
 
 
 def _atomic_no_clobber_json(path: Path, value: dict[str, Any]) -> None:
@@ -73,6 +133,7 @@ def prepare_endpoint_authorizations(
 ) -> tuple[dict[str, dict[str, Any]], dict[str, dict[str, Any]]]:
     verify_plan(plan)
     validate_phase_ledger(plan, ledger)
+    _install_process_local_validation_cache()
     if phase not in {"development", "confirmation"}:
         raise ValueError("endpoint phase is invalid")
     if plan.get(f"{phase}_authorized") is not True:
