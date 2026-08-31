@@ -1,0 +1,87 @@
+{
+  "schema_version": "green-v410-confirmation-seal-policy-v1",
+  "protocol_id": "GREEN-V410-SFC-JWTEC-20260830",
+  "attempt_index": 1,
+  "target_protocol_ids": [
+    "GREEN-V410-SFC-JWTEC-20260830",
+    "GREEN_V400_SILENT_FAILURE_CHALLENGE_PREPARE_V1",
+    "GREEN_V400_SILENT_FAILURE_GT_REPLICATION_PREPARE_V1"
+  ],
+  "phase_tokens": [
+    "confirmation",
+    "confirm"
+  ],
+  "output_path_tokens": [
+    "prediction",
+    "certificate",
+    "clean_validity",
+    "replay",
+    "endpoint",
+    "analysis",
+    "status",
+    "result",
+    "worker",
+    "supervisor"
+  ],
+  "model_output_keys": [
+    "ordinary_restoration",
+    "green_status",
+    "endpoint_status",
+    "heldout_transport_absolute_rmse",
+    "heldout_transport_symmetric_normalized_error",
+    "clean_task_valid",
+    "correct_probability_mass",
+    "incorrect_probability_mass",
+    "prediction_status",
+    "model_output",
+    "logits",
+    "probabilities",
+    "certificate_status",
+    "ratio_squared_interval"
+  ],
+  "forbidden_true_flags": [
+    "confirmation_authorized",
+    "confirmation_started",
+    "confirmation_open",
+    "confirmation_complete",
+    "confirmation_results_observed",
+    "endpoint_payload_materialized"
+  ],
+  "execution_markers": [
+    "worker started",
+    "worker complete",
+    "job started",
+    "job complete",
+    "model loaded",
+    "cuda visible devices",
+    "endpoint materialized"
+  ],
+  "text_extensions": [
+    ".json",
+    ".jsonl",
+    ".log",
+    ".txt",
+    ".out",
+    ".err",
+    ".toml",
+    ".yaml",
+    ".yml"
+  ],
+  "binary_output_extensions": [
+    ".pt",
+    ".pth",
+    ".npy",
+    ".npz",
+    ".parquet",
+    ".safetensors",
+    ".pkl",
+    ".pickle"
+  ],
+  "ignored_directory_names": [
+    ".git",
+    "__pycache__",
+    ".pytest_cache"
+  ],
+  "max_text_file_bytes": 33554432,
+  "allowed_file_sha256s": []
+}

@@ -123,8 +123,8 @@
   "required_hashes": {
     "decision_document_sha256": "5fb0d7dd936b4f44e6d96e41e1d4e3e9f63f75cf032013a5a687c42b21d43da0",
     "decision_rule_sha256": "9c9a79e0d8a73ce2e073704e4ad71065c978adff7bf0587c691a8b0ecb45e6e1",
-    "protocol_config_sha256": "dddcf0625a948c5062637654a84646f42ee9fcfa695d6f22f227c17c9194b2a5",
-    "schema_bundle_sha256": "<computed>",
+    "protocol_config_sha256": "ad44091838b529d2a8cb70ec69cf6eb728b1dc75ffc9227f66bbe7e195c96595",
+    "schema_bundle_sha256": "e5cde293cb4047839e08d2b57e2e656c53bff2304668db1475bbb982fb25bc9a",
     "source_bundle_sha256": "<computed>",
     "resource_manifest_sha256": "<computed>",
     "p13_two_task_receipt_sha256": "<computed-before-confirmation>",
