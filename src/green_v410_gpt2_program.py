@@ -511,7 +511,8 @@ def validate_green_v410_full_cone_program(
         for branch in ("J", "B"):
             root = program.branch_roots[f"{condition}_{branch}"]
             node = next(item for item in program.nodes if item.semantic_id == root)
-            if not node.provenance_identity.endswith("task_scalar"):
+            expected_provenance = f"{condition}.{branch}.task_scalar"
+            if node.provenance_identity != expected_provenance:
                 raise ValueError("v4.1 branch root is not the exact task scalar")
     for node in program.nodes:
         for reference in node.tensor_inputs:
@@ -520,7 +521,10 @@ def validate_green_v410_full_cone_program(
             raise ValueError("endpoint identifier leaked into certificate graph")
     if any("endpoint" in name.lower() for name in reader.names()):
         raise ValueError("endpoint tensor leaked into certificate store")
-    if tuple(program.branch_roots) != BRANCH_ORDER:
+    # Canonical JSON sorts mapping keys, so dictionary insertion order is not a
+    # semantic property of a persisted TensorProgram.  The output node carries
+    # the ordered linear combination; branch_roots is an exact name-to-root map.
+    if set(program.branch_roots) != set(BRANCH_ORDER):
         raise ValueError("v4.1 branch order mismatch")
 
 

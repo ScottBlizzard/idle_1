@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from copy import deepcopy
+import json
 from pathlib import Path
 from types import SimpleNamespace
 import sys
@@ -13,6 +14,7 @@ ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT / "src"))
 
 from green_bridge_v400_gpt2_program import execute_tensor_program_numpy
+from green_bridge_v400_tensor_program import TensorProgram
 from green_v410_gpt2_program import (
     GRAPH_SEMANTICS_ID,
     build_green_v410_full_cone_program,
@@ -207,6 +209,19 @@ def test_old_graph_semantics_is_rejected(tmp_path):
     )
     with pytest.raises(ValueError, match="old or unknown"):
         validate_green_v410_full_cone_program(program, reader, dims)
+
+
+def test_canonical_json_branch_mapping_roundtrip_is_order_independent(tmp_path):
+    _, _, _, _, reader, dims, program, _, _ = _case(tmp_path, 8)
+    canonical_payload = json.loads(json.dumps(program.to_dict(), sort_keys=True))
+    restored = TensorProgram.from_dict(canonical_payload)
+    validate_green_v410_full_cone_program(restored, reader, dims)
+
+    swapped = dict(restored.branch_roots)
+    swapped["PAT_J"], swapped["PAT_B"] = swapped["PAT_B"], swapped["PAT_J"]
+    object.__setattr__(restored, "branch_roots", swapped)
+    with pytest.raises(ValueError, match="exact task scalar"):
+        validate_green_v410_full_cone_program(restored, reader, dims)
 
 
 def test_mpfr_full_cone_t0_encloses_exact_matched_bypass_identity(tmp_path):
