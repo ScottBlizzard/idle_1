@@ -1,0 +1,133 @@
+{
+  "schema_version": "green-v410-sfc-jwtec-protocol-spec-v1",
+  "protocol_id": "GREEN-V410-SFC-JWTEC-20260830",
+  "parent_commit": "91741e32bfaad05667fb2d4c8d1de26373e90a15",
+  "outcome_blind_cutoff_commit": "6aab5837bf3950b86b166ef938097e9739810d9b",
+  "attempt_index": 1,
+  "scientific_retry_allowed": false,
+  "tasks": [
+    "ioi",
+    "greater_than"
+  ],
+  "site_layers": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8
+  ],
+  "site_hook_family": "resid_post",
+  "gate": {
+    "layer": 10,
+    "hook": "blocks.10.mlp.hook_post",
+    "position": -1,
+    "selected_indices": [
+      2326,
+      1138,
+      2287,
+      606,
+      2848,
+      2305,
+      46,
+      2659,
+      946,
+      1616
+    ]
+  },
+  "directions": {
+    "count": 8,
+    "width": 768,
+    "payload_dtype": "float32-little-endian",
+    "nominal_norm": 0.001,
+    "generator": "numpy-PCG64DXSM-rowwise-normal-v1"
+  },
+  "radii": [
+    "1",
+    "1/2",
+    "1/4"
+  ],
+  "precision_bits": {
+    "official": 384,
+    "audit": 512
+  },
+  "branch_order": [
+    "PAT_J",
+    "PAT_B",
+    "TAR_J",
+    "TAR_B"
+  ],
+  "branch_weights": [
+    1,
+    -1,
+    -1,
+    1
+  ],
+  "site_estimand": {
+    "j": "d/dt Psi(0)",
+    "p": "d/dt PAT_J(0)",
+    "q": "d/dt TAR_J(0)",
+    "aggregation": "RMS across exactly eight directions",
+    "denominator": "max(RMS(p), RMS(q), 1e-12)",
+    "ratio_threshold": "1/5"
+  },
+  "status_rule": {
+    "CERTIFIED_POSITIVE": "ratio_interval.upper <= 1/5",
+    "CERTIFIED_NEGATIVE": "ratio_interval.lower > 1/5",
+    "UNRESOLVED": "otherwise after valid complete intervals",
+    "INVALID": "hard contract, task, graph, identity, or numeric invalidity",
+    "RESOURCE_INCONCLUSIVE": "declared resource ceiling before complete interval",
+    "CERTIFIED_NULL": "FORBIDDEN"
+  },
+  "p13": {
+    "role": "two-task qualification cohort gate only",
+    "site_aggregation": "max over eight direction contraction ratios",
+    "task_median_max": "1/5",
+    "task_p90_max": "1/2",
+    "sample_sites_per_task": 108,
+    "sample_prompt_clusters_per_task": 12,
+    "all_records_required": true
+  },
+  "primary_analysis": {
+    "restoration_min": "4/5",
+    "greater_than_clean_valid_required": true,
+    "accept_status": "CERTIFIED_POSITIVE",
+    "minimum_coverage": "1/2",
+    "maximum_method_invalid_rate": "1/20",
+    "warning_rows_remain_in_denominator": true
+  },
+  "resource_selector": {
+    "candidate_leaf_budgets": [
+      4,
+      8,
+      16,
+      32
+    ],
+    "selection": "largest passing candidate",
+    "max_depth": 24,
+    "max_graph_nodes": 2000000,
+    "memory_max_bytes": 68719476736,
+    "direction_wall_max_seconds": 85800,
+    "guardband": "5/4",
+    "max_process_launches": 2
+  },
+  "development_use": "DIAGNOSTIC_ONLY",
+  "confirmation": {
+    "eligible_only_if_seal_passes": true,
+    "one_shot": true,
+    "endpoint_after_status_manifest": true
+  },
+  "required_hashes": {
+    "decision_document_sha256": "5fb0d7dd936b4f44e6d96e41e1d4e3e9f63f75cf032013a5a687c42b21d43da0",
+    "decision_rule_sha256": "9c9a79e0d8a73ce2e073704e4ad71065c978adff7bf0587c691a8b0ecb45e6e1",
+    "protocol_config_sha256": "dddcf0625a948c5062637654a84646f42ee9fcfa695d6f22f227c17c9194b2a5",
+    "schema_bundle_sha256": "<computed>",
+    "source_bundle_sha256": "<computed>",
+    "resource_manifest_sha256": "<computed>",
+    "p13_two_task_receipt_sha256": "<computed-before-confirmation>",
+    "confirmation_seal_sha256": "<computed-before-confirmation>"
+  }
+}
