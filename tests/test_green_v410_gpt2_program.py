@@ -233,6 +233,32 @@ def test_mpfr_full_cone_t0_encloses_exact_matched_bypass_identity(tmp_path):
     assert psi.lower <= 0 <= psi.upper
 
 
+def test_mpfr_full_cone_preloaded_constants_are_hash_closed(tmp_path):
+    pytest.importorskip("gmpy2")
+    from green_bridge_v400_interval import Interval
+    from green_bridge_v400_mpfr_tensor_executor import (
+        execute_tensor_program_mpfr,
+        jet_exact_payload,
+        preload_tensor_program_arrays,
+    )
+
+    _, _, _, _, reader, _, program, _, _ = _case(tmp_path, 8)
+    closure = preload_tensor_program_arrays(program, reader)
+    domain = Interval.from_bounds("-1/4", "1/4", 80)
+    reference = execute_tensor_program_mpfr(
+        program, reader, domain, sparse_axis0_execution=True,
+    )
+    cached = execute_tensor_program_mpfr(
+        program, reader, domain, sparse_axis0_execution=True,
+        return_runtime_metrics=True, preloaded_tensors=closure,
+    )
+    assert jet_exact_payload(cached["output"]) == jet_exact_payload(reference["output"])
+    assert cached["runtime_metrics"]["tensor_store_fallback_reads"] == 0
+    assert cached["runtime_metrics"]["preloaded_tensor_reads"] > 0
+    with pytest.raises(TypeError, match="immutable"):
+        closure.clear()
+
+
 def test_mpfr_task_contrast_uses_exact_nondyadic_rationals():
     gmpy2 = pytest.importorskip("gmpy2")
     from green_bridge_v400_interval import Interval

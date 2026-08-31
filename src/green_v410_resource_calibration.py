@@ -34,7 +34,8 @@ def load_resource_calibration_config(path: Path = CONFIG_PATH) -> dict:
     payload = json.loads(Path(path).read_text(encoding="utf-8"))
     strict_fields(payload, {
         "schema_version", "protocol_id", "attempt_index", "execution_scope",
-        "generator", "master_seed_uint64", "domain_separator", "profiles",
+        "generator", "master_seed_uint64", "domain_separator", "model",
+        "selected_gates", "synthetic_task_metrics", "profiles",
         "profile_shapes", "fixtures", "candidate_leaf_budgets", "precision_bits", "direction_width",
         "direction_nominal_norm", "controlled_hook_dtype", "direction_dtype",
         "cold_processes_per_precision_and_candidate", "radius_count", "pass_formulas",
@@ -49,6 +50,14 @@ def load_resource_calibration_config(path: Path = CONFIG_PATH) -> dict:
         or payload["generator"] != "numpy-PCG64DXSM"
         or payload["master_seed_uint64"] != MASTER_SEED
         or payload["domain_separator"] != DOMAIN_SEPARATOR
+        or payload["model"] != {
+            "id": "openai-community/gpt2",
+            "revision": "607a30d783dfa663caf39e06633721c8d4cfcd7e",
+            "checkpoint_dtype": "float32",
+        }
+        or payload["selected_gates"] != [
+            2326, 1138, 2287, 606, 2848, 2305, 46, 2659, 946, 1616,
+        ]
         or payload["profiles"] != list(PROFILES)
         or payload["profile_shapes"] != {
             "ioi": {
@@ -85,6 +94,26 @@ def load_resource_calibration_config(path: Path = CONFIG_PATH) -> dict:
         or payload["endpoint_material_allowed"] is not False
     ):
         raise ValueError("resource calibration config differs from the binding decision")
+    metrics = payload["synthetic_task_metrics"]
+    if set(metrics) != {"ioi", "greater_than"}:
+        raise ValueError("resource calibration synthetic task metric domain mismatch")
+    expected_metrics = {
+        "ioi": (
+            [0, 1], [[1, 1], [-1, 1]],
+            "fixed_two_column_synthetic_logit_difference",
+        ),
+        "greater_than": (
+            list(range(100)), [[-1, 50]] * 50 + [[1, 50]] * 50,
+            "fixed_balanced_hundred_column_synthetic_greater_than_contrast",
+        ),
+    }
+    for task, (ids, coefficients, semantics) in expected_metrics.items():
+        if metrics[task] != {
+            "suffix_token_ids": ids,
+            "coefficient_rationals": coefficients,
+            "semantics": semantics,
+        }:
+            raise ValueError("resource calibration synthetic task metric mismatch")
     fixtures = payload["fixtures"]
     if not isinstance(fixtures, list) or [row.get("kind") for row in fixtures] != list(FIXTURE_KINDS):
         raise ValueError("resource calibration fixture order mismatch")
@@ -241,6 +270,8 @@ class SyntheticModifierEvaluator:
     def __init__(self, base_evaluator, fixture: SyntheticCalibrationFixture):
         self.base_evaluator = base_evaluator
         self.fixture = fixture
+        self.contains_scientific_outcome = False
+        self.synthetic_only = True
 
     @property
     def evaluator_identity_sha256(self) -> str:
@@ -257,6 +288,74 @@ class SyntheticModifierEvaluator:
             self.base_evaluator.evaluate_interval(domain),
             synthetic_modifier_jet(domain, self.fixture.modifier_coefficients),
         )
+
+    def close(self) -> None:
+        close = getattr(self.base_evaluator, "close", None)
+        if callable(close):
+            close()
+
+
+class TensorProgramCalibrationEvaluator:
+    """Repeated-cell evaluator over one hash-closed synthetic TensorProgram."""
+
+    contains_scientific_outcome = False
+    synthetic_only = True
+
+    def __init__(self, program, reader, compiled_backend=None):
+        from green_bridge_v400_compiled_mpfr import CompiledMPFRBackend
+        from green_bridge_v400_mpfr_tensor_executor import (
+            ResidentStaticRowCache,
+            preload_tensor_program_arrays,
+        )
+
+        if isinstance(compiled_backend, (str, Path)):
+            compiled_backend = CompiledMPFRBackend(Path(compiled_backend))
+        self.program = program
+        self.reader = reader
+        self.compiled_backend = compiled_backend
+        self.preloaded_tensors = preload_tensor_program_arrays(program, reader)
+        self._static_caches = {}
+        self._cache_type = ResidentStaticRowCache
+        backend_identity = (
+            compiled_backend.library_sha256 if compiled_backend is not None else "python-reference"
+        )
+        self.evaluator_identity_sha256 = sha256_canonical({
+            "schema_version": "green-v410-resource-tensor-evaluator-v1",
+            "program_semantic_hash": program.semantic_hash(),
+            "tensor_store_record_closure_sha256": reader.manifest.record_closure_sha256,
+            "backend_identity": backend_identity,
+            "sparse_axis0_execution": True,
+            "preloaded_tensor_closure": True,
+            "cross_cell_static_cache": compiled_backend is not None,
+            "contains_scientific_outcome": False,
+        })
+
+    def evaluate_interval(self, domain):
+        from green_bridge_v400_mpfr_tensor_executor import execute_tensor_program_mpfr
+
+        cache = None
+        if self.compiled_backend is not None:
+            cache = self._static_caches.get(domain.precision_bits)
+            if cache is None:
+                cache = self._cache_type.build_unpacked(
+                    self.program, self.compiled_backend, domain.precision_bits
+                )
+                self._static_caches[domain.precision_bits] = cache
+        result = execute_tensor_program_mpfr(
+            self.program,
+            self.reader,
+            domain,
+            self.compiled_backend,
+            sparse_axis0_execution=True,
+            resident_static_row_cache=cache,
+            preloaded_tensors=self.preloaded_tensors,
+        )
+        return result["output"]
+
+    def close(self) -> None:
+        for cache in self._static_caches.values():
+            cache.close()
+        self._static_caches.clear()
 
 
 def expected_run_identities(candidate_leaf_budget: int) -> tuple[dict, ...]:

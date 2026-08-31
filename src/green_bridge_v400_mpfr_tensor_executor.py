@@ -27,6 +27,79 @@ from green_bridge_v400_transformer_ops import (
 )
 
 
+_VALIDATED_ARRAY_CLOSURE_TOKEN = object()
+
+
+class ValidatedTensorArrayClosure(dict):
+    """Read-only, hash-closed in-memory constants for repeated graph cells."""
+
+    def __init__(self, arrays, *, program_semantic_hash: str,
+                 tensor_store_record_closure_sha256: str, token):
+        if token is not _VALIDATED_ARRAY_CLOSURE_TOKEN:
+            raise TypeError("validated tensor closures must be created by the loader")
+        super().__init__(arrays)
+        self.program_semantic_hash = program_semantic_hash
+        self.tensor_store_record_closure_sha256 = tensor_store_record_closure_sha256
+
+    @staticmethod
+    def _immutable(*_args, **_kwargs):
+        raise TypeError("validated tensor closure is immutable")
+
+    __setitem__ = _immutable
+    __delitem__ = _immutable
+    clear = _immutable
+    pop = _immutable
+    popitem = _immutable
+    setdefault = _immutable
+    update = _immutable
+    __ior__ = _immutable
+
+    def validate(self, program: TensorProgram, reader: TensorStoreReader) -> None:
+        required = {
+            reference.tensor_sha256: reference
+            for node in program.nodes for reference in node.tensor_inputs
+        }
+        if (
+            self.program_semantic_hash != program.semantic_hash()
+            or self.tensor_store_record_closure_sha256
+            != reader.manifest.record_closure_sha256
+            or set(self) != set(required)
+        ):
+            raise ValueError("preloaded tensor closure identity mismatch")
+        for semantic_hash, reference in required.items():
+            array = self[semantic_hash]
+            if (
+                not isinstance(array, np.ndarray)
+                or array.flags.writeable
+                or array.dtype.str != reference.dtype
+                or tuple(array.shape) != reference.shape
+                or array.nbytes != reference.nbytes
+            ):
+                raise ValueError("preloaded tensor closure array mismatch")
+
+
+def preload_tensor_program_arrays(
+    program: TensorProgram, reader: TensorStoreReader,
+) -> ValidatedTensorArrayClosure:
+    """Load every unique, already hash-verified program constant exactly once."""
+    arrays = {}
+    for node in program.nodes:
+        for reference in node.tensor_inputs:
+            reader.validate_ref(reference)
+            if reference.tensor_sha256 not in arrays:
+                array = reader.read_semantic(reference.tensor_sha256)
+                array.flags.writeable = False
+                arrays[reference.tensor_sha256] = array
+    result = ValidatedTensorArrayClosure(
+        arrays,
+        program_semantic_hash=program.semantic_hash(),
+        tensor_store_record_closure_sha256=reader.manifest.record_closure_sha256,
+        token=_VALIDATED_ARRAY_CLOSURE_TOKEN,
+    )
+    result.validate(program, reader)
+    return result
+
+
 @dataclass
 class ResidentStaticRowCache:
     """Cross-cell cache closed to one program, packed plan, backend, and precision."""
@@ -62,6 +135,17 @@ class ResidentStaticRowCache:
             int(precision_bits),
         )
 
+    @classmethod
+    def build_unpacked(cls, program: TensorProgram,
+                       compiled_backend: CompiledMPFRBackend, precision_bits: int):
+        """Create a cross-cell static cache without the retired v4.0 packed plan."""
+        if precision_bits <= 0:
+            raise ValueError("resident static-row cache precision must be positive")
+        return cls(
+            program.semantic_hash(), "UNPACKED_V410", compiled_backend.library_sha256,
+            int(precision_bits),
+        )
+
     def validate(self, program: TensorProgram, resident_plan: dict,
                  compiled_backend: CompiledMPFRBackend, precision_bits: int) -> None:
         expected = (
@@ -74,6 +158,20 @@ class ResidentStaticRowCache:
         )
         if actual != expected:
             raise ValueError("resident static-row cache identity mismatch")
+
+    def validate_unpacked(self, program: TensorProgram,
+                          compiled_backend: CompiledMPFRBackend,
+                          precision_bits: int) -> None:
+        expected = (
+            program.semantic_hash(), "UNPACKED_V410", compiled_backend.library_sha256,
+            int(precision_bits),
+        )
+        actual = (
+            self.program_semantic_hash, self.resident_plan_semantic_hash,
+            self.backend_sha256, self.precision_bits,
+        )
+        if actual != expected:
+            raise ValueError("unpacked static-row cache identity mismatch")
 
     @property
     def entry_count(self) -> int:
@@ -236,6 +334,7 @@ def execute_tensor_program_mpfr(
     return_dispatch_trace: bool = False,
     return_runtime_metrics: bool = False,
     successful_node_callback: Callable[[dict], None] | None = None,
+    preloaded_tensors: ValidatedTensorArrayClosure | None = None,
 ) -> dict[str, object]:
     """Replay all branch roots over one interval cell; never reads scientific labels/outcomes."""
     precision = domain.precision_bits
@@ -244,6 +343,7 @@ def execute_tensor_program_mpfr(
     values: dict[str, object] = {}
     dispatch_events = []
     tensor_cache: dict[str, np.ndarray] = {}
+    preloaded_tensor_reads = 0
     resident_by_semantic: dict[str, np.ndarray] = {}
     resident_packed_binding_reads = 0
     tensor_store_fallback_reads = 0
@@ -268,15 +368,25 @@ def execute_tensor_program_mpfr(
             record["tensor_semantic_sha256"]: resident_arrays[record["name"]]
             for record in resident_plan["records"]
         }
+    if preloaded_tensors is not None:
+        if resident_arrays is not None or resident_plan is not None:
+            raise ValueError("preloaded and packed resident tensors are mutually exclusive")
+        if not isinstance(preloaded_tensors, ValidatedTensorArrayClosure):
+            raise TypeError("preloaded tensors require a validated closure")
+        preloaded_tensors.validate(program, reader)
     if resident_static_row_cache is not None:
-        if (resident_plan is None or resident_arrays is None
-                or compiled_backend is None or not sparse_axis0_execution):
-            raise ValueError(
-                "resident static-row cache requires sparse packed resident execution"
+        if compiled_backend is None or not sparse_axis0_execution:
+            raise ValueError("resident static-row cache requires sparse compiled execution")
+        if resident_plan is None and resident_arrays is None:
+            resident_static_row_cache.validate_unpacked(
+                program, compiled_backend, precision
             )
-        resident_static_row_cache.validate(
-            program, resident_plan, compiled_backend, precision
-        )
+        elif resident_plan is not None and resident_arrays is not None:
+            resident_static_row_cache.validate(
+                program, resident_plan, compiled_backend, precision
+            )
+        else:
+            raise ValueError("resident static-row cache execution closure is incomplete")
     if sparse_axis0_execution and return_node_values:
         raise ValueError("sparse row execution requires root-only output")
     if resident_buffer_execution and (
@@ -437,6 +547,9 @@ def execute_tensor_program_mpfr(
                 if ref.tensor_sha256 in resident_by_semantic:
                     tensor_cache[ref.tensor_sha256] = resident_by_semantic[ref.tensor_sha256]
                     resident_packed_binding_reads += 1
+                elif preloaded_tensors is not None:
+                    tensor_cache[ref.tensor_sha256] = preloaded_tensors[ref.tensor_sha256]
+                    preloaded_tensor_reads += 1
                 elif ref.tensor_sha256 not in tensor_cache:
                     tensor_cache[ref.tensor_sha256] = reader.read_semantic(ref.tensor_sha256)
                     tensor_store_fallback_reads += 1
@@ -761,6 +874,7 @@ def execute_tensor_program_mpfr(
             "resident_static_row_cache_enabled": resident_static_row_cache is not None,
             "resident_packed_tensor_binding_reads": resident_packed_binding_reads,
             "tensor_store_fallback_reads": tensor_store_fallback_reads,
+            "preloaded_tensor_reads": preloaded_tensor_reads,
             "resident_fused_contrast_nodes": resident_fused_contrast_nodes,
             "resident_gelu_batch_rows": resident_gelu_batch_rows,
             "resident_buffer_execution": resident_buffer_execution,
