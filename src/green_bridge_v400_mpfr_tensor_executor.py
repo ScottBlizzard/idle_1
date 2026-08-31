@@ -577,34 +577,38 @@ def execute_tensor_program_mpfr(
             q, k, v = parents
             n_heads, d_head = int(node.exact_attrs["n_heads"]), int(node.exact_attrs["d_head"])
             sequence_length = len(q)
-            final_position = node.exact_attrs["dependency_mask_spec"]["axis0_indices"][0]
+            query_rows = tuple(row_indices)
+            if not query_rows:
+                raise ValueError("causal attention has no live query rows")
             if sparse_axis0_execution:
                 output = [None] * sequence_length
-                if tuple(row_indices) != (final_position,):
-                    raise ValueError("resident attention requires exactly the final causal row")
-                output[final_position] = [_zero(precision) for _ in range(n_heads * d_head)]
+                if len(query_rows) != 1:
+                    raise ValueError("resident sparse attention requires exactly one live query row")
             else:
-                output = [[_zero(precision) for _ in range(n_heads * d_head)]
-                          for _ in range(sequence_length)]
+                output = [None] * sequence_length
             pivot = int(node.exact_attrs["softmax_pivot"]["index"])
-            if resident_buffer_execution:
-                output[final_position] = track_native_buffer(
-                    compiled_backend.resident_causal_attention_all_heads_jet2(
-                        native_row(q[final_position]),
-                        native_flatten_rows(k[:final_position + 1]),
-                        native_flatten_rows(v[:final_position + 1]),
-                        final_position + 1, n_heads, d_head, pivot,
-                    ), kernel,
-                )
-            else:
+            for query_position in query_rows:
+                if resident_buffer_execution:
+                    output[query_position] = track_native_buffer(
+                        compiled_backend.resident_causal_attention_all_heads_jet2(
+                            native_row(q[query_position]),
+                            native_flatten_rows(k[:query_position + 1]),
+                            native_flatten_rows(v[:query_position + 1]),
+                            query_position + 1, n_heads, d_head, pivot,
+                        ), kernel,
+                    )
+                    continue
+                output[query_position] = [
+                    _zero(precision) for _ in range(n_heads * d_head)
+                ]
                 for head in range(n_heads):
                     start, stop = head * d_head, (head + 1) * d_head
-                    query = q[final_position][start:stop]
-                    keys = [row[start:stop] for row in k[:final_position + 1]]
-                    vectors = [row[start:stop] for row in v[:final_position + 1]]
+                    query = q[query_position][start:stop]
+                    keys = [row[start:stop] for row in k[:query_position + 1]]
+                    vectors = [row[start:stop] for row in v[:query_position + 1]]
                     if compiled_backend is None:
                         attended = attention_head_jets(
-                            [query] * (final_position + 1), keys, vectors, causal=True,
+                            [query] * (query_position + 1), keys, vectors, causal=True,
                         )[-1] if pivot == 0 else None
                         if attended is None:
                             raise ValueError(
@@ -615,7 +619,7 @@ def execute_tensor_program_mpfr(
                                     compiled_backend.causal_attention_final_head_jet2(
                                         query, keys, vectors, pivot=pivot,
                                     )["outputs"]]
-                    output[final_position][start:stop] = attended
+                    output[query_position][start:stop] = attended
         elif kernel == "residual_add.v1":
             output = [None] * shape[0]
             for row_index in row_indices:
