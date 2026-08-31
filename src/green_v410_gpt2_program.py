@@ -44,6 +44,7 @@ class V410GPT2Dimensions:
     selected_gates: tuple[int, ...]
     final_position: int
     contrast_width: int
+    contrast_coefficient_rationals: tuple[tuple[int, int], ...]
 
     def __post_init__(self) -> None:
         if self.site_layer not in range(9):
@@ -62,6 +63,13 @@ class V410GPT2Dimensions:
             raise ValueError("invalid selected-gate panel")
         if self.contrast_width < 1:
             raise ValueError("contrast width must be positive")
+        if (len(self.contrast_coefficient_rationals) != self.contrast_width
+                or any(
+                    type(numerator) is not int or type(denominator) is not int
+                    or denominator <= 0
+                    for numerator, denominator in self.contrast_coefficient_rationals
+                )):
+            raise ValueError("exact rational task contrast is malformed")
 
     @property
     def dynamic_rows(self) -> tuple[int, ...]:
@@ -79,6 +87,10 @@ class V410GPT2Dimensions:
             "selected_gates": list(self.selected_gates),
             "final_position": self.final_position,
             "contrast_width": self.contrast_width,
+            "contrast_coefficient_rationals": [
+                [numerator, denominator]
+                for numerator, denominator in self.contrast_coefficient_rationals
+            ],
         }
 
 
@@ -255,6 +267,10 @@ def _tail_scalar_nodes(
             "contrast_width": dims.contrast_width,
             "reduction": "fixed_balanced_pairwise",
             "scalarization": "exact_affine_fusion_to_residual_contrast",
+            "coefficient_rationals": [
+                {"numerator": numerator, "denominator": denominator}
+                for numerator, denominator in dims.contrast_coefficient_rationals
+            ],
         },
         (), f"{prefix}.task_scalar", dtype="<f8",
     )
@@ -514,6 +530,17 @@ def _cpu_f64(value) -> np.ndarray:
     return np.ascontiguousarray(np.asarray(value, dtype="<f8"))
 
 
+def _cpu_f32(value) -> np.ndarray:
+    if hasattr(value, "detach"):
+        value = value.detach().cpu().contiguous().numpy()
+    array = np.ascontiguousarray(np.asarray(value, dtype="<f4"))
+    # The response route is a float64 evaluation of the same frozen float32
+    # checkpoint, not a separately rounded model.
+    if not np.array_equal(array.astype("<f8"), np.asarray(value, dtype="<f8")):
+        raise ValueError("model parameter does not round-trip through frozen float32 checkpoint")
+    return array
+
+
 def materialize_green_v410_full_cone_store(
     root: Path,
     name: str,
@@ -526,9 +553,8 @@ def materialize_green_v410_full_cone_store(
     physical_direction,
     suffix_token_ids,
     contrast_coefficients,
+    contrast_coefficient_rationals: Iterable[tuple[int, int]],
     selected_gates: Iterable[int],
-    pat_selected_gate_anchor_t0,
-    tar_selected_gate_anchor_t0,
 ) -> tuple[TensorStoreReader, V410GPT2Dimensions]:
     """Freeze one endpoint-free float64 full-cone tensor store.
 
@@ -548,12 +574,23 @@ def materialize_green_v410_full_cone_store(
     direction = np.asarray(physical_direction, dtype="<f4").reshape(-1)
     suffix_ids = np.asarray(suffix_token_ids, dtype="<i8").reshape(-1)
     coefficients = _cpu_f64(contrast_coefficients).reshape(-1)
+    rationals = tuple(
+        (int(numerator), int(denominator))
+        for numerator, denominator in contrast_coefficient_rationals
+    )
     if suffix_ids.size != coefficients.size or suffix_ids.size < 1:
         raise ValueError("task contrast payload mismatch")
+    if len(rationals) != suffix_ids.size or any(denominator <= 0 for _, denominator in rationals):
+        raise ValueError("exact task contrast rational payload mismatch")
+    expected_coefficients = np.asarray(
+        [numerator / denominator for numerator, denominator in rationals], dtype="<f8"
+    )
+    if not np.array_equal(coefficients, expected_coefficients):
+        raise ValueError("floating task contrast is not the exact rational oracle projection")
     dims = V410GPT2Dimensions(
         int(site_layer), int(site_position), int(pat.shape[0]), int(model.cfg.d_model),
         int(model.cfg.d_mlp), int(model.cfg.n_heads), int(model.cfg.d_head), gates,
-        int(pat.shape[0] - 1), int(suffix_ids.size),
+        int(pat.shape[0] - 1), int(suffix_ids.size), rationals,
     )
     if pat.shape[1] != dims.d_model or direction.size != dims.d_model:
         raise ValueError("controlled-hook or direction width mismatch")
@@ -563,14 +600,6 @@ def materialize_green_v410_full_cone_store(
     if output_softcap is not None and float(output_softcap) > 0:
         raise ValueError("nonlinear output softcap is unsupported")
 
-    def anchor_matrix(value) -> np.ndarray:
-        vector = _cpu_f64(value).reshape(-1)
-        if vector.size != len(gates):
-            raise ValueError("selected-gate anchor width mismatch")
-        result = np.zeros((dims.sequence_length, len(gates)), dtype="<f8")
-        result[dims.final_position] = vector
-        return result
-
     tensors: list[tuple[str, object]] = [
         ("physical_direction", direction),
         ("layer_norm.eps", np.asarray(model.cfg.eps, dtype="<f8")),
@@ -579,43 +608,41 @@ def materialize_green_v410_full_cone_store(
         ("zero.d_model", np.zeros((dims.d_model,), dtype="<f8")),
         ("PAT.controlled_hook_t0", pat),
         ("TAR.controlled_hook_t0", tar),
-        ("PAT.selected_gate_anchor_matrix_t0", anchor_matrix(pat_selected_gate_anchor_t0)),
-        ("TAR.selected_gate_anchor_matrix_t0", anchor_matrix(tar_selected_gate_anchor_t0)),
     ]
     for block_index in range(dims.site_layer + 1, 12):
         block = model.blocks[block_index]
         key = f"block{block_index}"
         tensors.extend([
-            (f"{key}.ln1.w", _cpu_f64(block.ln1.w)),
-            (f"{key}.ln1.b", _cpu_f64(block.ln1.b)),
-            (f"{key}.attn.W_Q", _cpu_f64(block.attn.W_Q.permute(1, 0, 2).reshape(dims.d_model, dims.d_model))),
-            (f"{key}.attn.b_Q", _cpu_f64(block.attn.b_Q.reshape(dims.d_model))),
-            (f"{key}.attn.W_K", _cpu_f64(block.attn.W_K.permute(1, 0, 2).reshape(dims.d_model, dims.d_model))),
-            (f"{key}.attn.b_K", _cpu_f64(block.attn.b_K.reshape(dims.d_model))),
-            (f"{key}.attn.W_V", _cpu_f64(block.attn.W_V.permute(1, 0, 2).reshape(dims.d_model, dims.d_model))),
-            (f"{key}.attn.b_V", _cpu_f64(block.attn.b_V.reshape(dims.d_model))),
-            (f"{key}.attn.W_O", _cpu_f64(block.attn.W_O.reshape(dims.d_model, dims.d_model))),
-            (f"{key}.attn.b_O", _cpu_f64(block.attn.b_O)),
-            (f"{key}.ln2.w", _cpu_f64(block.ln2.w)),
-            (f"{key}.ln2.b", _cpu_f64(block.ln2.b)),
-            (f"{key}.mlp.W_in", _cpu_f64(block.mlp.W_in)),
-            (f"{key}.mlp.b_in", _cpu_f64(block.mlp.b_in)),
-            (f"{key}.mlp.W_out", _cpu_f64(block.mlp.W_out)),
-            (f"{key}.mlp.b_out", _cpu_f64(block.mlp.b_out)),
+            (f"{key}.ln1.w", _cpu_f32(block.ln1.w)),
+            (f"{key}.ln1.b", _cpu_f32(block.ln1.b)),
+            (f"{key}.attn.W_Q", _cpu_f32(block.attn.W_Q.permute(1, 0, 2).reshape(dims.d_model, dims.d_model))),
+            (f"{key}.attn.b_Q", _cpu_f32(block.attn.b_Q.reshape(dims.d_model))),
+            (f"{key}.attn.W_K", _cpu_f32(block.attn.W_K.permute(1, 0, 2).reshape(dims.d_model, dims.d_model))),
+            (f"{key}.attn.b_K", _cpu_f32(block.attn.b_K.reshape(dims.d_model))),
+            (f"{key}.attn.W_V", _cpu_f32(block.attn.W_V.permute(1, 0, 2).reshape(dims.d_model, dims.d_model))),
+            (f"{key}.attn.b_V", _cpu_f32(block.attn.b_V.reshape(dims.d_model))),
+            (f"{key}.attn.W_O", _cpu_f32(block.attn.W_O.reshape(dims.d_model, dims.d_model))),
+            (f"{key}.attn.b_O", _cpu_f32(block.attn.b_O)),
+            (f"{key}.ln2.w", _cpu_f32(block.ln2.w)),
+            (f"{key}.ln2.b", _cpu_f32(block.ln2.b)),
+            (f"{key}.mlp.W_in", _cpu_f32(block.mlp.W_in)),
+            (f"{key}.mlp.b_in", _cpu_f32(block.mlp.b_in)),
+            (f"{key}.mlp.W_out", _cpu_f32(block.mlp.W_out)),
+            (f"{key}.mlp.b_out", _cpu_f32(block.mlp.b_out)),
         ])
     block10 = model.blocks[10]
     gate_index = __import__("torch").tensor(
         gates, dtype=__import__("torch").long, device=block10.mlp.W_in.device
     )
-    selected_w_out = _cpu_f64(block10.mlp.W_out.index_select(0, gate_index))
+    selected_w_out = _cpu_f32(block10.mlp.W_out.index_select(0, gate_index))
     tensors.extend([
-        ("block10.mlp.W_in_selected", _cpu_f64(block10.mlp.W_in.index_select(1, gate_index))),
-        ("block10.mlp.b_in_selected", _cpu_f64(block10.mlp.b_in.index_select(0, gate_index))),
+        ("block10.mlp.W_in_selected", _cpu_f32(block10.mlp.W_in.index_select(1, gate_index))),
+        ("block10.mlp.b_in_selected", _cpu_f32(block10.mlp.b_in.index_select(0, gate_index))),
         ("block10.mlp.W_out_selected_negative", -selected_w_out),
-        ("ln_final.w", _cpu_f64(model.ln_final.w)),
-        ("ln_final.b", _cpu_f64(model.ln_final.b)),
-        ("unembed.W_U_full", _cpu_f64(model.W_U)),
-        ("unembed.b_U_full", _cpu_f64(model.b_U)),
+        ("ln_final.w", _cpu_f32(model.ln_final.w)),
+        ("ln_final.b", _cpu_f32(model.ln_final.b)),
+        ("unembed.W_U_full", _cpu_f32(model.W_U)),
+        ("unembed.b_U_full", _cpu_f32(model.b_U)),
         ("unembed.suffix_ids", suffix_ids),
         ("contrast.coefficients", coefficients),
     ])

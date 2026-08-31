@@ -128,14 +128,31 @@ def _exact_rational(value) -> gmpy2.mpq:
 
 def _final_contrast_reference(values: list[Jet2], unembed: np.ndarray,
                               bias: np.ndarray, suffix_ids: np.ndarray,
-                              coefficients: np.ndarray) -> Jet2:
+                              coefficients: np.ndarray,
+                              coefficient_rationals: list[dict] | None = None) -> Jet2:
+    if coefficient_rationals is None:
+        exact_coefficients = [_exact_rational(value) for value in coefficients]
+    else:
+        if (len(coefficient_rationals) != len(coefficients)
+                or any(
+                    set(row) != {"numerator", "denominator"}
+                    or type(row["numerator"]) is not int
+                    or type(row["denominator"]) is not int
+                    or row["denominator"] <= 0
+                    for row in coefficient_rationals
+                )):
+            raise ValueError("malformed exact rational contrast coefficients")
+        exact_coefficients = [
+            gmpy2.mpq(row["numerator"], row["denominator"])
+            for row in coefficient_rationals
+        ]
     weights = [
-        sum((_exact_rational(coefficients[index]) * _exact_rational(unembed[coordinate, token])
+        sum((exact_coefficients[index] * _exact_rational(unembed[coordinate, token])
              for index, token in enumerate(suffix_ids)), gmpy2.mpq(0))
         for coordinate in range(unembed.shape[0])
     ]
     fused_bias = sum(
-        (_exact_rational(coefficients[index]) * _exact_rational(bias[token])
+        (exact_coefficients[index] * _exact_rational(bias[token])
          for index, token in enumerate(suffix_ids)), gmpy2.mpq(0)
     )
     return affine_map_jets([weights], values, [fused_bias])[0]
@@ -260,8 +277,8 @@ def execute_tensor_program_mpfr(
         resident_static_row_cache.validate(
             program, resident_plan, compiled_backend, precision
         )
-    if sparse_axis0_execution and (resident_arrays is None or return_node_values):
-        raise ValueError("sparse row execution requires resident arrays and root-only output")
+    if sparse_axis0_execution and return_node_values:
+        raise ValueError("sparse row execution requires root-only output")
     if resident_buffer_execution and (
         not sparse_axis0_execution or resident_arrays is None
         or resident_plan is None or compiled_backend is None or return_node_values
@@ -412,6 +429,7 @@ def execute_tensor_program_mpfr(
         use_resident_fusion = (
             resident_plan is not None and compiled_backend is not None
             and kernel == "final_contrast.v1"
+            and node.exact_attrs.get("coefficient_rationals") is None
         )
         tensors = []
         if not use_resident_fusion:
@@ -494,7 +512,7 @@ def execute_tensor_program_mpfr(
                     )
                 elif compiled_backend is None:
                     output[row_index] = affine_map_jets(weight.T, row, bias)
-                elif resident_arrays is not None:
+                elif compiled_backend is not None:
                     output[row_index] = [
                         _decode_jet(item, precision) for item in
                         compiled_backend.packed_affine_layer_jet2(
@@ -532,7 +550,7 @@ def execute_tensor_program_mpfr(
                     output[row_index] = [
                         gelu_new_jet(jet, kappa=float(kappa), lam=float(lam)) for jet in row
                     ]
-                elif resident_arrays is not None:
+                elif compiled_backend is not None:
                     payload = compiled_backend.gelu_new_layer_jet2(row, kappa, lam)
                     output[row_index] = [
                         _decode_jet(item, precision) for item in payload["outputs"]
@@ -582,8 +600,6 @@ def execute_tensor_program_mpfr(
                 raise ValueError("causal attention has no live query rows")
             if sparse_axis0_execution:
                 output = [None] * sequence_length
-                if len(query_rows) != 1:
-                    raise ValueError("resident sparse attention requires exactly one live query row")
             else:
                 output = [None] * sequence_length
             pivot = int(node.exact_attrs["softmax_pivot"]["index"])
@@ -654,11 +670,13 @@ def execute_tensor_program_mpfr(
                     output = _decode_jet(compiled_backend.fused_contrast_jet2(
                         row, resident_plan["exact_final_contrast_fusion"]
                     ), precision)
-            elif compiled_backend is None:
+            elif (compiled_backend is None
+                  or node.exact_attrs.get("coefficient_rationals") is not None):
                 row = python_row(row)
                 unembed, bias, suffix_ids, coefficients = tensors
                 output = _final_contrast_reference(
                     row, unembed, bias, suffix_ids.astype(np.int64), coefficients,
+                    node.exact_attrs.get("coefficient_rationals"),
                 )
             else:
                 row = python_row(row)

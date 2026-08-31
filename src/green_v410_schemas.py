@@ -326,6 +326,39 @@ def _validate_semantics(payload: Mapping[str, Any]) -> None:
         expected_state = "PASS" if passing else "STOP_CONFIRMATION_SEAL_FAILED"
         if payload["terminal_state"] != expected_state:
             raise ValueError("confirmation seal terminal state mismatch")
+    elif schema == "green-v410-sfc-jwtec-resource-calibration-v1":
+        if (
+            payload["candidate_leaf_budget"] not in [4, 8, 16, 32]
+            or payload["profiles"] != [
+                "ioi:layer0", "ioi:layer4", "ioi:layer8",
+                "greater_than:layer0", "greater_than:layer4", "greater_than:layer8",
+            ]
+            or payload["fixture_kinds"] != [
+                "affine", "positive_curvature", "negative_curvature",
+                "signed_cancellation", "deep_dyadic",
+            ]
+            or payload["precision_bits"] != [384, 512]
+            or len(payload["run_records"]) != 60
+            or type(payload["candidate_pass"]) is not bool
+            or (payload["first_failure_code"] == "NONE") is not payload["candidate_pass"]
+        ):
+            raise ValueError("resource calibration receipt contract mismatch")
+    elif schema == "green-v410-sfc-jwtec-resource-manifest-v1":
+        if (
+            payload["selected_leaf_budget"] not in [4, 8, 16, 32]
+            or payload["selection_rule"] != "largest passing candidate"
+            or len(payload["candidate_receipt_sha256s"]) != 4
+            or payload["max_depth"] != 24
+            or payload["max_graph_nodes"] != 2_000_000
+            or payload["memory_max_bytes"] != 68_719_476_736
+            or payload["direction_wall_max_seconds"] != 85_800
+            or payload["guardband"] != "5/4"
+            or payload["max_process_launches"] != 2
+            or payload["official_precision_bits"] != 384
+            or payload["audit_precision_bits"] != 512
+            or payload["radii"] != ["1", "1/2", "1/4"]
+        ):
+            raise ValueError("resource manifest contract mismatch")
     elif schema == "green-v410-sfc-jwtec-endpoint-transition-v1":
         if payload["endpoint_payload_materialized_before_transition"] is not False:
             raise ValueError("endpoint payload was materialized before transition")

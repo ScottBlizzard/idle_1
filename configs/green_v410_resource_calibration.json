@@ -1,0 +1,79 @@
+{
+  "schema_version": "green-v410-sfc-jwtec-resource-calibration-config-v1",
+  "protocol_id": "GREEN-V410-SFC-JWTEC-20260830",
+  "attempt_index": 1,
+  "execution_scope": "outcome_blind_synthetic_only",
+  "generator": "numpy-PCG64DXSM",
+  "master_seed_uint64": 41020260830,
+  "domain_separator": "GREEN_V410_RESOURCE_CALIBRATION_V1",
+  "profiles": [
+    "ioi:layer0",
+    "ioi:layer4",
+    "ioi:layer8",
+    "greater_than:layer0",
+    "greater_than:layer4",
+    "greater_than:layer8"
+  ],
+  "profile_shapes": {
+    "ioi": {
+      "sequence_length": 17,
+      "site_position": 4,
+      "qualification_causal_cone_manifest_sha256": "7cdb53950452dcfefd478f59d9a2d2526ffecff617c60ecc9f43700eb0c311e3"
+    },
+    "greater_than": {
+      "sequence_length": 13,
+      "site_position": 8,
+      "qualification_causal_cone_manifest_sha256": "22a7ab6605dfad9373a00eae2882d7b26ad07be8a5e640f891835dada15e4b36"
+    }
+  },
+  "fixtures": [
+    {
+      "kind": "affine",
+      "domain": ["-1", "0"],
+      "modifier_coefficients": ["0", "0"]
+    },
+    {
+      "kind": "positive_curvature",
+      "domain": ["0", "1"],
+      "modifier_coefficients": ["1/16", "0"]
+    },
+    {
+      "kind": "negative_curvature",
+      "domain": ["-1", "-1/2"],
+      "modifier_coefficients": ["-1/16", "0"]
+    },
+    {
+      "kind": "signed_cancellation",
+      "domain": ["1/2", "1"],
+      "modifier_coefficients": ["1/16", "-1/16"]
+    },
+    {
+      "kind": "deep_dyadic",
+      "domain": ["511/1024", "513/1024"],
+      "modifier_coefficients": ["1/32", "1/64"]
+    }
+  ],
+  "candidate_leaf_budgets": [4, 8, 16, 32],
+  "precision_bits": [384, 512],
+  "direction_width": 768,
+  "direction_nominal_norm": "1/1000",
+  "controlled_hook_dtype": "float64-little-endian",
+  "direction_dtype": "float32-little-endian",
+  "cold_processes_per_precision_and_candidate": 30,
+  "radius_count": 3,
+  "pass_formulas": {
+    "official": "3*(2*L+1)",
+    "audit": "3*(L+3)",
+    "total": "9*L+12"
+  },
+  "limits": {
+    "max_depth": 24,
+    "max_graph_nodes": 2000000,
+    "memory_max_bytes": 68719476736,
+    "direction_wall_max_seconds": 85800,
+    "guardband": "5/4"
+  },
+  "selection": "largest passing candidate",
+  "real_artifact_access_allowed": false,
+  "endpoint_material_allowed": false
+}

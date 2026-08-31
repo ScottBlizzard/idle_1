@@ -25,7 +25,7 @@ GATES = (1, 4)
 
 
 def _tensor(rng: np.random.Generator, shape, scale=0.08):
-    return torch.tensor(rng.normal(0.0, scale, shape), dtype=torch.float64)
+    return torch.tensor(rng.normal(0.0, scale, shape), dtype=torch.float32)
 
 
 def _fake_model(seed=410):
@@ -137,9 +137,8 @@ def _case(tmp_path: Path, site_layer: int):
         physical_direction=direction,
         suffix_token_ids=np.asarray([0, 1], dtype=np.int64),
         contrast_coefficients=np.asarray([1.0, -1.0], dtype=np.float64),
+        contrast_coefficient_rationals=((1, 1), (-1, 1)),
         selected_gates=GATES,
-        pat_selected_gate_anchor_t0=pat_live[-1, list(GATES)],
-        tar_selected_gate_anchor_t0=tar_live[-1, list(GATES)],
     )
     program = build_green_v410_full_cone_program(reader, "a" * 64, dims)
     return model, pat, tar, direction.astype(np.float64), reader, dims, program, pat_live, tar_live
@@ -227,6 +226,28 @@ def test_mpfr_full_cone_t0_encloses_exact_matched_bypass_identity(tmp_path):
     # The final scalar needs every causal key/value history row, and the new
     # executor must no longer collapse this attention to one query row.
     assert live_rows[first_attention.semantic_id] == tuple(range(dims.sequence_length))
-    result = execute_tensor_program_mpfr(program, reader, Interval.point(0, 80))
+    result = execute_tensor_program_mpfr(
+        program, reader, Interval.point(0, 80), sparse_axis0_execution=True,
+    )
     psi = result["output"].value
     assert psi.lower <= 0 <= psi.upper
+
+
+def test_mpfr_task_contrast_uses_exact_nondyadic_rationals():
+    gmpy2 = pytest.importorskip("gmpy2")
+    from green_bridge_v400_interval import Interval
+    from green_bridge_v400_interval_jet import constant_jet
+    from green_bridge_v400_mpfr_tensor_executor import _final_contrast_reference
+
+    result = _final_contrast_reference(
+        [constant_jet(Interval.point(1, 128))],
+        np.asarray([[1.0]], dtype="<f4"),
+        np.asarray([0.0], dtype="<f4"),
+        np.asarray([0], dtype="<i8"),
+        np.asarray([1.0 / 3.0], dtype="<f8"),
+        [{"numerator": 1, "denominator": 3}],
+    )
+    exact = gmpy2.mpq(1, 3)
+    dyadic = gmpy2.mpq(*(float(1.0 / 3.0).as_integer_ratio()))
+    assert result.value.lower <= exact <= result.value.upper
+    assert not (result.value.lower <= dyadic <= result.value.upper)

@@ -438,6 +438,12 @@ def execute_tensor_program_numpy(program: TensorProgram, reader: TensorStoreRead
             value = parents[0] + parents[1]
         elif kernel == "final_contrast.v1":
             weight, bias, suffix_ids, coefficients = tensors
+            rational_payload = node.exact_attrs.get("coefficient_rationals")
+            if rational_payload is not None:
+                coefficients = np.asarray([
+                    int(row["numerator"]) / int(row["denominator"])
+                    for row in rational_payload
+                ], dtype=parents[0].dtype)
             position = int(node.exact_attrs["final_position"])
             full_logits = parents[0][position] @ weight + bias
             value = np.asarray(full_logits[suffix_ids.astype(np.int64)] @ coefficients)
@@ -480,12 +486,17 @@ def execute_tensor_program_torch(program: TensorProgram, reader: TensorStoreRead
         elif kernel == "layer_norm.v1":
             x = parents[0]
             weight, bias, epsilon = tensors
+            weight = weight.to(x.dtype)
+            bias = bias.to(x.dtype)
+            epsilon = epsilon.to(x.dtype)
             centered = x - x.mean(dim=-1, keepdim=True)
             variance = centered.pow(2).mean(dim=-1, keepdim=True)
             value = centered / torch.sqrt(variance + epsilon.reshape(())) * weight + bias
         elif kernel == "pairwise_affine.v1":
             x = parents[0]
             weight, bias = tensors
+            weight = weight.to(x.dtype)
+            bias = bias.to(x.dtype)
             if node.exact_attrs.get("torch_float_kernel") == "linear":
                 value = torch.nn.functional.linear(x, weight.T.contiguous(), bias)
             else:
@@ -493,7 +504,7 @@ def execute_tensor_program_torch(program: TensorProgram, reader: TensorStoreRead
                 value = batch_addmm(bias, weight, x)
         elif kernel == "gelu_new.v1":
             x = parents[0]
-            kappa, lam = (tensor.reshape(()) for tensor in tensors)
+            kappa, lam = (tensor.to(x.dtype).reshape(()) for tensor in tensors)
             value = x.new_tensor(0.5) * x * (
                 x.new_tensor(1.0) + torch.tanh(kappa * (x + lam * x * x * x))
             )
@@ -524,6 +535,15 @@ def execute_tensor_program_torch(program: TensorProgram, reader: TensorStoreRead
             value = parents[0] + parents[1]
         elif kernel == "final_contrast.v1":
             weight, bias, suffix_ids, coefficients = tensors
+            weight = weight.to(parents[0].dtype)
+            bias = bias.to(parents[0].dtype)
+            coefficients = coefficients.to(parents[0].dtype)
+            rational_payload = node.exact_attrs.get("coefficient_rationals")
+            if rational_payload is not None:
+                coefficients = parents[0].new_tensor([
+                    int(row["numerator"]) / int(row["denominator"])
+                    for row in rational_payload
+                ])
             position = int(node.exact_attrs["final_position"])
             full_logits = torch.nn.functional.linear(
                 parents[0][position], weight.T.contiguous(), bias
