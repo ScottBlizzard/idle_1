@@ -9,7 +9,13 @@ import sys
 
 from green_v410_artifacts import atomic_no_clobber_json
 from green_v410_protocol import PROTOCOL_ID, sha256_canonical
-from green_v410_resource_calibration import CANDIDATES, FIXTURE_KINDS, PRECISIONS, PROFILES
+from green_v410_resource_calibration import (
+    CANDIDATES,
+    FIXTURE_KINDS,
+    PRECISIONS,
+    PROFILES,
+    build_minimum_budget_failfast_receipt,
+)
 from green_v410_resource_finalize import _load_raw, raw_artifact_path
 
 
@@ -57,7 +63,15 @@ def build_resource_queue(bundle_root: Path, raw_root: Path) -> dict:
     return payload
 
 
-def run_supervisor(bundle_root: Path, backend: Path, raw_root: Path) -> None:
+def _publish_failfast_stop(raw_root: Path, payload: dict) -> None:
+    atomic_no_clobber_json(
+        raw_root / "resource_failfast_stop.json",
+        payload,
+        job_id="resource-minimum-budget-failfast-stop",
+    )
+
+
+def run_supervisor(bundle_root: Path, backend: Path, raw_root: Path) -> str:
     queue = build_resource_queue(bundle_root, raw_root)
     atomic_no_clobber_json(
         raw_root / "queue.json", queue, job_id="resource-calibration-queue"
@@ -69,10 +83,14 @@ def run_supervisor(bundle_root: Path, backend: Path, raw_root: Path) -> None:
         fixture = job["fixture_kind"]
         output = Path(job["output_path"])
         if output.exists():
-            _load_raw(
+            record = _load_raw(
                 output, candidate=candidate, precision=precision,
                 profile=profile, fixture=fixture,
             )
+            stop = build_minimum_budget_failfast_receipt(record)
+            if stop is not None:
+                _publish_failfast_stop(raw_root, stop)
+                return stop["decision"]
             continue
         command = [
             sys.executable, "-m", "green_v410_resource_worker",
@@ -88,10 +106,15 @@ def run_supervisor(bundle_root: Path, backend: Path, raw_root: Path) -> None:
             raise RuntimeError(
                 f"resource calibration child failed at ordinal {job['ordinal']}"
             )
-        _load_raw(
+        record = _load_raw(
             output, candidate=candidate, precision=precision,
             profile=profile, fixture=fixture,
         )
+        stop = build_minimum_budget_failfast_receipt(record)
+        if stop is not None:
+            _publish_failfast_stop(raw_root, stop)
+            return stop["decision"]
+    return "CALIBRATION_QUEUE_COMPLETE"
 
 
 def main() -> int:

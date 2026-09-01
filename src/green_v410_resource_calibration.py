@@ -411,6 +411,63 @@ def pass_counts(leaf_budget: int) -> dict[str, int]:
     return {"official": official, "audit": audit, "total": official + audit}
 
 
+def build_minimum_budget_failfast_receipt(run_record: Mapping) -> dict | None:
+    """Return a fail-closed STOP receipt for an irreversible minimum-budget failure.
+
+    The smallest leaf budget is a prefix-admission gate.  Larger schedules retain
+    the same TensorProgram/evaluator and a superset of live leaf state, so a hard
+    depth, graph-size, or guarded-memory failure at L4 cannot be repaired by
+    increasing the leaf budget.  This check intentionally excludes wall-clock
+    timing and all scientific quantities: timing can fluctuate across processes,
+    while the three admitted failures are structural/resource upper-bound facts.
+    """
+
+    if run_record.get("candidate_leaf_budget") != min(CANDIDATES):
+        return None
+    if run_record.get("contains_scientific_outcome") is not False:
+        raise ValueError("fail-fast admission received scientific outcome material")
+    if run_record.get("contains_endpoint_material") is not False:
+        raise ValueError("fail-fast admission received endpoint material")
+    config = load_resource_calibration_config()
+    limits = config["limits"]
+    guarded_rss = (
+        Fraction(limits["guardband"])
+        * int(run_record["process_tree_peak_rss_bytes"])
+    )
+    checks = (
+        (int(run_record["max_depth"]) <= limits["max_depth"], "MAX_DEPTH_EXCEEDED"),
+        (int(run_record["graph_nodes"]) <= limits["max_graph_nodes"], "MAX_GRAPH_NODES_EXCEEDED"),
+        (guarded_rss <= limits["memory_max_bytes"], "MEMORY_GUARDBAND_EXCEEDED"),
+    )
+    first_failure = next((reason for passed, reason in checks if not passed), None)
+    if first_failure is None:
+        return None
+    return with_artifact_self_hash({
+        "schema_version": "green-v410-resource-minimum-budget-failfast-stop-v1",
+        "protocol_id": PROTOCOL_ID,
+        "attempt_index": 1,
+        "decision": "STOP_RESOURCE_LOCK_INFEASIBLE",
+        "candidate_leaf_budget": min(CANDIDATES),
+        "failure_code": first_failure,
+        "trigger_run_artifact_sha256": run_record["run_artifact_sha256"],
+        "observed_max_depth": int(run_record["max_depth"]),
+        "max_depth_limit": limits["max_depth"],
+        "observed_graph_nodes": int(run_record["graph_nodes"]),
+        "max_graph_nodes_limit": limits["max_graph_nodes"],
+        "observed_process_tree_peak_rss_bytes": int(
+            run_record["process_tree_peak_rss_bytes"]
+        ),
+        "guardband": limits["guardband"],
+        "guarded_process_tree_peak_rss_numerator": guarded_rss.numerator,
+        "guarded_process_tree_peak_rss_denominator": guarded_rss.denominator,
+        "memory_max_bytes": limits["memory_max_bytes"],
+        "candidate_order_semantics": "minimum_budget_prefix_admission",
+        "larger_candidates_scheduled": False,
+        "contains_scientific_outcome": False,
+        "contains_endpoint_material": False,
+    })
+
+
 def build_candidate_receipt(
     candidate_leaf_budget: int,
     run_records: Iterable[Mapping],

@@ -49,6 +49,7 @@ def test_schema_bundle_is_canonical_and_complete():
         "green-v410-sfc-jwtec-adoption-receipt-v1",
         "green-v410-sfc-jwtec-confirmation-seal-v1",
         "green-v410-sfc-jwtec-resource-calibration-v1",
+        "green-v410-resource-minimum-budget-failfast-stop-v1",
         "green-v410-sfc-jwtec-resource-manifest-v1",
         "green-v410-sfc-jwtec-site-identity-v1",
         "green-v410-sfc-jwtec-graph-manifest-v1",

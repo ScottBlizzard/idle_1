@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import copy
 import math
+from fractions import Fraction
 from typing import Any, Mapping
 
 from green_v410_protocol import (
@@ -61,6 +62,30 @@ SCHEMA_REGISTRY: dict[str, dict[str, Any]] = {
             "receipt_sha256",
         ),
         "receipt_sha256",
+    ),
+    "green-v410-resource-minimum-budget-failfast-stop-v1": _schema(
+        (
+            "schema_version", "protocol_id", "attempt_index", "decision",
+            "candidate_leaf_budget", "failure_code",
+            "trigger_run_artifact_sha256", "observed_max_depth",
+            "max_depth_limit", "observed_graph_nodes", "max_graph_nodes_limit",
+            "observed_process_tree_peak_rss_bytes", "guardband",
+            "guarded_process_tree_peak_rss_numerator",
+            "guarded_process_tree_peak_rss_denominator", "memory_max_bytes",
+            "candidate_order_semantics", "larger_candidates_scheduled",
+            "contains_scientific_outcome", "contains_endpoint_material",
+            "receipt_sha256",
+        ),
+        "receipt_sha256",
+        enums={
+            "decision": ["STOP_RESOURCE_LOCK_INFEASIBLE"],
+            "failure_code": [
+                "MAX_DEPTH_EXCEEDED",
+                "MAX_GRAPH_NODES_EXCEEDED",
+                "MEMORY_GUARDBAND_EXCEEDED",
+            ],
+            "candidate_order_semantics": ["minimum_budget_prefix_admission"],
+        },
     ),
     "green-v410-sfc-jwtec-resource-manifest-v1": _schema(
         (
@@ -343,6 +368,39 @@ def _validate_semantics(payload: Mapping[str, Any]) -> None:
             or (payload["first_failure_code"] == "NONE") is not payload["candidate_pass"]
         ):
             raise ValueError("resource calibration receipt contract mismatch")
+    elif schema == "green-v410-resource-minimum-budget-failfast-stop-v1":
+        guarded_rss = Fraction(
+            payload["guarded_process_tree_peak_rss_numerator"],
+            payload["guarded_process_tree_peak_rss_denominator"],
+        )
+        expected_guarded_rss = (
+            Fraction(payload["guardband"])
+            * payload["observed_process_tree_peak_rss_bytes"]
+        )
+        failure_holds = {
+            "MAX_DEPTH_EXCEEDED": (
+                payload["observed_max_depth"] > payload["max_depth_limit"]
+            ),
+            "MAX_GRAPH_NODES_EXCEEDED": (
+                payload["observed_graph_nodes"] > payload["max_graph_nodes_limit"]
+            ),
+            "MEMORY_GUARDBAND_EXCEEDED": (
+                guarded_rss > payload["memory_max_bytes"]
+            ),
+        }
+        if (
+            payload["candidate_leaf_budget"] != 4
+            or payload["max_depth_limit"] != 24
+            or payload["max_graph_nodes_limit"] != 2_000_000
+            or payload["guardband"] != "5/4"
+            or payload["memory_max_bytes"] != 68_719_476_736
+            or guarded_rss != expected_guarded_rss
+            or not failure_holds[payload["failure_code"]]
+            or payload["larger_candidates_scheduled"] is not False
+            or payload["contains_scientific_outcome"] is not False
+            or payload["contains_endpoint_material"] is not False
+        ):
+            raise ValueError("minimum-budget fail-fast STOP contract mismatch")
     elif schema == "green-v410-sfc-jwtec-resource-manifest-v1":
         if (
             payload["selected_leaf_budget"] not in [4, 8, 16, 32]
