@@ -72,6 +72,26 @@ def tensor_sha256(array: np.ndarray) -> str:
     return digest.hexdigest()
 
 
+def direction_vector_sha256(array: np.ndarray) -> str:
+    """Hash one exact serialized float32 direction independently."""
+
+    value = np.asarray(array)
+    if value.dtype != np.dtype("<f4") or value.shape != (DIRECTION_WIDTH,):
+        raise ValueError("direction vector must be little-endian float32 width 768")
+    if not np.isfinite(value).all():
+        raise ValueError("direction vector must be finite")
+    header = {
+        "schema_version": "green-v410-direction-vector-v1",
+        "dtype": "float32-little-endian",
+        "shape": [DIRECTION_WIDTH],
+    }
+    digest = hashlib.sha256()
+    digest.update(canonical_json_bytes(header))
+    digest.update(b"\0")
+    digest.update(np.ascontiguousarray(value, dtype="<f4").tobytes(order="C"))
+    return digest.hexdigest()
+
+
 def build_row_binding(
     *, task: str, site_row_id: str, direction_domain: str, array: np.ndarray,
 ) -> dict[str, Any]:
@@ -100,4 +120,3 @@ def build_row_binding(
     }
     binding["binding_sha256"] = sha256_canonical(binding)
     return binding
-

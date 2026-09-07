@@ -336,7 +336,12 @@ def test_resident_static_rows_are_reused_across_interval_cells(tmp_path, precisi
         return_runtime_metrics=True,
     )
     assert buffer_cache.native_entry_count > 0
-    assert buffer_second["runtime_metrics"]["resident_native_static_cache_hits"] > 0
+    assert sum(buffer_second["runtime_metrics"][
+        "static_row_cache_hits_by_kernel"
+    ].values()) > 0
+    assert buffer_second["runtime_metrics"][
+        "static_row_cache_misses_by_kernel"
+    ] == {}
     assert (buffer_second["runtime_metrics"]["resident_buffer_imported_jet_count"]
             < buffer_first["runtime_metrics"]["resident_buffer_imported_jet_count"])
     for name in ("PAT_J", "PAT_B", "TAR_J", "TAR_B", "output"):

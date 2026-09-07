@@ -26,7 +26,8 @@ RAW_FIELDS = {
     "program_semantic_hash", "backend_library_sha256", "dispatch_count",
     "process_wall_seconds", "single_pass_wall_seconds",
     "process_tree_peak_rss_bytes", "process_tree_resource_record",
-    "max_depth", "graph_nodes",
+    "max_depth", "graph_nodes_metric", "graph_nodes",
+    "dependent_scalar_outputs_total", "executor_source_sha256",
     "theorem_checks_pass", "nesting_checks_pass", "deterministic_replay",
     "schedule", "contains_scientific_outcome", "contains_endpoint_material",
     "run_artifact_sha256",
@@ -49,7 +50,7 @@ def _load_raw(path: Path, *, candidate: int, precision: int,
     mode = "official" if precision == 384 else "audit"
     expected_dispatches = 2 * candidate + 1 if precision == 384 else candidate + 3
     if (
-        payload["schema_version"] != "green-v410-resource-cold-process-v1"
+        payload["schema_version"] != "green-v410-resource-cold-process-v2"
         or payload["protocol_id"] != PROTOCOL_ID
         or payload["attempt_index"] != 1
         or payload["mode"] != mode
@@ -60,6 +61,10 @@ def _load_raw(path: Path, *, candidate: int, precision: int,
         or payload["child_seed_uint64"] != derive_child_seed(profile, fixture)
         or payload["dispatch_count"] != expected_dispatches
         or payload["schedule"].get("dispatch_count") != expected_dispatches
+        or payload["graph_nodes_metric"]
+            != "root_only_peak_live_dependent_scalar_outputs_v1"
+        or type(payload["dependent_scalar_outputs_total"]) is not int
+        or payload["dependent_scalar_outputs_total"] < payload["graph_nodes"]
         or payload["contains_scientific_outcome"] is not False
         or payload["contains_endpoint_material"] is not False
         or observed != sha256_canonical(unhashed)
@@ -96,7 +101,9 @@ def finalize_resource_calibration(raw_root: Path, output_root: Path) -> dict:
                 item[field] == pair[field]
                 for field in (
                     "fixture_sha256", "bundle_sha256", "program_semantic_hash",
-                    "backend_library_sha256", "graph_nodes",
+                    "backend_library_sha256", "executor_source_sha256",
+                    "graph_nodes_metric", "graph_nodes",
+                    "dependent_scalar_outputs_total",
                 )
             )
             nesting = audit["nesting_checks_pass"] is True
@@ -113,7 +120,12 @@ def finalize_resource_calibration(raw_root: Path, output_root: Path) -> dict:
                 "theorem_checks_pass": item["theorem_checks_pass"] is True and same_graph,
                 "nesting_checks_pass": nesting and same_graph,
                 "max_depth": max(item["max_depth"], pair["max_depth"]),
+                "graph_nodes_metric": item["graph_nodes_metric"],
                 "graph_nodes": item["graph_nodes"],
+                "dependent_scalar_outputs_total": item[
+                    "dependent_scalar_outputs_total"
+                ],
+                "executor_source_sha256": item["executor_source_sha256"],
                 "process_tree_rss_bytes": item["process_tree_peak_rss_bytes"],
                 "single_pass_wall_seconds": item["single_pass_wall_seconds"],
                 "deterministic_replay": item["deterministic_replay"],

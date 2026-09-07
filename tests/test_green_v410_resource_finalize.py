@@ -21,7 +21,7 @@ def _raw(candidate, precision, profile, fixture):
     mode = "official" if precision == 384 else "audit"
     dispatches = 2 * candidate + 1 if precision == 384 else candidate + 3
     value = {
-        "schema_version": "green-v410-resource-cold-process-v1",
+        "schema_version": "green-v410-resource-cold-process-v2",
         "protocol_id": PROTOCOL_ID,
         "attempt_index": 1,
         "mode": mode,
@@ -40,7 +40,10 @@ def _raw(candidate, precision, profile, fixture):
         "process_tree_peak_rss_bytes": 1024,
         "process_tree_resource_record": {"test_fixture": True},
         "max_depth": 3,
+        "graph_nodes_metric": "root_only_peak_live_dependent_scalar_outputs_v1",
         "graph_nodes": 1000,
+        "dependent_scalar_outputs_total": 5000,
+        "executor_source_sha256": "5" * 64,
         "theorem_checks_pass": True,
         "nesting_checks_pass": None if precision == 384 else True,
         "deterministic_replay": True,

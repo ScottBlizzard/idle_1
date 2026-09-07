@@ -13,8 +13,10 @@ import green_v410_resource_supervisor as supervisor
 from green_v410_resource_supervisor import build_resource_queue
 
 
-def test_resource_queue_is_complete_serial_and_phase_major(tmp_path):
-    queue = build_resource_queue(tmp_path / "bundles", tmp_path / "raw")
+def test_resource_queue_is_complete_bounded_parallel_and_phase_major(tmp_path):
+    queue = build_resource_queue(
+        tmp_path / "bundles", tmp_path / "raw", max_workers=8,
+    )
     assert queue["job_count"] == 240
     assert [row["ordinal"] for row in queue["jobs"]] == list(range(240))
     for offset in range(0, 240, 60):
@@ -26,7 +28,10 @@ def test_resource_queue_is_complete_serial_and_phase_major(tmp_path):
                 audit["profile"], audit["fixture_kind"]
             )
             assert audit["official_artifact_path"] == official["output_path"]
-    assert queue["scheduler"] == "strict_serial_one_cold_process_at_a_time"
+    assert queue["scheduler"] == (
+        "phase_major_bounded_parallel_independent_cold_processes_v1"
+    )
+    assert queue["max_workers"] == 8
 
 
 def _minimum_raw(*, rss_bytes: int) -> dict:
@@ -50,7 +55,10 @@ def _minimum_raw(*, rss_bytes: int) -> dict:
         "process_tree_peak_rss_bytes": rss_bytes,
         "process_tree_resource_record": {"test_fixture": True},
         "max_depth": 3,
+        "graph_nodes_metric": "root_only_peak_live_dependent_scalar_outputs_v1",
         "graph_nodes": 1000,
+        "dependent_scalar_outputs_total": 5000,
+        "executor_source_sha256": "5" * 64,
         "theorem_checks_pass": True,
         "nesting_checks_pass": None,
         "deterministic_replay": True,
@@ -105,7 +113,9 @@ def test_supervisor_publishes_stop_before_scheduling_larger_candidates(
         "contains_endpoint_material": False,
     }
     queue["queue_sha256"] = sha256_canonical(queue)
-    monkeypatch.setattr(supervisor, "build_resource_queue", lambda *_: queue)
+    monkeypatch.setattr(
+        supervisor, "build_resource_queue", lambda *_args, **_kwargs: queue,
+    )
     monkeypatch.setattr(
         supervisor, "_load_raw",
         lambda *_args, **_kwargs: _minimum_raw(rss_bytes=57_530_040_320),

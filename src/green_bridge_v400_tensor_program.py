@@ -365,3 +365,171 @@ class TensorProgram:
             str(payload["output_root"]), str(payload["scalarization_merkle_root"]),
             dict(payload["resource_formula"]),
         )
+
+
+def root_only_peak_live_dependent_scalar_count(program: TensorProgram) -> int:
+    """Exact SSA-liveness peak for interval-dependent scalar outputs.
+
+    This is a storage-concurrency measure, unlike the cumulative sum of every
+    node's dependent outputs.  A parent remains live through its last consumer;
+    the four branch roots and final output remain live for the public result.
+    """
+
+    remaining_uses: dict[str, int] = {node.semantic_id: 0 for node in program.nodes}
+    for node in program.nodes:
+        for parent in node.parent_semantic_ids:
+            remaining_uses[parent] += 1
+    retained = set(program.branch_roots.values()) | {program.output_root}
+    live: dict[str, int] = {}
+    live_count = 0
+    peak = 0
+    for node in program.nodes:
+        dependent_count = node.exact_attrs["dependency_mask_spec"][
+            "dependent_scalar_count"
+        ]
+        if type(dependent_count) is not int or dependent_count < 0:
+            raise ValueError("invalid dependent scalar count")
+        live[node.semantic_id] = dependent_count
+        live_count += dependent_count
+        peak = max(peak, live_count)
+        for parent in node.parent_semantic_ids:
+            remaining_uses[parent] -= 1
+            if remaining_uses[parent] == 0 and parent not in retained:
+                live_count -= live.pop(parent)
+    if live_count != sum(live.values()) or set(live) != retained:
+        raise RuntimeError("TensorProgram root-only liveness accounting mismatch")
+    return peak
+
+
+def tensor_program_static_row_value_hashes(
+    program: TensorProgram,
+) -> dict[tuple[str, int], str | None]:
+    """Derive conservative value-lineage identities for every tensor row.
+
+    A hash is emitted only for rows whose dependency mask proves interval
+    invariance.  Unlike a node-only identity, the lineage recursively commits
+    the exact source row and every value-affecting operation.  This permits safe
+    reuse between structurally duplicated zero-anchor/shared paths while keeping
+    PAT and TAR separate whenever their source tensors differ.
+    """
+
+    result: dict[tuple[str, int], str | None] = {}
+
+    def semantic_attrs(node: TensorNode) -> dict:
+        return {
+            key: value for key, value in node.exact_attrs.items()
+            if key not in {"dependency_mask_spec", "depends_on_t"}
+        }
+
+    def parent_row(parent_id: str, row_index: int) -> str:
+        key = (parent_id, row_index)
+        value = result.get(key)
+        if value is None:
+            raise ValueError(
+                "static row lineage depends on an unproved dynamic parent row"
+            )
+        return value
+
+    for node in program.nodes:
+        shape = node.output_spec.shape
+        if not shape:
+            continue
+        mask = node.exact_attrs.get("dependency_mask_spec")
+        if not isinstance(mask, dict):
+            raise ValueError("tensor row lineage requires a dependency mask")
+        if mask["kind"] == "empty":
+            dynamic_rows: set[int] = set()
+        elif mask["kind"] == "axis0_rows":
+            dynamic_rows = set(mask["axis0_indices"])
+        elif mask["kind"] == "dense":
+            dynamic_rows = set(range(shape[0]))
+        else:
+            raise ValueError("unknown dependency mask kind in row lineage")
+
+        refs = [reference.to_dict() for reference in node.tensor_inputs]
+        for row_index in range(shape[0]):
+            key = (node.semantic_id, row_index)
+            if row_index in dynamic_rows:
+                result[key] = None
+                continue
+            kernel = node.kernel_id
+            if kernel == "affine_scatter.v1":
+                payload = {
+                    "schema_version": "green-v400-static-point-row-lineage-v1",
+                    "source": node.tensor_inputs[0].to_dict(),
+                    "row_index": row_index,
+                    "row_spec": {
+                        "dtype": node.output_spec.dtype,
+                        "shape": list(shape[1:]),
+                    },
+                }
+            elif kernel == "static_view.v1":
+                operation = node.exact_attrs.get("operation")
+                if operation == "tensor_constant":
+                    payload = {
+                        "schema_version": "green-v400-static-point-row-lineage-v1",
+                        "source": node.tensor_inputs[0].to_dict(),
+                        "row_index": row_index,
+                        "row_spec": {
+                            "dtype": node.output_spec.dtype,
+                            "shape": list(shape[1:]),
+                        },
+                    }
+                elif operation == "subtract_exact_parent_at_final_position":
+                    final_position = int(node.exact_attrs["final_position"])
+                    if row_index != final_position:
+                        payload = {
+                            "schema_version": "green-v400-static-zero-row-lineage-v1",
+                            "row_spec": node.output_spec.to_dict(),
+                        }
+                    else:
+                        payload = {
+                            "schema_version": "green-v400-static-row-lineage-v1",
+                            "kernel_id": kernel,
+                            "exact_attrs": semantic_attrs(node),
+                            "parents": [
+                                parent_row(parent_id, row_index)
+                                for parent_id in node.parent_semantic_ids
+                            ],
+                            "tensor_inputs": refs,
+                            "row_spec": node.output_spec.to_dict(),
+                        }
+                else:
+                    raise ValueError("unsupported static-view row lineage")
+            elif kernel in {
+                "pairwise_affine.v1", "layer_norm.v1", "gelu_new.v1",
+                "residual_add.v1",
+            }:
+                payload = {
+                    "schema_version": "green-v400-static-row-lineage-v1",
+                    "kernel_id": kernel,
+                    "exact_attrs": semantic_attrs(node),
+                    "parents": [
+                        parent_row(parent_id, row_index)
+                        for parent_id in node.parent_semantic_ids
+                    ],
+                    "tensor_inputs": refs,
+                    "row_spec": node.output_spec.to_dict(),
+                }
+            elif kernel == "causal_attention.v1":
+                if len(node.parent_semantic_ids) != 3:
+                    raise ValueError("causal-attention row lineage parent mismatch")
+                query, keys, values = node.parent_semantic_ids
+                payload = {
+                    "schema_version": "green-v400-static-row-lineage-v1",
+                    "kernel_id": kernel,
+                    "exact_attrs": semantic_attrs(node),
+                    "query": parent_row(query, row_index),
+                    "keys": [parent_row(keys, index)
+                             for index in range(row_index + 1)],
+                    "values": [parent_row(values, index)
+                               for index in range(row_index + 1)],
+                    "tensor_inputs": refs,
+                    "row_spec": node.output_spec.to_dict(),
+                }
+            else:
+                raise ValueError(
+                    f"unsupported tensor kernel in static row lineage: {kernel}"
+                )
+            result[key] = sha256_canonical(payload)
+    return result

@@ -6,6 +6,7 @@ import hashlib
 import os
 from pathlib import Path
 import stat
+import sys
 import tempfile
 from typing import Any, Mapping, Sequence
 
@@ -23,6 +24,18 @@ from green_v410_schemas import with_artifact_self_hash
 
 RADIUS_PANEL_ID = "GREEN_V410_RADIUS_PANEL_T1_T1_2_T1_4_V1"
 BRANCH_SEMANTICS_ID = "GREEN_V410_FULL_DOWNSTREAM_CONE_MB_V1"
+
+
+def configure_exact_integer_io() -> None:
+    """Allow exact certificate rationals in this owned batch process only.
+
+    Python 3.11's decimal-conversion guard is for untrusted integer strings.
+    Resource-bounded, locally generated MPFR certificates legitimately exceed
+    it. This does not change system configuration, arithmetic or JSON encoding.
+    Do not call this for a public/unbounded request-processing service.
+    """
+    if hasattr(sys, 'set_int_max_str_digits'):
+        sys.set_int_max_str_digits(0)
 
 
 def file_sha256(path: Path) -> str:

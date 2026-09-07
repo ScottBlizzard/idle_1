@@ -39,11 +39,12 @@ def load_resource_calibration_config(path: Path = CONFIG_PATH) -> dict:
         "profile_shapes", "fixtures", "candidate_leaf_budgets", "precision_bits", "direction_width",
         "direction_nominal_norm", "controlled_hook_dtype", "direction_dtype",
         "cold_processes_per_precision_and_candidate", "radius_count", "pass_formulas",
-        "limits", "selection", "real_artifact_access_allowed",
+        "limits", "graph_nodes_metric", "executor_semantics", "selection",
+        "real_artifact_access_allowed",
         "endpoint_material_allowed",
     }, "resource calibration config")
     if (
-        payload["schema_version"] != "green-v410-sfc-jwtec-resource-calibration-config-v1"
+        payload["schema_version"] != "green-v410-sfc-jwtec-resource-calibration-config-v2"
         or payload["protocol_id"] != PROTOCOL_ID
         or payload["attempt_index"] != 1
         or payload["execution_scope"] != "outcome_blind_synthetic_only"
@@ -89,6 +90,10 @@ def load_resource_calibration_config(path: Path = CONFIG_PATH) -> dict:
             "direction_wall_max_seconds": 85_800,
             "guardband": "5/4",
         }
+        or payload["graph_nodes_metric"]
+            != "root_only_peak_live_dependent_scalar_outputs_v1"
+        or payload["executor_semantics"]
+            != "ssa_last_use_release_unpacked_native_resident_static_lineage_v2"
         or payload["selection"] != "largest passing candidate"
         or payload["real_artifact_access_allowed"] is not False
         or payload["endpoint_material_allowed"] is not False
@@ -319,12 +324,18 @@ class TensorProgramCalibrationEvaluator:
         backend_identity = (
             compiled_backend.library_sha256 if compiled_backend is not None else "python-reference"
         )
+        executor_path = Path(__file__).with_name(
+            "green_bridge_v400_mpfr_tensor_executor.py"
+        )
+        executor_source_sha256 = hashlib.sha256(executor_path.read_bytes()).hexdigest()
         self.evaluator_identity_sha256 = sha256_canonical({
-            "schema_version": "green-v410-resource-tensor-evaluator-v1",
+            "schema_version": "green-v410-resource-tensor-evaluator-v2",
             "program_semantic_hash": program.semantic_hash(),
             "tensor_store_record_closure_sha256": reader.manifest.record_closure_sha256,
             "backend_identity": backend_identity,
+            "executor_source_sha256": executor_source_sha256,
             "sparse_axis0_execution": True,
+            "resident_buffer_execution": compiled_backend is not None,
             "preloaded_tensor_closure": True,
             "cross_cell_static_cache": compiled_backend is not None,
             "contains_scientific_outcome": False,
@@ -347,6 +358,7 @@ class TensorProgramCalibrationEvaluator:
             domain,
             self.compiled_backend,
             sparse_axis0_execution=True,
+            resident_buffer_execution=self.compiled_backend is not None,
             resident_static_row_cache=cache,
             preloaded_tensors=self.preloaded_tensors,
         )
@@ -373,7 +385,9 @@ def expected_run_identities(candidate_leaf_budget: int) -> tuple[dict, ...]:
 RUN_FIELDS = {
     "candidate_leaf_budget", "profile", "fixture_kind", "precision_bits",
     "child_seed_uint64", "theorem_checks_pass", "nesting_checks_pass",
-    "max_depth", "graph_nodes", "process_tree_rss_bytes", "single_pass_wall_seconds",
+    "max_depth", "graph_nodes_metric", "graph_nodes",
+    "dependent_scalar_outputs_total", "executor_source_sha256",
+    "process_tree_rss_bytes", "single_pass_wall_seconds",
     "deterministic_replay", "fault_code", "contains_scientific_outcome",
     "contains_endpoint_material", "run_artifact_sha256",
 }
@@ -385,7 +399,15 @@ def _validate_run_record(record: Mapping, expected: Mapping) -> None:
         raise ValueError("resource calibration run identity mismatch")
     if (
         type(record["max_depth"]) is not int or record["max_depth"] < 0
+        or record["graph_nodes_metric"]
+            != "root_only_peak_live_dependent_scalar_outputs_v1"
         or type(record["graph_nodes"]) is not int or record["graph_nodes"] < 1
+        or type(record["dependent_scalar_outputs_total"]) is not int
+        or record["dependent_scalar_outputs_total"] < record["graph_nodes"]
+        or not isinstance(record["executor_source_sha256"], str)
+        or len(record["executor_source_sha256"]) != 64
+        or any(character not in "0123456789abcdef"
+               for character in record["executor_source_sha256"])
         or type(record["process_tree_rss_bytes"]) is not int
         or record["process_tree_rss_bytes"] < 0
         or type(record["single_pass_wall_seconds"]) not in {int, float}
@@ -424,6 +446,11 @@ def build_minimum_budget_failfast_receipt(run_record: Mapping) -> dict | None:
 
     if run_record.get("candidate_leaf_budget") != min(CANDIDATES):
         return None
+    if (
+        run_record.get("graph_nodes_metric")
+        != "root_only_peak_live_dependent_scalar_outputs_v1"
+    ):
+        raise ValueError("fail-fast admission received unknown graph-node metric")
     if run_record.get("contains_scientific_outcome") is not False:
         raise ValueError("fail-fast admission received scientific outcome material")
     if run_record.get("contains_endpoint_material") is not False:
@@ -443,7 +470,7 @@ def build_minimum_budget_failfast_receipt(run_record: Mapping) -> dict | None:
     if first_failure is None:
         return None
     return with_artifact_self_hash({
-        "schema_version": "green-v410-resource-minimum-budget-failfast-stop-v1",
+        "schema_version": "green-v410-resource-minimum-budget-failfast-stop-v2",
         "protocol_id": PROTOCOL_ID,
         "attempt_index": 1,
         "decision": "STOP_RESOURCE_LOCK_INFEASIBLE",
@@ -454,6 +481,11 @@ def build_minimum_budget_failfast_receipt(run_record: Mapping) -> dict | None:
         "max_depth_limit": limits["max_depth"],
         "observed_graph_nodes": int(run_record["graph_nodes"]),
         "max_graph_nodes_limit": limits["max_graph_nodes"],
+        "graph_nodes_metric": run_record["graph_nodes_metric"],
+        "dependent_scalar_outputs_total": int(
+            run_record["dependent_scalar_outputs_total"]
+        ),
+        "executor_source_sha256": run_record["executor_source_sha256"],
         "observed_process_tree_peak_rss_bytes": int(
             run_record["process_tree_peak_rss_bytes"]
         ),
@@ -481,6 +513,15 @@ def build_candidate_receipt(
         _validate_run_record(record, identity)
     max_depth = max(record["max_depth"] for record in records)
     max_nodes = max(record["graph_nodes"] for record in records)
+    max_cumulative_nodes = max(
+        record["dependent_scalar_outputs_total"] for record in records
+    )
+    graph_metrics = {record["graph_nodes_metric"] for record in records}
+    executor_sources = {record["executor_source_sha256"] for record in records}
+    if graph_metrics != {"root_only_peak_live_dependent_scalar_outputs_v1"}:
+        raise ValueError("candidate records disagree on graph-node metric")
+    if len(executor_sources) != 1:
+        raise ValueError("candidate records disagree on executor source")
     max_rss = max(record["process_tree_rss_bytes"] for record in records)
     max_wall = {
         precision: max(
@@ -511,7 +552,7 @@ def build_candidate_receipt(
     )
     first_failure = next((reason for passed, reason in checks if not passed), "NONE")
     payload = {
-        "schema_version": "green-v410-sfc-jwtec-resource-calibration-v1",
+        "schema_version": "green-v410-sfc-jwtec-resource-calibration-v2",
         "protocol_id": PROTOCOL_ID,
         "attempt_index": 1,
         "candidate_leaf_budget": candidate_leaf_budget,
@@ -521,7 +562,11 @@ def build_candidate_receipt(
         "run_records": records,
         "all_theorem_checks_pass": all_theorem,
         "max_depth": max_depth,
+        "graph_nodes_metric": next(iter(graph_metrics)),
         "max_graph_nodes": max_nodes,
+        "max_dependent_scalar_outputs_total": max_cumulative_nodes,
+        "executor_source_sha256": next(iter(executor_sources)),
+        "resource_config_sha256": calibration_config_sha256(),
         "max_process_tree_rss_bytes": max_rss,
         "projected_complete_direction_wall_seconds": projected_wall,
         "deterministic_replay": deterministic,
@@ -539,19 +584,32 @@ def select_resource_manifest(candidate_receipts: Iterable[Mapping]) -> dict:
     from green_v410_schemas import validate_artifact
     for receipt in receipts:
         validate_artifact(receipt)
+    if any(
+        receipt["schema_version"]
+        != "green-v410-sfc-jwtec-resource-calibration-v2"
+        for receipt in receipts
+    ):
+        raise ValueError("resource selector requires successor candidate receipts")
+    executor_sources = {row["executor_source_sha256"] for row in receipts}
+    config_hashes = {row["resource_config_sha256"] for row in receipts}
+    if len(executor_sources) != 1 or config_hashes != {calibration_config_sha256()}:
+        raise ValueError("resource selector successor identity mismatch")
     passing = [row["candidate_leaf_budget"] for row in receipts if row["candidate_pass"] is True]
     if not passing:
         raise RuntimeError("STOP_RESOURCE_LOCK_INFEASIBLE")
     limits = config["limits"]
     payload = {
-        "schema_version": "green-v410-sfc-jwtec-resource-manifest-v1",
+        "schema_version": "green-v410-sfc-jwtec-resource-manifest-v2",
         "protocol_id": PROTOCOL_ID,
         "attempt_index": 1,
         "selected_leaf_budget": max(passing),
         "selection_rule": "largest passing candidate",
         "candidate_receipt_sha256s": [row["receipt_sha256"] for row in receipts],
         "max_depth": limits["max_depth"],
+        "graph_nodes_metric": config["graph_nodes_metric"],
         "max_graph_nodes": limits["max_graph_nodes"],
+        "executor_source_sha256": next(iter(executor_sources)),
+        "resource_config_sha256": calibration_config_sha256(),
         "memory_max_bytes": limits["memory_max_bytes"],
         "direction_wall_max_seconds": limits["direction_wall_max_seconds"],
         "guardband": limits["guardband"],

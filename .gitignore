@@ -16,6 +16,21 @@ venv/
 # Local tool/vendor snapshots and scratch work
 _nature_skills/
 tmp/
+.worktrees/
+.bundles/
+.codex_runtime/
+.codex_tmp/
+.codex_transfer/
+.venvs/
+.handoff/
+.references/
+*.bundle
+*.so
+*.dll
+*.zip
+*.tar
+*.tar.gz
+*.bbl
 .scratch/
 
 # 实验产物（在服务器上生成，不回传）

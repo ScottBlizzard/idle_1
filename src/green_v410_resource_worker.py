@@ -9,7 +9,10 @@ from pathlib import Path
 import time
 
 from green_bridge_v400_resources import ProcessTreeResourceRecorder
-from green_bridge_v400_tensor_program import TensorProgram
+from green_bridge_v400_tensor_program import (
+    TensorProgram,
+    root_only_peak_live_dependent_scalar_count,
+)
 from green_bridge_v400_tensor_store import TensorStoreReader
 from green_v410_artifacts import atomic_no_clobber_json, file_sha256
 from green_v410_gpt2_program import (
@@ -157,7 +160,7 @@ def run_worker(*, mode: str, candidate: int, profile: str, fixture_kind: str,
     deterministic = replay == schedule
     dispatches = schedule["dispatch_count"]
     payload = {
-        "schema_version": "green-v410-resource-cold-process-v1",
+        "schema_version": "green-v410-resource-cold-process-v2",
         "protocol_id": PROTOCOL_ID,
         "attempt_index": 1,
         "mode": mode,
@@ -178,7 +181,14 @@ def run_worker(*, mode: str, candidate: int, profile: str, fixture_kind: str,
         "max_depth": (
             schedule["max_depth"] if mode == "official" else official["max_depth"]
         ),
-        "graph_nodes": program.resource_formula["dependent_scalar_outputs_total"],
+        "graph_nodes_metric": "root_only_peak_live_dependent_scalar_outputs_v1",
+        "graph_nodes": root_only_peak_live_dependent_scalar_count(program),
+        "dependent_scalar_outputs_total": program.resource_formula[
+            "dependent_scalar_outputs_total"
+        ],
+        "executor_source_sha256": file_sha256(
+            Path(__file__).with_name("green_bridge_v400_mpfr_tensor_executor.py")
+        ),
         "theorem_checks_pass": True,
         "nesting_checks_pass": (
             None if mode == "official" else schedule["all_nested"]

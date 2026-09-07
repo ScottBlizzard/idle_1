@@ -14,7 +14,11 @@ ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT / "src"))
 
 from green_bridge_v400_gpt2_program import execute_tensor_program_numpy
-from green_bridge_v400_tensor_program import TensorProgram
+from green_bridge_v400_tensor_program import (
+    TensorProgram,
+    root_only_peak_live_dependent_scalar_count,
+    tensor_program_static_row_value_hashes,
+)
 from green_v410_gpt2_program import (
     GRAPH_SEMANTICS_ID,
     build_green_v410_full_cone_program,
@@ -209,6 +213,35 @@ def test_old_graph_semantics_is_rejected(tmp_path):
     )
     with pytest.raises(ValueError, match="old or unknown"):
         validate_green_v410_full_cone_program(program, reader, dims)
+
+
+def test_root_only_graph_resource_metric_tracks_peak_not_cumulative_work(tmp_path):
+    _, _, _, _, _, _, program, _, _ = _case(tmp_path, 8)
+    cumulative = program.resource_formula["dependent_scalar_outputs_total"]
+    peak = root_only_peak_live_dependent_scalar_count(program)
+    assert peak == 74
+    assert peak < cumulative
+
+
+def test_static_row_value_lineage_reuses_only_equivalent_branch_rows(tmp_path):
+    _, _, _, _, _, _, program, _, _ = _case(tmp_path, 8)
+    by_provenance = {node.provenance_identity: node for node in program.nodes}
+    pat = by_provenance["PAT.SHARED.block9.ln1"]
+    pat_zero = by_provenance["PAT.ZERO.block9.ln1"]
+    tar = by_provenance["TAR.SHARED.block9.ln1"]
+    dynamic = set(pat.exact_attrs["dependency_mask_spec"]["axis0_indices"])
+    row = next(index for index in range(pat.output_spec.shape[0])
+               if index not in dynamic)
+    identities = tensor_program_static_row_value_hashes(program)
+
+    assert identities[(pat.semantic_id, row)] == identities[
+        (pat_zero.semantic_id, row)
+    ]
+    assert identities[(pat.semantic_id, row)] != identities[
+        (tar.semantic_id, row)
+    ]
+    for row_index in dynamic:
+        assert identities[(pat.semantic_id, row_index)] is None
 
 
 def test_canonical_json_branch_mapping_roundtrip_is_order_independent(tmp_path):

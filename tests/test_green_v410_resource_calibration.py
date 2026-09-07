@@ -30,7 +30,10 @@ def _records(budget, *, rss=1024, wall384=1.0, wall512=2.0, fault="NONE"):
             "theorem_checks_pass": True,
             "nesting_checks_pass": True,
             "max_depth": 4,
+            "graph_nodes_metric": "root_only_peak_live_dependent_scalar_outputs_v1",
             "graph_nodes": 1000,
+            "dependent_scalar_outputs_total": 5000,
+            "executor_source_sha256": "5" * 64,
             "process_tree_rss_bytes": rss,
             "single_pass_wall_seconds": wall384 if identity["precision_bits"] == 384 else wall512,
             "deterministic_replay": True,
@@ -45,6 +48,15 @@ def _records(budget, *, rss=1024, wall384=1.0, wall512=2.0, fault="NONE"):
 
 def test_config_and_seed_derivation_are_frozen():
     config = load_resource_calibration_config()
+    assert config["schema_version"] == (
+        "green-v410-sfc-jwtec-resource-calibration-config-v2"
+    )
+    assert config["graph_nodes_metric"] == (
+        "root_only_peak_live_dependent_scalar_outputs_v1"
+    )
+    assert config["executor_semantics"] == (
+        "ssa_last_use_release_unpacked_native_resident_static_lineage_v2"
+    )
     assert len(calibration_config_sha256()) == 64
     assert config["cold_processes_per_precision_and_candidate"] == 30
     assert derive_child_seed("ioi:layer0", "affine") == 16294457557233561567

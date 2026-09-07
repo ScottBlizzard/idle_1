@@ -63,6 +63,24 @@ SCHEMA_REGISTRY: dict[str, dict[str, Any]] = {
         ),
         "receipt_sha256",
     ),
+    "green-v410-sfc-jwtec-resource-calibration-v2": _schema(
+        (
+            "schema_version", "protocol_id", "attempt_index", "candidate_leaf_budget",
+            "profiles", "fixture_kinds", "precision_bits", "run_records",
+            "all_theorem_checks_pass", "max_depth", "graph_nodes_metric",
+            "max_graph_nodes", "max_dependent_scalar_outputs_total",
+            "executor_source_sha256", "resource_config_sha256",
+            "max_process_tree_rss_bytes", "projected_complete_direction_wall_seconds",
+            "deterministic_replay", "candidate_pass", "first_failure_code",
+            "receipt_sha256",
+        ),
+        "receipt_sha256",
+        enums={
+            "graph_nodes_metric": [
+                "root_only_peak_live_dependent_scalar_outputs_v1"
+            ],
+        },
+    ),
     "green-v410-resource-minimum-budget-failfast-stop-v1": _schema(
         (
             "schema_version", "protocol_id", "attempt_index", "decision",
@@ -87,6 +105,35 @@ SCHEMA_REGISTRY: dict[str, dict[str, Any]] = {
             "candidate_order_semantics": ["minimum_budget_prefix_admission"],
         },
     ),
+    "green-v410-resource-minimum-budget-failfast-stop-v2": _schema(
+        (
+            "schema_version", "protocol_id", "attempt_index", "decision",
+            "candidate_leaf_budget", "failure_code",
+            "trigger_run_artifact_sha256", "observed_max_depth",
+            "max_depth_limit", "observed_graph_nodes", "max_graph_nodes_limit",
+            "graph_nodes_metric", "dependent_scalar_outputs_total",
+            "executor_source_sha256",
+            "observed_process_tree_peak_rss_bytes", "guardband",
+            "guarded_process_tree_peak_rss_numerator",
+            "guarded_process_tree_peak_rss_denominator", "memory_max_bytes",
+            "candidate_order_semantics", "larger_candidates_scheduled",
+            "contains_scientific_outcome", "contains_endpoint_material",
+            "receipt_sha256",
+        ),
+        "receipt_sha256",
+        enums={
+            "decision": ["STOP_RESOURCE_LOCK_INFEASIBLE"],
+            "failure_code": [
+                "MAX_DEPTH_EXCEEDED",
+                "MAX_GRAPH_NODES_EXCEEDED",
+                "MEMORY_GUARDBAND_EXCEEDED",
+            ],
+            "graph_nodes_metric": [
+                "root_only_peak_live_dependent_scalar_outputs_v1"
+            ],
+            "candidate_order_semantics": ["minimum_budget_prefix_admission"],
+        },
+    ),
     "green-v410-sfc-jwtec-resource-manifest-v1": _schema(
         (
             "schema_version", "protocol_id", "attempt_index", "selected_leaf_budget",
@@ -96,6 +143,23 @@ SCHEMA_REGISTRY: dict[str, dict[str, Any]] = {
             "audit_precision_bits", "radii", "manifest_sha256",
         ),
         "manifest_sha256",
+    ),
+    "green-v410-sfc-jwtec-resource-manifest-v2": _schema(
+        (
+            "schema_version", "protocol_id", "attempt_index", "selected_leaf_budget",
+            "selection_rule", "candidate_receipt_sha256s", "max_depth",
+            "graph_nodes_metric", "max_graph_nodes", "executor_source_sha256",
+            "resource_config_sha256", "memory_max_bytes",
+            "direction_wall_max_seconds", "guardband", "max_process_launches",
+            "official_precision_bits", "audit_precision_bits", "radii",
+            "manifest_sha256",
+        ),
+        "manifest_sha256",
+        enums={
+            "graph_nodes_metric": [
+                "root_only_peak_live_dependent_scalar_outputs_v1"
+            ],
+        },
     ),
     "green-v410-sfc-jwtec-site-identity-v1": _schema(
         (
@@ -368,7 +432,30 @@ def _validate_semantics(payload: Mapping[str, Any]) -> None:
             or (payload["first_failure_code"] == "NONE") is not payload["candidate_pass"]
         ):
             raise ValueError("resource calibration receipt contract mismatch")
-    elif schema == "green-v410-resource-minimum-budget-failfast-stop-v1":
+    elif schema == "green-v410-sfc-jwtec-resource-calibration-v2":
+        if (
+            payload["candidate_leaf_budget"] not in [4, 8, 16, 32]
+            or payload["profiles"] != [
+                "ioi:layer0", "ioi:layer4", "ioi:layer8",
+                "greater_than:layer0", "greater_than:layer4", "greater_than:layer8",
+            ]
+            or payload["fixture_kinds"] != [
+                "affine", "positive_curvature", "negative_curvature",
+                "signed_cancellation", "deep_dyadic",
+            ]
+            or payload["precision_bits"] != [384, 512]
+            or len(payload["run_records"]) != 60
+            or payload["max_dependent_scalar_outputs_total"]
+                < payload["max_graph_nodes"]
+            or type(payload["candidate_pass"]) is not bool
+            or (payload["first_failure_code"] == "NONE")
+                is not payload["candidate_pass"]
+        ):
+            raise ValueError("resource calibration successor receipt contract mismatch")
+    elif schema in {
+        "green-v410-resource-minimum-budget-failfast-stop-v1",
+        "green-v410-resource-minimum-budget-failfast-stop-v2",
+    }:
         guarded_rss = Fraction(
             payload["guarded_process_tree_peak_rss_numerator"],
             payload["guarded_process_tree_peak_rss_denominator"],
@@ -388,6 +475,13 @@ def _validate_semantics(payload: Mapping[str, Any]) -> None:
                 guarded_rss > payload["memory_max_bytes"]
             ),
         }
+        v2_metric_invalid = (
+            schema == "green-v410-resource-minimum-budget-failfast-stop-v2"
+            and (
+                payload["dependent_scalar_outputs_total"]
+                < payload["observed_graph_nodes"]
+            )
+        )
         if (
             payload["candidate_leaf_budget"] != 4
             or payload["max_depth_limit"] != 24
@@ -395,6 +489,7 @@ def _validate_semantics(payload: Mapping[str, Any]) -> None:
             or payload["guardband"] != "5/4"
             or payload["memory_max_bytes"] != 68_719_476_736
             or guarded_rss != expected_guarded_rss
+            or v2_metric_invalid
             or not failure_holds[payload["failure_code"]]
             or payload["larger_candidates_scheduled"] is not False
             or payload["contains_scientific_outcome"] is not False
@@ -417,6 +512,22 @@ def _validate_semantics(payload: Mapping[str, Any]) -> None:
             or payload["radii"] != ["1", "1/2", "1/4"]
         ):
             raise ValueError("resource manifest contract mismatch")
+    elif schema == "green-v410-sfc-jwtec-resource-manifest-v2":
+        if (
+            payload["selected_leaf_budget"] not in [4, 8, 16, 32]
+            or payload["selection_rule"] != "largest passing candidate"
+            or len(payload["candidate_receipt_sha256s"]) != 4
+            or payload["max_depth"] != 24
+            or payload["max_graph_nodes"] != 2_000_000
+            or payload["memory_max_bytes"] != 68_719_476_736
+            or payload["direction_wall_max_seconds"] != 85_800
+            or payload["guardband"] != "5/4"
+            or payload["max_process_launches"] != 2
+            or payload["official_precision_bits"] != 384
+            or payload["audit_precision_bits"] != 512
+            or payload["radii"] != ["1", "1/2", "1/4"]
+        ):
+            raise ValueError("resource successor manifest contract mismatch")
     elif schema == "green-v410-sfc-jwtec-endpoint-transition-v1":
         if payload["endpoint_payload_materialized_before_transition"] is not False:
             raise ValueError("endpoint payload was materialized before transition")

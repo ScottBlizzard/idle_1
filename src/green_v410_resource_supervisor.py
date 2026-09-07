@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import argparse
+from concurrent.futures import ThreadPoolExecutor, as_completed
 import json
 from pathlib import Path
 import subprocess
@@ -19,7 +20,15 @@ from green_v410_resource_calibration import (
 from green_v410_resource_finalize import _load_raw, raw_artifact_path
 
 
-def build_resource_queue(bundle_root: Path, raw_root: Path) -> dict:
+MAX_COLD_PROCESSES_PER_PHASE = len(PROFILES) * len(FIXTURE_KINDS)
+DEFAULT_MAX_WORKERS = 8
+
+
+def build_resource_queue(
+    bundle_root: Path, raw_root: Path, max_workers: int = DEFAULT_MAX_WORKERS,
+) -> dict:
+    if type(max_workers) is not int or not 1 <= max_workers <= MAX_COLD_PROCESSES_PER_PHASE:
+        raise ValueError("resource calibration max_workers is out of range")
     jobs = []
     ordinal = 0
     for candidate in CANDIDATES:
@@ -53,7 +62,8 @@ def build_resource_queue(bundle_root: Path, raw_root: Path) -> dict:
         "schema_version": "green-v410-resource-calibration-queue-v1",
         "protocol_id": PROTOCOL_ID,
         "attempt_index": 1,
-        "scheduler": "strict_serial_one_cold_process_at_a_time",
+        "scheduler": "phase_major_bounded_parallel_independent_cold_processes_v1",
+        "max_workers": max_workers,
         "job_count": len(jobs),
         "jobs": jobs,
         "contains_scientific_outcome": False,
@@ -71,49 +81,84 @@ def _publish_failfast_stop(raw_root: Path, payload: dict) -> None:
     )
 
 
-def run_supervisor(bundle_root: Path, backend: Path, raw_root: Path) -> str:
-    queue = build_resource_queue(bundle_root, raw_root)
+def _worker_command(job: dict, backend: Path) -> list[str]:
+    command = [
+        sys.executable, "-m", "green_v410_resource_worker",
+        "--mode", job["mode"], "--candidate", str(job["candidate_leaf_budget"]),
+        "--profile", job["profile"], "--fixture", job["fixture_kind"],
+        "--bundle-dir", job["bundle_dir"], "--backend", str(backend),
+        "--output", job["output_path"],
+    ]
+    if job["official_artifact_path"] is not None:
+        command.extend(["--official-artifact", job["official_artifact_path"]])
+    return command
+
+
+def _run_job(job: dict, backend: Path) -> subprocess.CompletedProcess:
+    return subprocess.run(_worker_command(job, backend), check=False)
+
+
+def run_supervisor(
+    bundle_root: Path, backend: Path, raw_root: Path,
+    max_workers: int = DEFAULT_MAX_WORKERS,
+) -> str:
+    queue = build_resource_queue(bundle_root, raw_root, max_workers=max_workers)
     atomic_no_clobber_json(
         raw_root / "queue.json", queue, job_id="resource-calibration-queue"
     )
-    for job in queue["jobs"]:
-        candidate = job["candidate_leaf_budget"]
-        precision = job["precision_bits"]
-        profile = job["profile"]
-        fixture = job["fixture_kind"]
-        output = Path(job["output_path"])
-        if output.exists():
-            record = _load_raw(
-                output, candidate=candidate, precision=precision,
-                profile=profile, fixture=fixture,
-            )
-            stop = build_minimum_budget_failfast_receipt(record)
-            if stop is not None:
-                _publish_failfast_stop(raw_root, stop)
-                return stop["decision"]
-            continue
-        command = [
-            sys.executable, "-m", "green_v410_resource_worker",
-            "--mode", job["mode"], "--candidate", str(candidate),
-            "--profile", profile, "--fixture", fixture,
-            "--bundle-dir", job["bundle_dir"], "--backend", str(backend),
-            "--output", str(output),
-        ]
-        if job["official_artifact_path"] is not None:
-            command.extend(["--official-artifact", job["official_artifact_path"]])
-        completed = subprocess.run(command, check=False)
-        if completed.returncode != 0:
-            raise RuntimeError(
-                f"resource calibration child failed at ordinal {job['ordinal']}"
-            )
-        record = _load_raw(
-            output, candidate=candidate, precision=precision,
-            profile=profile, fixture=fixture,
-        )
-        stop = build_minimum_budget_failfast_receipt(record)
-        if stop is not None:
-            _publish_failfast_stop(raw_root, stop)
-            return stop["decision"]
+    # Candidate-major and precision-major barriers preserve the binding
+    # official-before-audit order.  Rows inside one phase are independent
+    # cold processes, so they may run concurrently and publish canonically to
+    # disjoint no-clobber paths.
+    for candidate in CANDIDATES:
+        for precision in PRECISIONS:
+            phase_jobs = [
+                job for job in queue["jobs"]
+                if job["candidate_leaf_budget"] == candidate
+                and job["precision_bits"] == precision
+            ]
+            missing = []
+            for job in phase_jobs:
+                output = Path(job["output_path"])
+                if not output.exists():
+                    missing.append(job)
+                    continue
+                record = _load_raw(
+                    output, candidate=candidate, precision=precision,
+                    profile=job["profile"], fixture=job["fixture_kind"],
+                )
+                stop = build_minimum_budget_failfast_receipt(record)
+                if stop is not None:
+                    _publish_failfast_stop(raw_root, stop)
+                    return stop["decision"]
+
+            if not missing:
+                continue
+            stop_receipt = None
+            with ThreadPoolExecutor(
+                max_workers=min(max_workers, len(missing)),
+                thread_name_prefix="green-v410-resource-cold",
+            ) as pool:
+                futures = {pool.submit(_run_job, job, backend): job for job in missing}
+                for future in as_completed(futures):
+                    job = futures[future]
+                    completed = future.result()
+                    if completed.returncode != 0:
+                        raise RuntimeError(
+                            "resource calibration child failed at ordinal "
+                            f"{job['ordinal']}"
+                        )
+                    record = _load_raw(
+                        Path(job["output_path"]), candidate=candidate,
+                        precision=precision, profile=job["profile"],
+                        fixture=job["fixture_kind"],
+                    )
+                    stop = build_minimum_budget_failfast_receipt(record)
+                    if stop is not None:
+                        stop_receipt = stop
+            if stop_receipt is not None:
+                _publish_failfast_stop(raw_root, stop_receipt)
+                return stop_receipt["decision"]
     return "CALIBRATION_QUEUE_COMPLETE"
 
 
@@ -122,11 +167,18 @@ def main() -> int:
     parser.add_argument("--bundle-root", type=Path, required=True)
     parser.add_argument("--backend", type=Path, required=True)
     parser.add_argument("--raw-root", type=Path, required=True)
+    parser.add_argument(
+        "--max-workers", type=int, default=DEFAULT_MAX_WORKERS,
+        choices=range(1, MAX_COLD_PROCESSES_PER_PHASE + 1),
+    )
     args = parser.parse_args()
     for path in (args.bundle_root, args.backend, args.raw_root):
         if not path.resolve().as_posix().startswith("/mnt/sdb/"):
             raise RuntimeError("formal server calibration paths must be under /mnt/sdb")
-    run_supervisor(args.bundle_root, args.backend, args.raw_root)
+    run_supervisor(
+        args.bundle_root, args.backend, args.raw_root,
+        max_workers=args.max_workers,
+    )
     return 0
 
 

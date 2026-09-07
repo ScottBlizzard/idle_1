@@ -1,0 +1,64 @@
+# Manuscript revision evidence ledger (through 2026-09-01)
+
+This ledger is the source of truth for the ICLR 2027 rewrite. It separates scientific evidence from protocol diagnostics and engineering validation. A result may enter the manuscript as an empirical claim only when its status is `SUPPORTED`. `DIAGNOSTIC`, `NEGATIVE`, `METHOD`, and `PENDING` records may be reported with those labels but may not be narrated as positive evidence for the final method.
+
+## Core thesis and scope
+
+The current paper does **not** claim that behavioral restoration identifies a mechanism, that activation density is an intrinsic validity label, or that GREEN certifies a unique “true mechanism.” The current thesis is:
+
+> Behavioral restoration is an outcome-level observation. Mechanistic evidence requires a declared intervention relation and an independently testable consequence. GREEN turns one such relation—matched-bypass transport equivalence—into a deterministic local certificate on a frozen Transformer causal cone, and prospectively tests whether that certificate predicts held-out response transport beyond strong empirical baselines.
+
+The formal object is deliberately bounded: a task contrast, one site, eight frozen directions, a selected downstream gate set, and a local derivative at the clean center. It does not imply global circuit identity, natural-support membership, uniqueness of an interpretation, or correctness in arbitrary directions.
+
+## Development timeline
+
+| Phase | Date | Question | What happened | Evidence status | Manuscript role |
+|---|---|---|---|---|---|
+| Original R/V/A study | before 2026-07-12 | Does high behavioral restoration suffice for mechanism recovery, and can an activation-overlap score detect failures? | High-restoration late patches often failed to restore the chosen earlier Name Mover Head readout. Reference choice strongly changed the overlap diagnosis. | `SUPPORTED` for behavioral/readout separation and reference sensitivity; stronger causal-validity interpretation later rejected. | Motivation and historical empirical observation only. |
+| July technical audit | 2026-07-12 | Are IVS, its extreme gap, and pooled NMH validation construct-valid? | Found corrupt-reference estimand ambiguity, low-rank/self-calibration inflation, and layer/position/time-order confounding. | `SUPPORTED AUDIT` | Main limitation disclosure; explains why the original manuscript was retired. |
+| P0 IVS redesign | July–Aug 2026 | Do unique support, cross-fitting, and matched references preserve the original causal-validity claim? | The million-scale reconstruction gap collapsed (maximum absolute cross-fit reconstruction z about 4.94); nine corrupt-reference low-overlap sites flipped under clean, mixture, and matched-counterfactual references. | `NEGATIVE` for general IVS validity; `SUPPORTED` for reference-relative overlap. | Appendix negative result; never reuse old IVS headline. |
+| IRS proposal | 2026-08-05 | Can multidirectional local response agreement provide mechanism evidence beyond restoration? | Established zero-order non-identifiability and a local response-field framing. An analytic rank-one construction showed that a fixed direction can miss a discrepancy recovered by isotropic probes. | `SUPPORTED THEORY/CONSTRUCTION` | Conceptual bridge, not final method claim. |
+| IRS novelty gate | 2026-08-05 | Does IRS empirically outperform a fair clean–corrupt single-direction interaction baseline? | On IOI, IRS did not clearly improve layer ranking or prompt prediction; robustness gate failed at larger admissible radii; an alternative corruption showed local response agreement need not restore the selected structural path. | `NEGATIVE` for oral-level IRS advantage and structural-circuit certification. | Appendix falsification; motivates a declared relational functional and independent endpoint. |
+| GREEN v1.0–v1.2 bridge gates | 2026-08-05 | Can response-only probes identify a matched-bypass structural object under strict equivalence and basis tests? | Gate04 equivalence/fidelity and Gate08 basis-spectrum/rank-five routes stopped under frozen rules. | `NEGATIVE/DIAGNOSTIC` | Protocol lineage; not primary empirical evidence. |
+| GREEN v1.3–v1.3.6 | 2026-08-06 to 2026-08-25 | Can a structural-envelope and fixed-operation tail repair the bridge? | Multiple engineering defects were isolated (batch graph, anchor centering, response pairing, bypass orientation). The final development audit was archived rather than silently overwritten. | `DIAGNOSTIC` | Reproducibility and failure-discipline appendix. |
+| GREEN v2.0 | 2026-08-25 | Can dual-route AD-certified finite response produce a valid signed identification set? | Corrected a non-enclosing Richardson construction and isolated float64 AD route. Development terminated under the frozen oral gate. | `NEGATIVE` for the v2 certificate; `SUPPORTED` for numerical/route diagnostics. | Appendix; establishes why heuristic error bars were rejected. |
+| GREEN v2.1 postmortem | 2026-08-26 | Which part of v2 failed: estimator, implementation, or certificate? | Granular postmortem separated point-estimator accuracy from set-identification failure. | `DIAGNOSTIC` | Bridge to v3. |
+| GREEN v3.0 | 2026-08-26 | Can curvature-detectability and matched-bypass transport close the identification loop? | Formal prepare passed. On 80 transport and 80 joint records, the response-only estimator was highly accurate: median direct error 3.002e-6, median joint error 3.346e-7, median center-to-AD error 9.121e-9, and no structural contradictions. Yet all 80 joint intervals crossed zero; median set-SNR was 0.1022 and detectability Spearman was 0.0161 because the panel lay on a saturated high-SNR plateau. Verdict: `POSTER_ONLY`; confirmation stayed sealed. | `SUPPORTED` positive estimator result; `NEGATIVE` certificate/detectability result. | Central predecessor result and formal motivation for the direct joint witness. |
+| GREEN v4.0 formal method | 2026-08-26 onward | Can a direct signed all-gate witness certify the joint functional without minimax box inflation? | Proved that the componentwise box radius is minimax sharp under box assumptions; defined a direct joint witness and implemented outward MPFR interval jets through the frozen GPT-2 tail with shared relational DAG cancellation, 384-bit official and independent 512-bit replay. | `SUPPORTED METHOD/ENGINEERING`; no real-row success claim. | Main method foundation and theorem section. |
+| v4 resource and runtime closure | 2026-08-26 to 2026-08-28 | Is exact full-tail certification feasible on the shared host without unsafe system changes? | Built bit-exact stores, Tensor-SSA/TensorProgram extraction, compiled MPFR kernels, native resident execution, anytime budget-monotone certificates, resource locks, no-root supervision, and replay/firewall audits. | `SUPPORTED ENGINEERING` only. | Reproducibility/method appendix; never present as scientific outcome. |
+| Novelty/self-deception audit | 2026-08-28 | Is GREEN redundant with prior work or merely certifying its own definition? | Found strong collisions for divergent interventions, dormant paths, mediator interaction, HVP error correction, formal MI, and statistical certification. Preserved a narrower combination novelty: deterministic finite-radius relational certification plus prospective independent consequence. Corrected the low-bin confidence direction and demoted self-resolution transitions to secondary evidence. | `SUPPORTED AUDIT` | Related work and claim boundary. |
+| Silent Failure Challenge v4.0 | 2026-08-29 to 2026-08-30 | Can GREEN prospectively flag restored interventions that fail an independent endpoint beyond Grant-style divergence and strong response baselines? | Froze IOI and Greater-Than universes, predictions, Grant baseline, replay, independent endpoints, and firewalls. Development prediction/endpoint fleets ran. Primary analysis stopped because the frozen contract lacked a site-level certificate mapping/status rule. Results were reclassified as diagnostic only; confirmation remained sealed. | `SCIENTIFIC_AMBIGUITY`; v4.0 primary analysis invalid. | Transparent protocol-history paragraph and appendix. |
+| GREEN v4.1 successor | 2026-08-30 onward | Can the missing scientific choices be fixed prospectively before untouched certificate and confirmation outcomes? | Froze the exact four-branch functional, eight-direction RMS ratio, 0.20 threshold, three radii, total status classifier, P13 qualification, coverage/invalidity gates, full causal-cone identity, resource policy, and endpoint firewall. Existing v4.0 development outputs are forbidden for v4.1 claim selection. | `METHOD / PREREGISTERED` | Current final method and experimental protocol. |
+| v4.1 P13/resource execution | 2026-08-31 to present | Is the proof computation feasible and sufficiently contracting on an untouched qualification cohort? | Qualification manifests/directions/full cones and synthetic-only resource calibration are frozen. Layer-8 calibration completed with deterministic replay and theorem checks; layer-0 calibration is still running. No P13 scientific qualification or confirmation outcome is available yet. | `PENDING` | No success claim. Insert results only after immutable validation receipts exist. |
+
+## Current claim–evidence map
+
+| Claim | Status | Evidence allowed in main text |
+|---|---|---|
+| Behavioral restoration alone does not identify the intended mechanism. | Supported in the tested IOI setting and by non-identifiability constructions; broad universality is not claimed. | Late-patch/NMH separation, IRS rank-one construction, closest prior work. |
+| Activation support or density is reference-relative and cannot serve as an intrinsic causal-validity label. | Supported. | July audit and matched-reference flips. |
+| Componentwise independent intervals cannot be post-hoc shrunk into a deterministic joint certificate by observed covariance. | Supported theorem. | Box support-function argument. |
+| The direct relational Joint Witness encloses the frozen four-branch functional and its derivative under stated graph and interval assumptions. | Supported by theorem fixtures and implementation audits; real-row usefulness pending. | Theorem, primitive tests, higher-precision replay design. |
+| `CERTIFIED_POSITIVE` proves the unique true mechanism is restored. | Unsupported and forbidden. | None. |
+| `CERTIFIED_POSITIVE` bounds the eight-direction matched-bypass transport residual by 0.20. | Method definition; empirical coverage pending. | v4.1 protocol and valid certificate rows when available. |
+| GREEN predicts lower held-out transport error than strong baselines on IOI and Greater-Than. | Pending untouched confirmation. | Must remain a result placeholder until final receipts exist. |
+| GREEN is oral-level. | Pending. | Requires both-task coverage >= 0.50, invalidity <= 0.05, simultaneous selective-risk superiority, and full disclosure. |
+
+## Terminology ledger
+
+| Preferred term | Exact meaning | Avoid |
+|---|---|---|
+| behavioral restoration | Recovery of the declared task-output contrast after a patch | mechanism recovery |
+| reference-relative overlap | Similarity to an explicitly named activation reference distribution | intrinsic validity, naturalness certificate |
+| matched-bypass transport | Difference between selected-gate-mediated local sensitivities in patched and target contexts | the true mechanism |
+| Joint Witness | Direct relational interval certificate for the four-branch functional | independent scientific endpoint |
+| deterministic enclosure | Exact-real interval guarantee for the extracted graph under declared assumptions | proof of PyTorch bit-level behavior |
+| `CERTIFIED_POSITIVE` | Upper bound on the frozen eight-direction normalized residual is <= 0.20 | valid intervention in general |
+| `CERTIFIED_NEGATIVE` | Lower bound on that residual is > 0.20 | every causal route is wrong |
+| `UNRESOLVED` | Sound interval straddles the threshold | negative result or invalid input |
+| `RESOURCE_INCONCLUSIVE` | The declared compute ceiling is exhausted before classification | scientific failure |
+| held-out endpoint | Sealed finite-direction full-response transport measurement not used in GREEN | certificate self-consistency |
+
+## Manuscript insertion rule for the running layer
+
+The active resource-calibration run is not a scientific result. Its validated completion may update the implementation/resource subsection and appendix only. The P13 qualification may enter the main paper only after both tasks have complete no-clobber artifacts, 384/512 nesting, deterministic replay, theorem checks, and a frozen two-task receipt. Confirmation claims require the subsequent seal audit, status manifest, endpoint opening, and simultaneous analysis gates.

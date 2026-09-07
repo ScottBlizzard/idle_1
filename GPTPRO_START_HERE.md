@@ -1,103 +1,73 @@
-# GPT Pro review entry point
+# GPT Pro: start here — 20-day scientific strategy review
 
-## Round 3: real-transformer green bridge (current task)
+Review snapshot: 2026-09-07. This is the current entry point. Older prompts and
+historical decisions are evidence, not the current request to execute their plans.
 
-The Round 2 theory package is now available at
-[`analysis/GPTPRO_THEORY_PACKAGE_20260805.md`](analysis/GPTPRO_THEORY_PACKAGE_20260805.md).
-It proves the restricted ASG-RDAG result but returns **THEORY AMBER** because the
-proposed Greater-Than blocks do not instantiate the theorem.
+## Current request
 
-The execution agent has completed the authorized CPU implementation and tests;
-see
-[`analysis/CPU_THEORY_GATE_EXECUTION_20260805.md`](analysis/CPU_THEORY_GATE_EXECUTION_20260805.md).
-
-For the current task, follow
-[`GPTPRO_GREEN_BRIDGE_PROMPT_20260805.md`](GPTPRO_GREEN_BRIDGE_PROMPT_20260805.md)
-exactly. The requested output is
-`analysis/GPTPRO_GREEN_BRIDGE_20260805.md`. The only permissible terminal
-decisions are `BRIDGE GREEN — SERVER EXECUTION AUTHORIZED` and
-`BRIDGE RED — DO NOT OPEN THE SERVER`.
-
-## Round 2: formal theory gate (completed)
-
-The first adversarial review has been returned as
-[`GPTPRO_0805.md`](GPTPRO_0805.md).  It concludes that the current snapshot is
-not oral-ready and that the project may proceed only if it obtains a
-non-tautological identification theorem with a converse before any further GPU
-experiments.
-
-For the current round, read in this order:
-
-1. [`GPTPRO_0805.md`](GPTPRO_0805.md) — the complete first-round verdict and
-   exact theorem gate;
-2. [`GPTPRO_THEORY_PROMPT_20260805.md`](GPTPRO_THEORY_PROMPT_20260805.md) — the
-   binding task and output contract for the theory package;
-3. [`analysis/IRS_THEORY_P0.md`](analysis/IRS_THEORY_P0.md) — the existing P0
-   results that stop at local Taylor transport and probe-weighted Jacobian
-   discrepancy;
-4. the implementation and tests named below, only to ensure that the proposed
-   estimand can later be implemented without changing its meaning.
-
-The requested output for Round 2 is one self-contained Markdown document named
-`analysis/GPTPRO_THEORY_PACKAGE_20260805.md`.  Do not repeat the broad project
-review.  Resolve the formal theory gate.
-
-## Round 1: archived review context
-
-This repository is a frozen P0 research snapshot for an intended ICLR oral-level
-paper on neural-intervention validity and mechanism restoration.  The July audit
-falsified the previous IVS-centered causal-validity claim.  The current candidate
-main line studies a three-level intervention-equivalence hierarchy:
-
-1. zero-order behavioral restoration;
-2. local functional response agreement under an explicit probe law;
-3. structural circuit/path restoration.
-
-The review must decide whether this rebuild is genuinely oral-caliber or merely
-a careful synthesis of known non-identifiability results.  Negative results and
-the frozen novelty gate are part of the evidence and must not be softened.
+Read [the complete review prompt](GPTPRO_STRATEGY_PROMPT_20260907.md).
+Return one self-contained Markdown document named
+`GPTPRO_GREEN_20DAY_SCIENTIFIC_STRATEGY_20260907.md`.
+The author has 20 days total, including the final five days for manuscript polishing.
+The objective is a complete, credible, high-impact paper with an Oral ambition,
+not an unsupported promise of an Oral outcome.
 
 ## Read in this order
 
-1. [`analysis/GPTPRO_REDTEAM_PACKET_20260805.md`](analysis/GPTPRO_REDTEAM_PACKET_20260805.md)
-   — self-contained claims, results, negative evidence, collision set, and the
-   six decisions requested from GPT Pro.
-2. [`analysis/P0_NOVELTY_GATE_20260805.md`](analysis/P0_NOVELTY_GATE_20260805.md)
-   — thresholds frozen before the stress tests and the resulting negative gate.
-3. [`analysis/IRS_THEORY_P0.md`](analysis/IRS_THEORY_P0.md)
-   — formal P0 theory, scope limitations, and claim--evidence map.
-4. [`analysis/P0_EXECUTION_20260804.md`](analysis/P0_EXECUTION_20260804.md)
-   — July-audit execution record and the evidence that invalidated the old line.
-5. [`analysis/p0_irs_gpt2_aggregate.md`](analysis/p0_irs_gpt2_aggregate.md),
-   [`analysis/irs_vs_single_direction.md`](analysis/irs_vs_single_direction.md),
-   and [`analysis/p0_irs_stress_summary.md`](analysis/p0_irs_stress_summary.md)
-   — compact empirical summaries.
-6. [`analysis/P0_GOAL_COMPLETION_AUDIT.md`](analysis/P0_GOAL_COMPLETION_AUDIT.md)
-   — requirement-by-requirement verification of the P0 stopping condition.
+1. [Current state, uncertainties, and corrections](review/20260907/CURRENT_STATE.md).
+2. [Author-approved 20-day planning constraint and draft roadmap](analysis/GREEN_PAPER_20_DAY_DEPTH_FIRST_PLAN_20260907.md).
+   This is a proposed allocation to critique, not a claim that the full route fits.
+3. [Current manuscript](iclr2027/paper.tex) and [bibliography](iclr2027/references.bib).
+   It is a draft, not a source of truth about completion or priority.
+4. [Development outcomes and strong-baseline evidence](analysis/GREEN_V400_DEVELOPMENT_COMPLETENESS_DECISION_20260830.md).
+5. [Corrected v3 diagnostic evidence](analysis/GREEN_V300_DEVELOPMENT_TERMINAL_20260826/POSTCORRIGENDUM_DIAGNOSTIC.md)
+   and [its machine-readable summary](analysis/GREEN_V300_DEVELOPMENT_TERMINAL_20260826/POSTCORRIGENDUM_DIAGNOSTIC.json).
+6. [Numerical repair handoff](analysis/GREEN_V410_P13_NUMERICAL_REPAIR_HANDOFF_20260907.md)
+   and [existing 92-test report](analysis/GREEN_V410_REPAIR_REGRESSION_FINAL_20260907.xml).
+7. [v4.1 scientific protocol](analysis/GPTPRO_GREEN_V4_SUCCESSOR_CERTIFICATE_PROTOCOL_DECISION_20260830.md),
+   especially estimand/classifier, P13, resource policy, confirmation analysis, and endpoint separation.
+8. [Execution scale and missing confirmation modules](analysis/GREEN_V410_LUNAMAX_MASTER_EXECUTION_PLAN_20260906.md).
+   Its September 6 launch commands are superseded by the repair handoff.
+9. [Earlier novelty/self-deception audit](analysis/CODEX_GREEN_V400_NOVELTY_COLLISION_AND_SELF_DECEPTION_AUDIT_20260828.md)
+   and [original mission alignment](analysis/CODEX_GREEN_V400_ORIGINAL_MISSION_ALIGNMENT_CORRIGENDUM_20260828.md).
+   Independently verify consequential literature claims; the audit is not authoritative.
 
-Then inspect the implementation and tests:
+## Inspect these implementations where claims require it
 
-- `src/validity_crossfit.py`, `src/test_validity_crossfit.py`;
-- `src/interventional_response.py`, `src/test_interventional_response.py`;
-- `src/run_irs_analytic_synthetic.py`;
-- `src/exp_p0_irs_gpt2.py`;
-- `src/exp_p0_single_direction_int_gpt2.py`;
-- `src/exp_p0_irs_probe_sweep_gpt2.py`;
-- `src/exp_p0_irs_corruption_shift_gpt2.py`;
-- `src/analyze_p0_irs.py`, `src/analyze_irs_vs_single_direction.py`, and
-  `src/analyze_p0_irs_stress.py`.
+- [Complete certificate loop](src/green_v410_fixed_budget_certificate.py).
+- [Actual P13 worker and record construction](analysis/green_v410_p13_certificate_worker.py).
+- [Graph builder](src/green_bridge_v400_tensor_program.py).
+- [Tensor executor](src/green_bridge_v400_mpfr_tensor_executor.py).
+- [MPFR backend](native/green_v400_mpfr_backend.cpp).
+- [Site classifier](src/green_v410_classifier.py) and [P13 rules](src/green_v410_p13.py).
+- [Current engineering acceptance entry point](analysis/green_v410_certificate_repair_probe.py).
 
-Selected raw JSON evidence is intentionally committed under `outputs/` even
-though the directory is normally ignored.  It includes the five analytic seeds,
-three GPT-2 IRS seeds, the fair single-direction baseline, probe sweep,
-corruption shift, reference-distribution and temporally eligible NMH audits, and
-the four independently initialized trained synthetic conformal runs.
+The full certificate evaluates five outputs together on each graph traversal.
+Repeated node ordinals do not count completed outputs. At L4, each radius requires
+six official interval evaluations, four audit interval evaluations, and six
+endpoint evaluations: 48 evaluator calls over the three radii. Costs are nonuniform.
 
-## Output contract
+## Targeted historical evidence, only as needed
 
-Return one self-contained Markdown document intended to be saved as:
+- [July core audit](ICLR_1_CORE_AUDIT_20260712.md).
+- [IRS theory and scope](analysis/IRS_THEORY_P0.md).
+- [IRS versus single direction](analysis/irs_vs_single_direction.md).
+- [IRS stress summary](analysis/p0_irs_stress_summary.md).
+- [Manuscript evidence ledger](iclr2027/REVISION_EVIDENCE_LEDGER.md).
+- `iclr2026/` is the superseded manuscript and figures; it is not the current submission.
+- `archive/prompts/` contains superseded early prompts.
+- `analysis/` retains historical results and decisions to prevent selective erasure.
 
-`analysis/GPTPRO_REVIEW_20260805.md`
+## What this publication is and is not
 
-Do not distribute the final verdict across multiple messages.  Follow the exact
-review scope and output structure in `GPTPRO_PROMPT_20260805.md`.
+It contains the current local implementation snapshot, current draft, planning
+documents, historical evidence, and an existing test receipt. It contains no new
+formal result and no untouched confirmation endpoint payload. Large model,
+tensor, environment, and run files remain outside this review publication.
+
+The two engineering acceptance jobs were still running at the snapshot in
+CURRENT_STATE.md. Successful unit tests do not establish successful real-world
+certificates, useful contraction, predictive superiority, or semantic mechanism
+identity.
+
+See [publication scope and cleanup record](review/20260907/PUBLICATION_SCOPE.md).

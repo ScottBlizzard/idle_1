@@ -29,6 +29,8 @@ def _bits_f64_array(values) -> np.ndarray:
 
 
 def _exact_fraction(payload: dict) -> Fraction:
+    if "nonfinite" in payload:
+        raise ValueError("NONFINITE_MPFR_ENDPOINT: " + str(payload["nonfinite"]))
     raw = str(payload["significand_hex"])
     negative = raw.startswith("-")
     digits = raw[1:] if negative else raw

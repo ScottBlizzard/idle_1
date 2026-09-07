@@ -6,6 +6,7 @@
 #include <cmath>
 #include <cstring>
 #include <sstream>
+#include <stdexcept>
 #include <string>
 #include <utility>
 #include <vector>
@@ -129,6 +130,12 @@ void pairwise_sum(std::vector<MpfrValue*>& terms, mpfr_ptr output,
 }
 
 std::string exact_binary(mpfr_srcptr value, mpfr_prec_t precision) {
+  // mpfr_get_z_2exp is only defined for finite values.  In particular, a NaN
+  // must never be turned into a zero significand (and hence a false proof).
+  // Return an explicit marker instead of throwing across the legacy C ABI.
+  if (!mpfr_number_p(value))
+    return mpfr_nan_p(value) ? "{\"nonfinite\":\"nan\"}"
+                            : "{\"nonfinite\":\"infinity\"}";
   if (mpfr_zero_p(value)) {
     std::ostringstream zero_stream;
     zero_stream << "{\"significand_hex\":\"0\",\"exponent_2\":0,\"precision_bits\":"
@@ -284,11 +291,28 @@ struct JetMP {
   IntervalMP second;
 };
 
+bool finite_interval(const IntervalMP& input) {
+  return mpfr_number_p(input.lower.get()) && mpfr_number_p(input.upper.get())
+      && mpfr_lessequal_p(input.lower.get(), input.upper.get());
+}
+
+IntervalMP invalid_interval(mpfr_prec_t precision) {
+  IntervalMP result(precision);
+  mpfr_set_nan(result.lower.get());
+  mpfr_set_nan(result.upper.get());
+  return result;
+}
+
 constexpr std::uint64_t kResidentJetBufferMagic = 0x47523430304a4554ULL;
 
 struct ResidentJetBuffer {
   ResidentJetBuffer(mpfr_prec_t precision, std::vector<JetMP>&& values)
-      : magic(kResidentJetBufferMagic), precision(precision), values(std::move(values)) {}
+      : magic(kResidentJetBufferMagic), precision(precision), values(std::move(values)) {
+    for (const JetMP& value : this->values)
+      if (!finite_interval(value.value) || !finite_interval(value.first)
+          || !finite_interval(value.second))
+        throw std::runtime_error("NONFINITE_OR_INVALID_INTERVAL");
+  }
   std::uint64_t magic;
   mpfr_prec_t precision;
   std::vector<JetMP> values;
@@ -348,6 +372,9 @@ IntervalMP interval_neg(const IntervalMP& input) {
 }
 
 IntervalMP interval_mul(const IntervalMP& left, const IntervalMP& right) {
+  // A NaN candidate in a min/max loop can otherwise be silently discarded.
+  if (!finite_interval(left) || !finite_interval(right))
+    return invalid_interval(left.precision);
   IntervalMP result(left.precision);
   MpfrValue candidate(left.precision);
   bool initialized = false;
@@ -355,6 +382,7 @@ IntervalMP interval_mul(const IntervalMP& left, const IntervalMP& right) {
   mpfr_srcptr right_values[2] = {right.lower.get(), right.upper.get()};
   for (mpfr_srcptr a : left_values) for (mpfr_srcptr b : right_values) {
     counted_mul(candidate.get(), a, b, MPFR_RNDD);
+    if (!mpfr_number_p(candidate.get())) return invalid_interval(left.precision);
     if (!initialized || mpfr_less_p(candidate.get(), result.lower.get()))
       mpfr_set(result.lower.get(), candidate.get(), MPFR_RNDN);
     initialized = true;
@@ -362,6 +390,7 @@ IntervalMP interval_mul(const IntervalMP& left, const IntervalMP& right) {
   initialized = false;
   for (mpfr_srcptr a : left_values) for (mpfr_srcptr b : right_values) {
     counted_mul(candidate.get(), a, b, MPFR_RNDU);
+    if (!mpfr_number_p(candidate.get())) return invalid_interval(left.precision);
     if (!initialized || mpfr_greater_p(candidate.get(), result.upper.get()))
       mpfr_set(result.upper.get(), candidate.get(), MPFR_RNDN);
     initialized = true;
@@ -370,6 +399,7 @@ IntervalMP interval_mul(const IntervalMP& left, const IntervalMP& right) {
 }
 
 IntervalMP interval_square(const IntervalMP& input) {
+  if (!finite_interval(input)) return invalid_interval(input.precision);
   IntervalMP result(input.precision);
   MpfrValue lower_square(input.precision), upper_square(input.precision),
       lower_up(input.precision), upper_up(input.precision);
@@ -389,6 +419,7 @@ IntervalMP interval_square(const IntervalMP& input) {
 }
 
 IntervalMP interval_tanh(const IntervalMP& input) {
+  if (!finite_interval(input)) return invalid_interval(input.precision);
   IntervalMP result(input.precision);
   counted_tanh(result.lower.get(), input.lower.get(), MPFR_RNDD);
   counted_tanh(result.upper.get(), input.upper.get(), MPFR_RNDU);
@@ -420,6 +451,9 @@ IntervalMP interval_point_rational(unsigned long numerator, unsigned long denomi
 }
 
 IntervalMP interval_reciprocal(const IntervalMP& input) {
+  if (!finite_interval(input) ||
+      (mpfr_sgn(input.lower.get()) <= 0 && mpfr_sgn(input.upper.get()) >= 0))
+    return invalid_interval(input.precision);
   IntervalMP result(input.precision);
   MpfrValue one(input.precision), first(input.precision), second(input.precision);
   mpfr_set_ui(one.get(), 1U, MPFR_RNDN);
@@ -624,6 +658,109 @@ JetMP jet_scale_double(const JetMP& value, double scalar) {
   return jet_scale_interval(value, interval_point_double(scalar, value.value.precision));
 }
 
+// Bound exp(x) for x <= 0 without creating MPFR values with billion-bit
+// dyadic denominators.  For x <= -p, exp(x) <= 2^-p since e > 2.
+// This is an outward enclosure, never a replacement of a small value by zero.
+IntervalMP bounded_negative_exp(const IntervalMP& input) {
+  const mpfr_prec_t precision = input.precision;
+  if (!finite_interval(input) || mpfr_sgn(input.upper.get()) > 0)
+    return invalid_interval(precision);
+  IntervalMP result(precision);
+  if (mpfr_cmp_si(input.lower.get(), -precision) <= 0)
+    mpfr_set_zero(result.lower.get(), 0);
+  else
+    counted_exp(result.lower.get(), input.lower.get(), MPFR_RNDD);
+  if (mpfr_cmp_si(input.upper.get(), -precision) <= 0) {
+    mpfr_set_ui_2exp(result.upper.get(), 1U, -precision, MPFR_RNDU);
+  } else {
+    counted_exp(result.upper.get(), input.upper.get(), MPFR_RNDU);
+  }
+  return result;
+}
+
+// Evaluate 1/sum(exp(d_j)), including d_i = 0, using a constant max shift.
+// The d_j are exact outward-rounded endpoint differences.  At least one
+// shifted term is exactly exp(0), so the denominator is bounded away from 0.
+IntervalMP reciprocal_exp_sum(const std::vector<MpfrValue>& differences,
+                              mpfr_prec_t precision) {
+  MpfrValue shift(precision);
+  mpfr_set_zero(shift.get(), 0);
+  for (const auto& value : differences)
+    if (mpfr_greater_p(value.get(), shift.get()))
+      mpfr_set(shift.get(), value.get(), MPFR_RNDN);
+  IntervalMP negative_shift(precision);
+  mpfr_neg(negative_shift.lower.get(), shift.get(), MPFR_RNDN);
+  mpfr_set(negative_shift.upper.get(), negative_shift.lower.get(), MPFR_RNDN);
+  std::vector<JetMP> terms;
+  terms.reserve(differences.size());
+  for (const auto& value : differences) {
+    IntervalMP exponent(precision);
+    // Count subtraction in the same way as interval_add(a, -b).
+    counted_add(exponent.lower.get(), value.get(), negative_shift.lower.get(), MPFR_RNDD);
+    counted_add(exponent.upper.get(), value.get(), negative_shift.upper.get(), MPFR_RNDU);
+    terms.emplace_back(jet_constant(bounded_negative_exp(exponent)));
+  }
+  IntervalMP result = interval_mul(bounded_negative_exp(negative_shift),
+      interval_reciprocal(jet_pairwise_sum(terms).value));
+  if (finite_interval(result) && mpfr_cmp_ui(result.upper.get(), 1U) > 0)
+    mpfr_set_ui(result.upper.get(), 1U, MPFR_RNDN);
+  return result;
+}
+
+std::vector<JetMP> bounded_softmax_jets(const std::vector<JetMP>& scores) {
+  const mpfr_prec_t precision = scores[0].value.precision;
+  std::vector<JetMP> probabilities;
+  probabilities.reserve(scores.size());
+  for (std::size_t i = 0; i < scores.size(); ++i) {
+    std::vector<MpfrValue> lower_differences, upper_differences;
+    lower_differences.reserve(scores.size()); upper_differences.reserve(scores.size());
+    MpfrValue minus_lower(precision), minus_upper(precision);
+    mpfr_neg(minus_lower.get(), scores[i].value.lower.get(), MPFR_RNDN);
+    mpfr_neg(minus_upper.get(), scores[i].value.upper.get(), MPFR_RNDN);
+    for (std::size_t j = 0; j < scores.size(); ++j) {
+      lower_differences.emplace_back(precision); upper_differences.emplace_back(precision);
+      if (i == j) {
+        mpfr_set_zero(lower_differences.back().get(), 0);
+        mpfr_set_zero(upper_differences.back().get(), 0);
+      } else {
+        counted_add(lower_differences.back().get(), scores[j].value.lower.get(),
+                    minus_upper.get(), MPFR_RNDD);
+        counted_add(upper_differences.back().get(), scores[j].value.upper.get(),
+                    minus_lower.get(), MPFR_RNDU);
+      }
+    }
+    // Reciprocal exp-sum decreases in every difference.
+    IntervalMP lower = reciprocal_exp_sum(upper_differences, precision);
+    IntervalMP upper = reciprocal_exp_sum(lower_differences, precision);
+    IntervalMP probability(precision);
+    mpfr_set(probability.lower.get(), lower.lower.get(), MPFR_RNDN);
+    mpfr_set(probability.upper.get(), upper.upper.get(), MPFR_RNDN);
+    probabilities.emplace_back(jet_constant(probability));
+  }
+  std::vector<JetMP> mean_terms;
+  for (std::size_t j = 0; j < scores.size(); ++j)
+    mean_terms.emplace_back(jet_constant(interval_mul(probabilities[j].value, scores[j].first)));
+  IntervalMP mean = interval_clone(jet_pairwise_sum(mean_terms).value);
+  std::vector<IntervalMP> centered;
+  centered.reserve(scores.size());
+  for (std::size_t j = 0; j < scores.size(); ++j) {
+    centered.emplace_back(interval_add(scores[j].first, interval_neg(mean)));
+    probabilities[j].first = interval_mul(probabilities[j].value, centered.back());
+  }
+  std::vector<JetMP> mean_derivative_terms;
+  for (std::size_t j = 0; j < scores.size(); ++j)
+    mean_derivative_terms.emplace_back(jet_constant(interval_add(
+        interval_mul(probabilities[j].first, scores[j].first),
+        interval_mul(probabilities[j].value, scores[j].second))));
+  IntervalMP mean_derivative = interval_clone(jet_pairwise_sum(mean_derivative_terms).value);
+  for (std::size_t j = 0; j < scores.size(); ++j)
+    probabilities[j].second = interval_add(
+        interval_mul(probabilities[j].first, centered[j]),
+        interval_mul(probabilities[j].value,
+            interval_add(scores[j].second, interval_neg(mean_derivative))));
+  return probabilities;
+}
+
 std::vector<JetMP> attention_final_head(
     const std::vector<JetMP>& query, const std::vector<JetMP>& keys,
     const std::vector<JetMP>& values, std::uint32_t sequence_length,
@@ -639,20 +776,48 @@ std::vector<JetMP> attention_final_head(
       products.emplace_back(jet_mul(query[coordinate], keys[token * head_dim + coordinate]));
     scores.emplace_back(jet_scale_double(jet_pairwise_sum(products), scaling));
   }
+  // Preserve the legacy expression on ordinary domains.  Large differences
+  // use monotone softmax bounds and its exact derivative identities instead
+  // of exponentiating an unbounded interval around a frozen pivot.
+  bool needs_bounded_softmax = false;
+  for (const auto& score : scores) {
+    if (!finite_interval(score.value) || !finite_interval(score.first)
+        || !finite_interval(score.second)) {
+      std::vector<JetMP> invalid;
+      for (std::uint32_t i = 0; i < head_dim; ++i)
+        invalid.emplace_back(jet_constant(invalid_interval(precision)));
+      return invalid;
+    }
+  }
+  std::vector<JetMP> shifted_scores;
+  shifted_scores.reserve(sequence_length);
+  for (std::uint32_t token = 0; token < sequence_length; ++token) {
+    shifted_scores.emplace_back(token == pivot
+        ? jet_constant(interval_point_float(0.0f, precision))
+        : jet_sub(scores[token], scores[pivot]));
+    const IntervalMP& difference = shifted_scores.back().value;
+    if (mpfr_cmp_si(difference.lower.get(), -64) < 0
+        || mpfr_cmp_si(difference.upper.get(), 64) > 0)
+      needs_bounded_softmax = true;
+  }
+  std::vector<JetMP> weights;
+  if (needs_bounded_softmax) {
+    weights = bounded_softmax_jets(scores);
+  } else {
   std::vector<JetMP> exponentials;
   exponentials.reserve(sequence_length);
   for (std::uint32_t token = 0; token < sequence_length; ++token) {
     if (token == pivot) {
       exponentials.emplace_back(jet_constant(interval_point_float(1.0f, precision)));
     } else {
-      exponentials.emplace_back(jet_exp(jet_sub(scores[token], scores[pivot])));
+      exponentials.emplace_back(jet_exp(shifted_scores[token]));
     }
   }
   JetMP inverse_denominator = jet_reciprocal(jet_pairwise_sum(exponentials));
-  std::vector<JetMP> weights;
   weights.reserve(sequence_length);
   for (const JetMP& exponential : exponentials)
     weights.emplace_back(jet_mul(exponential, inverse_denominator));
+  }
   std::vector<JetMP> output;
   output.reserve(head_dim);
   for (std::uint32_t coordinate = 0; coordinate < head_dim; ++coordinate) {

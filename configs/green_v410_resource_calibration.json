@@ -1,5 +1,5 @@
 {
-  "schema_version": "green-v410-sfc-jwtec-resource-calibration-config-v1",
+  "schema_version": "green-v410-sfc-jwtec-resource-calibration-config-v2",
   "protocol_id": "GREEN-V410-SFC-JWTEC-20260830",
   "attempt_index": 1,
   "execution_scope": "outcome_blind_synthetic_only",
@@ -91,6 +91,8 @@
     "direction_wall_max_seconds": 85800,
     "guardband": "5/4"
   },
+  "graph_nodes_metric": "root_only_peak_live_dependent_scalar_outputs_v1",
+  "executor_semantics": "ssa_last_use_release_unpacked_native_resident_static_lineage_v2",
   "selection": "largest passing candidate",
   "real_artifact_access_allowed": false,
   "endpoint_material_allowed": false
